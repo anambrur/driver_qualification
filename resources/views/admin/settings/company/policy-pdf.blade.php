@@ -27,7 +27,7 @@
             </div>
         @endif
 
-        <form action="{{ route('admin.settings.company.store') }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('admin.settings.policy.pdf.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
             <!-- Display existing PDFs if any -->
@@ -266,13 +266,13 @@
                 zone.addEventListener('dragleave', function(e) {
                     e.preventDefault();
                     this.classList.remove('border-brand-500', 'bg-brand-50',
-                    'dark:bg-brand-900/10');
+                        'dark:bg-brand-900/10');
                 });
 
                 zone.addEventListener('drop', function(e) {
                     e.preventDefault();
                     this.classList.remove('border-brand-500', 'bg-brand-50',
-                    'dark:bg-brand-900/10');
+                        'dark:bg-brand-900/10');
 
                     const files = e.dataTransfer.files;
                     const input = this.querySelector('input[type="file"]');

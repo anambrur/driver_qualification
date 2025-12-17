@@ -7,13 +7,12 @@ use App\Models\Driver;
 use App\Models\Company;
 use App\Models\Country;
 use App\Models\Violation;
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\DriverDocument;
+use App\Models\PolicyPdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
@@ -237,7 +236,7 @@ class DriverController extends Controller
 
             // Create driver - FIXED: Use correct field name for medical certificate
             $driver = Driver::create([
-                'user_id' => auth()->id(),
+                'user_id' => Auth::user()->id,
                 'company_id' => $request->company_id,
                 'first_name' => $request->first_name,
                 'middle_name' => $request->middle_name,
@@ -1033,7 +1032,13 @@ class DriverController extends Controller
             $driver_document = new DriverDocument();
         }
 
-        return view('admin.driver.psp-driver-disclosure', compact('currentStep', 'driver_id', 'driver_document'));
+        $authUser = Auth::user()->load('company');
+        if (!$authUser) {
+            toastr()->error('Authenticated user not found.');
+            return redirect()->back();
+        }
+
+        return view('admin.driver.psp-driver-disclosure', compact('currentStep', 'driver_id', 'driver_document', 'authUser'));
     }
 
     public function pspStore(Request $request)
@@ -1112,7 +1117,13 @@ class DriverController extends Controller
             $driver_document = new DriverDocument();
         }
 
-        return view('admin.driver.general-consent', compact('currentStep', 'driver_id', 'driver_document', 'driver_name'));
+        $authUser = Auth::user()->load('company');
+        if (!$authUser) {
+            toastr()->error('Authenticated user not found.');
+            return redirect()->back();
+        }
+
+        return view('admin.driver.general-consent', compact('currentStep', 'driver_id', 'driver_document', 'driver_name', 'authUser'));
     }
 
     public function consentStore(Request $request)
@@ -1169,74 +1180,6 @@ class DriverController extends Controller
         }
     }
 
-    public function generalWorkPolicy($driver_id)
-    {
-        $currentStep = 10;
-
-        $driver = Driver::find($driver_id);
-        $driver_name = $driver ? $driver->first_name . ' ' . $driver->last_name : 'Applicant';
-
-        $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
-        if (!$driver_document) {
-            $driver_document = new DriverDocument();
-        }
-
-        $authUser = Auth::user()->load('company');
-        if (!$authUser) {
-            toastr()->error('Authenticated user not found.');
-            return redirect()->back();
-        }
-
-        return view('admin.driver.general-work-policy', compact('currentStep', 'driver_id', 'driver_document', 'driver_name', 'authUser'));
-    }
-
-    public function generalWorkPolicyStore(Request $request)
-    {
-        DB::beginTransaction();
-
-        try {
-            // Validate input
-            $validator = Validator::make($request->all(), [
-                'driver_id' => 'required|exists:drivers,id',
-                'employee_signature' => 'required|string|max:255',
-                'date_signed' => 'required|date',
-            ]);
-
-            if ($validator->fails()) {
-                DB::rollBack();
-                foreach ($validator->errors()->all() as $error) {
-                    toastr()->error($error);
-                }
-                return back()->withInput();
-            }
-
-            // Update or create driver document with FMCSA consent
-            DriverDocument::updateOrCreate(
-                [
-                    'driver_id' => $request->driver_id,
-                ],
-                [
-                    'general_work_policy_signature' => $request->employee_signature,
-                    'general_work_policy_date' => $request->date_signed,
-                ]
-            );
-
-
-            DB::commit();
-            toastr()->success('Alcohol & Drug Testing Policy saved successfully.');
-
-            // Redirect to next step (Alcohol & Drug Testing Policy)
-            return redirect()->route('admin.driver.fmcsa.consent', ['driver_id' => $request->driver_id]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error saving FMCSA consent: ' . $e->getMessage());
-            toastr()->error('An error occurred while saving the FMCSA consent. Please try again.');
-            return back()->withInput()->withErrors([
-                'error' => 'An unexpected error occurred. Please try again.'
-            ]);
-        }
-    }
-
     public function alcoholAndDrugTestPolicy($driver_id)
     {
         $currentStep = 9;
@@ -1255,7 +1198,12 @@ class DriverController extends Controller
             return redirect()->back();
         }
 
-        return view('admin.driver.alcohol-and-drug-test-policy', compact('currentStep', 'driver_id', 'driver_document', 'driver_name', 'authUser'));
+        $policyPdf = PolicyPdf::first();
+        if (!$policyPdf) {
+            $policyPdf = new PolicyPdf();
+        }
+
+        return view('admin.driver.alcohol-and-drug-test-policy', compact('currentStep', 'driver_id', 'driver_document', 'driver_name', 'authUser', 'policyPdf'));
     }
 
     public function alcoholAndDrugTestPolicyStore(Request $request)
@@ -1294,11 +1242,85 @@ class DriverController extends Controller
             toastr()->success('Alcohol & Drug Testing Policy saved successfully.');
 
             // Redirect to next step (Alcohol & Drug Testing Policy)
-            return redirect()->route('admin.driver.fmcsa.consent', ['driver_id' => $request->driver_id]);
+            return redirect()->route('admin.driver.general.work.policy', ['driver_id' => $request->driver_id]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error saving FMCSA consent: ' . $e->getMessage());
-            toastr()->error('An error occurred while saving the FMCSA consent. Please try again.');
+            Log::error('Error saving Alcohol & Drug Testing Policy: ' . $e->getMessage());
+            toastr()->error('An error occurred while saving the Alcohol & Drug Testing Policy. Please try again.');
+            return back()->withInput()->withErrors([
+                'error' => 'An unexpected error occurred. Please try again.'
+            ]);
+        }
+    }
+
+
+    public function generalWorkPolicy($driver_id)
+    {
+        $currentStep = 10;
+
+        $driver = Driver::find($driver_id);
+        $driver_name = $driver ? $driver->first_name . ' ' . $driver->last_name : 'Applicant';
+
+        $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
+        if (!$driver_document) {
+            $driver_document = new DriverDocument();
+        }
+
+        $authUser = Auth::user()->load('company');
+        if (!$authUser) {
+            toastr()->error('Authenticated user not found.');
+            return redirect()->back();
+        }
+
+        $policyPdf = PolicyPdf::first();
+        if (!$policyPdf) {
+            $policyPdf = new PolicyPdf();
+        }
+
+        return view('admin.driver.general-work-policy', compact('currentStep', 'driver_id', 'driver_document', 'driver_name', 'authUser', 'policyPdf'));
+    }
+
+    public function generalWorkPolicyStore(Request $request)
+    {
+        DB::beginTransaction();
+
+        try {
+            // Validate input
+            $validator = Validator::make($request->all(), [
+                'driver_id' => 'required|exists:drivers,id',
+                'employee_signature' => 'required|string|max:255',
+                'date_signed' => 'required|date',
+            ]);
+
+            if ($validator->fails()) {
+                DB::rollBack();
+                foreach ($validator->errors()->all() as $error) {
+                    toastr()->error($error);
+                }
+                return back()->withInput();
+            }
+
+            // Update or create driver document with FMCSA consent
+            DriverDocument::updateOrCreate(
+                [
+                    'driver_id' => $request->driver_id,
+                ],
+                [
+                    'general_work_policy_signature' => $request->employee_signature,
+                    'general_work_policy_date' => $request->date_signed,
+                ]
+            );
+
+
+            DB::commit();
+            toastr()->success('General Work Policy saved successfully.');
+
+            // Redirect to next step ()
+            return redirect()->route('admin.driver.index');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error saving General Work Policy: ' . $e->getMessage());
+            toastr()->error('An error occurred while saving the General Work Policy. Please try again.');
             return back()->withInput()->withErrors([
                 'error' => 'An unexpected error occurred. Please try again.'
             ]);

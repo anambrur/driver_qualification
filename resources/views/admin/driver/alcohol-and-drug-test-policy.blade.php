@@ -42,7 +42,7 @@
 
                                 <!-- Replace {{-- show pdf here --}} comment with: -->
                                 <div class="mb-6">
-                                    <iframe src="{{ asset('storage/companies/alcohol_drug_testing_policy.pdf') }}"
+                                    <iframe src="{{ asset('storage/'.$policyPdf->alcohol_drug_test_policy_pdf) }}"
                                         width="100%" height="600px"
                                         style="border: 1px solid #e5e7eb; border-radius: 0.5rem;"
                                         title="Alcohol & Drug Testing Policy PDF">

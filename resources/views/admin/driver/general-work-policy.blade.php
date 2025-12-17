@@ -11,7 +11,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div class="md:col-span-9">
-                <form action="{{ route('admin.driver.alcohol.and.drug.test.policy.store') }}" method="POST">
+                <form action="{{ route('admin.driver.general.work.policy.store') }}" method="POST">
                     @csrf
                     <input type="hidden" name="driver_id" value="{{ $driver_id }}">
                     <input type="hidden" name="consent_type" value="multiple_unlimited">
@@ -42,7 +42,7 @@
 
                                 <!-- Replace {{-- show pdf here --}} comment with: -->
                                 <div class="mb-6">
-                                    <iframe src="{{ asset('storage/companies/alcohol_drug_testing_policy.pdf') }}"
+                                    <iframe src="{{ asset('storage/' . $policyPdf->general_work_policy_pdf) }}"
                                         width="100%" height="600px"
                                         style="border: 1px solid #e5e7eb; border-radius: 0.5rem;"
                                         title="Alcohol & Drug Testing Policy PDF">

@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use Exception;
 use App\Models\User;
 use App\Models\Company;
+use App\Models\PolicyPdf;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Yajra\DataTables\Facades\DataTables;
@@ -334,25 +336,122 @@ class CompanyController extends Controller
         $validator = Validator::make($request->all(), [
             'alcohol_drug_test_policy_pdf' => 'nullable|file|mimes:pdf|max:10240', // 10MB
             'general_work_policy_pdf' => 'nullable|file|mimes:pdf|max:10240',
+        ], [
+            'alcohol_drug_test_policy_pdf.mimes' => 'The alcohol & drug test policy must be a PDF file.',
+            'alcohol_drug_test_policy_pdf.max' => 'The alcohol & drug test policy PDF must not exceed 10MB.',
+            'general_work_policy_pdf.mimes' => 'The general work policy must be a PDF file.',
+            'general_work_policy_pdf.max' => 'The general work policy PDF must not exceed 10MB.',
         ]);
-    
 
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
-            return back()->withInput();
+            return back()->withInput()->withErrors($validator);
         }
 
-        $pdfFile = $request->file('pdf');
-        $pdfName = time() . '.' . $pdfFile->getClientOriginalExtension();
-        $pdfPath = $pdfFile->storeAs('companies/policies', $pdfName, 'public');
+        try {
+            // Check if at least one file was uploaded
+            if (!$request->hasFile('alcohol_drug_test_policy_pdf') && !$request->hasFile('general_work_policy_pdf')) {
+                toastr()->warning('Please select at least one PDF file to upload.');
+                return back()->withInput();
+            }
 
-        $company = Company::first();
-        $company->policy_pdf = $pdfPath;
-        $company->save();
+            $alcoholPdfPath = null;
+            $generalPdfPath = null;
 
-        toastr()->success('Policy PDF updated successfully!');
-        return redirect()->route('admin.settings.company');
+            // Define storage path
+            $storagePath = 'policy_pdfs';
+
+            // Ensure directory exists
+            $fullPath = storage_path('app/public/' . $storagePath);
+            if (!File::exists($fullPath)) {
+                File::makeDirectory($fullPath, 0755, true, true);
+            }
+
+            // Handle Alcohol & Drug Test Policy PDF
+            if ($request->hasFile('alcohol_drug_test_policy_pdf')) {
+                $alcoholPdfFile = $request->file('alcohol_drug_test_policy_pdf');
+
+                // Generate a safe filename
+                $originalName = pathinfo($alcoholPdfFile->getClientOriginalName(), PATHINFO_FILENAME);
+                $safeName = Str::slug($originalName);
+                $alcoholPdfName = time() . '_alcohol_drug_policy_' . $safeName . '.' . $alcoholPdfFile->getClientOriginalExtension();
+
+                // Store file
+                $alcoholPdfPath = $alcoholPdfFile->storeAs($storagePath, $alcoholPdfName, 'public');
+            }
+
+            // Handle General Work Policy PDF
+            if ($request->hasFile('general_work_policy_pdf')) {
+                $generalPdfFile = $request->file('general_work_policy_pdf');
+
+                // Generate a safe filename
+                $originalName = pathinfo($generalPdfFile->getClientOriginalName(), PATHINFO_FILENAME);
+                $safeName = Str::slug($originalName);
+                $generalPdfName = time() . '_general_work_policy_' . $safeName . '.' . $generalPdfFile->getClientOriginalExtension();
+
+                // Store file
+                $generalPdfPath = $generalPdfFile->storeAs($storagePath, $generalPdfName, 'public');
+            }
+
+            // Create or update policy PDF record
+            $policyPdf = PolicyPdf::first();
+
+            if (!$policyPdf) {
+                // Create first record if none exists
+                $policyPdf = PolicyPdf::create([
+                    'alcohol_drug_test_policy_pdf' => $alcoholPdfPath,
+                    'general_work_policy_pdf' => $generalPdfPath,
+                ]);
+            } else {
+                // Delete old files before updating database
+                if ($request->hasFile('alcohol_drug_test_policy_pdf') && $policyPdf->alcohol_drug_test_policy_pdf) {
+                    $oldPath = storage_path('app/public/' . $policyPdf->alcohol_drug_test_policy_pdf);
+                    if (File::exists($oldPath)) {
+                        File::delete($oldPath);
+                    }
+                }
+
+                if ($request->hasFile('general_work_policy_pdf') && $policyPdf->general_work_policy_pdf) {
+                    $oldPath = storage_path('app/public/' . $policyPdf->general_work_policy_pdf);
+                    if (File::exists($oldPath)) {
+                        File::delete($oldPath);
+                    }
+                }
+
+                // Update only the fields that have new files
+                $updateData = [];
+                if ($request->hasFile('alcohol_drug_test_policy_pdf')) {
+                    $updateData['alcohol_drug_test_policy_pdf'] = $alcoholPdfPath;
+                }
+                if ($request->hasFile('general_work_policy_pdf')) {
+                    $updateData['general_work_policy_pdf'] = $generalPdfPath;
+                }
+
+                $policyPdf->update($updateData);
+            }
+
+            // Prepare success message based on what was uploaded
+            $message = '';
+            if ($request->hasFile('alcohol_drug_test_policy_pdf') && $request->hasFile('general_work_policy_pdf')) {
+                $message = 'Both policy PDFs uploaded successfully!';
+            } elseif ($request->hasFile('alcohol_drug_test_policy_pdf')) {
+                $message = 'Alcohol & Drug Test Policy PDF uploaded successfully!';
+            } else {
+                $message = 'General Work Policy PDF uploaded successfully!';
+            }
+
+            toastr()->success($message);
+            return redirect()->route('admin.settings.company');
+        } catch (\Exception $e) {
+            Log::error('Policy PDF Upload Error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'request_data' => $request->except(['alcohol_drug_test_policy_pdf', 'general_work_policy_pdf'])
+            ]);
+
+            toastr()->error('An error occurred while uploading the PDF files. Please try again.');
+            return back()->withInput()->withErrors(['system_error' => 'Upload failed: ' . $e->getMessage()]);
+        }
     }
 }

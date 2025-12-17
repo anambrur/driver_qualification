@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('policy_pdfs', function (Blueprint $table) {
             $table->id();
+            $table->string('alcohol_drug_test_policy_pdf')->nullable();
+            $table->string('general_work_policy_pdf')->nullable();
             $table->timestamps();
         });
     }

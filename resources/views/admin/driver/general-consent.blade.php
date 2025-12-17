@@ -28,14 +28,14 @@
                                 <!-- Main Consent Statement -->
                                 <div class="p-6 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/10 dark:border-blue-800 mb-6">
                                     <p class="text-lg text-gray-800 dark:text-white/90 mb-4">
-                                        I, <span class="font-bold">{{ $driver_name ?? 'Applicant' }}</span>, hereby provide consent to <span class="font-bold">SKYROS LOGISTICS INC</span> to conduct a limited query of the FMCSA Commercial Driver's License Drug and Alcohol Clearinghouse (Clearinghouse) to determine whether drug or alcohol violation information about me exists in the Clearinghouse.
+                                        I, <span class="font-bold">{{ $driver_name ?? 'Applicant' }}</span>, hereby provide consent to <span class="font-bold">{{ $authUser->name }}</span> to conduct a limited query of the FMCSA Commercial Driver's License Drug and Alcohol Clearinghouse (Clearinghouse) to determine whether drug or alcohol violation information about me exists in the Clearinghouse.
                                     </p>
                                     
                                     <!-- Multiple Unlimited Queries Declaration -->
                                     <div class="mt-4 p-4 bg-white border border-blue-100 rounded-lg dark:bg-gray-900 dark:border-blue-800">
                                         <p class="text-md font-semibold text-gray-800 dark:text-white/90">
                                             <i class="fas fa-check-circle text-green-500 mr-2"></i>
-                                            I am consenting to multiple unlimited queries and for the duration of employment with SKYROS LOGISTICS INC.
+                                            I am consenting to multiple unlimited queries and for the duration of employment with {{ $authUser->name }}.
                                         </p>
                                     </div>
                                 </div>
@@ -50,7 +50,7 @@
                                             <div>
                                                 <h4 class="text-sm font-semibold text-yellow-800 dark:text-yellow-300 mb-1">Important Information About Limited Queries:</h4>
                                                 <p class="text-sm text-yellow-700 dark:text-yellow-400">
-                                                    I understand that if the limited query conducted by SKYROS LOGISTICS INC indicates that drug or alcohol violation information about me exists in the Clearinghouse, FMCSA will not disclose that information to SKYROS LOGISTICS INC without first obtaining additional specific consent from me.
+                                                    I understand that if the limited query conducted by {{ $authUser->name }} indicates that drug or alcohol violation information about me exists in the Clearinghouse, FMCSA will not disclose that information to {{ $authUser->name }} without first obtaining additional specific consent from me.
                                                 </p>
                                             </div>
                                         </div>
@@ -64,7 +64,7 @@
                                             <div>
                                                 <h4 class="text-sm font-semibold text-red-800 dark:text-red-300 mb-1">Consequences of Refusing Consent:</h4>
                                                 <p class="text-sm text-red-700 dark:text-red-400">
-                                                    I further understand that if I refuse to provide consent for SKYROS LOGISTICS INC to conduct a limited query of the Clearinghouse, SKYROS LOGISTICS INC must prohibit me from performing safety-sensitive functions, including driving a commercial motor vehicle, as required by FMCSA's drug and alcohol program regulations.
+                                                    I further understand that if I refuse to provide consent for {{ $authUser->name }} to conduct a limited query of the Clearinghouse, {{ $authUser->name }} must prohibit me from performing safety-sensitive functions, including driving a commercial motor vehicle, as required by FMCSA's drug and alcohol program regulations.
                                                 </p>
                                             </div>
                                         </div>
@@ -77,7 +77,7 @@
                                         <input type="checkbox" name="consent_agreement" value="1" required
                                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 rounded focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 mt-1" />
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                                            I have read and understand the above consent statements. I voluntarily provide my consent for SKYROS LOGISTICS INC to conduct multiple unlimited queries of the FMCSA Drug and Alcohol Clearinghouse for the duration of my employment.
+                                            I have read and understand the above consent statements. I voluntarily provide my consent for {{ $authUser->name }} to conduct multiple unlimited queries of the FMCSA Drug and Alcohol Clearinghouse for the duration of my employment.
                                         </span>
                                     </label>
                                 </div>

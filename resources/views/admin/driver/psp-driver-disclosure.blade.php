@@ -25,7 +25,7 @@
                         <div class="p-5 sm:p-6">
                             <div class="mb-6 space-y-4">
                                 <p class="text-sm text-gray-700 dark:text-gray-300">
-                                    In connection with your application for employment with <strong>SKYROS LOGISTICS INC
+                                    In connection with your application for employment with <strong>{{ $authUser->name }}
                                         ("Prospective Employer")</strong>, Prospective Employer, its employees, agents or
                                     contractors may obtain one or more reports regarding your driving, and safety inspection
                                     history from the Federal Motor Carrier Safety Administration (FMCSA).
@@ -127,7 +127,8 @@
                             <div class="mb-6 space-y-4">
                                 <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
                                     <p class="text-sm text-gray-700 dark:text-gray-300">
-                                        I authorize <strong>SKYROS LOGISTICS INC ("Prospective Employer")</strong> to access
+                                        I authorize <strong>{{ $authUser->name }} ("Prospective Employer")</strong> to
+                                        access
                                         the FMCSA Pre-Employment Screening Program (PSP) system to seek information
                                         regarding my commercial driving safety record and information regarding my safety
                                         inspection history. I understand that I am authorizing the release of safety
@@ -264,6 +265,8 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+
+            const employerName = @json($authUser->name);
             // Form validation
             const form = document.querySelector('form');
             if (form) {
@@ -298,8 +301,8 @@
 
                     // Confirm authorization
                     const confirmation = confirm(
-                        'By submitting this form, you authorize SKYROS LOGISTICS INC to access your PSP report from FMCSA. Do you wish to proceed?'
-                        );
+                        `By submitting this form, you authorize ${employerName} to access your PSP report from FMCSA. Do you wish to proceed?`
+                    );
                     if (!confirmation) {
                         e.preventDefault();
                         return false;
