@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('alt_phone')->nullable();
             $table->string('email');
             $table->date('medical_certificate_expiration_date')->nullable();
+            $table->text('photo')->nullable();
 
             // Business Information
             $table->string('business_name')->nullable();
@@ -49,8 +50,29 @@ return new class extends Migration
 
 
             // Status
-            $table->enum('status', ['draft', 'submitted', 'under_review', 'approved', 'rejected'])->default('draft');
+            $table->enum('status', ['draft', 'active', 'inactive', 'pending', 'submitted', 'under_review', 'approved', 'rejected'])->default('draft');
 
+
+            $table->enum('hazmat', ['yes', 'no'])->nullable();
+            $table->enum('lcv_certificate', ['yes', 'no'])->nullable();
+
+            // Add fields for rejection details
+            $table->enum('rejection_reason', [
+                'not_good_fit',
+                'failed_drug_test',
+                'background_check_issues',
+                'cdl_issues',
+                'mvr_issues',
+                'psp_issues',
+                'other'
+            ])->nullable();
+            $table->text('rejection_notes')->nullable();
+            $table->date('rejection_date')->nullable();
+
+            // Optional: Add timestamps for hire actions
+            $table->timestamp('hired_at')->nullable();
+            $table->timestamp('rejected_at')->nullable();
+            $table->foreignId('action_by')->nullable()->constrained('users')->after('rejected_at');
 
             $table->timestamps();
 

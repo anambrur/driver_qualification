@@ -187,6 +187,18 @@
                                             </a>
                                         </li>
                                     @endcan
+
+
+                                    @can('roles.view')
+                                        <li>
+                                            <a href="{{ route('admin.roles.index') }}" class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/roles') && !isCurrentPath(
+                                                        'admin/roles') ? 'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Roles
+                                            </a>
+                                        </li>
+                                    @endcan
                                 </ul>
                             </div>
                         </li>

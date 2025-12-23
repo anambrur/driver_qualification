@@ -4,8 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Company;
-use App\Models\Department;
-use App\Models\Designation;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
@@ -21,6 +19,8 @@ class PermissionSeeder extends Seeder
      */
     public function run(): void
     {
+
+        // php artisan db:seed --class=PermissionSeeder
         // Reset cached roles and permissions
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
@@ -32,6 +32,7 @@ class PermissionSeeder extends Seeder
         Permission::truncate();
         Role::truncate();
         User::truncate();
+        Company::truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         // Define the modules
@@ -50,7 +51,7 @@ class PermissionSeeder extends Seeder
 
         // Define special actions for specific modules
         $specialActions = [
-            // 'leaves' => ['view_all', 'create_all', 'edit_all', 'delete_all', 'approve', 'remaining'],
+            'drivers' => ['hire'],
 
         ];
 

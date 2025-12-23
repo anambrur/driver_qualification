@@ -3,817 +3,539 @@
 @section('title', 'Driver Management')
 
 @section('content')
-
-    <div class="mx-auto max-w-(--breakpoint-2xl) p-4 pb-20 md:p-6 md:pb-6">
+    <div class="mx-auto max-w-7xl p-4 pb-20 md:p-6 md:pb-6">
         <div class="space-y-5 sm:space-y-6">
-
-            <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <!-- Header Card -->
+            <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="px-5 py-4 sm:px-6 sm:py-5">
-                    <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
-                        Datatable 2
-                    </h3>
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                                Driver Management
+                            </h3>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                Manage and monitor your drivers
+                            </p>
+                        </div>
+
+                        <!-- Add Driver Button -->
+                        <a href="{{ route('admin.driver.create') }}"
+                            class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:bg-brand-500 dark:hover:bg-brand-600">
+                            <i class="fas fa-plus mr-2 text-xs"></i>
+                            Add Driver
+                        </a>
+                    </div>
                 </div>
-                <div class="border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
-                    <!-- DataTable Two -->
-                    <div x-data="dataTableTwo()"
-                        class="overflow-hidden rounded-xl border border-gray-200 bg-white pt-4 dark:border-gray-800 dark:bg-white/[0.03]">
-                        <div class="mb-4 flex flex-col gap-2 px-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div class="flex items-center gap-3">
-                                <span class="text-gray-500 dark:text-gray-400"> Show </span>
-                                <div x-data="{ isOptionSelected: false }" class="relative z-20 bg-transparent">
-                                    <select
-                                        class="dark:bg-dark-900 h-9 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none py-2 pl-3 pr-8 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
-                                        :class="isOptionSelected & amp; & amp;
-                                        'text-gray-500 dark:text-gray-400'"
-                                        @click="isOptionSelected = true" @change="perPage = $event.target.value">
-                                        <option value="10" class="text-gray-500 dark:bg-gray-900 dark:text-gray-400">
-                                            10
-                                        </option>
-                                        <option value="8" class="text-gray-500 dark:bg-gray-900 dark:text-gray-400">
-                                            8
-                                        </option>
-                                        <option value="5" class="text-gray-500 dark:bg-gray-900 dark:text-gray-400">
-                                            5
-                                        </option>
-                                    </select>
-                                    <span
-                                        class="absolute right-2 top-1/2 z-30 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                                        <svg class="stroke-current" width="16" height="16" viewBox="0 0 16 16"
-                                            fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M3.8335 5.9165L8.00016 10.0832L12.1668 5.9165" stroke=""
-                                                stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path>
-                                        </svg>
-                                    </span>
-                                </div>
-                                <span class="text-gray-500 dark:text-gray-400"> entries </span>
-                            </div>
+            </div>
 
+            <!-- DataTable Card -->
+            <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
+                <div class="p-5 sm:p-6">
+                    <!-- Search Box -->
+                    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div class="w-full sm:w-auto sm:max-w-sm">
                             <div class="relative">
-                                <button class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                                    <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20"
-                                        fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path fill-rule="evenodd" clip-rule="evenodd"
-                                            d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z"
-                                            fill=""></path>
+                                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
-                                </button>
+                                </div>
+                                <input type="search" id="driver-search" placeholder="Search drivers by name, company, etc..."
+                                    class="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 shadow-theme-xs placeholder:text-gray-500 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-brand-500">
+                            </div>
+                        </div>
+                        
+                        <!-- Mobile View Toggle -->
+                        <div class="flex items-center gap-2 sm:hidden">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">View:</span>
+                            <button id="toggle-view" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                                <i class="fas fa-list mr-2"></i>Table
+                            </button>
+                        </div>
+                    </div>
 
-                                <input type="text" x-model="search" placeholder="Search..."
-                                    class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pl-11 pr-4 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 xl:w-[300px]">
+                    <!-- DataTable Container -->
+                    <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+                        <!-- Desktop Table View -->
+                        <div id="desktop-table-view">
+                            <div class="overflow-x-auto">
+                                <table id="drivers-table" class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                                    <thead class="bg-gray-50 dark:bg-gray-800/50">
+                                        <tr>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                #
+                                            </th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                Full Name
+                                            </th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                Status
+                                            </th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                State
+                                            </th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                License Exp.
+                                            </th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                Medical Exp.
+                                            </th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                Hire Date
+                                            </th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                Actions
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-gray-900/50">
+                                        <!-- Data will be loaded by DataTables -->
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
 
-                        <div class="max-w-full overflow-x-auto">
-                            <div class="min-w-[1102px]">
-                                <!-- table header start -->
-                                <div class="grid grid-cols-12 border-t border-gray-200 dark:border-gray-800">
-                                    <div
-                                        class="col-span-2 flex items-center border-r border-gray-200 px-4 py-3 dark:border-gray-800">
-                                        <div class="flex w-full cursor-pointer items-center justify-between"
-                                            @click="sortBy('user')">
-                                            <p class="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
-                                                User
-                                            </p>
-
-                                            <span class="flex flex-col gap-0.5">
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8" height="5"
-                                                    viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z"
-                                                        fill=""></path>
-                                                </svg>
-
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8" height="5"
-                                                    viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z"
-                                                        fill=""></path>
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="col-span-2 flex items-center border-r border-gray-200 px-4 py-3 dark:border-gray-800">
-                                        <div class="flex w-full cursor-pointer items-center justify-between"
-                                            @click="sortBy('position')">
-                                            <p class="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
-                                                Position
-                                            </p>
-
-                                            <span class="flex flex-col gap-0.5">
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8" height="5"
-                                                    viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z"
-                                                        fill=""></path>
-                                                </svg>
-
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8" height="5"
-                                                    viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z"
-                                                        fill=""></path>
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="col-span-2 flex items-center border-r border-gray-200 px-4 py-3 dark:border-gray-800">
-                                        <div class="flex w-full cursor-pointer items-center justify-between"
-                                            @click="sortBy('office')">
-                                            <p class="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
-                                                Office
-                                            </p>
-
-                                            <span class="flex flex-col gap-0.5">
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8" height="5"
-                                                    viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z"
-                                                        fill=""></path>
-                                                </svg>
-
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8"
-                                                    height="5" viewBox="0 0 8 5" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z"
-                                                        fill=""></path>
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="col-span-1 flex items-center border-r border-gray-200 px-4 py-3 dark:border-gray-800">
-                                        <div class="flex w-full cursor-pointer items-center justify-between"
-                                            @click="sortBy('age')">
-                                            <p class="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
-                                                Age
-                                            </p>
-
-                                            <span class="flex flex-col gap-0.5">
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8"
-                                                    height="5" viewBox="0 0 8 5" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z"
-                                                        fill=""></path>
-                                                </svg>
-
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8"
-                                                    height="5" viewBox="0 0 8 5" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z"
-                                                        fill=""></path>
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="col-span-2 flex items-center border-r border-gray-200 px-4 py-3 dark:border-gray-800">
-                                        <div class="flex w-full cursor-pointer items-center justify-between"
-                                            @click="sortBy('startDate')">
-                                            <p class="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
-                                                Start date
-                                            </p>
-
-                                            <span class="flex flex-col gap-0.5">
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8"
-                                                    height="5" viewBox="0 0 8 5" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z"
-                                                        fill=""></path>
-                                                </svg>
-
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8"
-                                                    height="5" viewBox="0 0 8 5" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z"
-                                                        fill=""></path>
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="col-span-2 flex items-center border-r border-gray-200 px-4 py-3 dark:border-gray-800">
-                                        <div class="flex w-full cursor-pointer items-center justify-between"
-                                            @click="sortBy('salary')">
-                                            <p class="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
-                                                Salary
-                                            </p>
-
-                                            <span class="flex flex-col gap-0.5">
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8"
-                                                    height="5" viewBox="0 0 8 5" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z"
-                                                        fill=""></path>
-                                                </svg>
-
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8"
-                                                    height="5" viewBox="0 0 8 5" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z"
-                                                        fill=""></path>
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="col-span-1 flex items-center border-r border-gray-200 px-4 py-3 dark:border-gray-800">
-                                        <div class="flex w-full cursor-pointer items-center justify-between">
-                                            <p class="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
-                                                Action
-                                            </p>
-
-                                            <span class="flex flex-col gap-0.5">
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8"
-                                                    height="5" viewBox="0 0 8 5" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z"
-                                                        fill=""></path>
-                                                </svg>
-
-                                                <svg class="fill-gray-300 dark:fill-gray-700" width="8"
-                                                    height="5" viewBox="0 0 8 5" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z"
-                                                        fill=""></path>
-                                                </svg>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- table header end -->
-
-                                <!-- table body start -->
-                                <template x-for="person in paginatedData" :key="person.id">
-                                    <!-- table item -->
-                                    <div class="grid grid-cols-12 border-t border-gray-100 dark:border-gray-800">
-                                        <div
-                                            class="col-span-2 flex items-center border-r border-gray-100 px-4 py-[17.5px] dark:border-gray-800">
-                                            <p class="block text-theme-sm font-medium text-gray-800 dark:text-white/90"
-                                                x-text="person.name">
-                                                Lindsey Curtis
-                                            </p>
-                                        </div>
-                                        <div
-                                            class="col-span-2 flex items-center border-r border-gray-100 px-4 py-[17.5px] dark:border-gray-800">
-                                            <p class="text-theme-sm text-gray-700 dark:text-gray-400"
-                                                x-text="person.position">
-                                            </p>
-                                        </div>
-                                        <div
-                                            class="col-span-2 flex items-center border-r border-gray-100 px-4 py-[17.5px] dark:border-gray-800">
-                                            <p class="text-theme-sm text-gray-700 dark:text-gray-400"
-                                                x-text="person.office">
-                                            </p>
-                                        </div>
-                                        <div
-                                            class="col-span-1 flex items-center border-r border-gray-100 px-4 py-[17.5px] dark:border-gray-800">
-                                            <p class="text-theme-sm text-gray-700 dark:text-gray-400" x-text="person.age">
-                                            </p>
-                                        </div>
-                                        <div
-                                            class="col-span-2 flex items-center border-r border-gray-100 px-4 py-[17.5px] dark:border-gray-800">
-                                            <p class="text-theme-sm text-gray-700 dark:text-gray-400"
-                                                x-text="person.startDate">
-                                            </p>
-                                        </div>
-                                        <div
-                                            class="col-span-2 flex items-center border-r border-gray-100 px-4 py-[17.5px] dark:border-gray-800">
-                                            <p class="text-theme-sm text-gray-700 dark:text-gray-400"
-                                                x-text="person.salary">
-                                            </p>
-                                        </div>
-                                        <div class="col-span-1 flex items-center px-4 py-[17.5px]">
-                                            <div class="flex w-full items-center gap-2">
-                                                <button
-                                                    class="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500">
-                                                    <svg class="fill-current" width="21" height="21"
-                                                        viewBox="0 0 21 21" fill="none"
-                                                        xmlns="http://www.w3.org/2000/svg">
-                                                        <path fill-rule="evenodd" clip-rule="evenodd"
-                                                            d="M7.04142 4.29199C7.04142 3.04935 8.04878 2.04199 9.29142 2.04199H11.7081C12.9507 2.04199 13.9581 3.04935 13.9581 4.29199V4.54199H16.1252H17.166C17.5802 4.54199 17.916 4.87778 17.916 5.29199C17.916 5.70621 17.5802 6.04199 17.166 6.04199H16.8752V8.74687V13.7469V16.7087C16.8752 17.9513 15.8678 18.9587 14.6252 18.9587H6.37516C5.13252 18.9587 4.12516 17.9513 4.12516 16.7087V13.7469V8.74687V6.04199H3.8335C3.41928 6.04199 3.0835 5.70621 3.0835 5.29199C3.0835 4.87778 3.41928 4.54199 3.8335 4.54199H4.87516H7.04142V4.29199ZM15.3752 13.7469V8.74687V6.04199H13.9581H13.2081H7.79142H7.04142H5.62516V8.74687V13.7469V16.7087C5.62516 17.1229 5.96095 17.4587 6.37516 17.4587H14.6252C15.0394 17.4587 15.3752 17.1229 15.3752 16.7087V13.7469ZM8.54142 4.54199H12.4581V4.29199C12.4581 3.87778 12.1223 3.54199 11.7081 3.54199H9.29142C8.87721 3.54199 8.54142 3.87778 8.54142 4.29199V4.54199ZM8.8335 8.50033C9.24771 8.50033 9.5835 8.83611 9.5835 9.25033V14.2503C9.5835 14.6645 9.24771 15.0003 8.8335 15.0003C8.41928 15.0003 8.0835 14.6645 8.0835 14.2503V9.25033C8.0835 8.83611 8.41928 8.50033 8.8335 8.50033ZM12.9168 9.25033C12.9168 8.83611 12.581 8.50033 12.1668 8.50033C11.7526 8.50033 11.4168 8.83611 11.4168 9.25033V14.2503C11.4168 14.6645 11.7526 15.0003 12.1668 15.0003C12.581 15.0003 12.9168 14.6645 12.9168 14.2503V9.25033Z"
-                                                            fill=""></path>
-                                                    </svg>
-                                                </button>
-
-                                                <button
-                                                    class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90">
-                                                    <svg class="fill-current" width="21" height="21"
-                                                        viewBox="0 0 21 21" fill="none"
-                                                        xmlns="http://www.w3.org/2000/svg">
-                                                        <path fill-rule="evenodd" clip-rule="evenodd"
-                                                            d="M17.0911 3.53206C16.2124 2.65338 14.7878 2.65338 13.9091 3.53206L5.6074 11.8337C5.29899 12.1421 5.08687 12.5335 4.99684 12.9603L4.26177 16.445C4.20943 16.6931 4.286 16.9508 4.46529 17.1301C4.64458 17.3094 4.90232 17.3859 5.15042 17.3336L8.63507 16.5985C9.06184 16.5085 9.45324 16.2964 9.76165 15.988L18.0633 7.68631C18.942 6.80763 18.942 5.38301 18.0633 4.50433L17.0911 3.53206ZM14.9697 4.59272C15.2626 4.29982 15.7375 4.29982 16.0304 4.59272L17.0027 5.56499C17.2956 5.85788 17.2956 6.33276 17.0027 6.62565L16.1043 7.52402L14.0714 5.49109L14.9697 4.59272ZM13.0107 6.55175L6.66806 12.8944C6.56526 12.9972 6.49455 13.1277 6.46454 13.2699L5.96704 15.6283L8.32547 15.1308C8.46772 15.1008 8.59819 15.0301 8.70099 14.9273L15.0436 8.58468L13.0107 6.55175Z"
-                                                            fill=""></path>
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
-                                <div class="grid grid-cols-12 border-t border-gray-100 dark:border-gray-800">
-                                    <div
-                                        class="col-span-2 flex items-center border-r border-gray-100 px-4 py-[17.5px] dark:border-gray-800">
-                                        <p class="block text-theme-sm font-medium text-gray-800 dark:text-white/90"
-                                            x-text="person.name">Abram Schleifer</p>
-                                    </div>
-                                    <div
-                                        class="col-span-2 flex items-center border-r border-gray-100 px-4 py-[17.5px] dark:border-gray-800">
-                                        <p class="text-theme-sm text-gray-700 dark:text-gray-400"
-                                            x-text="person.position">
-                                            Sales
-                                            Assistant</p>
-                                    </div>
-                                    <div
-                                        class="col-span-2 flex items-center border-r border-gray-100 px-4 py-[17.5px] dark:border-gray-800">
-                                        <p class="text-theme-sm text-gray-700 dark:text-gray-400" x-text="person.office">
-                                            Edinburgh
-                                        </p>
-                                    </div>
-                                    <div
-                                        class="col-span-1 flex items-center border-r border-gray-100 px-4 py-[17.5px] dark:border-gray-800">
-                                        <p class="text-theme-sm text-gray-700 dark:text-gray-400" x-text="person.age">57
-                                        </p>
-                                    </div>
-                                    <div
-                                        class="col-span-2 flex items-center border-r border-gray-100 px-4 py-[17.5px] dark:border-gray-800">
-                                        <p class="text-theme-sm text-gray-700 dark:text-gray-400"
-                                            x-text="person.startDate">25
-                                            Apr, 2027</p>
-                                    </div>
-                                    <div
-                                        class="col-span-2 flex items-center border-r border-gray-100 px-4 py-[17.5px] dark:border-gray-800">
-                                        <p class="text-theme-sm text-gray-700 dark:text-gray-400" x-text="person.salary">
-                                            $89,500
-                                        </p>
-                                    </div>
-                                    <div class="col-span-1 flex items-center px-4 py-[17.5px]">
-                                        <div class="flex w-full items-center gap-2">
-                                            <button
-                                                class="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500">
-                                                <svg class="fill-current" width="21" height="21"
-                                                    viewBox="0 0 21 21" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path fill-rule="evenodd" clip-rule="evenodd"
-                                                        d="M7.04142 4.29199C7.04142 3.04935 8.04878 2.04199 9.29142 2.04199H11.7081C12.9507 2.04199 13.9581 3.04935 13.9581 4.29199V4.54199H16.1252H17.166C17.5802 4.54199 17.916 4.87778 17.916 5.29199C17.916 5.70621 17.5802 6.04199 17.166 6.04199H16.8752V8.74687V13.7469V16.7087C16.8752 17.9513 15.8678 18.9587 14.6252 18.9587H6.37516C5.13252 18.9587 4.12516 17.9513 4.12516 16.7087V13.7469V8.74687V6.04199H3.8335C3.41928 6.04199 3.0835 5.70621 3.0835 5.29199C3.0835 4.87778 3.41928 4.54199 3.8335 4.54199H4.87516H7.04142V4.29199ZM15.3752 13.7469V8.74687V6.04199H13.9581H13.2081H7.79142H7.04142H5.62516V8.74687V13.7469V16.7087C5.62516 17.1229 5.96095 17.4587 6.37516 17.4587H14.6252C15.0394 17.4587 15.3752 17.1229 15.3752 16.7087V13.7469ZM8.54142 4.54199H12.4581V4.29199C12.4581 3.87778 12.1223 3.54199 11.7081 3.54199H9.29142C8.87721 3.54199 8.54142 3.87778 8.54142 4.29199V4.54199ZM8.8335 8.50033C9.24771 8.50033 9.5835 8.83611 9.5835 9.25033V14.2503C9.5835 14.6645 9.24771 15.0003 8.8335 15.0003C8.41928 15.0003 8.0835 14.6645 8.0835 14.2503V9.25033C8.0835 8.83611 8.41928 8.50033 8.8335 8.50033ZM12.9168 9.25033C12.9168 8.83611 12.581 8.50033 12.1668 8.50033C11.7526 8.50033 11.4168 8.83611 11.4168 9.25033V14.2503C11.4168 14.6645 11.7526 15.0003 12.1668 15.0003C12.581 15.0003 12.9168 14.6645 12.9168 14.2503V9.25033Z"
-                                                        fill=""></path>
-                                                </svg>
-                                            </button>
-
-                                            <button
-                                                class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90">
-                                                <svg class="fill-current" width="21" height="21"
-                                                    viewBox="0 0 21 21" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path fill-rule="evenodd" clip-rule="evenodd"
-                                                        d="M17.0911 3.53206C16.2124 2.65338 14.7878 2.65338 13.9091 3.53206L5.6074 11.8337C5.29899 12.1421 5.08687 12.5335 4.99684 12.9603L4.26177 16.445C4.20943 16.6931 4.286 16.9508 4.46529 17.1301C4.64458 17.3094 4.90232 17.3859 5.15042 17.3336L8.63507 16.5985C9.06184 16.5085 9.45324 16.2964 9.76165 15.988L18.0633 7.68631C18.942 6.80763 18.942 5.38301 18.0633 4.50433L17.0911 3.53206ZM14.9697 4.59272C15.2626 4.29982 15.7375 4.29982 16.0304 4.59272L17.0027 5.56499C17.2956 5.85788 17.2956 6.33276 17.0027 6.62565L16.1043 7.52402L14.0714 5.49109L14.9697 4.59272ZM13.0107 6.55175L6.66806 12.8944C6.56526 12.9972 6.49455 13.1277 6.46454 13.2699L5.96704 15.6283L8.32547 15.1308C8.46772 15.1008 8.59819 15.0301 8.70099 14.9273L15.0436 8.58468L13.0107 6.55175Z"
-                                                        fill=""></path>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- table body end -->
-                            </div>
-                        </div>
-
-                        <!-- Pagination Controls -->
-                        <div class="border-t border-gray-100 py-4 pl-[18px] pr-4 dark:border-gray-800">
-                            <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between">
-                                <div class="flex items-center justify-center gap-0.5 pb-4 xl:justify-normal xl:pt-0">
-                                    <button @click="prevPage()"
-                                        class="mr-2.5 flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-gray-700 shadow-theme-xs hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]"
-                                        :disabled="currentPage === 1" disabled="disabled">
-                                        Previous
-                                    </button>
-
-                                    <button @click="goToPage(1)"
-                                        :class="currentPage === 1 ? 'bg-blue-500/[0.08] text-brand-500' :
-                                            'text-gray-700 dark:text-gray-400'"
-                                        class="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium hover:bg-blue-500/[0.08] hover:text-brand-500 dark:hover:text-brand-500 bg-blue-500/[0.08] text-brand-500">
-                                        1
-                                    </button>
-
-                                    <template x-if="currentPage &gt; 3">
-                                        <span
-                                            class="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-blue-500/[0.08] hover:text-brand-500 dark:hover:text-brand-500">...</span>
-                                    </template>
-
-                                    <template x-for="page in pagesAroundCurrent" :key="page">
-                                        <button @click="goToPage(page)"
-                                            :class="currentPage === page ? 'bg-blue-500/[0.08] text-brand-500' :
-                                                'text-gray-700 dark:text-gray-400'"
-                                            class="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium hover:bg-blue-500/[0.08] hover:text-brand-500 dark:hover:text-brand-500">
-                                            <span x-text="page"></span>
-                                        </button>
-                                    </template><button @click="goToPage(page)"
-                                        :class="currentPage === page ? 'bg-blue-500/[0.08] text-brand-500' :
-                                            'text-gray-700 dark:text-gray-400'"
-                                        class="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium hover:bg-blue-500/[0.08] hover:text-brand-500 dark:hover:text-brand-500 text-gray-700 dark:text-gray-400">
-                                        <span x-text="page">2</span>
-                                    </button>
-
-                                    <template x-if="currentPage &lt; totalPages - 2">
-                                        <span
-                                            class="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium text-gray-700 hover:bg-blue-500/[0.08] hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-500">...</span>
-                                    </template>
-
-                                    <button @click="nextPage()"
-                                        class="ml-2.5 flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-gray-700 shadow-theme-xs hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]"
-                                        :disabled="currentPage === totalPages">
-                                        Next
-                                    </button>
-                                </div>
-
-                                <p
-                                    class="border-t border-gray-100 pt-3 text-center text-sm font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400 xl:border-t-0 xl:pt-0 xl:text-left">
-                                    Showing <span x-text="startEntry">1</span> to
-                                    <span x-text="endEntry">10</span> of
-                                    <span x-text="totalEntries">30</span> entries
-                                </p>
+                        <!-- Mobile Card View (Hidden by default) -->
+                        <div id="mobile-card-view" class="hidden p-4">
+                            <div id="mobile-drivers-container" class="space-y-4">
+                                <!-- Mobile cards will be loaded here -->
                             </div>
                         </div>
                     </div>
 
+                    <!-- Table Info (will be populated by DataTables) -->
+                    <div id="table-info" class="mt-4 text-sm text-gray-600 dark:text-gray-400"></div>
 
-                    <!-- DataTable Two -->
+                    <!-- Loading State -->
+                    <div id="table-loading" class="mt-4 text-center py-8">
+                        <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-gray-300 border-r-brand-500"></div>
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading drivers...</p>
+                    </div>
+
+                    <!-- Legend for Mobile View -->
+                    <div class="mt-4 hidden flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400 sm:hidden" id="status-legend">
+                        <span class="inline-flex items-center gap-1">
+                            <span class="h-2 w-2 rounded-full bg-green-500"></span> Active
+                        </span>
+                        <span class="inline-flex items-center gap-1">
+                            <span class="h-2 w-2 rounded-full bg-red-500"></span> Inactive
+                        </span>
+                        <span class="inline-flex items-center gap-1">
+                            <span class="h-2 w-2 rounded-full bg-yellow-500"></span> On Leave
+                        </span>
+                    </div>
                 </div>
             </div>
-
         </div>
-
     </div>
 @endsection
 
 @push('scripts')
     <script>
-        function dataTableTwo() {
-            return {
-                search: "",
-                sortColumn: "name",
-                sortDirection: "asc",
-                currentPage: 1,
-                perPage: 10,
-                data: [{
-                        id: 1,
-                        name: "Lindsey Curtis",
-                        position: "Sales Assistant",
-                        office: "New York",
-                        age: 33,
-                        startDate: "12 Feb, 2027",
-                        salary: "$168,500",
-                    },
-                    {
-                        id: 2,
-                        name: "Kaiya George",
-                        position: "Sales Assistant",
-                        office: "San Francisco",
-                        age: 66,
-                        startDate: "13 Mar, 2027",
-                        salary: "$23,500",
-                    },
-                    {
-                        id: 3,
-                        name: "Zain Geidt",
-                        position: "Sales Assistant",
-                        office: "Tokyo",
-                        age: 48,
-                        startDate: "19 Mar, 2027",
-                        salary: "$12,500",
-                    },
-                    {
-                        id: 4,
-                        name: "Abram Schleifer",
-                        position: "Sales Assistant",
-                        office: "Edinburgh",
-                        age: 57,
-                        startDate: "25 Apr, 2027",
-                        salary: "$89,500",
-                    },
-                    {
-                        id: 5,
-                        name: "Carla George",
-                        position: "Sales Assistant",
-                        office: "London",
-                        age: 45,
-                        startDate: "11 May, 2027",
-                        salary: "$15,500",
-                    },
-                    {
-                        id: 6,
-                        name: "Emery Culhane",
-                        position: "Sales Assistant",
-                        office: "New York",
-                        age: 45,
-                        startDate: "29 Jun, 2027",
-                        salary: "$23,500",
-                    },
-                    {
-                        id: 7,
-                        name: "Livia Donin",
-                        position: "Sales Assistant",
-                        office: "London",
-                        age: 26,
-                        startDate: "22 Jul, 2027",
-                        salary: "$$58,500",
-                    },
-                    {
-                        id: 8,
-                        name: "Miracle Bator",
-                        position: "Sales Assistant",
-                        office: "Tokyo",
-                        age: 38,
-                        startDate: "05 Aug, 2027",
-                        salary: "$34,900",
-                    },
-                    {
-                        id: 9,
-                        name: "Lincoln Herwitz",
-                        position: "Sales Assistant",
-                        office: "London",
-                        age: 34,
-                        startDate: "09 Sep, 2027",
-                        salary: "$18,300",
-                    },
-                    {
-                        id: 10,
-                        name: "Ekstrom Bothman",
-                        position: "Sales Assistant",
-                        office: "San Francisco",
-                        age: 53,
-                        startDate: "15 Nov, 2027",
-                        salary: "$19,200",
-                    },
-                    {
-                        id: 11,
-                        name: "Lindsey Curtis",
-                        position: "Sales Assistant",
-                        office: "New York",
-                        age: 33,
-                        startDate: "12 Feb, 2027",
-                        salary: "$168,500",
-                    },
-                    {
-                        id: 12,
-                        name: "Kaiya George",
-                        position: "Sales Assistant",
-                        office: "San Francisco",
-                        age: 66,
-                        startDate: "13 Mar, 2027",
-                        salary: "$23,500",
-                    },
-                    {
-                        id: 13,
-                        name: "Zain Geidt",
-                        position: "Sales Assistant",
-                        office: "Tokyo",
-                        age: 48,
-                        startDate: "19 Mar, 2027",
-                        salary: "$12,500",
-                    },
-                    {
-                        id: 14,
-                        name: "Abram Schleifer",
-                        position: "Sales Assistant",
-                        office: "Edinburgh",
-                        age: 57,
-                        startDate: "25 Apr, 2027",
-                        salary: "$89,500",
-                    },
-                    {
-                        id: 15,
-                        name: "Carla George",
-                        position: "Sales Assistant",
-                        office: "London",
-                        age: 45,
-                        startDate: "11 May, 2027",
-                        salary: "$15,500",
-                    },
-                    {
-                        id: 16,
-                        name: "Emery Culhane",
-                        position: "Sales Assistant",
-                        office: "New York",
-                        age: 45,
-                        startDate: "29 Jun, 2027",
-                        salary: "$23,500",
-                    },
-                    {
-                        id: 17,
-                        name: "Livia Donin",
-                        position: "Sales Assistant",
-                        office: "London",
-                        age: 26,
-                        startDate: "22 Jul, 2027",
-                        salary: "$$58,500",
-                    },
-                    {
-                        id: 18,
-                        name: "Miracle Bator",
-                        position: "Sales Assistant",
-                        office: "Tokyo",
-                        age: 38,
-                        startDate: "05 Aug, 2027",
-                        salary: "$34,900",
-                    },
-                    {
-                        id: 19,
-                        name: "Lincoln Herwitz",
-                        position: "Sales Assistant",
-                        office: "London",
-                        age: 34,
-                        startDate: "09 Sep, 2027",
-                        salary: "$18,300",
-                    },
-                    {
-                        id: 20,
-                        name: "Ekstrom Bothman",
-                        position: "Sales Assistant",
-                        office: "San Francisco",
-                        age: 53,
-                        startDate: "15 Nov, 2027",
-                        salary: "$19,200",
-                    },
-                    {
-                        id: 21,
-                        name: "Lindsey Curtis",
-                        position: "Sales Assistant",
-                        office: "New York",
-                        age: 33,
-                        startDate: "12 Feb, 2027",
-                        salary: "$168,500",
-                    },
-                    {
-                        id: 22,
-                        name: "Kaiya George",
-                        position: "Sales Assistant",
-                        office: "San Francisco",
-                        age: 66,
-                        startDate: "13 Mar, 2027",
-                        salary: "$23,500",
-                    },
-                    {
-                        id: 23,
-                        name: "Zain Geidt",
-                        position: "Sales Assistant",
-                        office: "Tokyo",
-                        age: 48,
-                        startDate: "19 Mar, 2027",
-                        salary: "$12,500",
-                    },
-                    {
-                        id: 24,
-                        name: "Abram Schleifer",
-                        position: "Sales Assistant",
-                        office: "Edinburgh",
-                        age: 57,
-                        startDate: "25 Apr, 2027",
-                        salary: "$89,500",
-                    },
-                    {
-                        id: 25,
-                        name: "Carla George",
-                        position: "Sales Assistant",
-                        office: "London",
-                        age: 45,
-                        startDate: "11 May, 2027",
-                        salary: "$15,500",
-                    },
-                    {
-                        id: 26,
-                        name: "Emery Culhane",
-                        position: "Sales Assistant",
-                        office: "New York",
-                        age: 45,
-                        startDate: "29 Jun, 2027",
-                        salary: "$23,500",
-                    },
-                    {
-                        id: 27,
-                        name: "Livia Donin",
-                        position: "Sales Assistant",
-                        office: "London",
-                        age: 26,
-                        startDate: "22 Jul, 2027",
-                        salary: "$$58,500",
-                    },
-                    {
-                        id: 28,
-                        name: "Miracle Bator",
-                        position: "Sales Assistant",
-                        office: "Tokyo",
-                        age: 38,
-                        startDate: "05 Aug, 2027",
-                        salary: "$34,900",
-                    },
-                    {
-                        id: 29,
-                        name: "Lincoln Herwitz",
-                        position: "Sales Assistant",
-                        office: "London",
-                        age: 34,
-                        startDate: "09 Sep, 2027",
-                        salary: "$18,300",
-                    },
-                    {
-                        id: 30,
-                        name: "Ekstrom Bothman",
-                        position: "Sales Assistant",
-                        office: "San Francisco",
-                        age: 53,
-                        startDate: "15 Nov, 2027",
-                        salary: "$19,200",
-                    },
-                ],
-
-                get pagesAroundCurrent() {
-                    let pages = [];
-                    const startPage = Math.max(2, this.currentPage - 2);
-                    const endPage = Math.min(this.totalPages - 1, this.currentPage + 2);
-
-                    for (let i = startPage; i <= endPage; i++) {
-                        pages.push(i);
+        $(document).ready(function() {
+            let table;
+            let isMobileView = window.innerWidth < 640;
+            
+            // Hide loading initially
+            $('#table-loading').hide();
+            
+            // Toggle between table and card view on mobile
+            $('#toggle-view').on('click', function() {
+                const isTableView = $('#desktop-table-view').is(':visible');
+                if (isTableView) {
+                    $('#desktop-table-view').addClass('hidden');
+                    $('#mobile-card-view').removeClass('hidden');
+                    $('#toggle-view').html('<i class="fas fa-table mr-2"></i>Table');
+                    if (table) {
+                        renderMobileCards();
                     }
-                    return pages;
-                },
+                } else {
+                    $('#desktop-table-view').removeClass('hidden');
+                    $('#mobile-card-view').addClass('hidden');
+                    $('#toggle-view').html('<i class="fas fa-list mr-2"></i>Cards');
+                }
+            });
 
-                get filteredData() {
-                    const searchLower = this.search.toLowerCase();
-                    return this.data
-                        .filter(
-                            (person) =>
-                            person.name.toLowerCase().includes(searchLower) ||
-                            person.position.toLowerCase().includes(searchLower) ||
-                            person.office.toLowerCase().includes(searchLower),
-                        )
-                        .sort((a, b) => {
-                            let modifier = this.sortDirection === "asc" ? 1 : -1;
-                            if (a[this.sortColumn] < b[this.sortColumn]) return -1 * modifier;
-                            if (a[this.sortColumn] > b[this.sortColumn]) return 1 * modifier;
-                            return 0;
+            // Initialize DataTable - SIMPLIFIED VERSION FIRST
+            function initializeDataTable() {
+                try {
+                    // console.log('Initializing DataTable...');
+                    
+                    // Show loading
+                    $('#table-loading').show();
+                    
+                    table = $('#drivers-table').DataTable({
+                        processing: true,
+                        serverSide: true,
+                        ajax: {
+                            url: "{{ route('admin.driver.index') }}",
+                            type: 'GET',
+                            data: function(d) {
+                                // Add any additional parameters here
+                            },
+                            error: function(xhr, error, thrown) {
+                                // console.error('AJAX Error:', error, thrown);
+                                $('#table-loading').html('<div class="text-center py-8"><div class="text-red-500 dark:text-red-400">Error loading data. Please try again.</div></div>');
+                            }
+                        },
+                        columns: [
+                            {
+                                data: 'DT_RowIndex',
+                                name: 'DT_RowIndex',
+                                orderable: false,
+                                searchable: false,
+                                className: 'px-4 py-3 text-sm text-gray-900 dark:text-white'
+                            },
+                            {
+                                data: 'full_name',
+                                name: 'full_name',
+                                className: 'px-4 py-3 text-sm text-gray-900 dark:text-white font-medium'
+                            },
+                            {
+                                data: 'status',
+                                name: 'status',
+                                className: 'px-4 py-3 text-sm',
+                                render: function(data, type, row) {
+                                    let badgeClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wider whitespace-nowrap';
+                                    let dotClass = 'h-2 w-2 rounded-full';
+                                    let badgeText = 'Active';
+                                    
+                                    if (data === 'inactive') {
+                                        badgeClasses += ' bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+                                        dotClass += ' bg-red-500';
+                                        badgeText = 'Inactive';
+                                    } else if (data === 'on_leave') {
+                                        badgeClasses += ' bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+                                        dotClass += ' bg-yellow-500';
+                                        badgeText = 'On Leave';
+                                    } else {
+                                        badgeClasses += ' bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+                                        dotClass += ' bg-green-500';
+                                    }
+                                    
+                                    return `<span class="${badgeClasses}">
+                                        <span class="${dotClass}"></span>
+                                        ${badgeText}
+                                    </span>`;
+                                }
+                            },
+                            {
+                                data: 'state',
+                                name: 'state',
+                                className: 'px-4 py-3 text-sm text-gray-900 dark:text-white'
+                            },
+                            {
+                                data: 'license_expiration_date',
+                                name: 'license_expiration_date',
+                                className: 'px-4 py-3 text-sm text-gray-900 dark:text-white',
+                                render: function(data) {
+                                    return data || 'N/A';
+                                }
+                            },
+                            {
+                                data: 'medical_certificate_expiration_date',
+                                name: 'medical_certificate_expiration_date',
+                                className: 'px-4 py-3 text-sm text-gray-900 dark:text-white',
+                                render: function(data) {
+                                    return data || 'N/A';
+                                }
+                            },
+                            {
+                                data: 'hired_at',
+                                name: 'hired_at',
+                                className: 'px-4 py-3 text-sm text-gray-900 dark:text-white'
+                            },
+                            {
+                                data: 'action',
+                                name: 'action',
+                                orderable: false,
+                                searchable: false,
+                                className: 'px-4 py-3 text-sm'
+                            }
+                        ],
+                        order: [[1, 'asc']],
+                        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                        pageLength: 10,
+                        responsive: true, // Enable basic responsive
+                        autoWidth: false,
+                        language: {
+                            emptyTable: "No drivers found",
+                            zeroRecords: "No matching drivers found",
+                            info: "Showing _START_ to _END_ of _TOTAL_ drivers",
+                            infoEmpty: "Showing 0 to 0 of 0 drivers",
+                            infoFiltered: "(filtered from _MAX_ total drivers)",
+                            search: "",
+                            searchPlaceholder: "Search...",
+                            lengthMenu: "Show _MENU_",
+                            paginate: {
+                                first: '<i class="fas fa-angle-double-left"></i>',
+                                last: '<i class="fas fa-angle-double-right"></i>',
+                                next: '<i class="fas fa-angle-right"></i>',
+                                previous: '<i class="fas fa-angle-left"></i>'
+                            }
+                        },
+                        dom: '<"flex flex-col sm:flex-row sm:items-center justify-between mb-4"<"mb-2 sm:mb-0"l><"mb-2 sm:mb-0"f>>rt<"flex flex-col sm:flex-row sm:items-center justify-between mt-4"<"mb-2 sm:mb-0"i><"sm:text-right"p>>',
+                        initComplete: function(settings, json) {
+                            // console.log('DataTable initialized successfully');
+                            $('#table-loading').hide();
+                            applyTableStyles();
+                            
+                            // Hide DataTables default processing indicator
+                            $('.dataTables_processing').addClass('hidden');
+                            
+                            // Show status legend on mobile
+                            if (window.innerWidth < 640) {
+                                $('#status-legend').removeClass('hidden');
+                            }
+                        },
+                        drawCallback: function(settings) {
+                            applyTableStyles();
+                            
+                            // Update table info
+                            const info = this.api().page.info();
+                            $('#table-info').html(`Showing ${info.start + 1} to ${info.end} of ${info.recordsTotal} drivers`);
+                            
+                            // If in mobile card view, update cards
+                            if ($('#mobile-card-view').is(':visible') && !$('#mobile-card-view').hasClass('hidden')) {
+                                renderMobileCards();
+                            }
+                        },
+                        error: function(xhr, error, thrown) {
+                            // console.error('DataTables Error:', error, thrown);
+                            $('#table-loading').html('<div class="text-center py-8"><div class="text-red-500 dark:text-red-400 p-4">Error loading data. Please refresh the page.</div></div>');
+                        }
+                    });
+                    
+                    // console.log('DataTable created successfully');
+                    
+                } catch (error) {
+                    // console.error('Error initializing DataTable:', error);
+                    $('#table-loading').html('<div class="text-center py-8"><div class="text-red-500 dark:text-red-400 p-4">Error initializing table. Please check console.</div></div>');
+                }
+            }
+
+            // Function to apply table styles
+            function applyTableStyles() {
+                // Apply styles to DataTables elements
+                $('.dataTables_length select').addClass(
+                    'rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 shadow-theme-xs focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white'
+                );
+
+                $('.dataTables_filter input').addClass(
+                    'rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 shadow-theme-xs placeholder:text-gray-500 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-400'
+                );
+
+                $('.dataTables_paginate .paginate_button').addClass(
+                    'inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                );
+
+                $('.dataTables_paginate .paginate_button.current').addClass(
+                    '!bg-brand-500 !text-white !border-brand-500 hover:!bg-brand-600 dark:hover:!bg-brand-600'
+                );
+
+                $('.dataTables_paginate .paginate_button.disabled').addClass(
+                    'opacity-50 cursor-not-allowed hover:bg-white dark:hover:bg-gray-800'
+                );
+            }
+
+            // Function to render mobile cards
+            function renderMobileCards() {
+                if (!table) return;
+                
+                try {
+                    const data = table.rows().data().toArray();
+                    const container = $('#mobile-drivers-container');
+                    container.empty();
+
+                    if (data.length === 0) {
+                        container.html('<div class="text-center py-8 text-gray-500 dark:text-gray-400">No drivers found</div>');
+                        return;
+                    }
+
+                    data.forEach((row, index) => {
+                        let statusClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wider whitespace-nowrap';
+                        let dotClass = 'h-2 w-2 rounded-full';
+                        let statusText = 'Active';
+                        
+                        if (row.status === 'inactive') {
+                            statusClasses += ' bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+                            dotClass += ' bg-red-500';
+                            statusText = 'Inactive';
+                        } else if (row.status === 'on_leave') {
+                            statusClasses += ' bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+                            dotClass += ' bg-yellow-500';
+                            statusText = 'On Leave';
+                        } else {
+                            statusClasses += ' bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+                            dotClass += ' bg-green-500';
+                        }
+
+                        const card = `
+                            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+                                <div class="flex justify-between items-start mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900 dark:text-white">${row.full_name || 'N/A'}</h4>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Driver #${row.DT_RowIndex || index + 1}</p>
+                                    </div>
+                                    <span class="${statusClasses}">
+                                        <span class="${dotClass}"></span>
+                                        ${statusText}
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">State</span>
+                                        <span class="font-medium text-gray-900 dark:text-white">${row.state || 'N/A'}</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">License Exp.</span>
+                                        <span class="font-medium text-gray-900 dark:text-white">${row.license_expiration_date || 'N/A'}</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Medical Exp.</span>
+                                        <span class="font-medium text-gray-900 dark:text-white">${row.medical_certificate_expiration_date || 'N/A'}</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Hire Date</span>
+                                        <span class="font-medium text-gray-900 dark:text-white">${row.hired_at || 'N/A'}</span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex gap-2">
+                                    ${row.action || '<span class="text-sm text-gray-500 dark:text-gray-400 italic">No actions available</span>'}
+                                </div>
+                            </div>
+                        `;
+                        container.append(card);
+                    });
+                } catch (error) {
+                    // console.error('Error rendering mobile cards:', error);
+                    $('#mobile-drivers-container').html('<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4"><div class="text-red-600 dark:text-red-400">Error displaying data</div></div>');
+                }
+            }
+
+            // Initialize DataTable
+            initializeDataTable();
+
+            // Debounced search for better performance
+            let searchTimeout;
+            $('#driver-search').on('keyup', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    if (table) {
+                        table.search(this.value).draw();
+                    }
+                }, 500);
+            });
+
+            // Clear search on escape key
+            $('#driver-search').on('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    $(this).val('');
+                    if (table) {
+                        table.search('').draw();
+                    }
+                }
+            });
+
+            // Handle window resize
+            let resizeTimer;
+            $(window).on('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    const newIsMobile = window.innerWidth < 640;
+                    
+                    if (newIsMobile !== isMobileView) {
+                        isMobileView = newIsMobile;
+                        
+                        if (isMobileView) {
+                            $('#status-legend').removeClass('hidden');
+                        } else {
+                            $('#status-legend').addClass('hidden');
+                        }
+                    }
+                    
+                    if (table) {
+                        table.columns.adjust();
+                    }
+                }, 250);
+            });
+
+            // Initial check for mobile
+            if (isMobileView) {
+                $('#status-legend').removeClass('hidden');
+            }
+        });
+
+        // Enhanced delete driver function with SweetAlert
+        function deleteDriver(id, name) {
+            Swal.fire({
+                title: 'Delete Driver?',
+                html: `Are you sure you want to delete <strong>${name}</strong>?<br>This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                customClass: {
+                    popup: 'rounded-2xl',
+                    confirmButton: 'rounded-lg px-4 py-2',
+                    cancelButton: 'rounded-lg px-4 py-2'
+                },
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return fetch(`/admin/driver/${id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            }
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(response.statusText);
+                            }
+                            return response.json();
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(
+                                `Request failed: ${error}`
+                            );
                         });
-                },
-
-                get paginatedData() {
-                    const start = (this.currentPage - 1) * this.perPage;
-                    const end = start + this.perPage;
-                    return this.filteredData.slice(start, end);
-                },
-
-                get totalEntries() {
-                    return this.filteredData.length;
-                },
-
-                get startEntry() {
-                    return (this.currentPage - 1) * this.perPage + 1;
-                },
-
-                get endEntry() {
-                    const end = this.currentPage * this.perPage;
-                    return end > this.totalEntries ? this.totalEntries : end;
-                },
-
-                get totalPages() {
-                    return Math.ceil(this.filteredData.length / this.perPage);
-                },
-
-                goToPage(page) {
-                    if (page >= 1 && page <= this.totalPages) {
-                        this.currentPage = page;
-                    }
-                },
-
-                nextPage() {
-                    if (this.currentPage < this.totalPages) {
-                        this.currentPage++;
-                    }
-                },
-
-                prevPage() {
-                    if (this.currentPage > 1) {
-                        this.currentPage--;
-                    }
-                },
-
-                sortBy(column) {
-                    if (this.sortColumn === column) {
-                        this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc";
-                    } else {
-                        this.sortDirection = "asc";
-                        this.sortColumn = column;
-                    }
-                },
-            };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: 'Driver has been deleted.',
+                        icon: 'success',
+                        confirmButtonColor: '#10b981',
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'rounded-2xl',
+                            confirmButton: 'rounded-lg px-4 py-2'
+                        }
+                    }).then(() => {
+                        if (typeof table !== 'undefined') {
+                            table.ajax.reload(null, false);
+                        } else {
+                            location.reload();
+                        }
+                    });
+                }
+            });
         }
     </script>
 @endpush

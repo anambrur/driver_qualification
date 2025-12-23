@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use Exception;
+use App\Models\State;
 use App\Models\Driver;
 use App\Models\Company;
 use App\Models\Country;
+use App\Models\PolicyPdf;
 use App\Models\Violation;
 use Illuminate\Http\Request;
 use App\Models\DriverDocument;
-use App\Models\PolicyPdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -21,60 +22,124 @@ class DriverController extends Controller
 {
     public function index(Request $request)
     {
+        $company_id = Auth::user()->load('company')->company->id ?? null;
         if ($request->ajax()) {
-            $drivers = Driver::with('company')->select('drivers.*');
+            if (Auth::user()->hasRole('super-admin')) {
+                $drivers = Driver::with(['company', 'licenses' => function ($query) {
+                    $query->latest('expires');
+                }])->select('drivers.*');
+            } else {
+                $drivers = Driver::where('company_id', $company_id)->where('status', '!=', 'draft')->with(['company', 'licenses' => function ($query) {
+                    $query->latest('expires');
+                }])->select('drivers.*');
+            }
 
             return DataTables::of($drivers)
                 ->addIndexColumn()
                 ->addColumn('full_name', function ($driver) {
-                    return $driver->first_name . ' ' . ($driver->middle_name ? $driver->middle_name . ' ' : '') . $driver->last_name . ($driver->suffix ? ' ' . $driver->suffix : '');
+                    return $driver->first_name . ' ' .
+                        ($driver->middle_name ? $driver->middle_name . ' ' : '') .
+                        $driver->last_name .
+                        ($driver->suffix ? ' ' . $driver->suffix : '');
                 })
-                ->addColumn('company_name', function ($driver) {
-                    return $driver->company->company_name ?? 'N/A';
+                ->addColumn('state', function ($driver) {
+                    return $driver->state ?? 'N/A';
+                })
+                ->addColumn('hired_at', function ($driver) {
+                    return $driver->hired_at ? $driver->hired_at : 'Not Hired';
+                })
+                ->addColumn('license_expiration_date', function ($driver) {
+                    if (isset($driver->licenses) && $driver->licenses->isNotEmpty()) {
+                        $latestLicense = $driver->licenses->sortByDesc('expires')->first();
+                        return $latestLicense->expires ?
+                            $latestLicense->expires : 'N/A';
+                    }
+                    return 'N/A';
+                })
+                ->addColumn('medical_certificate_expiration_date', function ($driver) {
+                    return $driver->medical_certificate_expiration_date ?
+                        $driver->medical_certificate_expiration_date : 'N/A';
                 })
                 ->addColumn('status', function ($driver) {
-                    $statusColors = [
-                        'draft' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-                        'submitted' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                        'under_review' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                        'approved' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                        'rejected' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                    $statusConfigs = [
+                        'draft' => [
+                            'label' => 'Draft',
+                            'classes' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                        ],
+                        'pending' => [
+                            'label' => 'Pending',
+                            'classes' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        ],
+                        'active' => [
+                            'label' => 'Active',
+                            'classes' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        ],
+                        'inactive' => [
+                            'label' => 'Inactive',
+                            'classes' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                        ],
+                        'submitted' => [
+                            'label' => 'Submitted',
+                            'classes' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                        ],
+                        'under_review' => [
+                            'label' => 'Under Review',
+                            'classes' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        ],
+                        'approved' => [
+                            'label' => 'Approved',
+                            'classes' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        ],
+                        'rejected' => [
+                            'label' => 'Rejected',
+                            'classes' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        ],
                     ];
 
-                    $statusLabels = [
-                        'draft' => 'Draft',
-                        'submitted' => 'Submitted',
-                        'under_review' => 'Under Review',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
+                    $config = $statusConfigs[$driver->status] ?? [
+                        'label' => ucfirst($driver->status),
+                        'classes' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                     ];
 
-                    return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' . $statusColors[$driver->status] . '">' . $statusLabels[$driver->status] . '</span>';
-                })
-                ->addColumn('documents', function ($driver) {
-                    $docs = [];
-                    if ($driver->twic_card) {
-                        $docs[] = 'TWIC';
-                    }
-                    if ($driver->passport) {
-                        $docs[] = 'Passport';
-                    }
-                    return count($docs) > 0 ? implode(', ', $docs) : 'None';
+                    return '<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ' . $config['classes'] . '">' . $config['label'] . '</span>';
                 })
                 ->addColumn('action', function ($driver) {
                     return '<div class="flex items-center space-x-2">
-                                <a href="' . route('drivers.show', $driver->id) . '" class="inline-flex items-center justify-center w-8 h-8 text-green-600 border border-green-200 rounded-lg hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/30">
-                                    <i class="fas fa-eye text-xs"></i>
-                                </a>
-                                <a href="' . route('drivers.edit', $driver->id) . '" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30">
-                                    <i class="fas fa-edit text-xs"></i>
-                                </a>
-                                <button type="button" onclick="deleteDriver(' . $driver->id . ')" class="inline-flex items-center justify-center w-8 h-8 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30">
-                                    <i class="fas fa-trash text-xs"></i>
-                                </button>
-                            </div>';
+                    <a href="' . route('admin.driver.show', $driver->id) . '" 
+                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700" 
+                       title="View">
+                        <i class="fas fa-eye text-xs"></i>
+                    </a>
+                    <a href="' . route('admin.driver.edit', $driver->id) . '" 
+                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700" 
+                       title="Edit">
+                        <i class="fas fa-edit text-xs"></i>
+                    </a>
+                    <button type="button" 
+                            onclick="deleteDriver(' . $driver->id . ', \'' . addslashes($driver->first_name . ' ' . $driver->last_name) . '\')" 
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-red-50 hover:text-red-600 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400" 
+                            title="Delete">
+                        <i class="fas fa-trash text-xs"></i>
+                    </button>
+                </div>';
                 })
                 ->rawColumns(['status', 'action'])
+                ->filter(function ($query) use ($request) {
+                    if ($request->has('search') && !empty($request->search['value'])) {
+                        $search = $request->search['value'];
+                        $query->where(function ($q) use ($search) {
+                            $q->where('first_name', 'like', "%{$search}%")
+                                ->orWhere('last_name', 'like', "%{$search}%")
+                                ->orWhere('middle_name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%")
+                                ->orWhere('main_phone', 'like', "%{$search}%")
+                                ->orWhere('state', 'like', "%{$search}%")
+                                ->orWhereHas('company', function ($companyQuery) use ($search) {
+                                    $companyQuery->where('name', 'like', "%{$search}%");
+                                });
+                        });
+                    }
+                })
                 ->make(true);
         }
 
@@ -106,6 +171,7 @@ class DriverController extends Controller
             'alt_phone' => 'nullable|string|max:20',
             'email' => 'required|email|max:255',
             'medical_certificate_expiration_date' => 'required|date|after_or_equal:' . now()->format('Y-m-d'),
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'business_name' => 'nullable|string|max:255',
             'employer_identification_number' => 'nullable|string|max:20',
             'federal_tax_classification' => 'nullable|in:individual_sole_proprietor,c_corporation,s_corporation,llc',
@@ -232,7 +298,14 @@ class DriverController extends Controller
             // Get country/state names from IDs
             $countryName = Country::find($request->country)?->name ?? $request->country;
             $stateName = $request->state ? (is_numeric($request->state) ?
-                \App\Models\State::find($request->state)?->name : $request->state) : null;
+                State::find($request->state)?->name : $request->state) : null;
+
+            if ($request->hasFile('photo')) {
+                $file = $request->file('photo');
+                $extension = $file->getClientOriginalExtension();
+                $fileName = 'driver_photo_' . time() . '.' . $extension;
+                $photo = $file->storeAs('images/drivers', $fileName, 'public');
+            }
 
             // Create driver - FIXED: Use correct field name for medical certificate
             $driver = Driver::create([
@@ -248,6 +321,7 @@ class DriverController extends Controller
                 'alt_phone' => $request->alt_phone,
                 'email' => $request->email,
                 'medical_certificate_expiration_date' => $request->medical_certificate_expiration_date,
+                'photo' => $photo ?? null,
                 'business_name' => $request->business_name,
                 'employer_identification_number' => $request->employer_identification_number,
                 'federal_tax_classification' => $request->federal_tax_classification,
@@ -462,7 +536,18 @@ class DriverController extends Controller
 
     public function show($id)
     {
-        $driver = Driver::with('company')->findOrFail($id);
+        $driver = Driver::with(['company', 'licenses' => function ($query) {
+            $query->orderBy('expires', 'desc');
+        }, 'driver_documents'])->findOrFail($id);
+
+        // Check if user has permission to view this driver
+        if (!Auth::user()->hasRole('super-admin')) {
+            $company_id = Auth::user()->load('company')->company->id ?? null;
+            if ($driver->company_id !== $company_id) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
+
         return view('admin.driver.show', compact('driver'));
     }
 
@@ -567,30 +652,13 @@ class DriverController extends Controller
 
     public function destroy($id)
     {
-        DB::beginTransaction();
-
         try {
             $driver = Driver::findOrFail($id);
             $driver->delete();
 
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Driver deleted successfully!'
-            ]);
-        } catch (Exception $e) {
-            DB::rollBack();
-
-            logger()->error('Driver deletion failed: ' . $e->getMessage(), [
-                'exception' => $e,
-                'driver_id' => $id
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete driver. Please try again.'
-            ], 500);
+            return response()->json(['success' => true, 'message' => 'Driver deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error deleting driver: ' . $e->getMessage()], 500);
         }
     }
 
@@ -1311,6 +1379,8 @@ class DriverController extends Controller
                 ]
             );
 
+            Driver::where('id', $request->driver_id)->update(['status' => 'pending']);
+
 
             DB::commit();
             toastr()->success('General Work Policy saved successfully.');
@@ -1325,5 +1395,166 @@ class DriverController extends Controller
                 'error' => 'An unexpected error occurred. Please try again.'
             ]);
         }
+    }
+
+    public function updateHireStatus(Request $request, Driver $driver)
+    {
+        // Check authorization
+        if (!Auth::user()->can('drivers.hire')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to perform this action.'
+            ], 403);
+        }
+
+        // Validate request based on action
+        $validator = Validator::make($request->all(), [
+            'action' => 'required|in:hire,reject'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid action.'
+            ], 422);
+        }
+
+        $action = $request->action;
+
+        // Additional validation based on action
+        if ($action === 'hire') {
+            $validator = Validator::make($request->all(), [
+                'hire_date' => 'required|date',
+                'hazmat' => 'required|in:yes,no',
+                'lcv_certificate' => 'required|in:yes,no'
+            ]);
+        } else {
+            $validator = Validator::make($request->all(), [
+                'rejection_reason' => 'required|in:not_good_fit,failed_drug_test,background_check_issues,cdl_issues,mvr_issues,psp_issues,other',
+                'additional_info' => 'nullable|string|max:1000',
+                'record_date' => 'required|date'
+            ]);
+        }
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        // Check if driver is in pending status
+        if ($driver->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This driver is not in pending status.'
+            ], 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $previousStatus = $driver->status;
+            $userId = Auth::id();
+
+            if ($action === 'hire') {
+                // Hire the driver with additional details
+                $driver->update([
+                    'status' => 'active',
+                    'hire_date' => $request->hire_date,
+                    'hazmat' => $request->hazmat,
+                    'lcv_certificate' => $request->lcv_certificate,
+                    'hired_at' => now(),
+                    'action_by' => $userId,
+                    // Clear rejection fields if they exist
+                    'rejection_reason' => null,
+                    'rejection_notes' => null,
+                    'rejection_date' => null,
+                    'rejected_at' => null
+                ]);
+
+                $message = 'Driver has been hired successfully!';
+            } else {
+                // Do not hire (reject) with details
+                $driver->update([
+                    'status' => 'rejected',
+                    'rejection_reason' => $request->rejection_reason,
+                    'rejection_notes' => $request->additional_info,
+                    'rejection_date' => $request->record_date,
+                    'rejected_at' => now(),
+                    'action_by' => $userId,
+                    // Clear hire fields if they exist
+                    'hazmat' => null,
+                    'lcv_certificate' => null,
+                    'hire_date' => null,
+                    'hired_at' => null
+                ]);
+
+                $message = 'Driver has been marked as not hired.';
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'status' => $driver->status,
+                    'hire_date' => $driver->hire_date,
+                    'rejection_reason' => $this->getRejectionReasonLabel($driver->rejection_reason),
+                    'status_label' => $this->getStatusLabel($driver->status)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Failed to update driver hire status: ' . $e->getMessage(), [
+                'driver_id' => $driver->id,
+                'action' => $action,
+                'error' => $e
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update driver status. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get rejection reason label
+     */
+    private function getRejectionReasonLabel($reason)
+    {
+        $labels = [
+            'not_good_fit' => 'Applicant is not a good fit for our company',
+            'failed_drug_test' => 'Applicant failed a pre-employment drug test',
+            'background_check_issues' => 'Items found on the background check',
+            'cdl_issues' => 'Items found on the Commercial Driver\'s License',
+            'mvr_issues' => 'Items found on the Motor Vehicle Report (MVR)',
+            'psp_issues' => 'Items found on the Pre-Employment Screening Program (PSP) report',
+            'other' => 'Other reason not listed above'
+        ];
+
+        return $labels[$reason] ?? ucfirst($reason);
+    }
+
+    /**
+     * Get status label for response
+     */
+    private function getStatusLabel($status)
+    {
+        $labels = [
+            'draft' => 'Draft',
+            'pending' => 'Pending',
+            'active' => 'Active (Hired)',
+            'inactive' => 'Inactive',
+            'submitted' => 'Submitted',
+            'under_review' => 'Under Review',
+            'approved' => 'Approved',
+            'rejected' => 'Rejected (Not Hired)',
+        ];
+
+        return $labels[$status] ?? ucfirst($status);
     }
 }

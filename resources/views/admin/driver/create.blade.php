@@ -29,7 +29,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div class="md:col-span-9">
-                <form action="{{ route('admin.driver.store') }}" method="POST" id="driverForm">
+                <form action="{{ route('admin.driver.store') }}" method="POST" id="driverForm" enctype="multipart/form-data">
                     @csrf
 
                     <!-- Company Selection -->
@@ -1307,7 +1307,41 @@
                                 </div>
                             </div>
                         </div>
+
+
                     </div>
+
+                    <div
+                        class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
+                        <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
+                            <div>
+                                <label for="photo"
+                                    class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Upload Driver Photo
+                                </label>
+                                <div class="flex items-center justify-center w-full">
+                                    <label for="photo"
+                                        class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+                                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <i
+                                                class="fas fa-cloud-upload-alt mb-3 text-2xl text-gray-500 dark:text-gray-400"></i>
+                                            <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span
+                                                    class="font-semibold">Click to upload</span> or drag and drop</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF, SVG (MAX.
+                                                2MB)</p>
+                                        </div>
+                                        <input id="photo" name="photo" type="file" class="hidden"
+                                            accept="image/*" />
+                                    </label>
+                                </div>
+                                @error('photo')
+                                    <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
+
 
 
                     <!-- Form Actions -->
@@ -1335,6 +1369,7 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            setupFilePreview('photo');
             // Format SSN input
             const ssnInput = document.getElementById('ssn');
             if (ssnInput) {
@@ -1832,6 +1867,57 @@
                     }
                 });
             }
+
+            function setupFilePreview(inputId) {
+                const input = document.getElementById(inputId);
+                const imagePreview = document.getElementById(inputId + '_preview');
+                const pdfPreview = document.getElementById(inputId + '_pdf_preview');
+                const previewImg = document.getElementById(inputId + '_preview_img');
+                const pdfPreviewContent = document.getElementById(inputId + '_pdf_preview_content');
+
+                input.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        // Hide both previews first
+                        imagePreview.classList.add('hidden');
+                        pdfPreview.classList.add('hidden');
+
+                        if (file.type.startsWith('image/')) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                previewImg.src = e.target.result;
+                                imagePreview.classList.remove('hidden');
+                            };
+                            reader.readAsDataURL(file);
+                        } else if (file.type === 'application/pdf') {
+                            pdfPreviewContent.innerHTML = `
+                            <div class="flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                <svg class="h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <div class="ml-3 text-left">
+                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">${file.name}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">PDF Document</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">${(file.size / 1024).toFixed(2)} KB</p>
+                                </div>
+                            </div>
+                        `;
+                            pdfPreview.classList.remove('hidden');
+                        }
+                    }
+                });
+            }
+
+            function removePreview(inputId) {
+                const input = document.getElementById(inputId);
+                const imagePreview = document.getElementById(inputId + '_preview');
+                const pdfPreview = document.getElementById(inputId + '_pdf_preview');
+
+                input.value = '';
+                imagePreview.classList.add('hidden');
+                pdfPreview.classList.add('hidden');
+            }
+
         });
     </script>
 @endpush
