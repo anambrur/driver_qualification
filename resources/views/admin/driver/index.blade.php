@@ -32,7 +32,7 @@
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="p-5 sm:p-6">
                     <!-- Search Box -->
-                    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    {{-- <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div class="w-full sm:w-auto sm:max-w-sm">
                             <div class="relative">
                                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -42,22 +42,24 @@
                                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                 </div>
-                                <input type="search" id="driver-search" placeholder="Search drivers by name, company, etc..."
+                                <input type="search" id="driver-search"
+                                    placeholder="Search drivers by name, company, etc..."
                                     class="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 shadow-theme-xs placeholder:text-gray-500 focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-brand-500">
                             </div>
                         </div>
-                        
+
                         <!-- Mobile View Toggle -->
                         <div class="flex items-center gap-2 sm:hidden">
                             <span class="text-sm text-gray-600 dark:text-gray-400">View:</span>
-                            <button id="toggle-view" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                            <button id="toggle-view"
+                                class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                                 <i class="fas fa-list mr-2"></i>Table
                             </button>
                         </div>
-                    </div>
+                    </div> --}}
 
                     <!-- DataTable Container -->
-                    <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+                    <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 p-4">
                         <!-- Desktop Table View -->
                         <div id="desktop-table-view">
                             <div class="overflow-x-auto">
@@ -98,7 +100,8 @@
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-gray-900/50">
+                                    <tbody
+                                        class="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-gray-900/50">
                                         <!-- Data will be loaded by DataTables -->
                                     </tbody>
                                 </table>
@@ -118,12 +121,15 @@
 
                     <!-- Loading State -->
                     <div id="table-loading" class="mt-4 text-center py-8">
-                        <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-gray-300 border-r-brand-500"></div>
+                        <div
+                            class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-gray-300 border-r-brand-500">
+                        </div>
                         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading drivers...</p>
                     </div>
 
                     <!-- Legend for Mobile View -->
-                    <div class="mt-4 hidden flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400 sm:hidden" id="status-legend">
+                    <div class="mt-4 hidden flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400 sm:hidden"
+                        id="status-legend">
                         <span class="inline-flex items-center gap-1">
                             <span class="h-2 w-2 rounded-full bg-green-500"></span> Active
                         </span>
@@ -145,10 +151,10 @@
         $(document).ready(function() {
             let table;
             let isMobileView = window.innerWidth < 640;
-            
+
             // Hide loading initially
             $('#table-loading').hide();
-            
+
             // Toggle between table and card view on mobile
             $('#toggle-view').on('click', function() {
                 const isTableView = $('#desktop-table-view').is(':visible');
@@ -170,10 +176,10 @@
             function initializeDataTable() {
                 try {
                     // console.log('Initializing DataTable...');
-                    
+
                     // Show loading
                     $('#table-loading').show();
-                    
+
                     table = $('#drivers-table').DataTable({
                         processing: true,
                         serverSide: true,
@@ -185,58 +191,44 @@
                             },
                             error: function(xhr, error, thrown) {
                                 // console.error('AJAX Error:', error, thrown);
-                                $('#table-loading').html('<div class="text-center py-8"><div class="text-red-500 dark:text-red-400">Error loading data. Please try again.</div></div>');
+                                $('#table-loading').html(
+                                    '<div class="text-center py-8"><div class="text-red-500 dark:text-red-400">Error loading data. Please try again.</div></div>'
+                                );
                             }
                         },
-                        columns: [
-                            {
+                        columns: [{
                                 data: 'DT_RowIndex',
-                                name: 'DT_RowIndex',
-                                orderable: false,
+                                name: 'id',
+                                orderable: true,
                                 searchable: false,
                                 className: 'px-4 py-3 text-sm text-gray-900 dark:text-white'
                             },
                             {
                                 data: 'full_name',
-                                name: 'full_name',
+                                name: 'first_name',
+                                orderable: true,
+                                searchable: true,
                                 className: 'px-4 py-3 text-sm text-gray-900 dark:text-white font-medium'
                             },
                             {
                                 data: 'status',
                                 name: 'status',
-                                className: 'px-4 py-3 text-sm',
-                                render: function(data, type, row) {
-                                    let badgeClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wider whitespace-nowrap';
-                                    let dotClass = 'h-2 w-2 rounded-full';
-                                    let badgeText = 'Active';
-                                    
-                                    if (data === 'inactive') {
-                                        badgeClasses += ' bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-                                        dotClass += ' bg-red-500';
-                                        badgeText = 'Inactive';
-                                    } else if (data === 'on_leave') {
-                                        badgeClasses += ' bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
-                                        dotClass += ' bg-yellow-500';
-                                        badgeText = 'On Leave';
-                                    } else {
-                                        badgeClasses += ' bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
-                                        dotClass += ' bg-green-500';
-                                    }
-                                    
-                                    return `<span class="${badgeClasses}">
-                                        <span class="${dotClass}"></span>
-                                        ${badgeText}
-                                    </span>`;
-                                }
+                                orderable: true,
+                                searchable: true,
+                                className: 'px-4 py-3 text-sm'
                             },
                             {
                                 data: 'state',
                                 name: 'state',
+                                orderable: true,
+                                searchable: true,
                                 className: 'px-4 py-3 text-sm text-gray-900 dark:text-white'
                             },
                             {
                                 data: 'license_expiration_date',
                                 name: 'license_expiration_date',
+                                orderable: false, // Set to false since it's a computed column
+                                searchable: false,
                                 className: 'px-4 py-3 text-sm text-gray-900 dark:text-white',
                                 render: function(data) {
                                     return data || 'N/A';
@@ -245,6 +237,8 @@
                             {
                                 data: 'medical_certificate_expiration_date',
                                 name: 'medical_certificate_expiration_date',
+                                orderable: true,
+                                searchable: false,
                                 className: 'px-4 py-3 text-sm text-gray-900 dark:text-white',
                                 render: function(data) {
                                     return data || 'N/A';
@@ -253,6 +247,8 @@
                             {
                                 data: 'hired_at',
                                 name: 'hired_at',
+                                orderable: true,
+                                searchable: false,
                                 className: 'px-4 py-3 text-sm text-gray-900 dark:text-white'
                             },
                             {
@@ -263,8 +259,13 @@
                                 className: 'px-4 py-3 text-sm'
                             }
                         ],
-                        order: [[1, 'asc']],
-                        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                        order: [
+                            [1, 'asc']
+                        ],
+                        lengthMenu: [
+                            [10, 25, 50, 100],
+                            [10, 25, 50, 100]
+                        ],
                         pageLength: 10,
                         responsive: true, // Enable basic responsive
                         autoWidth: false,
@@ -289,10 +290,10 @@
                             // console.log('DataTable initialized successfully');
                             $('#table-loading').hide();
                             applyTableStyles();
-                            
+
                             // Hide DataTables default processing indicator
                             $('.dataTables_processing').addClass('hidden');
-                            
+
                             // Show status legend on mobile
                             if (window.innerWidth < 640) {
                                 $('#status-legend').removeClass('hidden');
@@ -300,27 +301,34 @@
                         },
                         drawCallback: function(settings) {
                             applyTableStyles();
-                            
+
                             // Update table info
                             const info = this.api().page.info();
-                            $('#table-info').html(`Showing ${info.start + 1} to ${info.end} of ${info.recordsTotal} drivers`);
-                            
+                            $('#table-info').html(
+                                `Showing ${info.start + 1} to ${info.end} of ${info.recordsTotal} drivers`
+                            );
+
                             // If in mobile card view, update cards
-                            if ($('#mobile-card-view').is(':visible') && !$('#mobile-card-view').hasClass('hidden')) {
+                            if ($('#mobile-card-view').is(':visible') && !$('#mobile-card-view')
+                                .hasClass('hidden')) {
                                 renderMobileCards();
                             }
                         },
                         error: function(xhr, error, thrown) {
                             // console.error('DataTables Error:', error, thrown);
-                            $('#table-loading').html('<div class="text-center py-8"><div class="text-red-500 dark:text-red-400 p-4">Error loading data. Please refresh the page.</div></div>');
+                            $('#table-loading').html(
+                                '<div class="text-center py-8"><div class="text-red-500 dark:text-red-400 p-4">Error loading data. Please refresh the page.</div></div>'
+                            );
                         }
                     });
-                    
+
                     // console.log('DataTable created successfully');
-                    
+
                 } catch (error) {
                     // console.error('Error initializing DataTable:', error);
-                    $('#table-loading').html('<div class="text-center py-8"><div class="text-red-500 dark:text-red-400 p-4">Error initializing table. Please check console.</div></div>');
+                    $('#table-loading').html(
+                        '<div class="text-center py-8"><div class="text-red-500 dark:text-red-400 p-4">Error initializing table. Please check console.</div></div>'
+                    );
                 }
             }
 
@@ -351,32 +359,38 @@
             // Function to render mobile cards
             function renderMobileCards() {
                 if (!table) return;
-                
+
                 try {
                     const data = table.rows().data().toArray();
                     const container = $('#mobile-drivers-container');
                     container.empty();
 
                     if (data.length === 0) {
-                        container.html('<div class="text-center py-8 text-gray-500 dark:text-gray-400">No drivers found</div>');
+                        container.html(
+                            '<div class="text-center py-8 text-gray-500 dark:text-gray-400">No drivers found</div>'
+                        );
                         return;
                     }
 
                     data.forEach((row, index) => {
-                        let statusClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wider whitespace-nowrap';
+                        let statusClasses =
+                            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wider whitespace-nowrap';
                         let dotClass = 'h-2 w-2 rounded-full';
                         let statusText = 'Active';
-                        
+
                         if (row.status === 'inactive') {
-                            statusClasses += ' bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+                            statusClasses +=
+                                ' bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
                             dotClass += ' bg-red-500';
                             statusText = 'Inactive';
                         } else if (row.status === 'on_leave') {
-                            statusClasses += ' bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+                            statusClasses +=
+                                ' bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
                             dotClass += ' bg-yellow-500';
                             statusText = 'On Leave';
                         } else {
-                            statusClasses += ' bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+                            statusClasses +=
+                                ' bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
                             dotClass += ' bg-green-500';
                         }
 
@@ -419,7 +433,9 @@
                     });
                 } catch (error) {
                     // console.error('Error rendering mobile cards:', error);
-                    $('#mobile-drivers-container').html('<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4"><div class="text-red-600 dark:text-red-400">Error displaying data</div></div>');
+                    $('#mobile-drivers-container').html(
+                        '<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4"><div class="text-red-600 dark:text-red-400">Error displaying data</div></div>'
+                    );
                 }
             }
 
@@ -453,17 +469,17 @@
                 clearTimeout(resizeTimer);
                 resizeTimer = setTimeout(() => {
                     const newIsMobile = window.innerWidth < 640;
-                    
+
                     if (newIsMobile !== isMobileView) {
                         isMobileView = newIsMobile;
-                        
+
                         if (isMobileView) {
                             $('#status-legend').removeClass('hidden');
                         } else {
                             $('#status-legend').addClass('hidden');
                         }
                     }
-                    
+
                     if (table) {
                         table.columns.adjust();
                     }

@@ -29,9 +29,12 @@ class DriverController extends Controller
                     $query->latest('expires');
                 }])->select('drivers.*');
             } else {
-                $drivers = Driver::where('company_id', $company_id)->where('status', '!=', 'draft')->with(['company', 'licenses' => function ($query) {
-                    $query->latest('expires');
-                }])->select('drivers.*');
+                $drivers = Driver::where('company_id', $company_id)
+                    ->where('status', '!=', 'draft')
+                    ->with(['company', 'licenses' => function ($query) {
+                        $query->latest('expires');
+                    }])
+                    ->select('drivers.*');
             }
 
             return DataTables::of($drivers)
@@ -105,23 +108,23 @@ class DriverController extends Controller
                 })
                 ->addColumn('action', function ($driver) {
                     return '<div class="flex items-center space-x-2">
-                    <a href="' . route('admin.driver.show', $driver->id) . '" 
-                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700" 
-                       title="View">
-                        <i class="fas fa-eye text-xs"></i>
-                    </a>
-                    <a href="' . route('admin.driver.edit', $driver->id) . '" 
-                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700" 
-                       title="Edit">
-                        <i class="fas fa-edit text-xs"></i>
-                    </a>
-                    <button type="button" 
-                            onclick="deleteDriver(' . $driver->id . ', \'' . addslashes($driver->first_name . ' ' . $driver->last_name) . '\')" 
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-red-50 hover:text-red-600 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400" 
-                            title="Delete">
-                        <i class="fas fa-trash text-xs"></i>
-                    </button>
-                </div>';
+                <a href="' . route('admin.driver.show', $driver->id) . '" 
+                   class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700" 
+                   title="View">
+                    <i class="fas fa-eye text-xs"></i>
+                </a>
+                <a href="' . route('admin.driver.edit', $driver->id) . '" 
+                   class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700" 
+                   title="Edit">
+                    <i class="fas fa-edit text-xs"></i>
+                </a>
+                <button type="button" 
+                        onclick="deleteDriver(' . $driver->id . ', \'' . addslashes($driver->first_name . ' ' . $driver->last_name) . '\')" 
+                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-red-50 hover:text-red-600 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400" 
+                        title="Delete">
+                    <i class="fas fa-trash text-xs"></i>
+                </button>
+            </div>';
                 })
                 ->rawColumns(['status', 'action'])
                 ->filter(function ($query) use ($request) {
@@ -135,9 +138,51 @@ class DriverController extends Controller
                                 ->orWhere('main_phone', 'like', "%{$search}%")
                                 ->orWhere('state', 'like', "%{$search}%")
                                 ->orWhereHas('company', function ($companyQuery) use ($search) {
-                                    $companyQuery->where('name', 'like', "%{$search}%");
+                                    // Check which column exists in your companies table
+                                    // Common column names are: name, company_name, business_name
+                                    $companyQuery->where('company_name', 'like', "%{$search}%")
+                                        ->orWhere('company_name', 'like', "%{$search}%")
+                                        ->orWhere('business_name', 'like', "%{$search}%");
                                 });
                         });
+                    }
+                })
+                ->order(function ($query) use ($request) {
+                    if ($request->has('order') && isset($request->order[0])) {
+                        $columnIndex = $request->order[0]['column'];
+                        $direction = $request->order[0]['dir'];
+
+                        // Map DataTables columns to database columns
+                        switch ($columnIndex) {
+                            case 0: // #
+                                $query->orderBy('id', $direction);
+                                break;
+                            case 1: // Full Name
+                                $query->orderBy('first_name', $direction)
+                                    ->orderBy('last_name', $direction);
+                                break;
+                            case 2: // Status
+                                $query->orderBy('status', $direction);
+                                break;
+                            case 3: // State
+                                $query->orderBy('state', $direction);
+                                break;
+                            case 4: // License Exp.
+                                // Can't sort by computed column, sort by ID instead
+                                $query->orderBy('id', $direction);
+                                break;
+                            case 5: // Medical Exp.
+                                $query->orderBy('medical_certificate_expiration_date', $direction);
+                                break;
+                            case 6: // Hire Date
+                                $query->orderBy('hired_at', $direction);
+                                break;
+                            default:
+                                $query->orderBy('id', $direction);
+                        }
+                    } else {
+                        // Default sorting
+                        $query->orderBy('id', 'desc');
                     }
                 })
                 ->make(true);
@@ -534,11 +579,35 @@ class DriverController extends Controller
         }
     }
 
+    // public function show($id)
+    // {
+    //     $driver = Driver::with(['company', 'licenses' => function ($query) {
+    //         $query->orderBy('expires', 'desc');
+    //     }, 'driver_documents'])->findOrFail($id);
+
+    //     // Check if user has permission to view this driver
+    //     if (!Auth::user()->hasRole('super-admin')) {
+    //         $company_id = Auth::user()->load('company')->company->id ?? null;
+    //         if ($driver->company_id !== $company_id) {
+    //             abort(403, 'Unauthorized action.');
+    //         }
+    //     }
+
+    //     return view('admin.driver.show', compact('driver'));
+    // }
+
     public function show($id)
     {
-        $driver = Driver::with(['company', 'licenses' => function ($query) {
-            $query->orderBy('expires', 'desc');
-        }, 'driver_documents'])->findOrFail($id);
+        $driver = Driver::with([
+            'company',
+            'licenses' => function ($query) {
+                $query->orderBy('expires', 'desc');
+            },
+            'driver_documents',
+            'residence_addresses' => function ($query) {
+                $query->orderBy('is_current', 'desc')->orderBy('created_at', 'desc');
+            }
+        ])->findOrFail($id);
 
         // Check if user has permission to view this driver
         if (!Auth::user()->hasRole('super-admin')) {

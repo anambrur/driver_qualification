@@ -597,14 +597,343 @@
             </div>
 
             <!-- Driver Information Tab -->
-            <div id="driver-info" class="tab-content hidden">
+            {{-- <div id="driver-info" class="tab-content hidden">
                 <div
                     class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03] p-6">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Driver Information</h3>
                     <p class="text-gray-600 dark:text-gray-400">This is Driver Information content.</p>
                     <!-- Add driver information form or details here -->
                 </div>
+            </div> --}}
+
+            <!-- Driver Information Tab -->
+            <div id="driver-info" class="tab-content hidden">
+                <div
+                    class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03] p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-6">Driver Information</h3>
+
+                    <!-- Applicant Information Table -->
+                    <div class="mb-8">
+                        <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-4">Applicant Information</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-800/50">
+                                    <tr>
+                                        <th scope="col"
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            First Name</th>
+                                        <th scope="col"
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Middle Name</th>
+                                        <th scope="col"
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Last Name</th>
+                                        <th scope="col"
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Suffix</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white dark:bg-gray-800/30 divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tr>
+                                        <td
+                                            class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">
+                                            {{ $driver->first_name }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                            {{ $driver->middle_name ?? 'N/A' }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                            {{ $driver->last_name }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                            {{ $driver->suffix ?? 'N/A' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Business Information -->
+                    <div class="mb-8">
+                        <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-4">Business Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    Business Name</p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    {{ $driver->business_name ?? 'N/A' }}</p>
+                            </div>
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    Employer Identification Number</p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    {{ $driver->employer_identification_number ?? 'N/A' }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Federal Tax Classification -->
+                        <div class="mt-4">
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                Federal Tax Classification</p>
+                            <div class="flex items-center space-x-2">
+                                <div
+                                    class="w-4 h-4 border border-gray-300 dark:border-gray-600 rounded flex items-center justify-center">
+                                    @if ($driver->federal_tax_classification)
+                                        <div class="w-2 h-2 bg-brand-500 rounded-full"></div>
+                                    @endif
+                                </div>
+                                <span class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    @if ($driver->federal_tax_classification)
+                                        {{ ucfirst(str_replace('_', ' ', $driver->federal_tax_classification)) }}
+                                    @else
+                                        Not specified
+                                    @endif
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Personal Information -->
+                    <div class="mb-8">
+                        <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-4">Personal Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    Date of Birth</p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    {{ $driver->date_of_birth ? \Carbon\Carbon::parse($driver->date_of_birth)->format('m/d/Y') : 'N/A' }}
+                                </p>
+                            </div>
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    SSN</p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    ***-**-{{ substr($driver->ssn, -4) }}</p>
+                            </div>
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    Main Phone Number</p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $driver->main_phone }}
+                                </p>
+                            </div>
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    Emergency Phone Number</p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    {{ $driver->alt_phone ?? 'N/A' }}</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    Email Address</p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $driver->email }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Address Information -->
+                    <div class="mb-8">
+                        <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-4">Address Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    Address</p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $driver->address }}</p>
+                            </div>
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    City</p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $driver->city }}</p>
+                            </div>
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    State</p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $driver->state }}</p>
+                            </div>
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    Country</p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $driver->country }}</p>
+                            </div>
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    Postal Code</p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $driver->postal_code }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Document Status -->
+                        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    TWIC Card</p>
+                                <span
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $driver->twic_card ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }}">
+                                    {{ $driver->twic_card ? 'Yes' : 'No' }}
+                                </span>
+                            </div>
+                            <div>
+                                <p
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                    Passport</p>
+                                <span
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $driver->passport ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }}">
+                                    {{ $driver->passport ? 'Yes' : 'No' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Residence History -->
+                    @if ($driver->residence_addresses && $driver->residence_addresses->isNotEmpty())
+                        <div class="mb-8">
+                            <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-4">Residences (Previous 3
+                                Years)</h4>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                    <thead class="bg-gray-50 dark:bg-gray-800/50">
+                                        <tr>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Address</th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                City</th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                State</th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Country</th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Zip Code</th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody
+                                        class="bg-white dark:bg-gray-800/30 divide-y divide-gray-200 dark:divide-gray-700">
+                                        @foreach ($driver->residence_addresses as $residence)
+                                            <tr>
+                                                <td
+                                                    class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">
+                                                    {{ $residence->address }}</td>
+                                                <td
+                                                    class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                                    {{ $residence->city }}</td>
+                                                <td
+                                                    class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                                    {{ $residence->state }}</td>
+                                                <td
+                                                    class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                                    {{ $residence->country }}</td>
+                                                <td
+                                                    class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                                    {{ $residence->zip }}</td>
+                                                <td class="px-4 py-3 whitespace-nowrap">
+                                                    @if ($residence->is_current)
+                                                        <span
+                                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                            Current
+                                                        </span>
+                                                    @else
+                                                        <span
+                                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                                                            Previous
+                                                        </span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Driver License Information -->
+                    @if ($driver->licenses && $driver->licenses->isNotEmpty())
+                        <div>
+                            <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-4">Driver License
+                                Information (Last 3 Years)</h4>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                    <thead class="bg-gray-50 dark:bg-gray-800/50">
+                                        <tr>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                First Name</th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Last Name</th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                License Number</th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                State</th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Class</th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Issued</th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Expires</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody
+                                        class="bg-white dark:bg-gray-800/30 divide-y divide-gray-200 dark:divide-gray-700">
+                                        @foreach ($driver->licenses as $license)
+                                            <tr>
+                                                <td
+                                                    class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">
+                                                    {{ $license->first_name }}</td>
+                                                <td
+                                                    class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                                    {{ $license->last_name }}</td>
+                                                <td
+                                                    class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                                    {{ $license->license_number }}</td>
+                                                <td
+                                                    class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                                    {{ $license->state }}</td>
+                                                <td
+                                                    class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                                    {{ $license->class }}</td>
+                                                <td
+                                                    class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                                    {{ \Carbon\Carbon::parse($license->issued)->format('m/d/Y') }}</td>
+                                                <td
+                                                    class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                                    {{ \Carbon\Carbon::parse($license->expires)->format('m/d/Y') }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
+                </div>
             </div>
+
+
+
+
+
 
             <!-- Qualifications Checklist Tab -->
             <div id="qualifications" class="tab-content hidden">
