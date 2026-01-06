@@ -15,6 +15,8 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::get('/profit', [DashboardController::class, 'profit'])->name('admin.profit');
+
 Route::middleware('auth')->prefix('admin')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -67,8 +69,7 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         // Single driver routes with {id} parameter - MUST COME LAST
         Route::get('/{id}', [DriverController::class, 'show'])->name('admin.driver.show')->middleware('permission:drivers.view');
         Route::get('/{id}/edit', [DriverController::class, 'edit'])->name('admin.driver.edit')->middleware('permission:drivers.edit');
-        Route::post('/{id}', [DriverController::class, 'update'])->name('admin.driver.update')->middleware('permission:drivers.edit');
-        Route::patch('/{id}', [DriverController::class, 'update'])->name('admin.driver.update'); // Alternative PATCH method
+        Route::put('/{id}', [DriverController::class, 'update'])->name('admin.driver.update')->middleware('permission:drivers.edit');
         Route::post('/{id}/status', [DriverController::class, 'updateStatus'])->name('admin.driver.update.status')->middleware('permission:drivers.edit');
         Route::delete('/{id}', [DriverController::class, 'destroy'])->name('admin.driver.destroy')->middleware('permission:drivers.delete');
     });

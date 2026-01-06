@@ -10,4 +10,9 @@ class DashboardController extends Controller
     {
         return view('dashboard');
     }
+
+    public function profit(Request $request)
+    {
+        return view('admin.profit');
+    }
 }

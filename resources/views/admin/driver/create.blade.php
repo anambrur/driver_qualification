@@ -29,7 +29,8 @@
 
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div class="md:col-span-9">
-                <form action="{{ route('admin.driver.store') }}" method="POST" id="driverForm" enctype="multipart/form-data">
+                <form action="{{ route('admin.driver.store') }}" method="POST" id="driverForm"
+                    enctype="multipart/form-data">
                     @csrf
 
                     <!-- Company Selection -->

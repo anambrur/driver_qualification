@@ -42,7 +42,7 @@ class Driver extends Model
         return $this->hasMany(Violation::class);
     }
 
-    public function forfeiture()
+    public function forfeitures()
     {
         return $this->hasMany(Forfeitures::class);
     }

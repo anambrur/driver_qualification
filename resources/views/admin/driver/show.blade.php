@@ -39,7 +39,8 @@
                         <div>
                             <div class="flex items-center space-x-2">
                                 <h3 class="text-xl font-bold text-gray-800 dark:text-white/90">
-                                    * {{ $driver->first_name }} {{ $driver->last_name }}
+                                    * {{ $driver->first_name }}{{ $driver->middle_name ? ' ' . $driver->middle_name : '' }}
+                                    {{ $driver->last_name }}
                                     @php
                                         $statusColors = [
                                             'draft' =>
@@ -167,7 +168,8 @@
                                         Full Name
                                     </p>
                                     <p class="text-sm font-medium text-gray-800 dark:text-white/90">
-                                        {{ $driver->first_name }} {{ $driver->last_name }}
+                                        {{ $driver->first_name }}{{ $driver->middle_name ? ' ' . $driver->middle_name : '' }}
+                                        {{ $driver->last_name }}
                                     </p>
                                 </div>
 

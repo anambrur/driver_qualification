@@ -23,7 +23,28 @@ class DriverController extends Controller
     public function index(Request $request)
     {
         $company_id = Auth::user()->load('company')->company->id ?? null;
+
+        // First, get the base query for status counts
+        if (Auth::user()->hasRole('super-admin')) {
+            $baseQuery = Driver::query();
+        } else {
+            $baseQuery = Driver::where('company_id', $company_id)
+                ->where('status', '!=', 'draft');
+        }
+
+        // Calculate status counts
+        $statusCounts = [
+            'all' => (clone $baseQuery)->count(),
+            'draft' => (clone $baseQuery)->where('status', 'draft')->count(),
+            'pending' => (clone $baseQuery)->where('status', 'pending')->count(),
+            'active' => (clone $baseQuery)->where('status', 'active')->count(),
+            'inactive' => (clone $baseQuery)->where('status', 'inactive')->count(),
+            'rejected' => (clone $baseQuery)->where('status', 'rejected')->count(),
+        ];
+
+        // Check if it's an AJAX request for DataTables
         if ($request->ajax()) {
+            // Use the same base query for DataTables
             if (Auth::user()->hasRole('super-admin')) {
                 $drivers = Driver::with(['company', 'licenses' => function ($query) {
                     $query->latest('expires');
@@ -35,6 +56,11 @@ class DriverController extends Controller
                         $query->latest('expires');
                     }])
                     ->select('drivers.*');
+            }
+
+            // Apply status filter if provided
+            if ($request->has('status') && $request->status && $request->status !== 'all') {
+                $drivers->where('status', $request->status);
             }
 
             return DataTables::of($drivers)
@@ -138,8 +164,6 @@ class DriverController extends Controller
                                 ->orWhere('main_phone', 'like', "%{$search}%")
                                 ->orWhere('state', 'like', "%{$search}%")
                                 ->orWhereHas('company', function ($companyQuery) use ($search) {
-                                    // Check which column exists in your companies table
-                                    // Common column names are: name, company_name, business_name
                                     $companyQuery->where('company_name', 'like', "%{$search}%")
                                         ->orWhere('company_name', 'like', "%{$search}%")
                                         ->orWhere('business_name', 'like', "%{$search}%");
@@ -168,7 +192,6 @@ class DriverController extends Controller
                                 $query->orderBy('state', $direction);
                                 break;
                             case 4: // License Exp.
-                                // Can't sort by computed column, sort by ID instead
                                 $query->orderBy('id', $direction);
                                 break;
                             case 5: // Medical Exp.
@@ -181,14 +204,14 @@ class DriverController extends Controller
                                 $query->orderBy('id', $direction);
                         }
                     } else {
-                        // Default sorting
                         $query->orderBy('id', 'desc');
                     }
                 })
                 ->make(true);
         }
 
-        return view('admin.driver.index');
+        // For the initial page load, pass status counts to the view
+        return view('admin.driver.index', compact('statusCounts'));
     }
 
     public function create()
@@ -410,7 +433,7 @@ class DriverController extends Controller
             // Create license - Get names from IDs
             $licenseCountry = Country::find($request->license_country)?->name ?? $request->license_country;
             $licenseState = $request->license_state ? (is_numeric($request->license_state) ?
-                \App\Models\State::find($request->license_state)?->name : $request->license_state) : null;
+                State::find($request->license_state)?->name : $request->license_state) : null;
 
             DB::table('licenses')->insert([
                 'driver_id' => $driver->id,
@@ -579,22 +602,6 @@ class DriverController extends Controller
         }
     }
 
-    // public function show($id)
-    // {
-    //     $driver = Driver::with(['company', 'licenses' => function ($query) {
-    //         $query->orderBy('expires', 'desc');
-    //     }, 'driver_documents'])->findOrFail($id);
-
-    //     // Check if user has permission to view this driver
-    //     if (!Auth::user()->hasRole('super-admin')) {
-    //         $company_id = Auth::user()->load('company')->company->id ?? null;
-    //         if ($driver->company_id !== $company_id) {
-    //             abort(403, 'Unauthorized action.');
-    //         }
-    //     }
-
-    //     return view('admin.driver.show', compact('driver'));
-    // }
 
     public function show($id)
     {
@@ -622,16 +629,67 @@ class DriverController extends Controller
 
     public function edit($id)
     {
-        $driver = Driver::with('company')->findOrFail($id);
+        $driver = Driver::with([
+            'company',
+            'licenses' => function ($query) {
+                $query->orderBy('expires', 'desc')->limit(1);
+            },
+            'residence_addresses' => function ($query) {
+                $query->orderBy('is_current', 'desc');
+            },
+            'experiences',
+            'accidents' => function ($query) {
+                $query->orderBy('accident_date', 'desc');
+            },
+            'violations' => function ($query) {
+                $query->orderBy('violation_date', 'desc');
+            },
+            'forfeitures',
+            'employment_records' => function ($query) {
+                $query->orderBy('employer_record_date_to', 'desc');
+            }
+        ])->findOrFail($id);
+
+        // Check if user has permission to edit this driver
+        if (!Auth::user()->hasRole('super-admin')) {
+            $company_id = Auth::user()->load('company')->company->id ?? null;
+            if ($driver->company_id !== $company_id) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
+
         $companies = Company::where('status', 'active')->get();
-        return view('admin.driver.edit', compact('driver', 'companies'));
+        $countries = Country::orderBy('name')->get();
+        $states = State::where('country_id', Country::where('iso_code', 'US')->first()->id ?? 1)
+            ->orderBy('name')
+            ->get();
+
+        // dd($driver);
+
+        return view('admin.driver.edit', compact('driver', 'companies', 'countries', 'states'));
     }
 
     public function update(Request $request, $id)
     {
-        $driver = Driver::findOrFail($id);
+        $driver = Driver::with([
+            'licenses',
+            'experiences',
+            'accidents',
+            'violations',
+            'forfeitures',
+            'employment_records',
+            'residence_addresses'
+        ])->findOrFail($id);
 
-        // Form validation
+        // Check authorization
+        if (!Auth::user()->hasRole('super-admin')) {
+            $company_id = Auth::user()->load('company')->company->id ?? null;
+            if ($driver->company_id !== $company_id) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
+
+        // Main validation - expanded to include all sections
         $validator = Validator::make($request->all(), [
             'company_id' => 'required|exists:companies,id',
             'first_name' => 'required|string|max:255',
@@ -653,21 +711,139 @@ class DriverController extends Controller
             'postal_code' => 'required|string|max:20',
             'twic_card' => 'boolean',
             'passport' => 'boolean',
-            'status' => 'required|in:draft,submitted,under_review,approved,rejected',
+            'status' => 'required|in:draft,pending,active,inactive,submitted,under_review,approved,rejected',
+            'medical_certificate_expiration_date' => 'nullable|date',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+
+            // License fields
+            'license_first_name' => 'nullable|string|max:255',
+            'license_last_name' => 'nullable|string|max:255',
+            'license_issued' => 'nullable|date',
+            'license_expires' => 'nullable|date|after:license_issued',
+            'license_number' => 'nullable|string|max:255',
+            'repeat_license_number' => 'nullable|string|max:255|same:license_number',
+            'license_class' => 'nullable|string|max:255',
+
+            // Endorsements
+            'is_h_placarded_hazmat' => 'boolean',
+            'is_n_tank_vehicle' => 'boolean',
+            'is_p_passengers' => 'boolean',
+            'is_t_double_trailer' => 'boolean',
+            'is_s_school_bus' => 'boolean',
+            'is_x_placarded_hazmat' => 'boolean',
+
+            // Residence addresses
+            'residence_address' => 'sometimes|array',
+            'residence_address.*' => 'nullable|string',
+            'residence_city' => 'sometimes|array',
+            'residence_city.*' => 'nullable|string',
+            'residence_country' => 'sometimes|array',
+            'residence_country.*' => 'nullable|string',
+            'residence_state' => 'sometimes|array',
+            'residence_state.*' => 'nullable|string',
+            'residence_postal_code' => 'sometimes|array',
+            'residence_postal_code.*' => 'nullable|string',
+
+            // Experience fields
+            'equipment_class' => 'sometimes|array',
+            'equipment_class.*' => 'nullable|string',
+            'experience' => 'sometimes|array',
+            'experience.*' => 'nullable|in:no,yes',
+            'experience_from_date' => 'sometimes|array',
+            'experience_from_date.*' => 'nullable|date',
+            'experience_to_date' => 'sometimes|array',
+            'experience_to_date.*' => 'nullable|date',
+            'approx_miles' => 'sometimes|array',
+            'approx_miles.*' => 'nullable|string',
+
+            // Accident fields
+            'accident' => 'required|in:no,yes',
+            'accident_date' => 'sometimes|array',
+            'accident_date.*' => 'nullable|date',
+            'accident_location' => 'sometimes|array',
+            'accident_location.*' => 'nullable|string',
+            'number_of_injuries' => 'sometimes|array',
+            'number_of_injuries.*' => 'nullable|string',
+            'number_of_fatalities' => 'sometimes|array',
+            'number_of_fatalities.*' => 'nullable|string',
+            'hazmat_spill' => 'sometimes|array',
+            'hazmat_spill.*' => 'nullable|in:no,yes',
+
+            // Violation fields
+            'violation' => 'required|in:no,yes',
+            'violation_date' => 'sometimes|array',
+            'violation_date.*' => 'nullable|date',
+            'violation_location' => 'sometimes|array',
+            'violation_location.*' => 'nullable|string',
+            'offense' => 'sometimes|array',
+            'offense.*' => 'nullable|string',
+            'vehicle_type' => 'sometimes|array',
+            'vehicle_type.*' => 'nullable|string',
+
+            // Forfeiture fields
+            'denied_license' => 'required|in:no,yes',
+            'license_revoked' => 'required|in:no,yes',
+            'forfeitures' => 'nullable|string|max:1000',
+
+            // Employment record fields
+            'employer_name' => 'sometimes|array',
+            'employer_name.*' => 'nullable|string',
+            'employer_record_address' => 'sometimes|array',
+            'employer_record_address.*' => 'nullable|string',
+            'employer_record_city' => 'sometimes|array',
+            'employer_record_city.*' => 'nullable|string',
+            'employer_record_country' => 'sometimes|array',
+            'employer_record_country.*' => 'nullable|string',
+            'employer_record_state' => 'sometimes|array',
+            'employer_record_state.*' => 'nullable|string',
+            'employer_record_postal_code' => 'sometimes|array',
+            'employer_record_postal_code.*' => 'nullable|string',
+            'employer_record_phone' => 'sometimes|array',
+            'employer_record_phone.*' => 'nullable|string',
+            'employer_record_fax' => 'sometimes|array',
+            'employer_record_fax.*' => 'nullable|string',
+            'employer_record_email' => 'sometimes|array',
+            'employer_record_email.*' => 'nullable|email',
+            'employer_record_position' => 'sometimes|array',
+            'employer_record_position.*' => 'nullable|string',
+            'employer_record_date_from' => 'sometimes|array',
+            'employer_record_date_from.*' => 'nullable|date',
+            'employer_record_date_to' => 'sometimes|array',
+            'employer_record_date_to.*' => 'nullable|date',
+            'employer_record_reason_for_leaving' => 'sometimes|array',
+            'employer_record_reason_for_leaving.*' => 'nullable|string',
+            'employed_regulations' => 'sometimes|array',
+            'employed_regulations.*' => 'nullable|in:no,yes',
+            'safety_sensitive_function' => 'sometimes|array',
+            'safety_sensitive_function.*' => 'nullable|in:no,yes',
         ]);
 
-        // Any error checking
         if ($validator->fails()) {
-            // FIXED: Use proper toastr syntax
-            toastr()->error($validator->errors()->first());
-            return back();
+            foreach ($validator->errors()->all() as $error) {
+                toastr()->error($error);
+            }
+            return back()->withInput();
         }
 
         DB::beginTransaction();
 
         try {
-            // Format SSN (remove any non-numeric characters for storage)
+            // Format SSN
             $ssn = preg_replace('/[^0-9]/', '', $request->ssn);
+
+            // Handle photo upload
+            $photo = $driver->photo;
+            if ($request->hasFile('photo')) {
+                // Delete old photo if exists
+                if ($driver->photo && Storage::disk('public')->exists($driver->photo)) {
+                    Storage::disk('public')->delete($driver->photo);
+                }
+
+                $file = $request->file('photo');
+                $extension = $file->getClientOriginalExtension();
+                $fileName = 'driver_photo_' . time() . '.' . $extension;
+                $photo = $file->storeAs('images/drivers', $fileName, 'public');
+            }
 
             // Update driver
             $driver->update([
@@ -677,7 +853,7 @@ class DriverController extends Controller
                 'last_name' => $request->last_name,
                 'suffix' => $request->suffix,
                 'date_of_birth' => $request->date_of_birth,
-                'ssn' => $ssn, // In production, encrypt this field
+                'ssn' => $ssn,
                 'main_phone' => $request->main_phone,
                 'alt_phone' => $request->alt_phone,
                 'email' => $request->email,
@@ -692,26 +868,222 @@ class DriverController extends Controller
                 'twic_card' => $request->boolean('twic_card'),
                 'passport' => $request->boolean('passport'),
                 'status' => $request->status,
+                'medical_certificate_expiration_date' => $request->medical_certificate_expiration_date,
+                'photo' => $photo,
             ]);
 
-            // Commit transaction
+            // Update or create license
+            if ($request->filled('license_number')) {
+                if ($driver->licenses->isNotEmpty()) {
+                    $license = $driver->licenses->first();
+                    $license->update([
+                        'first_name' => $request->license_first_name,
+                        'last_name' => $request->license_last_name,
+                        'issued' => $request->license_issued,
+                        'expires' => $request->license_expires,
+                        'country' => $request->country,
+                        'state' => $request->state,
+                        'class' => $request->license_class,
+                        'license_number' => $request->license_number,
+                        'repeat_license_number' => $request->repeat_license_number,
+                        'is_h_placarded_hazmat' => $request->boolean('is_h_placarded_hazmat'),
+                        'is_n_tank_vehicle' => $request->boolean('is_n_tank_vehicle'),
+                        'is_p_passengers' => $request->boolean('is_p_passengers'),
+                        'is_t_double_trailer' => $request->boolean('is_t_double_trailer'),
+                        'is_s_school_bus' => $request->boolean('is_s_school_bus'),
+                        'is_x_placarded_hazmat' => $request->boolean('is_x_placarded_hazmat'),
+                    ]);
+                } else {
+                    DB::table('licenses')->insert([
+                        'driver_id' => $driver->id,
+                        'first_name' => $request->license_first_name,
+                        'last_name' => $request->license_last_name,
+                        'issued' => $request->license_issued,
+                        'expires' => $request->license_expires,
+                        'country' => $request->country,
+                        'state' => $request->state,
+                        'class' => $request->license_class,
+                        'license_number' => $request->license_number,
+                        'repeat_license_number' => $request->repeat_license_number,
+                        'is_h_placarded_hazmat' => $request->boolean('is_h_placarded_hazmat'),
+                        'is_n_tank_vehicle' => $request->boolean('is_n_tank_vehicle'),
+                        'is_p_passengers' => $request->boolean('is_p_passengers'),
+                        'is_t_double_trailer' => $request->boolean('is_t_double_trailer'),
+                        'is_s_school_bus' => $request->boolean('is_s_school_bus'),
+                        'is_x_placarded_hazmat' => $request->boolean('is_x_placarded_hazmat'),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            // Update residence addresses
+            $driver->residence_addresses()->delete();
+            if ($request->has('residence_address')) {
+                $residences = [];
+                foreach ($request->residence_address as $index => $address) {
+                    if (!empty(trim($address ?? ''))) {
+                        $residences[] = [
+                            'driver_id' => $driver->id,
+                            'address' => $address,
+                            'city' => $request->residence_city[$index] ?? null,
+                            'state' => $request->residence_state[$index] ?? null,
+                            'country' => $request->residence_country[$index] ?? null,
+                            'zip' => $request->residence_postal_code[$index] ?? null,
+                            'is_current' => $index === 0, // First address is current
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+                if (!empty($residences)) {
+                    DB::table('residence_addresses')->insert($residences);
+                }
+            }
+
+            // Update experiences
+            $driver->experiences()->delete();
+            if ($request->has('equipment_class')) {
+                $experiences = [];
+                foreach ($request->equipment_class as $index => $equipmentClass) {
+                    if (($request->experience[$index] ?? 'no') === 'yes') {
+                        $experiences[] = [
+                            'driver_id' => $driver->id,
+                            'equipment_class' => $equipmentClass,
+                            'experience' => $request->experience[$index] ?? 'no',
+                            'from_date' => $request->experience_from_date[$index] ?? null,
+                            'to_date' => $request->experience_to_date[$index] ?? null,
+                            'approx_miles' => $request->approx_miles[$index] ?? null,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+                if (!empty($experiences)) {
+                    DB::table('experiences')->insert($experiences);
+                }
+            }
+
+            // Update accidents
+            $driver->accidents()->delete();
+            if ($request->accident === 'yes' && $request->has('accident_date')) {
+                $accidents = [];
+                foreach ($request->accident_date as $index => $date) {
+                    if (!empty($date)) {
+                        $accidents[] = [
+                            'driver_id' => $driver->id,
+                            'accident' => 'yes',
+                            'accident_date' => $date,
+                            'accident_location' => $request->accident_location[$index] ?? null,
+                            'number_of_injuries' => $request->number_of_injuries[$index] ?? null,
+                            'number_of_fatalities' => $request->number_of_fatalities[$index] ?? null,
+                            'hazmat_spill' => $request->hazmat_spill[$index] ?? 'no',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+                if (!empty($accidents)) {
+                    DB::table('accidents')->insert($accidents);
+                }
+            } else {
+                // Create default no accident record
+                DB::table('accidents')->insert([
+                    'driver_id' => $driver->id,
+                    'accident' => 'no',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            // Update violations
+            $driver->violations()->delete();
+            if ($request->violation === 'yes' && $request->has('violation_date')) {
+                $violations = [];
+                foreach ($request->violation_date as $index => $date) {
+                    if (!empty($date)) {
+                        $violations[] = [
+                            'driver_id' => $driver->id,
+                            'violation' => 'yes',
+                            'violation_date' => $date,
+                            'violation_location' => $request->violation_location[$index] ?? null,
+                            'offense' => $request->offense[$index] ?? null,
+                            'vehicle_type' => $request->vehicle_type[$index] ?? null,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+                if (!empty($violations)) {
+                    DB::table('violations')->insert($violations);
+                }
+            } else {
+                // Create default no violation record
+                DB::table('violations')->insert([
+                    'driver_id' => $driver->id,
+                    'violation' => 'no',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            // Update forfeitures
+            $driver->forfeitures()->delete();
+            DB::table('forfeitures')->insert([
+                'driver_id' => $driver->id,
+                'denied_license' => $request->denied_license,
+                'license_revoked' => $request->license_revoked,
+                'forfeitures' => $request->forfeitures,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Update employment records
+            $driver->employment_records()->delete();
+            if ($request->has('employer_name')) {
+                $employmentRecords = [];
+                foreach ($request->employer_name as $index => $employerName) {
+                    if (!empty(trim($employerName ?? ''))) {
+                        $employmentRecords[] = [
+                            'driver_id' => $driver->id,
+                            'employer_name' => $employerName,
+                            'employer_record_address' => $request->employer_record_address[$index] ?? null,
+                            'employer_record_city' => $request->employer_record_city[$index] ?? null,
+                            'employer_record_country' => $request->employer_record_country[$index] ?? null,
+                            'employer_record_state' => $request->employer_record_state[$index] ?? null,
+                            'employer_record_postal_code' => $request->employer_record_postal_code[$index] ?? null,
+                            'employer_record_phone' => $request->employer_record_phone[$index] ?? null,
+                            'employer_record_fax' => $request->employer_record_fax[$index] ?? null,
+                            'employer_record_email' => $request->employer_record_email[$index] ?? null,
+                            'employer_record_position' => $request->employer_record_position[$index] ?? null,
+                            'employer_record_date_from' => $request->employer_record_date_from[$index] ?? null,
+                            'employer_record_date_to' => $request->employer_record_date_to[$index] ?? null,
+                            'employer_record_reason_for_leaving' => $request->employer_record_reason_for_leaving[$index] ?? null,
+                            'employed_regulations' => $request->employed_regulations[$index] ?? 'no',
+                            'safety_sensitive_function' => $request->safety_sensitive_function[$index] ?? 'no',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+                if (!empty($employmentRecords)) {
+                    DB::table('employment_records')->insert($employmentRecords);
+                }
+            }
+
             DB::commit();
 
-            // FIXED: Use proper toastr syntax
             toastr()->success('Driver updated successfully!');
             return redirect()->route('admin.driver.index');
         } catch (Exception $e) {
-            // Rollback transaction on error
             DB::rollBack();
 
-            // Log the error
             logger()->error('Driver update failed: ' . $e->getMessage(), [
                 'exception' => $e,
                 'driver_id' => $id,
-                'request_data' => $request->except(['ssn'])
+                'request_data' => $request->except(['ssn', 'license_number'])
             ]);
 
-            // FIXED: Use proper toastr syntax
             toastr()->error('Failed to update driver. Please try again.');
             return back()->withInput()->withErrors([
                 'system_error' => 'An error occurred while updating the driver. Please try again.'
