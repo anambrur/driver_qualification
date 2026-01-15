@@ -121,7 +121,99 @@
                             <!-- Dropdown Menu End -->
                         </li>
                     @endcan
+                    <!-- Menu Item Driver End -->
 
+                    <!-- Fleet Management -->
+                    @can('fleets.view')
+                        <li>
+                            <a href="#" @click.prevent="selected = (selected === 'Fleet' ? '':'Fleet')"
+                                class="menu-item group"
+                                :class="(selected === 'Fleet') || isCurrentPath('admin/fleets*') ?
+                                    'menu-item-active' : 'menu-item-inactive'">
+                                <i class="fas fa-car"
+                                    :class="(selected === 'Fleet') || isCurrentPath('admin/fleets*') ?
+                                        'menu-item-icon-active' : 'menu-item-icon-inactive'">
+                                </i>
+
+                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
+                                    Fleet Management
+                                </span>
+
+                                <i class="fas fa-angle-down menu-item-arrow"
+                                    :class="[(selected === 'Driver') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive',
+                                        sidebarToggle ? 'lg:hidden' : ''
+                                    ]">
+                                </i>
+                            </a>
+
+                            <div class="overflow-hidden transform translate"
+                                :class="(selected === 'Fleet') ? 'block' : 'hidden'">
+                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
+                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+                                    @can('fleets.vehicle')
+                                        <li>
+                                            <a href="{{ route('admin.fleet.vehicle') }}" class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/fleet/vehicle') ? 'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Vehicles
+                                            </a>
+                                        </li>
+                                    @endcan
+
+                                    @can('fleets.view')
+                                        <li>
+                                            <a href="{{ route('admin.driver.index') }}" class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/drivers') && !isCurrentPath(
+                                                        'admin/drivers') ?
+                                                    'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Trailers
+                                            </a>
+                                        </li>
+                                    @endcan
+
+
+                                    @can('vehicle-types.view')
+                                        <li>
+                                            <a href="{{ route('admin.vehicle.type.index') }}" class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/vehicle-type') && !isCurrentPath(
+                                                        'admin/vehicle-type') ?
+                                                    'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Vehicle Types
+                                            </a>
+                                        </li>
+                                    @endcan
+
+                                    @can('vehicle-groups.view')
+                                        <li>
+                                            <a href="{{ route('admin.vehicle.group.index') }}" class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/vehicle-group') && !isCurrentPath(
+                                                        'admin/vehicle-group') ?
+                                                    'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Vehicle Groups
+                                            </a>
+                                        </li>
+                                    @endcan
+
+                                    @can('fuel-types.view')
+                                        <li>
+                                            <a href="{{ route('admin.fuel.type.index') }}" class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/fuel-type') && !isCurrentPath(
+                                                        'admin/fuel-type') ?
+                                                    'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Fuel Types
+                                            </a>
+                                        </li>
+                                    @endcan
+                                </ul>
+                            </div>
+                            <!-- Dropdown Menu End -->
+
+                        </li>
+                    @endcan
                     <!-- Menu Item Driver End -->
 
 

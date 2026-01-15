@@ -44,6 +44,11 @@ class PermissionSeeder extends Seeder
             'companies',
             'drivers',
             'policy-pdf',
+            'fleets',
+            'vehicle-types',
+            'vehicle-groups',
+            'vehicles',
+            'fuel-types',
         ];
 
         // Define basic actions

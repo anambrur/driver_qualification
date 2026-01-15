@@ -5,7 +5,10 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\FuelTypeController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\VehicleTypeController;
+use App\Http\Controllers\VehicleGroupController;
 use App\Http\Controllers\ApplicationFormController;
 
 Route::get('/', function () {
@@ -99,6 +102,41 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::put('/{id}', [DriverController::class, 'update'])->name('admin.driver.update')->middleware('permission:drivers.edit');
         Route::post('/{id}/status', [DriverController::class, 'updateStatus'])->name('admin.driver.update.status')->middleware('permission:drivers.edit');
         Route::delete('/{id}', [DriverController::class, 'destroy'])->name('admin.driver.destroy')->middleware('permission:drivers.delete');
+    });
+
+
+
+    //Vehicle types
+    Route::prefix('vehicle-type')->group(function () {
+        Route::get('/', [VehicleTypeController::class, 'index'])->name('admin.vehicle.type.index');
+        Route::get('/create', [VehicleTypeController::class, 'create'])->name('admin.vehicle.type.create');
+        Route::post('/', [VehicleTypeController::class, 'store'])->name('admin.vehicle.type.store');
+        Route::get('/{id}/edit', [VehicleTypeController::class, 'edit'])->name('admin.vehicle.type.edit');
+        Route::put('/{id}', [VehicleTypeController::class, 'update'])->name('admin.vehicle.type.update');
+        Route::delete('/{id}', [VehicleTypeController::class, 'destroy'])->name('admin.vehicle.type.destroy');
+    });
+
+    // Vehicle groups
+    Route::prefix('vehicle-group')->group(function () {
+        Route::get('/', [VehicleGroupController::class, 'index'])->name('admin.vehicle.group.index');
+        Route::post('/', [VehicleGroupController::class, 'store'])->name('admin.vehicle.group.store');
+        Route::get('/{id}/edit', [VehicleGroupController::class, 'edit'])->name('admin.vehicle.group.edit');
+        Route::put('/{id}', [VehicleGroupController::class, 'update'])->name('admin.vehicle.group.update');
+        Route::delete('/{id}', [VehicleGroupController::class, 'destroy'])->name('admin.vehicle.group.destroy');
+    });
+
+    // Fuel types
+    Route::prefix('fuel-type')->group(function () {
+        Route::get('/', [FuelTypeController::class, 'index'])->name('admin.fuel.type.index');
+        Route::post('/', [FuelTypeController::class, 'store'])->name('admin.fuel.type.store');
+        Route::get('/{id}/edit', [FuelTypeController::class, 'edit'])->name('admin.fuel.type.edit');
+        Route::put('/{id}', [FuelTypeController::class, 'update'])->name('admin.fuel.type.update');
+        Route::delete('/{id}', [FuelTypeController::class, 'destroy'])->name('admin.fuel.type.destroy');
+    });
+
+    //Fleet
+    Route::prefix('fleet')->group(function () {
+        Route::get('/vehicle', [DriverController::class, 'fleets'])->name('admin.fleet.vehicle');
     });
 
 

@@ -476,7 +476,6 @@
                     confirmButton: 'swal2-confirm',
                     cancelButton: 'swal2-cancel'
                 },
-                buttonsStyling: false,
                 showClass: {
                     popup: 'animate__animated animate__fadeInDown'
                 },
