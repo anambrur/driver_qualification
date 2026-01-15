@@ -29,8 +29,8 @@ class CompanyController extends Controller
                         return '<img src="' . asset('storage/' . $company->logo) . '" alt="' . $company->company_name . '" class="w-10 h-10 rounded-full object-cover">';
                     }
                     return '<div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                <i class="fas fa-building text-gray-500 dark:text-gray-400"></i>
-                            </div>';
+                            <i class="fas fa-building text-gray-500 dark:text-gray-400"></i>
+                        </div>';
                 })
                 ->addColumn('status', function ($company) {
                     $status = $company->status === 'active'
@@ -41,17 +41,47 @@ class CompanyController extends Controller
                 ->addColumn('user_email', function ($company) {
                     return $company->user->email ?? 'N/A';
                 })
-                ->addColumn('action', function ($company) {
-                    return '<div class="flex items-center space-x-2">
-                                <a href="' . route('admin.settings.company.edit', $company->id) . '" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30">
-                                    <i class="fas fa-edit text-xs"></i>
+                ->addColumn('apply_url', function ($company) {
+                    // Check if slug exists
+                    if ($company->slug) {
+                        // Create the URL
+                        $applyUrl = url('/') . '/' . $company->slug . '/apply';
+
+                        // Return with copy button
+                        return '<div class="flex items-center space-x-2">
+                                <a href="' . $applyUrl . '" 
+                                   target="_blank" 
+                                   class="inline-flex items-center text-brand-600 hover:text-brand-700 dark:text-brand-400 apply-url-link"
+                                   title="Open Application Form">
+                                    <i class="fas fa-external-link-alt mr-1 text-xs"></i>
+                                    Link
                                 </a>
-                                <button type="button" onclick="deleteCompany(' . $company->id . ')" class="inline-flex items-center justify-center w-8 h-8 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30">
-                                    <i class="fas fa-trash text-xs"></i>
+                                <button type="button" 
+                                        onclick="copyApplyUrl(\'' . $applyUrl . '\')" 
+                                        class="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400 copy-url-btn"
+                                        title="Copy URL">
+                                    <i class="fas fa-copy text-xs"></i>
                                 </button>
                             </div>';
+                    }
+
+                    // Return disabled state if no slug
+                    return '<span class="text-gray-400 dark:text-gray-500 cursor-not-allowed" title="Not available">
+                            <i class="fas fa-ban mr-1 text-xs"></i>
+                            N/A
+                        </span>';
                 })
-                ->rawColumns(['logo', 'status', 'action'])
+                ->addColumn('action', function ($company) {
+                    return '<div class="flex items-center space-x-2">
+                            <a href="' . route('admin.settings.company.edit', $company->id) . '" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30" title="Edit">
+                                <i class="fas fa-edit text-xs"></i>
+                            </a>
+                            <button type="button" onclick="deleteCompany(' . $company->id . ')" class="inline-flex items-center justify-center w-8 h-8 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30" title="Delete">
+                                <i class="fas fa-trash text-xs"></i>
+                            </button>
+                        </div>';
+                })
+                ->rawColumns(['logo', 'status', 'apply_url', 'action'])
                 ->make(true);
         }
 

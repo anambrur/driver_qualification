@@ -5,8 +5,29 @@
 @section('content')
     <div class="p-4 mx-auto max-w-7xl">
         <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">Upload Medical Card</h1>
-            <p class="text-gray-600 dark:text-gray-400">Upload images of the driver's medical card</p>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">
+                @if ($isEditMode)
+                    Edit Medical Card
+                @else
+                    Upload Medical Card
+                @endif
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400">
+                @if ($isEditMode)
+                    Update the driver's medical card (Step 3 of 10)
+                @else
+                    Upload the driver's medical card (Step 3 of 10)
+                @endif
+            </p>
+            <div class="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
+                <i class="fas fa-user mr-2"></i>
+                <span>Driver: {{ $driver->first_name }} {{ $driver->last_name }}</span>
+                @if ($driver->company)
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-building mr-2"></i>
+                    <span>Company: {{ $driver->company->company_name }}</span>
+                @endif
+            </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -29,36 +50,80 @@
                     </div>
                 @endif
 
-                @if (session('success'))
-                    <div
-                        class="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800">
-                        <div class="flex items-center">
-                            <svg class="w-5 h-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            <h3 class="text-green-800 dark:text-green-200 font-medium">{{ session('success') }}</h3>
-                        </div>
-                    </div>
-                @endif
-
                 <form action="{{ route('admin.driver.medical.card.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="driver_id" value="{{ $driver_id }}">
+                    <input type="hidden" name="from_edit" value="{{ $isEditMode ? '1' : '0' }}">
 
                     <!-- Medical Card Upload Section -->
                     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
                         <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                Driver Medical Card
-                            </h3>
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                                    Driver Medical Card
+                                </h3>
+                                @if ($isEditMode)
+                                    <span
+                                        class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                        Edit Mode - Step 3 of 10
+                                    </span>
+                                @endif
+                            </div>
                         </div>
                         <div class="p-5 sm:p-6">
                             <div class="mb-6">
                                 <label class="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                     Medical Card
+                                    @if (!$isEditMode || !$driver_document || !$driver_document->medical_card)
+                                        <span class="text-error-500">*</span>
+                                    @endif
                                 </label>
+
+                                @if ($driver_document && $driver_document->medical_card)
+                                    <div class="mb-4">
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Current Medical Card:</p>
+                                        @if (Str::endsWith($driver_document->medical_card, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+                                            <div class="relative group">
+                                                <img src="{{ Storage::url($driver_document->medical_card) }}"
+                                                    alt="Medical Card"
+                                                    class="h-48 w-full object-contain rounded-lg border border-gray-200 dark:border-gray-700">
+                                                <div
+                                                    class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                                                    <a href="{{ Storage::url($driver_document->medical_card) }}"
+                                                        target="_blank"
+                                                        class="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-md text-sm">
+                                                        View Full Size
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <div
+                                                class="flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                                <svg class="h-12 w-12 text-red-400" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                                    </path>
+                                                </svg>
+                                                <div class="ml-3 text-left">
+                                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                        Medical Card Document
+                                                    </p>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400">PDF Document</p>
+                                                    <a href="{{ Storage::url($driver_document->medical_card) }}"
+                                                        target="_blank"
+                                                        class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm">
+                                                        View Document
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        @endif
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            Upload a new file to replace this one.
+                                        </p>
+                                    </div>
+                                @endif
+
                                 <div
                                     class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg dark:border-gray-600">
                                     <div class="space-y-1 text-center">
@@ -72,9 +137,16 @@
                                             <div class="flex text-sm text-gray-600 dark:text-gray-400">
                                                 <label for="medical_card"
                                                     class="relative cursor-pointer rounded-md bg-white font-medium text-brand-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-2 hover:text-brand-500 dark:bg-gray-900">
-                                                    <span>Upload medical card</span>
+                                                    <span>
+                                                        @if ($driver_document && $driver_document->medical_card)
+                                                            Replace Medical Card
+                                                        @else
+                                                            Upload Medical Card
+                                                        @endif
+                                                    </span>
                                                     <input id="medical_card" name="medical_card" type="file"
-                                                        class="sr-only" accept="image/*,.pdf" required>
+                                                        class="sr-only" accept="image/*,.pdf"
+                                                        @if (!$isEditMode || !$driver_document || !$driver_document->medical_card) required @endif>
                                                 </label>
                                             </div>
                                             <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, JPEG, PDF up to
@@ -87,7 +159,7 @@
                                                 class="mx-auto h-32 object-contain rounded-lg border border-gray-200 dark:border-gray-700">
                                             <button type="button" onclick="removePreview('medical_card')"
                                                 class="mt-2 text-sm text-red-600 hover:text-red-500">
-                                                Remove
+                                                Remove New File
                                             </button>
                                         </div>
 
@@ -98,7 +170,7 @@
                                             </div>
                                             <button type="button" onclick="removePreview('medical_card')"
                                                 class="mt-2 text-sm text-red-600 hover:text-red-500">
-                                                Remove
+                                                Remove New File
                                             </button>
                                         </div>
                                     </div>
@@ -107,38 +179,137 @@
                                     <p class="mt-1 text-sm text-error-500">{{ $message }}</p>
                                 @enderror
                             </div>
+
+                            <!-- Medical Certificate Expiration Date -->
+                            @if ($driver->medical_certificate_expiration_date)
+                                <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                                    <h4 class="text-lg font-medium text-gray-800 dark:text-white/90 mb-4">Medical
+                                        Certificate Information</h4>
+                                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+                                        <div class="grid grid-cols-2 gap-2 text-sm">
+                                            <div class="font-medium text-gray-600 dark:text-gray-400">Expiration Date:
+                                            </div>
+                                            <div class="text-gray-800 dark:text-white/90">
+                                                {{ \Carbon\Carbon::parse($driver->medical_certificate_expiration_date)->format('m/d/Y') }}
+                                            </div>
+
+                                            <div class="font-medium text-gray-600 dark:text-gray-400">Status:</div>
+                                            <div class="text-gray-800 dark:text-white/90">
+                                                @php
+                                                    $expirationDate = \Carbon\Carbon::parse(
+                                                        $driver->medical_certificate_expiration_date,
+                                                    );
+                                                    $today = \Carbon\Carbon::today();
+                                                    $daysUntilExpiry = $today->diffInDays($expirationDate, false);
+
+                                                    if ($daysUntilExpiry > 30) {
+                                                        $statusClass = 'text-green-600 dark:text-green-400';
+                                                        $statusText = 'Valid';
+                                                    } elseif ($daysUntilExpiry > 0) {
+                                                        $statusClass = 'text-yellow-600 dark:text-yellow-400';
+                                                        $statusText = 'Expiring Soon (' . $daysUntilExpiry . ' days)';
+                                                    } else {
+                                                        $statusClass = 'text-red-600 dark:text-red-400';
+                                                        $statusText = 'Expired';
+                                                    }
+                                                @endphp
+                                                <span class="{{ $statusClass }} font-medium">
+                                                    {{ $statusText }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
 
                     <!-- Form Actions -->
                     <div
                         class="flex flex-col sm:flex-row gap-4 justify-between pt-6 border-t border-gray-200 dark:border-gray-800">
-                        <a href="{{ route('admin.driver.license', $driver_id) }}"
-                            class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium 
-                            text-gray-700 bg-gray-100 border border-gray-300 rounded-lg 
-                            hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 
-                            focus:ring-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600">
-                            Back
-                        </a>
+                        @if ($isEditMode)
+                            <a href="{{ route('admin.driver.edit', ['id' => $driver_id]) }}"
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                Back to Driver Edit
+                            </a>
+                        @else
+                            <a href="{{ route('admin.driver.license', ['driver_id' => $driver_id]) }}"
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                Back to Step 2
+                            </a>
+                        @endif
 
-                        <a href="{{ route('admin.driver.forfeiture', $driver_id) }}"
-                            class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium 
-                            text-yellow-700 bg-yellow-100 border border-yellow-300 rounded-lg 
-                            hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 
-                            focus:ring-yellow-400 dark:bg-yellow-800 dark:text-yellow-200 dark:border-yellow-700 dark:hover:bg-yellow-700">
-                            Skip
-                        </a>
+                        <div class="flex gap-4">
+                            <button type="submit" name="action" value="save"
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                                <i class="fas fa-save mr-2"></i>
+                                {{ $isEditMode ? 'Update & Continue to Step 4' : 'Save & Continue to Step 4' }}
+                            </button>
 
-
-                        <button type="submit"
-                            class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
-                            Save & Continue
-                        </button>
+                            @if ($isEditMode)
+                                <a href="{{ route('admin.driver.forfeiture', ['driver_id' => $driver_id, 'edit' => '1']) }}"
+                                    class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                    Skip to Next Step
+                                </a>
+                            @endif
+                        </div>
                     </div>
                 </form>
             </div>
+
+            <!-- Progress Bar Sidebar -->
             <div class="md:col-span-3">
-                @include('components.progress-bar', ['currentStep' => $currentStep])
+                @include('components.progress-bar', [
+                    'currentStep' => $currentStep,
+                    'totalSteps' => 10,
+                    'isEditMode' => $isEditMode,
+                    'driver_id' => $driver_id,
+                ])
+
+                <!-- Driver Info Card -->
+                <div class="mt-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-4">
+                    <h3 class="font-medium text-gray-800 dark:text-white/90 mb-3">Driver Information</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center text-sm">
+                            <span class="w-24 text-gray-500 dark:text-gray-400">Name:</span>
+                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->first_name }}
+                                {{ $driver->last_name }}</span>
+                        </div>
+                        <div class="flex items-center text-sm">
+                            <span class="w-24 text-gray-500 dark:text-gray-400">Email:</span>
+                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->email }}</span>
+                        </div>
+                        <div class="flex items-center text-sm">
+                            <span class="w-24 text-gray-500 dark:text-gray-400">Phone:</span>
+                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->main_phone }}</span>
+                        </div>
+                        @if ($driver->company)
+                            <div class="flex items-center text-sm">
+                                <span class="w-24 text-gray-500 dark:text-gray-400">Company:</span>
+                                <span
+                                    class="font-medium text-gray-800 dark:text-white/90">{{ $driver->company->company_name }}</span>
+                            </div>
+                        @endif
+                        <div class="flex items-center text-sm">
+                            <span class="w-24 text-gray-500 dark:text-gray-400">Status:</span>
+                            <span
+                                class="font-medium {{ $driver->status == 'active' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400' }}">
+                                {{ ucfirst($driver->status) }}
+                            </span>
+                        </div>
+                        @if ($driver->medical_certificate_expiration_date)
+                            <div class="flex items-center text-sm">
+                                <span class="w-24 text-gray-500 dark:text-gray-400">Medical Exp.:</span>
+                                <span
+                                    class="font-medium {{ \Carbon\Carbon::parse($driver->medical_certificate_expiration_date)->isFuture() ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                                    {{ \Carbon\Carbon::parse($driver->medical_certificate_expiration_date)->format('m/d/Y') }}
+                                </span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -205,20 +376,38 @@
         form.addEventListener('submit', function(e) {
             const medicalCard = document.getElementById('medical_card');
 
-            if (!medicalCard.files[0]) {
-                e.preventDefault();
-                alert('Please upload a medical card file.');
-                return false;
-            }
+            // Check if we're in edit mode
+            const isEditMode = {{ $isEditMode ? 'true' : 'false' }};
+            const hasExistingMedicalCard =
+                {{ $driver_document && $driver_document->medical_card ? 'true' : 'false' }};
 
-            // Validate file size (5MB limit)
-            const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-            const file = medicalCard.files[0];
+            if (isEditMode) {
+                // In edit mode, file is optional
+                // Only validate if new file is uploaded
+                const maxSize = 5 * 1024 * 1024; // 5MB in bytes
 
-            if (file && file.size > maxSize) {
-                e.preventDefault();
-                alert(`File ${file.name} is too large. Maximum size is 5MB.`);
-                return false;
+                if (medicalCard.files[0] && medicalCard.files[0].size > maxSize) {
+                    e.preventDefault();
+                    alert('Medical card file is too large. Maximum size is 5MB.');
+                    return false;
+                }
+            } else {
+                // In create mode, file is required
+                if (!medicalCard.files[0]) {
+                    e.preventDefault();
+                    alert('Please upload a medical card file.');
+                    return false;
+                }
+
+                // Validate file size
+                const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+                const file = medicalCard.files[0];
+
+                if (file.size > maxSize) {
+                    e.preventDefault();
+                    alert(`File ${file.name} is too large. Maximum size is 5MB.`);
+                    return false;
+                }
             }
         });
     </script>

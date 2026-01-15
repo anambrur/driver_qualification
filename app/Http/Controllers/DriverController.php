@@ -627,7 +627,7 @@ class DriverController extends Controller
         return view('admin.driver.show', compact('driver'));
     }
 
-    public function edit($id)
+    public function edit($id, Request $request)
     {
         $driver = Driver::with([
             'company',
@@ -657,6 +657,8 @@ class DriverController extends Controller
                 abort(403, 'Unauthorized action.');
             }
         }
+        $currentStep = 1;
+        $isEditMode = $request->has('edit') && $request->edit == '1';
 
         $companies = Company::where('status', 'active')->get();
         $countries = Country::orderBy('name')->get();
@@ -666,7 +668,7 @@ class DriverController extends Controller
 
         // dd($driver);
 
-        return view('admin.driver.edit', compact('driver', 'companies', 'countries', 'states'));
+        return view('admin.driver.edit', compact('currentStep', 'driver', 'companies', 'countries', 'states', 'isEditMode'));
     }
 
     public function update(Request $request, $id)
@@ -1074,7 +1076,11 @@ class DriverController extends Controller
             DB::commit();
 
             toastr()->success('Driver updated successfully!');
-            return redirect()->route('admin.driver.index');
+
+            return redirect()->route('admin.driver.license', [
+                'driver_id' => $id,
+                'edit' => '1'
+            ]);
         } catch (Exception $e) {
             DB::rollBack();
 
@@ -1137,23 +1143,48 @@ class DriverController extends Controller
         }
     }
 
-    public function license($driver_id)
+    public function license($driver_id, Request $request)
     {
+        $driver = Driver::findOrFail($driver_id);
+
+        // Check authorization
+        if (!Auth::user()->hasRole('super-admin')) {
+            $company_id = Auth::user()->load('company')->company->id ?? null;
+            if ($driver->company_id !== $company_id) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
+
         $currentStep = 2;
-        return view('admin.driver.license', compact('currentStep', 'driver_id'));
+        $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
+
+        // Check if we're in edit mode
+        $isEditMode = $request->has('edit') && $request->edit == '1';
+
+        return view('admin.driver.license', compact('currentStep', 'driver_id', 'driver', 'driver_document', 'isEditMode'));
     }
 
     public function licenseStore(Request $request)
     {
         // Validate input
         $request->validate([
-            'license_front' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'license_back' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'license_front' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120', // 5MB
+            'license_back' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'driver_id' => 'required|exists:drivers,id',
         ]);
 
         try {
             DB::beginTransaction();
+
+            $driver = Driver::findOrFail($request->driver_id);
+
+            // Check authorization
+            if (!Auth::user()->hasRole('super-admin')) {
+                $company_id = Auth::user()->load('company')->company->id ?? null;
+                if ($driver->company_id !== $company_id) {
+                    abort(403, 'Unauthorized action.');
+                }
+            }
 
             // Find existing document first to handle file deletion
             $existingDocument = DriverDocument::where('driver_id', $request->driver_id)->first();
@@ -1185,7 +1216,7 @@ class DriverController extends Controller
                 $license_back = $file->storeAs('images/documents', $fileName, 'public');
             }
 
-            // Use updateOrCreate - only updates license_front and license_back
+            // Use updateOrCreate
             DriverDocument::updateOrCreate(
                 [
                     'driver_id' => $request->driver_id,
@@ -1193,13 +1224,26 @@ class DriverController extends Controller
                 [
                     'license_front' => $license_front,
                     'license_back' => $license_back,
-                    // medical_card and document_path remain unchanged
                 ]
             );
 
             DB::commit();
 
-            return redirect()->route('admin.driver.medical.card', ['driver_id' => $request->driver_id]);
+            toastr()->success('License documents saved successfully!');
+
+            // Determine next step based on mode
+            if ($request->has('from_edit') && $request->from_edit == '1') {
+                // In edit mode, continue to medical card step
+                return redirect()->route('admin.driver.medical.card', [
+                    'driver_id' => $request->driver_id,
+                    'edit' => '1'
+                ]);
+            } else {
+                // In create mode, continue to medical card step
+                return redirect()->route('admin.driver.medical.card', [
+                    'driver_id' => $request->driver_id
+                ]);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -1208,16 +1252,27 @@ class DriverController extends Controller
                 'line' => $e->getLine(),
             ]);
 
-            return redirect()
-                ->back()
-                ->with('error', 'Something went wrong while uploading the license.');
+            toastr()->error('Something went wrong while uploading the license.');
+            return back()->withInput();
         }
     }
 
-    public function medicalCard($driver_id)
+    public function medicalCard($driver_id, Request $request)
     {
+        $driver = Driver::findOrFail($driver_id);
+
+        // Check authorization
+        if (!Auth::user()->hasRole('super-admin')) {
+            $company_id = Auth::user()->load('company')->company->id ?? null;
+            if ($driver->company_id !== $company_id) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
+
         $currentStep = 3;
-        return view('admin.driver.medical-card', compact('currentStep', 'driver_id'));
+        $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
+        $isEditMode = $request->has('edit') && $request->edit == '1';
+        return view('admin.driver.medical-card', compact('currentStep', 'driver_id', 'driver', 'driver_document', 'isEditMode'));
     }
 
     public function medicalCardStore(Request $request)
@@ -1231,12 +1286,22 @@ class DriverController extends Controller
         try {
             DB::beginTransaction();
 
+
+            $driver = Driver::findOrFail($request->driver_id);
+            // Check authorization
+            if (!Auth::user()->hasRole('super-admin')) {
+                $company_id = Auth::user()->load('company')->company->id ?? null;
+                if ($driver->company_id !== $company_id) {
+                    abort(403, 'Unauthorized action.');
+                }
+            }
+
             // Find existing document first to handle file deletion
             $existingDocument = DriverDocument::where('driver_id', $request->driver_id)->first();
 
             $medical_card = $existingDocument ? $existingDocument->medical_card : null;
 
-            // Handle license front upload
+            // Handle medical card upload
             if ($request->hasFile('medical_card')) {
                 // Delete old file if exists
                 if ($existingDocument && $existingDocument->medical_card && Storage::disk('public')->exists($existingDocument->medical_card)) {
@@ -1249,7 +1314,7 @@ class DriverController extends Controller
             }
 
 
-            // Use updateOrCreate - only updates license_front and license_back
+            // Use updateOrCreate 
             DriverDocument::updateOrCreate(
                 [
                     'driver_id' => $request->driver_id,
@@ -1262,7 +1327,19 @@ class DriverController extends Controller
 
             DB::commit();
 
-            return redirect()->route('admin.driver.forfeiture', ['driver_id' => $request->driver_id]);
+            toastr()->success('Medical card saved successfully!');
+
+            // Determine next step based on mode
+            if ($request->has('from_edit') && $request->from_edit == '1') {
+                return redirect()->route('admin.driver.forfeiture', [
+                    'driver_id' => $request->driver_id,
+                    'edit' => '1'
+                ]);
+            } else {
+                return redirect()->route('admin.driver.forfeiture', [
+                    'driver_id' => $request->driver_id
+                ]);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -1277,10 +1354,22 @@ class DriverController extends Controller
         }
     }
 
-    public function forfeiture($driver_id)
+    public function forfeiture($driver_id, Request $request)
     {
+        $driver = Driver::findOrFail($driver_id);
+
+        // Check authorization
+        if (!Auth::user()->hasRole('super-admin')) {
+            $company_id = Auth::user()->load('company')->company->id ?? null;
+            if ($driver->company_id !== $company_id) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
+
         $currentStep = 4;
-        return view('admin.driver.forfeiture', compact('currentStep', 'driver_id'));
+        $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
+        $isEditMode = $request->has('edit') && $request->edit == '1';
+        return view('admin.driver.forfeiture', compact('currentStep', 'driver_id', 'driver', 'driver_document', 'isEditMode'));
     }
 
     public function forfeitureStore(Request $request)
@@ -1294,6 +1383,15 @@ class DriverController extends Controller
 
         try {
             DB::beginTransaction();
+            $driver = Driver::findOrFail($request->driver_id);
+
+            // Check authorization
+            if (!Auth::user()->hasRole('super-admin')) {
+                $company_id = Auth::user()->load('company')->company->id ?? null;
+                if ($driver->company_id !== $company_id) {
+                    abort(403, 'Unauthorized action.');
+                }
+            }
 
             // Find existing document first to handle file deletion
             $existingDocument = DriverDocument::where('driver_id', $request->driver_id)->first();
@@ -1325,7 +1423,19 @@ class DriverController extends Controller
 
             DB::commit();
 
-            return redirect()->route('admin.driver.violation', ['driver_id' => $request->driver_id]);
+            toastr()->success('Forfeiture document saved successfully!');
+
+            // Determine next step based on mode
+            if ($request->has('from_edit') && $request->from_edit == '1') {
+                return redirect()->route('admin.driver.violation', [
+                    'driver_id' => $request->driver_id,
+                    'edit' => '1'
+                ]);
+            } else {
+                return redirect()->route('admin.driver.violation', [
+                    'driver_id' => $request->driver_id
+                ]);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -1340,10 +1450,22 @@ class DriverController extends Controller
         }
     }
 
-    public function violation($driver_id)
+    public function violation($driver_id, Request $request)
     {
+        $driver = Driver::findOrFail($driver_id);
+
+        // Check authorization
+        if (!Auth::user()->hasRole('super-admin')) {
+            $company_id = Auth::user()->load('company')->company->id ?? null;
+            if ($driver->company_id !== $company_id) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
         $currentStep = 5;
-        return view('admin.driver.violation-record', compact('currentStep', 'driver_id'));
+        $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
+        $isEditMode = $request->has('edit') && $request->edit == '1';
+
+        return view('admin.driver.violation-record', compact('currentStep', 'driver_id', 'driver', 'driver_document', 'isEditMode'));
     }
 
     public function violationStore(Request $request)
@@ -1373,6 +1495,17 @@ class DriverController extends Controller
         DB::beginTransaction();
 
         try {
+
+            $driver = Driver::findOrFail($request->driver_id);
+
+            // Check authorization
+            if (!Auth::user()->hasRole('super-admin')) {
+                $company_id = Auth::user()->load('company')->company->id ?? null;
+                if ($driver->company_id !== $company_id) {
+                    abort(403, 'Unauthorized action.');
+                }
+            }
+
             $driverId = $request->driver_id;
 
             // First, delete all existing violations for this driver
@@ -1439,9 +1572,19 @@ class DriverController extends Controller
 
             DB::commit();
 
-            // Redirect to next step (update with your actual next step route)
-            // For now, redirect back to show success message
-            return redirect()->route('admin.driver.alcohol.and.drug.test', ['driver_id' => $request->driver_id]);
+            toastr()->success('Vo]iolation  saved successfully!');
+
+            // Determine next step based on mode
+            if ($request->has('from_edit') && $request->from_edit == '1') {
+                return redirect()->route('admin.driver.alcohol.and.drug.test', [
+                    'driver_id' => $request->driver_id,
+                    'edit' => '1'
+                ]);
+            } else {
+                return redirect()->route('admin.driver.alcohol.and.drug.test', [
+                    'driver_id' => $request->driver_id
+                ]);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -1457,17 +1600,26 @@ class DriverController extends Controller
         }
     }
 
-    public function alcoholAndDrugTest($driver_id)
+    public function alcoholAndDrugTest($driver_id, Request $request)
     {
-        $currentStep = 6;
+        $driver = Driver::findOrFail($driver_id);
 
+        // Check authorization
+        if (!Auth::user()->hasRole('super-admin')) {
+            $company_id = Auth::user()->load('company')->company->id ?? null;
+            if ($driver->company_id !== $company_id) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
+        $currentStep = 6;
         $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
+        $isEditMode = $request->has('edit') && $request->edit == '1';
 
         if (!$driver_document) {
             $driver_document = new DriverDocument();
         }
 
-        return view('admin.driver.alcohol-and-drug-test', compact('currentStep', 'driver_id', 'driver_document'));
+        return view('admin.driver.alcohol-and-drug-test', compact('currentStep', 'driver_id', 'driver', 'driver_document', 'isEditMode'));
     }
 
     public function alcoholAndDrugTestStore(Request $request)
@@ -1483,6 +1635,16 @@ class DriverController extends Controller
                 'applicant_signature' => 'required|string|max:255',
                 'date_signed' => 'required|date',
             ]);
+
+            $driver = Driver::findOrFail($request->driver_id);
+
+            // Check authorization
+            if (!Auth::user()->hasRole('super-admin')) {
+                $company_id = Auth::user()->load('company')->company->id ?? null;
+                if ($driver->company_id !== $company_id) {
+                    abort(403, 'Unauthorized action.');
+                }
+            }
 
             if ($validator->fails()) {
                 DB::rollBack();
@@ -1511,8 +1673,17 @@ class DriverController extends Controller
 
             toastr()->success('Alcohol and drug test statement saved successfully.');
 
-            // Redirect to next step
-            return redirect()->route('admin.driver.psp', ['driver_id' => $request->driver_id]);
+            // Determine next step based on mode
+            if ($request->has('from_edit') && $request->from_edit == '1') {
+                return redirect()->route('admin.driver.fmcsa.consent', [
+                    'driver_id' => $request->driver_id,
+                    'edit' => '1'
+                ]);
+            } else {
+                return redirect()->route('admin.driver.fmcsa.consent', [
+                    'driver_id' => $request->driver_id
+                ]);
+            }
         } catch (\Exception $e) {
             // Rollback transaction on error
             DB::rollBack();
@@ -1531,11 +1702,124 @@ class DriverController extends Controller
         }
     }
 
-    public function psp($driver_id)
+    public function consent($driver_id, Request $request)
     {
+        $driver = Driver::findOrFail($driver_id);
+
+        // Check authorization
+        if (!Auth::user()->hasRole('super-admin')) {
+            $company_id = Auth::user()->load('company')->company->id ?? null;
+            if ($driver->company_id !== $company_id) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
         $currentStep = 7;
 
+        $driver = Driver::find($driver_id);
+        $driver_name = $driver ? $driver->first_name . ' ' . $driver->last_name : 'Applicant';
+        $isEditMode = $request->has('edit') && $request->edit == '1';
+
         $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
+        if (!$driver_document) {
+            $driver_document = new DriverDocument();
+        }
+
+        $authUser = Auth::user()->load('company');
+        if (!$authUser) {
+            toastr()->error('Authenticated user not found.');
+            return redirect()->back();
+        }
+
+        return view('admin.driver.general-consent', compact('currentStep', 'driver_id', 'driver', 'driver_document', 'driver_name', 'authUser', 'isEditMode'));
+    }
+
+    public function consentStore(Request $request)
+    {
+        DB::beginTransaction();
+
+        try {
+            // Validate input
+            $validator = Validator::make($request->all(), [
+                'driver_id' => 'required|exists:drivers,id',
+                'employee_signature' => 'required|string|max:255',
+                'consent_agreement' => 'required|in:1',
+                'date_signed' => 'required|date',
+            ], [
+                'consent_agreement.required' => 'You must agree to the consent terms by checking the box.',
+                'consent_agreement.in' => 'You must agree to the consent terms.',
+            ]);
+
+            $driver = Driver::findOrFail($request->driver_id);
+
+            // Check authorization
+            if (!Auth::user()->hasRole('super-admin')) {
+                $company_id = Auth::user()->load('company')->company->id ?? null;
+                if ($driver->company_id !== $company_id) {
+                    abort(403, 'Unauthorized action.');
+                }
+            }
+
+            if ($validator->fails()) {
+                DB::rollBack();
+                foreach ($validator->errors()->all() as $error) {
+                    toastr()->error($error);
+                }
+                return back()->withInput();
+            }
+
+            // Update or create driver document with FMCSA consent
+            DriverDocument::updateOrCreate(
+                [
+                    'driver_id' => $request->driver_id,
+                ],
+                [
+                    'fmcsa_consent' => true,
+                    'fmcsa_consent_date' => now(),
+                    'fmcsa_consent_signature' => $request->employee_signature,
+                    'fmcsa_consent_agreement' => $request->consent_agreement,
+                    'fmcsa_date_signed' => $request->date_signed,
+                ]
+            );
+
+
+            DB::commit();
+            toastr()->success('FMCSA Clearinghouse consent saved successfully.');
+
+            // Determine next step based on mode
+            if ($request->has('from_edit') && $request->from_edit == '1') {
+                return redirect()->route('admin.driver.psp', [
+                    'driver_id' => $request->driver_id,
+                    'edit' => '1'
+                ]);
+            } else {
+                return redirect()->route('admin.driver.psp', [
+                    'driver_id' => $request->driver_id
+                ]);
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error saving FMCSA consent: ' . $e->getMessage());
+            toastr()->error('An error occurred while saving the FMCSA consent. Please try again.');
+            return back()->withInput()->withErrors([
+                'error' => 'An unexpected error occurred. Please try again.'
+            ]);
+        }
+    }
+
+    public function psp($driver_id, Request $request)
+    {
+        $driver = Driver::findOrFail($driver_id);
+
+        // Check authorization
+        if (!Auth::user()->hasRole('super-admin')) {
+            $company_id = Auth::user()->load('company')->company->id ?? null;
+            if ($driver->company_id !== $company_id) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
+        $currentStep = 8;
+        $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
+        $isEditMode = $request->has('edit') && $request->edit == '1';
 
         if (!$driver_document) {
             $driver_document = new DriverDocument();
@@ -1547,7 +1831,7 @@ class DriverController extends Controller
             return redirect()->back();
         }
 
-        return view('admin.driver.psp-driver-disclosure', compact('currentStep', 'driver_id', 'driver_document', 'authUser'));
+        return view('admin.driver.psp-driver-disclosure', compact('currentStep', 'driver_id', 'driver', 'driver_document', 'authUser', 'isEditMode'));
     }
 
     public function pspStore(Request $request)
@@ -1565,6 +1849,17 @@ class DriverController extends Controller
                 'authorization_agreement.required' => 'You must agree to the authorization terms by checking the box.',
                 'authorization_agreement.in' => 'You must agree to the authorization terms.',
             ]);
+
+            $driver = Driver::findOrFail($request->driver_id);
+
+            // Check authorization
+            if (!Auth::user()->hasRole('super-admin')) {
+                $company_id = Auth::user()->load('company')->company->id ?? null;
+                if ($driver->company_id !== $company_id) {
+                    abort(403, 'Unauthorized action.');
+                }
+            }
+
 
             if ($validator->fails()) {
                 DB::rollBack();
@@ -1593,8 +1888,17 @@ class DriverController extends Controller
 
             toastr()->success('PSP Driver Disclosure & Authorization saved successfully.');
 
-            // Redirect to next step (Alcohol & Drug Testing Policy)
-            return redirect()->route('admin.driver.fmcsa.consent', ['driver_id' => $request->driver_id]);
+            // Determine next step based on mode
+            if ($request->has('from_edit') && $request->from_edit == '1') {
+                return redirect()->route('admin.driver.alcohol.and.drug.test.policy', [
+                    'driver_id' => $request->driver_id,
+                    'edit' => '1'
+                ]);
+            } else {
+                return redirect()->route('admin.driver.alcohol.and.drug.test.policy', [
+                    'driver_id' => $request->driver_id
+                ]);
+            }
         } catch (\Exception $e) {
             // Rollback transaction on error
             DB::rollBack();
@@ -1614,89 +1918,25 @@ class DriverController extends Controller
         }
     }
 
-    public function consent($driver_id)
+    public function alcoholAndDrugTestPolicy($driver_id, Request $request)
     {
-        $currentStep = 8;
+        $driver = Driver::findOrFail($driver_id);
 
-        $driver = Driver::find($driver_id);
-        $driver_name = $driver ? $driver->first_name . ' ' . $driver->last_name : 'Applicant';
-
-        $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
-        if (!$driver_document) {
-            $driver_document = new DriverDocument();
-        }
-
-        $authUser = Auth::user()->load('company');
-        if (!$authUser) {
-            toastr()->error('Authenticated user not found.');
-            return redirect()->back();
-        }
-
-        return view('admin.driver.general-consent', compact('currentStep', 'driver_id', 'driver_document', 'driver_name', 'authUser'));
-    }
-
-    public function consentStore(Request $request)
-    {
-        DB::beginTransaction();
-
-        try {
-            // Validate input
-            $validator = Validator::make($request->all(), [
-                'driver_id' => 'required|exists:drivers,id',
-                'employee_signature' => 'required|string|max:255',
-                'consent_agreement' => 'required|in:1',
-                'date_signed' => 'required|date',
-            ], [
-                'consent_agreement.required' => 'You must agree to the consent terms by checking the box.',
-                'consent_agreement.in' => 'You must agree to the consent terms.',
-            ]);
-
-            if ($validator->fails()) {
-                DB::rollBack();
-                foreach ($validator->errors()->all() as $error) {
-                    toastr()->error($error);
-                }
-                return back()->withInput();
+        // Check authorization
+        if (!Auth::user()->hasRole('super-admin')) {
+            $company_id = Auth::user()->load('company')->company->id ?? null;
+            if ($driver->company_id !== $company_id) {
+                abort(403, 'Unauthorized action.');
             }
-
-            // Update or create driver document with FMCSA consent
-            DriverDocument::updateOrCreate(
-                [
-                    'driver_id' => $request->driver_id,
-                ],
-                [
-                    'fmcsa_consent' => true,
-                    'fmcsa_consent_date' => now(),
-                    'fmcsa_consent_signature' => $request->employee_signature,
-                    'fmcsa_consent_agreement' => $request->consent_agreement,
-                    'fmcsa_date_signed' => $request->date_signed,
-                ]
-            );
-
-
-            DB::commit();
-            toastr()->success('FMCSA Clearinghouse consent saved successfully.');
-
-            // Redirect to next step (Alcohol & Drug Testing Policy)
-            return redirect()->route('admin.driver.alcohol.and.drug.test.policy', ['driver_id' => $request->driver_id]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error saving FMCSA consent: ' . $e->getMessage());
-            toastr()->error('An error occurred while saving the FMCSA consent. Please try again.');
-            return back()->withInput()->withErrors([
-                'error' => 'An unexpected error occurred. Please try again.'
-            ]);
         }
-    }
-
-    public function alcoholAndDrugTestPolicy($driver_id)
-    {
         $currentStep = 9;
 
         $driver = Driver::find($driver_id);
         $driver_name = $driver ? $driver->first_name . ' ' . $driver->last_name : 'Applicant';
 
         $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
+        $isEditMode = $request->has('edit') && $request->edit == '1';
+
         if (!$driver_document) {
             $driver_document = new DriverDocument();
         }
@@ -1712,7 +1952,7 @@ class DriverController extends Controller
             $policyPdf = new PolicyPdf();
         }
 
-        return view('admin.driver.alcohol-and-drug-test-policy', compact('currentStep', 'driver_id', 'driver_document', 'driver_name', 'authUser', 'policyPdf'));
+        return view('admin.driver.alcohol-and-drug-test-policy', compact('currentStep', 'driver_id', 'driver', 'driver_document', 'driver_name', 'authUser', 'policyPdf', 'isEditMode'));
     }
 
     public function alcoholAndDrugTestPolicyStore(Request $request)
@@ -1726,6 +1966,16 @@ class DriverController extends Controller
                 'employee_signature' => 'required|string|max:255',
                 'date_signed' => 'required|date',
             ]);
+
+            $driver = Driver::findOrFail($request->driver_id);
+
+            // Check authorization
+            if (!Auth::user()->hasRole('super-admin')) {
+                $company_id = Auth::user()->load('company')->company->id ?? null;
+                if ($driver->company_id !== $company_id) {
+                    abort(403, 'Unauthorized action.');
+                }
+            }
 
             if ($validator->fails()) {
                 DB::rollBack();
@@ -1748,10 +1998,20 @@ class DriverController extends Controller
 
 
             DB::commit();
+
             toastr()->success('Alcohol & Drug Testing Policy saved successfully.');
 
-            // Redirect to next step (Alcohol & Drug Testing Policy)
-            return redirect()->route('admin.driver.general.work.policy', ['driver_id' => $request->driver_id]);
+            // Determine next step based on mode
+            if ($request->has('from_edit') && $request->from_edit == '1') {
+                return redirect()->route('admin.driver.general.work.policy', [
+                    'driver_id' => $request->driver_id,
+                    'edit' => '1'
+                ]);
+            } else {
+                return redirect()->route('admin.driver.general.work.policy', [
+                    'driver_id' => $request->driver_id
+                ]);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error saving Alcohol & Drug Testing Policy: ' . $e->getMessage());
@@ -1763,14 +2023,23 @@ class DriverController extends Controller
     }
 
 
-    public function generalWorkPolicy($driver_id)
+    public function generalWorkPolicy($driver_id, Request $request)
     {
+        $driver = Driver::findOrFail($driver_id);
+
+        // Check authorization
+        if (!Auth::user()->hasRole('super-admin')) {
+            $company_id = Auth::user()->load('company')->company->id ?? null;
+            if ($driver->company_id !== $company_id) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
         $currentStep = 10;
 
         $driver = Driver::find($driver_id);
         $driver_name = $driver ? $driver->first_name . ' ' . $driver->last_name : 'Applicant';
-
         $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
+        $isEditMode = $request->has('edit') && $request->edit == '1';
         if (!$driver_document) {
             $driver_document = new DriverDocument();
         }
@@ -1786,7 +2055,7 @@ class DriverController extends Controller
             $policyPdf = new PolicyPdf();
         }
 
-        return view('admin.driver.general-work-policy', compact('currentStep', 'driver_id', 'driver_document', 'driver_name', 'authUser', 'policyPdf'));
+        return view('admin.driver.general-work-policy', compact('currentStep', 'driver_id', 'driver', 'driver_document', 'driver_name', 'authUser', 'policyPdf', 'isEditMode'));
     }
 
     public function generalWorkPolicyStore(Request $request)
@@ -1800,6 +2069,7 @@ class DriverController extends Controller
                 'employee_signature' => 'required|string|max:255',
                 'date_signed' => 'required|date',
             ]);
+
 
             if ($validator->fails()) {
                 DB::rollBack();
@@ -1820,14 +2090,23 @@ class DriverController extends Controller
                 ]
             );
 
-            Driver::where('id', $request->driver_id)->update(['status' => 'pending']);
-
+            // Only update status if not in edit mode
+            if (!$request->has('from_edit') || $request->from_edit != '1') {
+                Driver::where('id', $request->driver_id)->update(['status' => 'pending']);
+            }
 
             DB::commit();
-            toastr()->success('General Work Policy saved successfully.');
 
-            // Redirect to next step ()
-            return redirect()->route('admin.driver.index');
+
+
+            // Redirect based on mode
+            if ($request->has('from_edit') && $request->from_edit == '1') {
+                toastr()->success('General Work Policy updatednb successfully.');
+                return redirect()->route('admin.driver.index');
+            } else {
+                toastr()->success('General Work Policy saved successfully.');
+                return redirect()->route('admin.driver.index');
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error saving General Work Policy: ' . $e->getMessage());

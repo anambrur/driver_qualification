@@ -5,22 +5,121 @@
 @section('content')
     <div class="p-4 mx-auto max-w-7xl">
         <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">PSP Driver Disclosure & Authorization</h1>
-            <p class="text-gray-600 dark:text-gray-400">Authorization for background reports from the PSP Online Service</p>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">
+                @if ($isEditMode)
+                    Edit PSP Driver Disclosure & Authorization
+                @else
+                    PSP Driver Disclosure & Authorization
+                @endif
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400">
+                @if ($isEditMode)
+                    Update authorization for background reports from the PSP Online Service (Step 8 of 10)
+                @else
+                    Authorization for background reports from the PSP Online Service (Step 8 of 10)
+                @endif
+            </p>
+            <div class="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
+                <i class="fas fa-user mr-2"></i>
+                <span>Driver: {{ $driver->first_name }} {{ $driver->last_name }}</span>
+                @if ($driver->company)
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-building mr-2"></i>
+                    <span>Company: {{ $driver->company->company_name }}</span>
+                @endif
+            </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div class="md:col-span-9">
+                @if ($errors->any())
+                    <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <h3 class="text-red-800 dark:text-red-200 font-medium">Please fix the following errors:</h3>
+                        </div>
+                        <ul class="mt-2 list-disc list-inside text-sm text-red-700 dark:text-red-300">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 <form action="{{ route('admin.driver.psp.store') }}" method="POST">
                     @csrf
                     <input type="hidden" name="driver_id" value="{{ $driver_id }}">
+                    <input type="hidden" name="from_edit" value="{{ $isEditMode ? '1' : '0' }}">
+
+                    <!-- Current Authorization Status -->
+                    @if ($isEditMode && $driver_document && $driver_document->psp_authorization)
+                        <div
+                            class="rounded-2xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/10 mb-6">
+                            <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-blue-100 dark:border-blue-800">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-200">
+                                        Current PSP Authorization Status
+                                    </h3>
+                                    <span
+                                        class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                        Authorized
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="p-5 sm:p-6">
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="font-medium text-blue-600 dark:text-blue-400">Status:</span>
+                                        <span class="ml-2 font-medium text-green-600 dark:text-green-400">
+                                            Authorized
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-blue-600 dark:text-blue-400">Authorization
+                                            Date:</span>
+                                        <span class="ml-2 text-blue-800 dark:text-blue-200">
+                                            {{ $driver_document->psp_authorization_date ? \Carbon\Carbon::parse($driver_document->psp_authorization_date)->format('m/d/Y H:i') : 'N/A' }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-blue-600 dark:text-blue-400">Signature:</span>
+                                        <span class="ml-2 text-blue-800 dark:text-blue-200">
+                                            {{ $driver_document->psp_authorization_signature ?? 'Not Available' }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-blue-600 dark:text-blue-400">Date Signed:</span>
+                                        <span class="ml-2 text-blue-800 dark:text-blue-200">
+                                            {{ $driver_document->psp_authorization_agreement_date ?? 'N/A' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <p class="mt-4 text-sm text-blue-700 dark:text-blue-300">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    Updating this form will create a new authorization record.
+                                </p>
+                            </div>
+                        </div>
+                    @endif
 
                     <!-- Important Disclosure Section -->
                     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
                         <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                IMPORTANT DISCLOSURE REGARDING BACKGROUND REPORTS FROM THE PSP ONLINE SERVICE
-                            </h3>
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                                    IMPORTANT DISCLOSURE REGARDING BACKGROUND REPORTS FROM THE PSP ONLINE SERVICE
+                                </h3>
+                                @if ($isEditMode)
+                                    <span
+                                        class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                        Edit Mode - Step 8 of 10
+                                    </span>
+                                @endif
+                            </div>
                         </div>
                         <div class="p-5 sm:p-6">
                             <div class="mb-6 space-y-4">
@@ -172,8 +271,9 @@
                             <!-- Agreement Checkbox -->
                             <div class="mb-6">
                                 <label class="inline-flex items-center cursor-pointer select-none">
-                                    <input type="checkbox" name="authorization_agreement" value="1" required
-                                        class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 rounded focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
+                                    <input type="checkbox" name="authorization_agreement" value="1"
+                                        class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 rounded focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900"
+                                        @if (!$isEditMode) required @endif />
                                     <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
                                         I have read and understand the above disclosure and authorization statements.
                                     </span>
@@ -189,10 +289,10 @@
                                             Applicant Signature <span class="text-red-500">*</span>
                                         </label>
                                         <input type="text" name="applicant_signature" id="applicant_signature"
-                                            value="{{ old('applicant_signature') }}"
+                                            value="{{ old('applicant_signature', $driver_document->psp_authorization_signature ?? '') }}"
                                             placeholder="Type your full name as signature"
                                             class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-                                            required>
+                                            @if (!$isEditMode) required @endif>
                                     </div>
                                     <div>
                                         <label for="date_signed"
@@ -202,7 +302,7 @@
                                         <input type="date" name="date_signed" id="date_signed"
                                             value="{{ old('date_signed', date('Y-m-d')) }}"
                                             class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-                                            required>
+                                            @if (!$isEditMode) required @endif>
                                     </div>
                                 </div>
                             </div>
@@ -240,23 +340,127 @@
                     <!-- Form Actions -->
                     <div
                         class="flex flex-col sm:flex-row gap-4 justify-between pt-6 border-t border-gray-200 dark:border-gray-800">
-                        <a href="{{ route('admin.driver.alcohol.and.drug.test', $driver_id) }}"
-                            class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium 
-                            text-gray-700 bg-gray-100 border border-gray-300 rounded-lg 
-                            hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 
-                            focus:ring-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600">
-                            Back
-                        </a>
+                        @if ($isEditMode)
+                            <a href="{{ route('admin.driver.edit', ['id' => $driver_id]) }}"
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                Back to Driver Edit
+                            </a>
+                        @else
+                            <a href="{{ route('admin.driver.alcohol.and.drug.test', ['driver_id' => $driver_id]) }}"
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                Back to Step 6
+                            </a>
+                        @endif
 
-                        <button type="submit"
-                            class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
-                            Save & Continue
-                        </button>
+                        <div class="flex gap-4">
+                            <button type="submit" name="action" value="save"
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                                <i class="fas fa-save mr-2"></i>
+                                {{ $isEditMode ? 'Update & Continue to Step 9' : 'Save & Continue to Step 8' }}
+                            </button>
+
+                            @if ($isEditMode)
+                                <a href="{{ route('admin.driver.fmcsa.consent', ['driver_id' => $driver_id, 'edit' => '1']) }}"
+                                    class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                    Skip to Next Step
+                                </a>
+                            @endif
+                        </div>
                     </div>
                 </form>
             </div>
+
+            <!-- Progress Bar Sidebar -->
             <div class="md:col-span-3">
-                @include('components.progress-bar', ['currentStep' => $currentStep])
+                @include('components.progress-bar', [
+                    'currentStep' => $currentStep,
+                    'totalSteps' => 10,
+                    'isEditMode' => $isEditMode,
+                    'driver_id' => $driver_id,
+                ])
+
+                <!-- Driver Info Card -->
+                <div class="mt-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-4">
+                    <h3 class="font-medium text-gray-800 dark:text-white/90 mb-3">Driver Information</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center text-sm">
+                            <span class="w-24 text-gray-500 dark:text-gray-400">Name:</span>
+                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->first_name }}
+                                {{ $driver->last_name }}</span>
+                        </div>
+                        <div class="flex items-center text-sm">
+                            <span class="w-24 text-gray-500 dark:text-gray-400">Email:</span>
+                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->email }}</span>
+                        </div>
+                        <div class="flex items-center text-sm">
+                            <span class="w-24 text-gray-500 dark:text-gray-400">Phone:</span>
+                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->main_phone }}</span>
+                        </div>
+                        @if ($driver->company)
+                            <div class="flex items-center text-sm">
+                                <span class="w-24 text-gray-500 dark:text-gray-400">Company:</span>
+                                <span
+                                    class="font-medium text-gray-800 dark:text-white/90">{{ $driver->company->company_name }}</span>
+                            </div>
+                        @endif
+                        <div class="flex items-center text-sm">
+                            <span class="w-24 text-gray-500 dark:text-gray-400">Status:</span>
+                            <span
+                                class="font-medium {{ $driver->status == 'active' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400' }}">
+                                {{ ucfirst($driver->status) }}
+                            </span>
+                        </div>
+                        @if ($driver_document && $driver_document->psp_authorization)
+                            <div class="flex items-center text-sm">
+                                <span class="w-24 text-gray-500 dark:text-gray-400">PSP Authorization:</span>
+                                <span class="font-medium text-green-600 dark:text-green-400">
+                                    <i class="fas fa-check-circle mr-1"></i> Authorized
+                                </span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <span class="w-24 text-gray-500 dark:text-gray-400">Authorized Date:</span>
+                                <span class="font-medium text-gray-800 dark:text-white/90">
+                                    {{ $driver_document->psp_authorization_date ? \Carbon\Carbon::parse($driver_document->psp_authorization_date)->format('m/d/Y') : 'N/A' }}
+                                </span>
+                            </div>
+                        @else
+                            <div class="flex items-center text-sm">
+                                <span class="w-24 text-gray-500 dark:text-gray-400">PSP Authorization:</span>
+                                <span class="font-medium text-red-600 dark:text-red-400">
+                                    <i class="fas fa-times-circle mr-1"></i> Not Authorized
+                                </span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- PSP Information Card -->
+                <div
+                    class="mt-6 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/10 p-4">
+                    <h3 class="font-medium text-blue-800 dark:text-blue-200 mb-3">
+                        <i class="fas fa-info-circle mr-2"></i>About PSP Reports
+                    </h3>
+                    <ul class="space-y-2 text-sm text-blue-700 dark:text-blue-300">
+                        <li class="flex items-start">
+                            <i class="fas fa-shield-alt mr-2 mt-0.5"></i>
+                            <span>FMCSA Pre-Employment Screening Program</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-car-crash mr-2 mt-0.5"></i>
+                            <span>5 years of crash data</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-search mr-2 mt-0.5"></i>
+                            <span>3 years of inspection history</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-balance-scale mr-2 mt-0.5"></i>
+                            <span>FMCSR violation records</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -265,44 +469,57 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-
             const employerName = @json($authUser->name);
+            const isEditMode = {{ $isEditMode ? 'true' : 'false' }};
+            const hasExistingAuthorization =
+                {{ $driver_document && $driver_document->psp_authorization ? 'true' : 'false' }};
+
             // Form validation
             const form = document.querySelector('form');
             if (form) {
                 form.addEventListener('submit', function(e) {
-                    const agreement = document.querySelector('input[name="authorization_agreement"]');
-                    const signature = document.getElementById('applicant_signature');
-                    const dateSigned = document.getElementById('date_signed');
+                    // Only validate required fields in create mode
+                    if (!isEditMode) {
+                        const agreement = document.querySelector('input[name="authorization_agreement"]');
+                        const signature = document.getElementById('applicant_signature');
+                        const dateSigned = document.getElementById('date_signed');
 
-                    // Validate agreement checkbox
-                    if (!agreement.checked) {
-                        e.preventDefault();
-                        alert('You must agree to the authorization terms by checking the box.');
-                        agreement.focus();
-                        return false;
+                        // Validate agreement checkbox
+                        if (!agreement.checked) {
+                            e.preventDefault();
+                            alert('You must agree to the authorization terms by checking the box.');
+                            agreement.focus();
+                            return false;
+                        }
+
+                        // Validate signature
+                        if (!signature.value.trim()) {
+                            e.preventDefault();
+                            alert('Please provide your signature.');
+                            signature.focus();
+                            return false;
+                        }
+
+                        // Validate date
+                        if (!dateSigned.value) {
+                            e.preventDefault();
+                            alert('Please select the date signed.');
+                            dateSigned.focus();
+                            return false;
+                        }
                     }
 
-                    // Validate signature
-                    if (!signature.value.trim()) {
-                        e.preventDefault();
-                        alert('Please provide your signature.');
-                        signature.focus();
-                        return false;
+                    // Confirm authorization for both modes
+                    let confirmationMessage = '';
+                    if (isEditMode && hasExistingAuthorization) {
+                        confirmationMessage =
+                            `You are updating an existing PSP authorization. This will create a new authorization record. Do you wish to proceed?`;
+                    } else {
+                        confirmationMessage =
+                            `By submitting this form, you authorize ${employerName} to access your PSP report from FMCSA. Do you wish to proceed?`;
                     }
 
-                    // Validate date
-                    if (!dateSigned.value) {
-                        e.preventDefault();
-                        alert('Please select the date signed.');
-                        dateSigned.focus();
-                        return false;
-                    }
-
-                    // Confirm authorization
-                    const confirmation = confirm(
-                        `By submitting this form, you authorize ${employerName} to access your PSP report from FMCSA. Do you wish to proceed?`
-                    );
+                    const confirmation = confirm(confirmationMessage);
                     if (!confirmation) {
                         e.preventDefault();
                         return false;
@@ -310,27 +527,58 @@
                 });
             }
 
-            // Auto-fill date if not already set
+            // Auto-fill date if not already set (only in create mode or when no existing date)
             const dateSignedInput = document.getElementById('date_signed');
             if (dateSignedInput && !dateSignedInput.value) {
                 dateSignedInput.value = new Date().toISOString().split('T')[0];
             }
 
-            // Track reading of disclosure
-            const disclosureSection = document.querySelector('.rounded-2xl.border');
-            if (disclosureSection) {
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            // User has seen the disclosure section
-                            console.log('User has viewed the disclosure section');
-                        }
-                    });
-                }, {
-                    threshold: 0.5
+            // Auto-check agreement if editing and already authorized
+            if (isEditMode && hasExistingAuthorization) {
+                const agreementCheckbox = document.querySelector('input[name="authorization_agreement"]');
+                if (agreementCheckbox && !agreementCheckbox.checked) {
+                    agreementCheckbox.checked = true;
+                }
+            }
+
+            // Track reading of disclosure with timeout to ensure user reads it
+            let disclosureRead = false;
+            const disclosureSection = document.querySelector('.rounded-2xl.border.border-gray-200');
+
+            if (disclosureSection && !isEditMode) {
+                let scrollTimer;
+                window.addEventListener('scroll', function() {
+                    const rect = disclosureSection.getBoundingClientRect();
+                    const isInViewport = (
+                        rect.top >= 0 &&
+                        rect.left >= 0 &&
+                        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+                        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+                    );
+
+                    if (isInViewport && !disclosureRead) {
+                        clearTimeout(scrollTimer);
+                        scrollTimer = setTimeout(function() {
+                            disclosureRead = true;
+                            console.log('User has had time to read the disclosure section');
+                        }, 3000); // 3 seconds to read
+                    }
                 });
 
-                observer.observe(disclosureSection);
+                // Also check on initial load
+                setTimeout(function() {
+                    const rect = disclosureSection.getBoundingClientRect();
+                    const isInViewport = (
+                        rect.top >= 0 &&
+                        rect.left >= 0 &&
+                        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+                        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+                    );
+
+                    if (isInViewport) {
+                        disclosureRead = true;
+                    }
+                }, 1000);
             }
         });
     </script>

@@ -2,10 +2,45 @@
     // Default values
     $currentStep = $currentStep ?? 1;
     $totalSteps = $totalSteps ?? 10;
+    $isEditMode = $isEditMode ?? false;
+    $driverId = $driver_id ?? ($driverId ?? null);
+
+    // Function to get edit step URL
+    function getEditStepUrl($step, $driverId)
+    {
+        $routes = [
+            1 => route('admin.driver.edit', ['id' => $driverId]),
+            2 => route('admin.driver.license', ['driver_id' => $driverId]) . '?edit=1',
+            3 => route('admin.driver.medical.card', ['driver_id' => $driverId]) . '?edit=1',
+            4 => route('admin.driver.forfeiture', ['driver_id' => $driverId]) . '?edit=1',
+            5 => route('admin.driver.violation', ['driver_id' => $driverId]) . '?edit=1',
+            6 => route('admin.driver.alcohol.and.drug.test', ['driver_id' => $driverId]) . '?edit=1',
+            7 => route('admin.driver.psp', ['driver_id' => $driverId]) . '?edit=1',
+            8 => route('admin.driver.fmcsa.consent', ['driver_id' => $driverId]) . '?edit=1',
+            9 => route('admin.driver.alcohol.and.drug.test.policy', ['driver_id' => $driverId]) . '?edit=1',
+            10 => route('admin.driver.general.work.policy', ['driver_id' => $driverId]) . '?edit=1',
+        ];
+
+        return $routes[$step] ?? '#';
+    }
 @endphp
 
 <div class="bg-white border border-gray-200 rounded-lg shadow-theme-xs dark:bg-gray-800 dark:border-gray-700 p-4">
-    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Application Process</h3>
+    @if ($isEditMode)
+        <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+            <div class="flex items-center">
+                <i class="fas fa-edit text-blue-500 dark:text-blue-400 mr-2"></i>
+                <h3 class="text-blue-800 dark:text-blue-200 font-medium">Edit Mode</h3>
+            </div>
+            <p class="text-sm text-blue-600 dark:text-blue-300 mt-1">
+                You are editing documents for this driver. Changes will be saved immediately.
+            </p>
+        </div>
+    @endif
+
+    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">
+        {{ $isEditMode ? 'Document Edit Process' : 'Application Process' }}
+    </h3>
 
     <!-- Progress Steps -->
     <div class="space-y-6">
@@ -56,14 +91,28 @@
                     @endif
                 </div>
                 <div class="pt-1 flex-1">
-                    <p
-                        class="@if ($step <= $currentStep) font-medium text-gray-800 dark:text-white/90 @else font-medium text-gray-500 dark:text-gray-400 @endif">
-                        {{ $stepData['title'] }}
-                    </p>
-                    <p
-                        class="text-sm @if ($step <= $currentStep) text-gray-500 dark:text-gray-400 @else text-gray-400 dark:text-gray-500 @endif mt-1">
-                        {{ $stepData['description'] }}
-                    </p>
+                    @if ($isEditMode && $driverId)
+                        <a href="{{ getEditStepUrl($step, $driverId) }}"
+                            class="block hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg p-2 -m-2">
+                            <p
+                                class="@if ($step <= $currentStep) font-medium text-gray-800 dark:text-white/90 @else font-medium text-gray-500 dark:text-gray-400 @endif hover:text-brand-500">
+                                {{ $stepData['title'] }}
+                            </p>
+                            <p
+                                class="text-sm @if ($step <= $currentStep) text-gray-500 dark:text-gray-400 @else text-gray-400 dark:text-gray-500 @endif mt-1">
+                                {{ $stepData['description'] }}
+                            </p>
+                        </a>
+                    @else
+                        <p
+                            class="@if ($step <= $currentStep) font-medium text-gray-800 dark:text-white/90 @else font-medium text-gray-500 dark:text-gray-400 @endif">
+                            {{ $stepData['title'] }}
+                        </p>
+                        <p
+                            class="text-sm @if ($step <= $currentStep) text-gray-500 dark:text-gray-400 @else text-gray-400 dark:text-gray-500 @endif mt-1">
+                            {{ $stepData['description'] }}
+                        </p>
+                    @endif
                 </div>
             </div>
         @endforeach
@@ -71,11 +120,20 @@
 
     <!-- Save & Finish Later Button -->
     <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-        <button type="button"
-            class="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-            Save & Finish Later
-        </button>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">Your application is not sent or visible to
-            the employer until it is 100% complete.</p>
+        @if ($isEditMode && $driverId)
+            <a href="{{ route('admin.driver.edit', ['id' => $driverId]) }}"
+                class="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Driver Edit
+            </a>
+        @else
+            <button type="button"
+                class="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                Save & Finish Later
+            </button>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">Your application is not sent or visible
+                to
+                the employer until it is 100% complete.</p>
+        @endif
     </div>
 </div>

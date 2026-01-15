@@ -6,6 +6,7 @@ use App\Http\Controllers\DriverController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ApplicationFormController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -14,6 +15,31 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+
+// Dynamic route for application form
+Route::get('/{slug}/apply', [ApplicationFormController::class, 'show'])->name('application.form');
+Route::get('/{slug}/start', [ApplicationFormController::class, 'start'])->name('application.start');
+Route::post('/{slug}/send-otp', [ApplicationFormController::class, 'sendOtp'])->name('application.send.otp');
+
+Route::get('/{slug}/verify-otp', [ApplicationFormController::class, 'showVerifyOtp'])
+    ->name('application.verify.otp');
+
+Route::post('/{slug}/verify-otp', [ApplicationFormController::class, 'verifyOtp'])
+    ->name('application.submit.otp');
+
+Route::post('/{slug}/resend-otp', [ApplicationFormController::class, 'resendOtp'])
+    ->name('application.resend.otp');
+
+Route::get('/{slug}/main-form', [ApplicationFormController::class, 'mainForm'])
+    ->name('application.main.form');
+
+// Optional: Add middleware to validate slug exists
+// Route::bind('slug', function ($slug) {
+//     return \App\Models\Company::where('slug', $slug)->firstOrFail();
+// });
+
+
 
 Route::get('/profit', [DashboardController::class, 'profit'])->name('admin.profit');
 
@@ -44,11 +70,12 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::post('/drug-test', [DriverController::class, 'alcoholAndDrugTestStore'])->name('admin.driver.alcohol.and.drug.store');
         Route::get('/drug-test/{driver_id}', [DriverController::class, 'alcoholAndDrugTest'])->name('admin.driver.alcohol.and.drug.test');
 
-        Route::post('/psp', [DriverController::class, 'pspStore'])->name('admin.driver.psp.store');
-        Route::get('/psp/{driver_id}', [DriverController::class, 'psp'])->name('admin.driver.psp');
 
         Route::post('/fmcsa_consent', [DriverController::class, 'consentStore'])->name('admin.driver.fmcsa.consent.store');
         Route::get('/fmcsa_consent/{driver_id}', [DriverController::class, 'consent'])->name('admin.driver.fmcsa.consent');
+
+        Route::post('/psp', [DriverController::class, 'pspStore'])->name('admin.driver.psp.store');
+        Route::get('/psp/{driver_id}', [DriverController::class, 'psp'])->name('admin.driver.psp');
 
         Route::post('/alcohol-drug-test-policy', [DriverController::class, 'alcoholAndDrugTestPolicyStore'])->name('admin.driver.alcohol.and.drug.test.policy.store');
         Route::get('/alcohol-drug-test-policy/{driver_id}', [DriverController::class, 'alcoholAndDrugTestPolicy'])->name('admin.driver.alcohol.and.drug.test.policy');
@@ -64,7 +91,7 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::get('/create', [DriverController::class, 'create'])->name('admin.driver.create')->middleware('permission:drivers.create');
         Route::post('/', [DriverController::class, 'store'])->name('admin.driver.store')->middleware('permission:drivers.create');
 
-        
+
 
         // Single driver routes with {id} parameter - MUST COME LAST
         Route::get('/{id}', [DriverController::class, 'show'])->name('admin.driver.show')->middleware('permission:drivers.view');

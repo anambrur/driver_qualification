@@ -541,18 +541,22 @@
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                                         <option value="">Select license class</option>
                                         <option value="Class A (CDL-A)"
-                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class A (CDL-A)' ? 'selected' : '' }}>Class A
+                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class A (CDL-A)' ? 'selected' : '' }}>
+                                            Class A
                                             (CDL-A)
                                         </option>
                                         <option value="Class B (CDL-B)"
-                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class B (CDL-B)' ? 'selected' : '' }}>Class B
+                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class B (CDL-B)' ? 'selected' : '' }}>
+                                            Class B
                                             (CDL-B)
                                         </option>
                                         <option value="Class C (CDL-C)"
-                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class C (CDL-C)' ? 'selected' : '' }}>Class C
+                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class C (CDL-C)' ? 'selected' : '' }}>
+                                            Class C
                                             (CDL-C)
                                         </option>
-                                        <option value="Class D" {{ old('license_class', $driver->licenses->first()->class) == 'Class D' ? 'selected' : '' }}>
+                                        <option value="Class D"
+                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class D' ? 'selected' : '' }}>
                                             Class D
                                         </option>
                                         <option value="Class C (Non-Commercial)"
@@ -560,13 +564,16 @@
                                             Class C
                                             (Non-Commercial)
                                         </option>
-                                        <option value="Class M" {{ old('license_class', $driver->licenses->first()->class) == 'Class M' ? 'selected' : '' }}>
+                                        <option value="Class M"
+                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class M' ? 'selected' : '' }}>
                                             Class M
                                         </option>
-                                        <option value="Class E" {{ old('license_class', $driver->licenses->first()->class) == 'Class E' ? 'selected' : '' }}>
+                                        <option value="Class E"
+                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class E' ? 'selected' : '' }}>
                                             Class E
                                         </option>
-                                        <option value="Class F" {{ old('license_class', $driver->licenses->first()->class) == 'Class F' ? 'selected' : '' }}>
+                                        <option value="Class F"
+                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class F' ? 'selected' : '' }}>
                                             Class F
                                         </option>
                                         <option value="Class DJ/MJ"
@@ -1461,9 +1468,13 @@
                     </div>
                 </form>
             </div>
-            {{-- <div class="md:col-span-3">
-                @include('components.progress-bar', ['currentStep' => $currentStep])
-            </div> --}}
+            <div class="md:col-span-3">
+                @include('components.progress-bar', [
+                    'currentStep' => $currentStep,
+                    'totalSteps' => 10,
+                    'isEditMode' => $isEditMode,
+                ])
+            </div>
         </div>
     </div>
 @endsection
