@@ -5,6 +5,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\FuelTypeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\VehicleTypeController;
@@ -132,6 +133,17 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::get('/{id}/edit', [FuelTypeController::class, 'edit'])->name('admin.fuel.type.edit');
         Route::put('/{id}', [FuelTypeController::class, 'update'])->name('admin.fuel.type.update');
         Route::delete('/{id}', [FuelTypeController::class, 'destroy'])->name('admin.fuel.type.destroy');
+    });
+
+    // Vehicles
+    Route::prefix('vehicle')->group(function () {
+        Route::get('/', [VehicleController::class, 'index'])->name('admin.vehicle.index');
+        Route::post('/', [VehicleController::class, 'store'])->name('admin.vehicle.store');
+        Route::get('/{id}/edit', [VehicleController::class, 'edit'])->name('admin.vehicle.edit');
+        Route::put('/{id}', [VehicleController::class, 'update'])->name('admin.vehicle.update');
+        Route::delete('/{id}', [VehicleController::class, 'destroy'])->name('admin.vehicle.destroy');
+        Route::post('/{id}/restore', [VehicleController::class, 'restore'])->name('admin.vehicle.restore');
+        Route::get('/dropdown-data', [VehicleController::class, 'getDropdownData'])->name('admin.vehicle.dropdown.data');
     });
 
     //Fleet

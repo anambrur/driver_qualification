@@ -208,6 +208,18 @@
                                             </a>
                                         </li>
                                     @endcan
+
+                                    @can('vehicles.view')
+                                        <li>
+                                            <a href="{{ route('admin.vehicle.index') }}" class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/vehicle') && !isCurrentPath(
+                                                        'admin/vehicle') ?
+                                                    'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Vehicles
+                                            </a>
+                                        </li>
+                                    @endcan
                                 </ul>
                             </div>
                             <!-- Dropdown Menu End -->
