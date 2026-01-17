@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Vehicle extends Model
+class Trailer extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -16,47 +16,30 @@ class Vehicle extends Model
         'year',
         'make',
         'model',
-        'vehicle_type_id',
+        'equipment_types_id',
         'owned_by',
         'color',
         'title_no',
         'tire_size',
-        'odometer',
         'gvw',
         'vehicle_group_id',
-        'fuel_type_id',
-        'engine_type',
-        'transmission',
-        'suspension',
-        'no_axles',
-        'configuration',
-        'wheel_base',
-        'size_dimension',
         'notes'
     ];
 
     protected $casts = [
         'year' => 'integer',
-        'odometer' => 'integer',
-        'gvw' => 'integer',
-        'no_axles' => 'integer',
-        'wheel_base' => 'integer'
+        'gvw' => 'integer'
     ];
 
     // Relationships
-    public function vehicleType()
+    public function equipmentType()
     {
-        return $this->belongsTo(VehicleType::class);
+        return $this->belongsTo(EquipmentType::class, 'equipment_types_id');
     }
 
     public function vehicleGroup()
     {
         return $this->belongsTo(VehicleGroup::class);
-    }
-
-    public function fuelType()
-    {
-        return $this->belongsTo(FuelType::class);
     }
 
     // Scope for searching
@@ -71,19 +54,10 @@ class Vehicle extends Model
         });
     }
 
-    // Accessor for full vehicle name
+    // Accessor for full trailer name
     public function getFullNameAttribute()
     {
         return "{$this->year} {$this->make} {$this->model} ({$this->unit_no})";
-    }
-
-    // Configuration options
-    public static function getConfigurationOptions()
-    {
-        return [
-            'conventional' => 'Conventional',
-            'cabover' => 'Cabover'
-        ];
     }
 
     // Owned by options

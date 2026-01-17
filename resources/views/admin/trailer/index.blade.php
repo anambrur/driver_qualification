@@ -1,6 +1,6 @@
 @extends('layouts.main-layout')
 
-@section('title', 'Vehicles')
+@section('title', 'Trailers')
 
 @section('content')
     <div class="p-4 mx-auto max-w-7xl md:p-6">
@@ -8,8 +8,8 @@
         <div class="mb-6">
             <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white/90">Vehicles</h2>
-                    <p class="text-gray-600 dark:text-gray-400 mt-2">Manage all vehicles in your fleet</p>
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white/90">Trailers</h2>
+                    <p class="text-gray-600 dark:text-gray-400 mt-2">Manage all trailers in your fleet</p>
                 </div>
                 <div class="flex items-center space-x-2">
                     <button id="refresh-table"
@@ -18,7 +18,7 @@
                     </button>
                     <button onclick="showCreateModal()"
                         class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2">
-                        <i class="fas fa-plus mr-2"></i>Add New Vehicle
+                        <i class="fas fa-plus mr-2"></i>Add New Trailer
                     </button>
                 </div>
             </div>
@@ -39,15 +39,15 @@
                     </div>
                 </div>
 
-                <!-- Vehicle Type Filter -->
+                <!-- Equipment Type Filter -->
                 <div class="w-full md:w-48">
                     <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Vehicle Type
+                        Equipment Type
                     </label>
                     <select id="filter-type"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                         <option value="">All Types</option>
-                        @foreach ($vehicleTypes as $type)
+                        @foreach ($equipmentTypes as $type)
                             <option value="{{ $type->id }}">{{ $type->name }}</option>
                         @endforeach
                     </select>
@@ -80,23 +80,24 @@
             </div>
         </div>
 
-        <!-- Vehicles Table Card -->
+        <!-- Trailers Table Card -->
         <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="px-5 py-4 sm:px-6 sm:py-5">
                 <div class="flex flex-col justify-between sm:flex-row sm:items-center">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                        <i class="fas fa-truck mr-2"></i>Vehicle Fleet
+                        <i class="fas fa-trailer mr-2"></i>Trailer Fleet
                     </h3>
                     <div class="mt-2 text-sm text-gray-600 dark:text-gray-400 sm:mt-0">
-                        Total: <span id="total-records" class="font-medium">Loading...</span> vehicles
+                        Total: <span id="total-records" class="font-medium">Loading...</span> trailers
                     </div>
                 </div>
             </div>
 
             <div class="border-t border-gray-100 dark:border-gray-800">
                 <div class="p-5 sm:p-6">
-                    <div class="overflow-hidden">
-                        <table id="vehicles-table" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <!-- Add overflow-x-auto wrapper here -->
+                    <div class="overflow-x-auto">
+                        <table id="trailers-table" class="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead>
                                 <tr>
                                     <th
@@ -105,7 +106,7 @@
                                     </th>
                                     <th
                                         class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Vehicle Information
+                                        Trailer Information
                                     </th>
                                     <th
                                         class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
@@ -113,7 +114,7 @@
                                     </th>
                                     <th
                                         class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Fuel & Odometer
+                                        Details
                                     </th>
                                     <th
                                         class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
@@ -140,7 +141,7 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div id="vehicleModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div id="trailerModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
         <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
 
@@ -153,9 +154,9 @@
                         <div class="w-full mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                             <h3 id="modalTitle" class="text-lg font-medium leading-6 text-gray-900 dark:text-white"></h3>
                             <div class="mt-4">
-                                <form id="vehicleForm">
+                                <form id="trailerForm">
                                     @csrf
-                                    <input type="hidden" id="vehicle_id" name="id">
+                                    <input type="hidden" id="trailer_id" name="id">
 
                                     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                                         <!-- Column 1: Basic Information -->
@@ -171,8 +172,7 @@
                                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Unit Number <span class="text-red-500">*</span>
                                                 </label>
-                                                <input type="text" name="unit_no" placeholder="e.g., T001" id="unit_no"
-                                                    required
+                                                <input type="text" name="unit_no" id="unit_no" required placeholder="e.g., T001"
                                                     class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                 <div id="unit_no_error" class="mt-1 text-sm text-red-600"></div>
                                             </div>
@@ -183,8 +183,7 @@
                                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     VIN (17 characters) <span class="text-red-500">*</span>
                                                 </label>
-                                                <input type="text" name="vin" placeholder="17-character VIN"
-                                                    id="vin" required maxlength="17"
+                                                <input type="text" name="vin" id="vin" required placeholder="17-character VIN" maxlength="17"
                                                     class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                 <div id="vin_error" class="mt-1 text-sm text-red-600"></div>
                                             </div>
@@ -196,8 +195,8 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Year <span class="text-red-500">*</span>
                                                     </label>
-                                                    <input type="number" name="year" placeholder="e.g., 2025"
-                                                        id="year" required min="1900" max="{{ date('Y') + 1 }}"
+                                                    <input type="number" name="year" id="year" required placeholder="e.g., 2025"
+                                                        min="1900" max="{{ date('Y') + 1 }}"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="year_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
@@ -206,8 +205,7 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Make <span class="text-red-500">*</span>
                                                     </label>
-                                                    <input type="text" name="make" placeholder="e.g., Peterbilt"
-                                                        id="make" required
+                                                    <input type="text" name="make" id="make" required placeholder="e.g., Peterbilt"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="make_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
@@ -216,46 +214,26 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Model <span class="text-red-500">*</span>
                                                     </label>
-                                                    <input type="text" name="model" placeholder="e.g., 389"
-                                                        id="model" required
+                                                    <input type="text" name="model" id="model" required placeholder="e.g., 389"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="model_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
                                             </div>
 
-                                            <!-- Vehicle Type & Group -->
-                                            <div class="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label for="vehicle_type_id"
-                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Vehicle Type
-                                                    </label>
-                                                    <select name="vehicle_type_id" id="vehicle_type_id"
-                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                        <option value="">Select Type</option>
-                                                        @foreach ($vehicleTypes as $type)
-                                                            <option value="{{ $type->id }}">{{ $type->name }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
-                                                    <div id="vehicle_type_id_error" class="mt-1 text-sm text-red-600">
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label for="vehicle_group_id"
-                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Vehicle Group
-                                                    </label>
-                                                    <select name="vehicle_group_id" id="vehicle_group_id"
-                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                        <option value="">Select Group</option>
-                                                        @foreach ($vehicleGroups as $group)
-                                                            <option value="{{ $group->id }}">{{ $group->name }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
-                                                    <div id="vehicle_group_id_error" class="mt-1 text-sm text-red-600">
-                                                    </div>
+                                            <!-- Equipment Type -->
+                                            <div>
+                                                <label for="equipment_types_id"
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    Equipment Type <span class="text-red-500">*</span>
+                                                </label>
+                                                <select name="equipment_types_id" id="equipment_types_id" required
+                                                    class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                                    <option value="">Select Equipment Type</option>
+                                                    @foreach ($equipmentTypes as $type)
+                                                        <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <div id="equipment_types_id_error" class="mt-1 text-sm text-red-600">
                                                 </div>
                                             </div>
 
@@ -266,8 +244,7 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Owned By <span class="text-red-500">*</span>
                                                     </label>
-                                                    <input type="text" name="owned_by" placeholder="Company Name"
-                                                        id="owned_by"
+                                                    <input type="text" name="owned_by" id="owned_by" placeholder="Company name"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="owned_by_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
@@ -276,8 +253,7 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Color
                                                     </label>
-                                                    <input type="text" name="color" placeholder="e.g., White"
-                                                        id="color"
+                                                    <input type="text" name="color" placeholder="e.g., White" id="color"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="color_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
@@ -298,8 +274,7 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Title Number
                                                     </label>
-                                                    <input type="text" name="title_no" id="title_no"
-                                                        placeholder="Title number"
+                                                    <input type="text" name="title_no" id="title_no" placeholder="Title number"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="title_no_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
@@ -308,136 +283,41 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Tire Size
                                                     </label>
-                                                    <input type="text" name="tire_size" id="tire_size"
-                                                        placeholder="e.g., 295/75R22.5"
+                                                    <input type="text" name="tire_size" id="tire_size" placeholder="e.g., 295/75R22.5"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="tire_size_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
                                             </div>
 
-                                            <!-- Odometer & GVW -->
-                                            <div class="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label for="odometer"
-                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Odometer (miles)
-                                                    </label>
-                                                    <input type="number" name="odometer" placeholder="miles" id="odometer" required
-                                                        min="0"
-                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                    <div id="odometer_error" class="mt-1 text-sm text-red-600"></div>
-                                                </div>
-                                                <div>
-                                                    <label for="gvw"
-                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        GVW (lbs)
-                                                    </label>
-                                                    <input type="number" name="gvw" placeholder="lbs"
-                                                        id="gvw" min="0"
-                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                    <div id="gvw_error" class="mt-1 text-sm text-red-600"></div>
-                                                </div>
+                                            <!-- GVW -->
+                                            <div>
+                                                <label for="gvw"
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    GVW (Gross Vehicle Weight in lbs)
+                                                </label>
+                                                <input type="number" name="gvw" placeholder="lbs" id="gvw" min="0"
+                                                    class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                                    placeholder="Enter GVW in pounds">
+                                                <div id="gvw_error" class="mt-1 text-sm text-red-600"></div>
+                                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                    Gross Vehicle Weight rating in pounds
+                                                </p>
                                             </div>
 
-                                            <!-- Fuel Type & Engine Type -->
-                                            <div class="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label for="fuel_type_id"
-                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Fuel Type
-                                                    </label>
-                                                    <select name="fuel_type_id" id="fuel_type_id"
-                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                        <option value="">Select Fuel Type</option>
-                                                        @foreach ($fuelTypes as $fuel)
-                                                            <option value="{{ $fuel->id }}">{{ $fuel->name }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
-                                                    <div id="fuel_type_id_error" class="mt-1 text-sm text-red-600"></div>
-                                                </div>
-                                                <div>
-                                                    <label for="engine_type"
-                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Engine Type
-                                                    </label>
-                                                    <input type="text" name="engine_type" placeholder="e.g., PACCAR MX-13" id="engine_type"
-                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                    <div id="engine_type_error" class="mt-1 text-sm text-red-600"></div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Transmission & Suspension -->
-                                            <div class="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label for="transmission"
-                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Transmission
-                                                    </label>
-                                                    <input type="text" name="transmission" placeholder="e.g., 10- speed manual" id="transmission"
-                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                    <div id="transmission_error" class="mt-1 text-sm text-red-600"></div>
-                                                </div>
-                                                <div>
-                                                    <label for="suspension"
-                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Suspension
-                                                    </label>
-                                                    <input type="text" name="suspension" placeholder="e.g., Air Suspension" id="suspension"
-                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                    <div id="suspension_error" class="mt-1 text-sm text-red-600"></div>
-                                                </div>
-                                            </div>
-
-                                            <!-- No. of Axles & Configuration -->
-                                            <div class="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label for="no_axles"
-                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Number of Axles
-                                                    </label>
-                                                    <input type="number" name="no_axles" placeholder="e.g., 4" id="no_axles" min="1"
-                                                        max="10"
-                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                    <div id="no_axles_error" class="mt-1 text-sm text-red-600"></div>
-                                                </div>
-                                                <div>
-                                                    <label for="configuration"
-                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Configuration
-                                                    </label>
-                                                    <select name="configuration" id="configuration"
-                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                        <option value="">Select Configuration</option>
-                                                        <option value="conventional">Conventional</option>
-                                                        <option value="cabover">Cabover</option>
-                                                    </select>
-                                                    <div id="configuration_error" class="mt-1 text-sm text-red-600"></div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Wheel Base & Size Dimension -->
-                                            <div class="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label for="wheel_base"
-                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Wheel Base (inches)
-                                                    </label>
-                                                    <input type="number" name="wheel_base" placeholder="inches" id="wheel_base"
-                                                        min="0"
-                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                    <div id="wheel_base_error" class="mt-1 text-sm text-red-600"></div>
-                                                </div>
-                                                <div>
-                                                    <label for="size_dimension"
-                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Size/Dimension
-                                                    </label>
-                                                    <input type="text" name="size_dimension" id="size_dimension" placeholder="e.g., 70 BBC"
-                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                    <div id="size_dimension_error" class="mt-1 text-sm text-red-600">
-                                                    </div>
-                                                </div>
+                                            <!-- Vehicle Group -->
+                                            <div>
+                                                <label for="vehicle_group_id"
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    Vehicle Group
+                                                </label>
+                                                <select name="vehicle_group_id" id="vehicle_group_id"
+                                                    class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                                    <option value="">Select Group</option>
+                                                    @foreach ($vehicleGroups as $group)
+                                                        <option value="{{ $group->id }}">{{ $group->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <div id="vehicle_group_id_error" class="mt-1 text-sm text-red-600"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -454,12 +334,12 @@
                                             </label>
                                             <textarea name="notes" id="notes" rows="3"
                                                 class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                                                placeholder="Enter any additional notes about this vehicle (maintenance records, special instructions, etc.)..."></textarea>
+                                                placeholder="Enter any additional notes about this trailer (maintenance records, special instructions, etc.)..."></textarea>
                                             <div id="notes_error" class="mt-1 text-sm text-red-600"></div>
                                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                                 Maximum 2000 characters. Notes will be displayed with a <i
                                                     class="fas fa-sticky-note text-blue-500 text-xs"></i> icon in the
-                                                vehicle list.
+                                                trailer list.
                                             </p>
                                         </div>
                                     </div>
@@ -554,6 +434,46 @@
             resize: vertical;
             min-height: 80px;
         }
+
+        /* Scrollbar styling */
+        .overflow-x-auto {
+            scrollbar-width: thin;
+            scrollbar-color: #d1d5db transparent;
+        }
+
+        .overflow-x-auto::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .overflow-x-auto::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .overflow-x-auto::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .dark .overflow-x-auto {
+            scrollbar-color: #4b5563 #1f2937;
+        }
+
+        .dark .overflow-x-auto::-webkit-scrollbar-track {
+            background: #374151;
+        }
+
+        .dark .overflow-x-auto::-webkit-scrollbar-thumb {
+            background: #6b7280;
+        }
+
+        .dark .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
     </style>
 @endpush
 
@@ -561,21 +481,21 @@
     <script>
         $(document).ready(function() {
             // Initialize DataTable
-            var table = $('#vehicles-table').DataTable({
+            var table = $('#trailers-table').DataTable({
                 processing: true,
                 serverSide: true,
                 ajax: {
-                    url: '{{ route('admin.vehicle.index') }}',
+                    url: '{{ route('admin.trailer.index') }}',
                     type: 'GET',
                     data: function(d) {
                         // Add filter parameters
                         d.search_text = $('#quick-search').val();
-                        d.vehicle_type_id = $('#filter-type').val();
+                        d.equipment_types_id = $('#filter-type').val();
                         d.status = $('#filter-status').val();
                     },
                     error: function(xhr, error, thrown) {
                         console.error('DataTables AJAX Error:', error);
-                        showToast('Failed to load vehicles', 'error');
+                        showToast('Failed to load trailers', 'error');
                     }
                 },
                 columns: [{
@@ -587,7 +507,7 @@
                         className: 'text-center'
                     },
                     {
-                        data: 'vehicle_info',
+                        data: 'trailer_info',
                         name: 'unit_no',
                         orderable: true,
                         searchable: true,
@@ -595,14 +515,14 @@
                     },
                     {
                         data: 'type_group',
-                        name: 'vehicle_type_id',
+                        name: 'equipment_types_id',
                         orderable: false,
                         searchable: false,
                         width: '20%'
                     },
                     {
-                        data: 'fuel_odometer',
-                        name: 'fuel_type_id',
+                        data: 'details',
+                        name: 'gvw',
                         orderable: false,
                         searchable: false,
                         width: '20%'
@@ -634,12 +554,12 @@
                 ],
                 language: {
                     search: "",
-                    searchPlaceholder: "Search vehicles...",
+                    searchPlaceholder: "Search trailers...",
                     lengthMenu: "Show _MENU_ entries",
                     info: "Showing _START_ to _END_ of _TOTAL_ entries",
                     infoEmpty: "Showing 0 to 0 of 0 entries",
                     infoFiltered: "(filtered from _MAX_ total entries)",
-                    emptyTable: "No vehicles found",
+                    emptyTable: "No trailers found",
                     zeroRecords: "No matching records found",
                     processing: '<div class="spinner-border text-brand-500" role="status"></div> Loading...',
                     paginate: {
@@ -649,8 +569,9 @@
                         previous: '<i class="fas fa-angle-left"></i>'
                     }
                 },
-                responsive: true,
-                autoWidth: false,
+                responsive: false, // Disable responsive plugin
+                scrollX: true, // Enable horizontal scrolling
+                autoWidth: true, // Allow table to determine its own width
                 dom: '<"flex flex-col lg:flex-row lg:items-center lg:justify-between"<"mb-4"l><"mb-4"f>>rt<"flex flex-col lg:flex-row lg:items-center lg:justify-between"<"mb-4"i><"mb-4"p>>',
                 lengthMenu: [10, 25, 50, 100],
                 pageLength: 10,
@@ -722,21 +643,21 @@
 
             // Modal handlers
             $('#closeModal').on('click', function() {
-                $('#vehicleModal').addClass('hidden');
+                $('#trailerModal').addClass('hidden');
                 resetForm();
             });
 
             // Close modal when clicking outside
             $(document).on('click', function(event) {
                 if ($(event.target).hasClass('fixed')) {
-                    $('#vehicleModal').addClass('hidden');
+                    $('#trailerModal').addClass('hidden');
                     resetForm();
                 }
             });
 
             // Submit form
             $('#submitForm').on('click', function() {
-                submitVehicleForm();
+                submitTrailerForm();
             });
 
             // Apply filters
@@ -762,31 +683,31 @@
 
         // Show create modal
         function showCreateModal() {
-            $('#modalTitle').text('Add New Vehicle');
+            $('#modalTitle').text('Add New Trailer');
             $('#submitText').text('Save');
-            $('#vehicle_id').val('');
+            $('#trailer_id').val('');
             resetFormErrors();
-            $('#vehicleModal').removeClass('hidden');
+            $('#trailerModal').removeClass('hidden');
             $('#unit_no').focus();
         }
 
         // Show edit modal
-        function editVehicle(id) {
+        function editTrailer(id) {
             resetFormErrors();
 
             // Show loading
             $('#modalTitle').html('Loading...');
             $('#submitText').html('<i class="fas fa-spinner fa-spin mr-2"></i>Loading');
-            $('#vehicleModal').removeClass('hidden');
+            $('#trailerModal').removeClass('hidden');
 
             $.ajax({
-                url: '{{ route('admin.vehicle.edit', ':id') }}'.replace(':id', id),
+                url: '{{ route('admin.trailer.edit', ':id') }}'.replace(':id', id),
                 type: 'GET',
                 success: function(response) {
                     if (response.success) {
-                        $('#modalTitle').text('Edit Vehicle');
+                        $('#modalTitle').text('Edit Trailer');
                         $('#submitText').text('Update');
-                        $('#vehicle_id').val(id);
+                        $('#trailer_id').val(id);
 
                         // Fill form fields
                         $.each(response.data, function(key, value) {
@@ -801,25 +722,25 @@
                             }
                         });
                     } else {
-                        showToast('Failed to load vehicle data', 'error');
-                        $('#vehicleModal').addClass('hidden');
+                        showToast('Failed to load trailer data', 'error');
+                        $('#trailerModal').addClass('hidden');
                     }
                 },
                 error: function(xhr) {
                     console.error('Edit error:', xhr);
-                    showToast('Failed to load vehicle data', 'error');
-                    $('#vehicleModal').addClass('hidden');
+                    showToast('Failed to load trailer data', 'error');
+                    $('#trailerModal').addClass('hidden');
                 }
             });
         }
 
         // Submit form
-        function submitVehicleForm() {
-            var formData = $('#vehicleForm').serialize();
-            var url = $('#vehicle_id').val() ?
-                '{{ route('admin.vehicle.update', ':id') }}'.replace(':id', $('#vehicle_id').val()) :
-                '{{ route('admin.vehicle.store') }}';
-            var method = $('#vehicle_id').val() ? 'PUT' : 'POST';
+        function submitTrailerForm() {
+            var formData = $('#trailerForm').serialize();
+            var url = $('#trailer_id').val() ?
+                '{{ route('admin.trailer.update', ':id') }}'.replace(':id', $('#trailer_id').val()) :
+                '{{ route('admin.trailer.store') }}';
+            var method = $('#trailer_id').val() ? 'PUT' : 'POST';
 
             resetFormErrors();
 
@@ -838,8 +759,8 @@
                 success: function(response) {
                     $('#submitText').html(originalText);
                     if (response.success) {
-                        $('#vehicleModal').addClass('hidden');
-                        $('#vehicles-table').DataTable().ajax.reload();
+                        $('#trailerModal').addClass('hidden');
+                        $('#trailers-table').DataTable().ajax.reload();
                         showToast(response.message, 'success');
                         resetForm();
                     } else {
@@ -867,11 +788,11 @@
             });
         }
 
-        // Delete vehicle
-        function deleteVehicle(id, unitNo) {
+        // Delete trailer
+        function deleteTrailer(id, unitNo) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You won't be able to revert this! Vehicle: " + unitNo,
+                text: "You won't be able to revert this! Trailer: " + unitNo,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
@@ -897,7 +818,7 @@
                     });
 
                     $.ajax({
-                        url: '{{ route('admin.vehicle.destroy', ':id') }}'.replace(':id', id),
+                        url: '{{ route('admin.trailer.destroy', ':id') }}'.replace(':id', id),
                         type: 'DELETE',
                         data: {
                             _token: '{{ csrf_token() }}'
@@ -905,7 +826,7 @@
                         success: function(response) {
                             Swal.close();
                             if (response.success) {
-                                $('#vehicles-table').DataTable().ajax.reload();
+                                $('#trailers-table').DataTable().ajax.reload();
                                 Swal.fire({
                                     title: 'Deleted!',
                                     text: response.message,
@@ -918,7 +839,7 @@
                         },
                         error: function(xhr) {
                             Swal.close();
-                            let errorMessage = 'Failed to delete vehicle.';
+                            let errorMessage = 'Failed to delete trailer.';
                             if (xhr.responseJSON && xhr.responseJSON.message) {
                                 errorMessage = xhr.responseJSON.message;
                             }
@@ -934,11 +855,11 @@
             });
         }
 
-        // Restore vehicle
-        function restoreVehicle(id, unitNo) {
+        // Restore trailer
+        function restoreTrailer(id, unitNo) {
             Swal.fire({
-                title: 'Restore Vehicle',
-                text: "Are you sure you want to restore vehicle: " + unitNo + "?",
+                title: 'Restore Trailer',
+                text: "Are you sure you want to restore trailer: " + unitNo + "?",
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#10b981',
@@ -959,7 +880,7 @@
                     });
 
                     $.ajax({
-                        url: '{{ route('admin.vehicle.restore', ':id') }}'.replace(':id', id),
+                        url: '{{ route('admin.trailer.restore', ':id') }}'.replace(':id', id),
                         type: 'POST',
                         data: {
                             _token: '{{ csrf_token() }}',
@@ -968,7 +889,7 @@
                         success: function(response) {
                             Swal.close();
                             if (response.success) {
-                                $('#vehicles-table').DataTable().ajax.reload();
+                                $('#trailers-table').DataTable().ajax.reload();
                                 Swal.fire({
                                     title: 'Restored!',
                                     text: response.message,
@@ -981,7 +902,7 @@
                         },
                         error: function(xhr) {
                             Swal.close();
-                            let errorMessage = 'Failed to restore vehicle.';
+                            let errorMessage = 'Failed to restore trailer.';
                             if (xhr.responseJSON && xhr.responseJSON.message) {
                                 errorMessage = xhr.responseJSON.message;
                             }
@@ -999,8 +920,8 @@
 
         // Reset form
         function resetForm() {
-            $('#vehicleForm')[0].reset();
-            $('#vehicle_id').val('');
+            $('#trailerForm')[0].reset();
+            $('#trailer_id').val('');
             resetFormErrors();
         }
 
@@ -1072,9 +993,9 @@
         }
 
         // Make functions available globally
-        window.editVehicle = editVehicle;
-        window.deleteVehicle = deleteVehicle;
-        window.restoreVehicle = restoreVehicle;
+        window.editTrailer = editTrailer;
+        window.deleteTrailer = deleteTrailer;
+        window.restoreTrailer = restoreTrailer;
         window.showCreateModal = showCreateModal;
     </script>
 @endpush

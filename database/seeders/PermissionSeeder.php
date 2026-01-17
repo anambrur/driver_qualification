@@ -49,6 +49,10 @@ class PermissionSeeder extends Seeder
             'vehicle-groups',
             'vehicles',
             'fuel-types',
+            'equipment-types',
+            'trailers',
+            'asset-groups',
+            'asset-histories',
         ];
 
         // Define basic actions
@@ -109,7 +113,7 @@ class PermissionSeeder extends Seeder
             'description' => 'Test Description',
             'phone' => '1234567890',
             'fax' => '1234567890',
-            'logo' => 'test-logo.png',
+            'logo' => '',
             'status' => 'active',
         ]);
     }

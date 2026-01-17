@@ -209,6 +209,19 @@
                                         </li>
                                     @endcan
 
+                                    @can('equipment-types.view')
+                                        <li>
+                                            <a href="{{ route('admin.equipment.type.index') }}"
+                                                class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/equipment-type') && !isCurrentPath(
+                                                        'admin/equipment-type') ?
+                                                    'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Equipment Types
+                                            </a>
+                                        </li>
+                                    @endcan
+
                                     @can('vehicles.view')
                                         <li>
                                             <a href="{{ route('admin.vehicle.index') }}" class="menu-dropdown-item group"
@@ -217,6 +230,30 @@
                                                     'menu-dropdown-item-active' :
                                                     'menu-dropdown-item-inactive'">
                                                 Vehicles
+                                            </a>
+                                        </li>
+                                    @endcan
+
+                                    @can('trailers.view')
+                                        <li>
+                                            <a href="{{ route('admin.trailer.index') }}" class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/trailer') && !isCurrentPath(
+                                                        'admin/trailer') ?
+                                                    'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Trailers
+                                            </a>
+                                        </li>
+                                    @endcan
+
+                                    @can('asset-groups.view')
+                                        <li>
+                                            <a href="{{ route('admin.asset-group.index') }}" class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/asset-group') && !isCurrentPath(
+                                                        'admin/asset-group') ?
+                                                    'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Asset Groups
                                             </a>
                                         </li>
                                     @endcan

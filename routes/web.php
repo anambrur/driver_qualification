@@ -5,11 +5,14 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\FuelTypeController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AssetGroupController;
 use App\Http\Controllers\VehicleTypeController;
 use App\Http\Controllers\VehicleGroupController;
+use App\Http\Controllers\EquipmentTypeController;
 use App\Http\Controllers\ApplicationFormController;
 
 Route::get('/', function () {
@@ -135,6 +138,15 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::delete('/{id}', [FuelTypeController::class, 'destroy'])->name('admin.fuel.type.destroy');
     });
 
+    // Equipment types
+    Route::prefix('equipment-type')->group(function () {
+        Route::get('/', [EquipmentTypeController::class, 'index'])->name('admin.equipment.type.index');
+        Route::post('/', [EquipmentTypeController::class, 'store'])->name('admin.equipment.type.store');
+        Route::get('/{id}/edit', [EquipmentTypeController::class, 'edit'])->name('admin.equipment.type.edit');
+        Route::put('/{id}', [EquipmentTypeController::class, 'update'])->name('admin.equipment.type.update');
+        Route::delete('/{id}', [EquipmentTypeController::class, 'destroy'])->name('admin.equipment.type.destroy');
+    });
+
     // Vehicles
     Route::prefix('vehicle')->group(function () {
         Route::get('/', [VehicleController::class, 'index'])->name('admin.vehicle.index');
@@ -144,6 +156,28 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::delete('/{id}', [VehicleController::class, 'destroy'])->name('admin.vehicle.destroy');
         Route::post('/{id}/restore', [VehicleController::class, 'restore'])->name('admin.vehicle.restore');
         Route::get('/dropdown-data', [VehicleController::class, 'getDropdownData'])->name('admin.vehicle.dropdown.data');
+    });
+
+    // Trailers
+    Route::prefix('trailer')->group(function () {
+        Route::get('/', [TrailerController::class, 'index'])->name('admin.trailer.index');
+        Route::post('/', [TrailerController::class, 'store'])->name('admin.trailer.store');
+        Route::get('/{id}/edit', [TrailerController::class, 'edit'])->name('admin.trailer.edit');
+        Route::put('/{id}', [TrailerController::class, 'update'])->name('admin.trailer.update');
+        Route::delete('/{id}', [TrailerController::class, 'destroy'])->name('admin.trailer.destroy');
+        Route::post('/{id}/restore', [TrailerController::class, 'restore'])->name('admin.trailer.restore');
+        Route::get('/dropdown-data', [TrailerController::class, 'getDropdownData'])->name('admin.trailer.dropdown.data');
+    });
+
+    // Asset Groups
+    Route::prefix('asset-group')->group(function () {
+        Route::get('/', [AssetGroupController::class, 'index'])->name('admin.asset-group.index');
+        Route::post('/', [AssetGroupController::class, 'store'])->name('admin.asset-group.store');
+        Route::get('/{id}/edit', [AssetGroupController::class, 'edit'])->name('admin.asset-group.edit');
+        Route::put('/{id}', [AssetGroupController::class, 'update'])->name('admin.asset-group.update');
+        Route::delete('/{id}', [AssetGroupController::class, 'destroy'])->name('admin.asset-group.destroy');
+        Route::post('/{id}/restore', [AssetGroupController::class, 'restore'])->name('admin.asset-group.restore');
+        Route::get('/dropdown-data', [AssetGroupController::class, 'getDropdownData'])->name('admin.asset-group.dropdown.data');
     });
 
     //Fleet

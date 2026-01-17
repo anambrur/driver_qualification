@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Vehicle;
-use App\Models\FuelType;
-use App\Models\VehicleType;
+use App\Models\Trailer;
+use App\Models\EquipmentType;
 use App\Models\VehicleGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,23 +11,23 @@ use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
 
-class VehicleController extends Controller
+class TrailerController extends Controller
 {
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Vehicle::with(['vehicleType', 'vehicleGroup', 'fuelType'])
-                ->select(['vehicles.*']);
+            $query = Trailer::with(['equipmentType', 'vehicleGroup'])
+                ->select(['trailers.*']);
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('vehicle_info', function ($row) {
+                ->addColumn('trailer_info', function ($row) {
                     $notesIcon = $row->notes ? '<i class="fas fa-sticky-note ml-2 text-blue-500 text-xs" title="Has notes"></i>' : '';
                     return '
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-10 w-10">
                             <div class="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
-                                <i class="fas fa-truck"></i>
+                                <i class="fas fa-trailer"></i>
                             </div>
                         </div>
                         <div class="ml-4">
@@ -43,7 +42,7 @@ class VehicleController extends Controller
                     </div>';
                 })
                 ->addColumn('type_group', function ($row) {
-                    $type = $row->vehicleType ? $row->vehicleType->name : '<span class="text-gray-400">N/A</span>';
+                    $type = $row->equipmentType ? $row->equipmentType->name : '<span class="text-gray-400">N/A</span>';
                     $group = $row->vehicleGroup ? $row->vehicleGroup->name : '<span class="text-gray-400">N/A</span>';
                     return '
                     <div class="text-sm">
@@ -51,12 +50,13 @@ class VehicleController extends Controller
                         <div><span class="font-medium">Group:</span> ' . $group . '</div>
                     </div>';
                 })
-                ->addColumn('fuel_odometer', function ($row) {
-                    $fuel = $row->fuelType ? $row->fuelType->name : '<span class="text-gray-400">N/A</span>';
+                ->addColumn('details', function ($row) {
+                    $gvw = $row->gvw ? number_format($row->gvw) . ' lbs' : '<span class="text-gray-400">N/A</span>';
+                    $color = $row->color ?: '<span class="text-gray-400">N/A</span>';
                     return '
                     <div class="text-sm">
-                        <div><span class="font-medium">Fuel:</span> ' . $fuel . '</div>
-                        <div><span class="font-medium">Odometer:</span> ' . number_format($row->odometer) . ' mi</div>
+                        <div><span class="font-medium">GVW:</span> ' . $gvw . '</div>
+                        <div><span class="font-medium">Color:</span> ' . $color . '</div>
                     </div>';
                 })
                 ->addColumn('status', function ($row) {
@@ -69,18 +69,18 @@ class VehicleController extends Controller
                     </span>';
                 })
                 ->addColumn('action', function ($row) {
-                    $editBtn = '<button onclick="editVehicle(' . $row->id . ')" 
+                    $editBtn = '<button onclick="editTrailer(' . $row->id . ')" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors mr-2">
                                 <i class="fas fa-edit mr-1"></i> Edit
                             </button>';
 
                     if ($row->deleted_at) {
-                        $deleteBtn = '<button onclick="restoreVehicle(' . $row->id . ', \'' . addslashes($row->unit_no) . '\')" 
+                        $deleteBtn = '<button onclick="restoreTrailer(' . $row->id . ', \'' . addslashes($row->unit_no) . '\')" 
                                     class="inline-flex items-center px-3 py-1 text-sm text-green-600 bg-green-100 rounded-md hover:bg-green-200 transition-colors">
                                     <i class="fas fa-trash-restore mr-1"></i> Restore
                                 </button>';
                     } else {
-                        $deleteBtn = '<button onclick="deleteVehicle(' . $row->id . ', \'' . addslashes($row->unit_no) . '\')" 
+                        $deleteBtn = '<button onclick="deleteTrailer(' . $row->id . ', \'' . addslashes($row->unit_no) . '\')" 
                                     class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
                                     <i class="fas fa-trash mr-1"></i> Delete
                                 </button>';
@@ -91,42 +91,32 @@ class VehicleController extends Controller
                 ->addColumn('created_at_formatted', function ($row) {
                     return $row->created_at->format('M d, Y');
                 })
-                ->rawColumns(['vehicle_info', 'type_group', 'fuel_odometer', 'status', 'action'])
+                ->rawColumns(['trailer_info', 'type_group', 'details', 'status', 'action'])
                 ->make(true);
         }
 
         // Get dropdown data for filters
-        $vehicleTypes = VehicleType::orderBy('name')->get();
+        $equipmentTypes = EquipmentType::orderBy('name')->get();
         $vehicleGroups = VehicleGroup::orderBy('name')->get();
-        $fuelTypes = FuelType::orderBy('name')->get();
 
-        return view('admin.vehicle.index', compact('vehicleTypes', 'vehicleGroups', 'fuelTypes'));
+        return view('admin.trailer.index', compact('equipmentTypes', 'vehicleGroups'));
     }
 
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'unit_no' => 'required|string|max:50|unique:vehicles,unit_no',
-            'vin' => 'required|string|size:17|unique:vehicles,vin',
+            'unit_no' => 'required|string|max:50|unique:trailers,unit_no',
+            'vin' => 'required|string|size:17|unique:trailers,vin',
             'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
-            'vehicle_type_id' => 'nullable|exists:vehicle_types,id',
+            'equipment_types_id' => 'required|exists:equipment_types,id',
             'owned_by' => 'required|in:company,lease,rental',
             'color' => 'nullable|string|max:50',
             'title_no' => 'nullable|string|max:100',
             'tire_size' => 'nullable|string|max:50',
-            'odometer' => 'required|integer|min:0',
             'gvw' => 'nullable|integer|min:0',
             'vehicle_group_id' => 'nullable|exists:vehicle_groups,id',
-            'fuel_type_id' => 'nullable|exists:fuel_types,id',
-            'engine_type' => 'nullable|string|max:100',
-            'transmission' => 'nullable|string|max:100',
-            'suspension' => 'nullable|string|max:100',
-            'no_axles' => 'nullable|integer|min:1|max:10',
-            'configuration' => 'nullable|in:conventional,cabover',
-            'wheel_base' => 'nullable|integer|min:0',
-            'size_dimension' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:2000',
         ]);
 
@@ -140,61 +130,52 @@ class VehicleController extends Controller
         DB::beginTransaction();
 
         try {
-            $vehicle = Vehicle::create($request->all());
+            $trailer = Trailer::create($request->all());
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Vehicle created successfully!',
-                'data' => $vehicle
+                'message' => 'Trailer created successfully!',
+                'data' => $trailer
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Vehicle store error: ' . $e->getMessage());
+            Log::error('Trailer store error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create vehicle. Please try again.'
+                'message' => 'Failed to create trailer. Please try again.'
             ], 500);
         }
     }
 
     public function edit($id)
     {
-        $vehicle = Vehicle::with(['vehicleType', 'vehicleGroup', 'fuelType'])->findOrFail($id);
+        $trailer = Trailer::with(['equipmentType', 'vehicleGroup'])->findOrFail($id);
 
         return response()->json([
             'success' => true,
-            'data' => $vehicle
+            'data' => $trailer
         ]);
     }
 
     public function update(Request $request, $id)
     {
-        $vehicle = Vehicle::findOrFail($id);
+        $trailer = Trailer::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'unit_no' => 'required|string|max:50|unique:vehicles,unit_no,' . $id,
-            'vin' => 'required|string|size:17|unique:vehicles,vin,' . $id,
+            'unit_no' => 'required|string|max:50|unique:trailers,unit_no,' . $id,
+            'vin' => 'required|string|size:17|unique:trailers,vin,' . $id,
             'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
-            'vehicle_type_id' => 'nullable|exists:vehicle_types,id',
+            'equipment_types_id' => 'required|exists:equipment_types,id',
             'owned_by' => 'required|in:company,lease,rental',
             'color' => 'nullable|string|max:50',
             'title_no' => 'nullable|string|max:100',
             'tire_size' => 'nullable|string|max:50',
-            'odometer' => 'required|integer|min:0',
             'gvw' => 'nullable|integer|min:0',
             'vehicle_group_id' => 'nullable|exists:vehicle_groups,id',
-            'fuel_type_id' => 'nullable|exists:fuel_types,id',
-            'engine_type' => 'nullable|string|max:100',
-            'transmission' => 'nullable|string|max:100',
-            'suspension' => 'nullable|string|max:100',
-            'no_axles' => 'nullable|integer|min:1|max:10',
-            'configuration' => 'nullable|in:conventional,cabover',
-            'wheel_base' => 'nullable|integer|min:0',
-            'size_dimension' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:2000',
         ]);
 
@@ -208,86 +189,83 @@ class VehicleController extends Controller
         DB::beginTransaction();
 
         try {
-            $vehicle->update($request->all());
+            $trailer->update($request->all());
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Vehicle updated successfully!',
-                'data' => $vehicle
+                'message' => 'Trailer updated successfully!',
+                'data' => $trailer
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Vehicle update error: ' . $e->getMessage());
+            Log::error('Trailer update error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update vehicle. Please try again.'
+                'message' => 'Failed to update trailer. Please try again.'
             ], 500);
         }
     }
 
     public function destroy($id)
     {
-        $vehicle = Vehicle::findOrFail($id);
+        $trailer = Trailer::findOrFail($id);
 
         DB::beginTransaction();
 
         try {
-            $vehicle->delete();
+            $trailer->delete();
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Vehicle deleted successfully!'
+                'message' => 'Trailer deleted successfully!'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Vehicle delete error: ' . $e->getMessage());
+            Log::error('Trailer delete error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete vehicle. Please try again.'
+                'message' => 'Failed to delete trailer. Please try again.'
             ], 500);
         }
     }
 
     public function restore($id)
     {
-        $vehicle = Vehicle::withTrashed()->findOrFail($id);
+        $trailer = Trailer::withTrashed()->findOrFail($id);
 
         DB::beginTransaction();
 
         try {
-            $vehicle->restore();
+            $trailer->restore();
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Vehicle restored successfully!'
+                'message' => 'Trailer restored successfully!'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Vehicle restore error: ' . $e->getMessage());
+            Log::error('Trailer restore error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to restore vehicle. Please try again.'
+                'message' => 'Failed to restore trailer. Please try again.'
             ], 500);
         }
     }
 
     public function getDropdownData()
     {
-        $vehicleTypes = VehicleType::orderBy('name')->get(['id', 'name']);
+        $equipmentTypes = EquipmentType::orderBy('name')->get(['id', 'name']);
         $vehicleGroups = VehicleGroup::orderBy('name')->get(['id', 'name']);
-        $fuelTypes = FuelType::orderBy('name')->get(['id', 'name']);
 
         return response()->json([
             'success' => true,
-            'vehicleTypes' => $vehicleTypes,
+            'equipmentTypes' => $equipmentTypes,
             'vehicleGroups' => $vehicleGroups,
-            'fuelTypes' => $fuelTypes,
-            'configurations' => Vehicle::getConfigurationOptions(),
-            'ownedByOptions' => Vehicle::getOwnedByOptions()
+            'ownedByOptions' => Trailer::getOwnedByOptions()
         ]);
     }
 }
