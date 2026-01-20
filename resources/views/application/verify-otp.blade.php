@@ -45,7 +45,7 @@
                     </p>
                 </div>
 
-                <form id="otpVerificationForm" action="{{ route('application.submit.otp', $company->slug) }}"
+                <form id="otpVerificationForm" action="{{ route('public.application.submit.otp', $company->slug) }}"
                     method="POST">
                     @csrf
 
@@ -336,7 +336,7 @@
                 resendBtn.disabled = true;
 
                 // Send AJAX request to resend OTP
-                fetch('{{ route('application.resend.otp', $company->slug) }}', {
+                fetch('{{ route('public.application.resend.otp', $company->slug) }}', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

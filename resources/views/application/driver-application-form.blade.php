@@ -121,7 +121,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Redirect to new application form with slug
-                    window.location.href = "{{ route('application.start', ['slug' => ':slug']) }}".replace(
+                    window.location.href = "{{ route('public.application.start', ['slug' => ':slug']) }}".replace(
                         ':slug', currentSlug);
                 }
             });

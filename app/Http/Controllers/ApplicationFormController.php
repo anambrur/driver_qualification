@@ -138,7 +138,7 @@ class ApplicationFormController extends Controller
                 ]);
 
                 toastr()->success('OTP sent successfully!');
-                return redirect()->route('application.verify.otp', $slug);
+                return redirect()->route('public.application.verify.otp', $slug);
             } else {
                 toastr()->error($result['message']);
                 return back()->withInput();
@@ -166,7 +166,7 @@ class ApplicationFormController extends Controller
 
         if (!$phone) {
             toastr()->error('Please start the application process first.');
-            return redirect()->route('application.start', $slug);
+            return redirect()->route('public.application.start', $slug);
         }
 
         // Get OTP expiry info
@@ -185,7 +185,7 @@ class ApplicationFormController extends Controller
 
         if (!$phone) {
             toastr()->error('Session expired. Please start again.');
-            return redirect()->route('application.start', $slug);
+            return redirect()->route('public.application.start', $slug);
         }
 
         // Validate OTP input
