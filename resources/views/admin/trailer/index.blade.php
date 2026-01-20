@@ -242,7 +242,7 @@
                                                 <div>
                                                     <label for="owned_by"
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Owned By <span class="text-red-500">*</span>
+                                                        Owned By
                                                     </label>
                                                     <input type="text" name="owned_by" id="owned_by" placeholder="Company name"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">

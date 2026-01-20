@@ -106,6 +106,7 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::put('/{id}', [DriverController::class, 'update'])->name('admin.driver.update')->middleware('permission:drivers.edit');
         Route::post('/{id}/status', [DriverController::class, 'updateStatus'])->name('admin.driver.update.status')->middleware('permission:drivers.edit');
         Route::delete('/{id}', [DriverController::class, 'destroy'])->name('admin.driver.destroy')->middleware('permission:drivers.delete');
+        Route::get('/{id}/details', [DriverController::class, 'getDriverDetails'])->name('admin.drivers.get-driver-details');
     });
 
 
@@ -156,6 +157,7 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::delete('/{id}', [VehicleController::class, 'destroy'])->name('admin.vehicle.destroy');
         Route::post('/{id}/restore', [VehicleController::class, 'restore'])->name('admin.vehicle.restore');
         Route::get('/dropdown-data', [VehicleController::class, 'getDropdownData'])->name('admin.vehicle.dropdown.data');
+        Route::get('/{id}/details', [VehicleController::class, 'getVehicleDetails'])->name('admin.vehicles.get-vehicle-details');
     });
 
     // Trailers
@@ -167,12 +169,14 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::delete('/{id}', [TrailerController::class, 'destroy'])->name('admin.trailer.destroy');
         Route::post('/{id}/restore', [TrailerController::class, 'restore'])->name('admin.trailer.restore');
         Route::get('/dropdown-data', [TrailerController::class, 'getDropdownData'])->name('admin.trailer.dropdown.data');
+        Route::get('/{id}/details', [TrailerController::class, 'getTrailerDetails'])->name('admin.trailers.get-trailer-details');
     });
 
     // Asset Groups
     Route::prefix('asset-group')->group(function () {
         Route::get('/', [AssetGroupController::class, 'index'])->name('admin.asset-group.index');
         Route::post('/', [AssetGroupController::class, 'store'])->name('admin.asset-group.store');
+        Route::get('asset-group/get-dropdown-data', [AssetGroupController::class, 'getDropdownData'])->name('admin.asset-group.get-dropdown-data');
         Route::get('/{id}/edit', [AssetGroupController::class, 'edit'])->name('admin.asset-group.edit');
         Route::put('/{id}', [AssetGroupController::class, 'update'])->name('admin.asset-group.update');
         Route::delete('/{id}', [AssetGroupController::class, 'destroy'])->name('admin.asset-group.destroy');

@@ -12,6 +12,7 @@ class AssetGroup extends Model
 
     protected $fillable = [
         'group_name',
+        'driver_id',
         'primary_driver_name',
         'primary_driver_phone',
         'primary_driver_email',

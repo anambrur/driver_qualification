@@ -112,7 +112,7 @@ class VehicleController extends Controller
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
             'vehicle_type_id' => 'nullable|exists:vehicle_types,id',
-            'owned_by' => 'required|in:company,lease,rental',
+            'owned_by' => 'nullable|string|max:100',
             'color' => 'nullable|string|max:50',
             'title_no' => 'nullable|string|max:100',
             'tire_size' => 'nullable|string|max:50',
@@ -289,5 +289,29 @@ class VehicleController extends Controller
             'configurations' => Vehicle::getConfigurationOptions(),
             'ownedByOptions' => Vehicle::getOwnedByOptions()
         ]);
+    }
+
+    public function getVehicleDetails($id)
+    {
+        try {
+            $vehicle = Vehicle::findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'unit_no' => $vehicle->unit_no,
+                    'year' => $vehicle->year,
+                    'make' => $vehicle->make,
+                    'model' => $vehicle->model,
+                    'license_plate' => $vehicle->license_plate,
+                    'vin' => $vehicle->vin,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vehicle not found'
+            ], 404);
+        }
     }
 }

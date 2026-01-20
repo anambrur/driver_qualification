@@ -9,6 +9,7 @@ use App\Models\AssetGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
 
@@ -125,6 +126,18 @@ class AssetGroupController extends Controller
         // Get dropdown data for filters
         $vehicles = Vehicle::whereNull('deleted_at')->orderBy('unit_no')->get();
         $trailers = Trailer::whereNull('deleted_at')->orderBy('unit_no')->get();
+
+        $company_id = Auth::user()->load('company')->company->id ?? null;
+
+        // First, get the base query for status counts
+        if (Auth::user()->hasRole('super-admin')) {
+            $drivers = Driver::where('status', 'active')->get();
+        } else {
+            $drivers = Driver::where('company_id', $company_id)
+                ->where('status', 'active')
+                ->get();
+        }
+
         $drivers = Driver::where('status', 'active')->get();
 
         return view('admin.asset-group.index', compact('vehicles', 'trailers', 'drivers'));
@@ -134,6 +147,7 @@ class AssetGroupController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'group_name' => 'required|string|max:100|unique:asset_groups,group_name',
+            'driver_id' => 'required|exists:drivers,id',
             'primary_driver_name' => 'nullable|string|max:100',
             'primary_driver_phone' => 'nullable|string|max:20',
             'primary_driver_email' => 'nullable|email|max:100',
@@ -155,7 +169,19 @@ class AssetGroupController extends Controller
         DB::beginTransaction();
 
         try {
-            $assetGroup = AssetGroup::create($request->all());
+            $assetGroup = AssetGroup::create([
+                'group_name' => $request->group_name,
+                'driver_id' => $request->driver_id,
+                'primary_driver_name' => $request->primary_driver_name,
+                'primary_driver_phone' => $request->primary_driver_phone,
+                'primary_driver_email' => $request->primary_driver_email,
+                'second_driver_name' => $request->second_driver_name,
+                'second_driver_phone' => $request->second_driver_phone,
+                'second_driver_email' => $request->second_driver_email,
+                'vehicle_id' => $request->vehicle_id,
+                'trailer_id' => $request->trailer_id,
+                'status' => $request->status,
+            ]);
 
             DB::commit();
 

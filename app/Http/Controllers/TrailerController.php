@@ -111,7 +111,7 @@ class TrailerController extends Controller
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
             'equipment_types_id' => 'required|exists:equipment_types,id',
-            'owned_by' => 'required|in:company,lease,rental',
+            'owned_by' => 'nullable|string|max:100',
             'color' => 'nullable|string|max:50',
             'title_no' => 'nullable|string|max:100',
             'tire_size' => 'nullable|string|max:50',
@@ -267,5 +267,30 @@ class TrailerController extends Controller
             'vehicleGroups' => $vehicleGroups,
             'ownedByOptions' => Trailer::getOwnedByOptions()
         ]);
+    }
+
+    public function getTrailerDetails($id)
+    {
+        try {
+            $trailer = Trailer::findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'unit_no' => $trailer->unit_no,
+                    'year' => $trailer->year,
+                    'make' => $trailer->make,
+                    'model' => $trailer->model,
+                    'license_plate' => $trailer->license_plate,
+                    'trailer_type' => $trailer->trailer_type, // Make sure this field exists
+                    'vin' => $trailer->vin,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Trailer not found'
+            ], 404);
+        }
     }
 }

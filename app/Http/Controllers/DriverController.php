@@ -1143,6 +1143,27 @@ class DriverController extends Controller
         }
     }
 
+    public function getDriverDetails($id)
+    {
+        try {
+            $driver = Driver::findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'main_phone' => $driver->main_phone,
+                    'alt_phone' => $driver->alt_phone,
+                    'email' => $driver->email,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Driver not found'
+            ], 404);
+        }
+    }
+
     public function license($driver_id, Request $request)
     {
         $driver = Driver::findOrFail($driver_id);

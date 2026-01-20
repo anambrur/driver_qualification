@@ -161,10 +161,12 @@
                                                     <label for="group_name"
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Group Name <span class="text-red-500">*</span>
+                                                        <span class="text-xs text-gray-500 ml-2">(Auto-generated from
+                                                            vehicle unit number)</span>
                                                     </label>
                                                     <input type="text" name="group_name" id="group_name" required
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                                                        placeholder="Enter group name">
+                                                        placeholder="Will auto-generate as GR#[vehicle unit no] when vehicle is selected">
                                                     <div id="group_name_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
 
@@ -176,7 +178,7 @@
                                                     </label>
                                                     <select name="status" id="status" required
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                                        <option value="">Select Status</option>
+
                                                         <option value="active">Active</option>
                                                         <option value="inactive">Inactive</option>
                                                     </select>
@@ -192,13 +194,16 @@
                                                 </h4>
 
                                                 <div class="space-y-4">
-                                                    <!-- Primary Driver Name -->
+                                                    <!-- Primary Driver -->
+
+                                                    <input type="hidden" name="driver_id" id="driver_id">
                                                     <div>
                                                         <label for="primary_driver_name"
                                                             class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                             Primary Driver <span class="text-red-500">*</span>
                                                         </label>
-                                                        <select name="primary_driver_name" id="primary_driver_name" required
+                                                        <select name="primary_driver_name" id="primary_driver_name"
+                                                            required
                                                             class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                             <option value="">Select Driver</option>
                                                             @foreach ($drivers as $driver)
@@ -207,10 +212,12 @@
                                                                 </option>
                                                             @endforeach
                                                         </select>
-                                                        <div id="primary_driver_name_error" class="mt-1 text-sm text-red-600">
+                                                        <div id="primary_driver_name_error"
+                                                            class="mt-1 text-sm text-red-600">
                                                         </div>
                                                     </div>
 
+                                                    <!-- Primary Driver Phone & Email -->
                                                     <!-- Primary Driver Phone & Email -->
                                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                         <div>
@@ -219,9 +226,9 @@
                                                                 Phone Number
                                                             </label>
                                                             <input type="text" name="primary_driver_phone"
-                                                                id="primary_driver_phone"
-                                                                class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                                                                placeholder="(123) 456-7890">
+                                                                id="primary_driver_phone" readonly
+                                                                class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm bg-gray-50 cursor-not-allowed focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:ring-brand-400"
+                                                                placeholder="Phone will auto-fill when driver is selected">
                                                             <div id="primary_driver_phone_error"
                                                                 class="mt-1 text-sm text-red-600"></div>
                                                         </div>
@@ -231,9 +238,9 @@
                                                                 Email Address
                                                             </label>
                                                             <input type="email" name="primary_driver_email"
-                                                                id="primary_driver_email"
-                                                                class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                                                                placeholder="driver@example.com">
+                                                                id="primary_driver_email" readonly
+                                                                class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm bg-gray-50 cursor-not-allowed focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:ring-brand-400"
+                                                                placeholder="Email will auto-fill when driver is selected">
                                                             <div id="primary_driver_email_error"
                                                                 class="mt-1 text-sm text-red-600"></div>
                                                         </div>
@@ -478,6 +485,121 @@
 
 @push('scripts')
     <script>
+        // Global variables for asset data
+        let vehicleData = {};
+        let trailerData = {};
+
+        // Global helper functions
+        function clearVehicleDetails() {
+            $('#vehicle-details-container').remove();
+        }
+
+        function clearTrailerDetails() {
+            $('#trailer-details-container').remove();
+        }
+
+        function resetFormErrors() {
+            $('.text-red-600').html('');
+        }
+
+        function resetForm() {
+            $('#assetGroupForm')[0].reset();
+            $('#asset_group_id').val('');
+            resetFormErrors();
+            clearVehicleDetails();
+            clearTrailerDetails();
+            // Also clear the readonly fields
+            $('#primary_driver_phone').val('');
+            $('#primary_driver_email').val('');
+            // Clear the group name
+            $('#group_name').val('');
+            // Clear driver_id
+            $('#driver_id').val('');
+        }
+
+        function showToast(message, type = 'success') {
+            const types = {
+                success: {
+                    bg: 'bg-green-500',
+                    icon: 'fa-check-circle',
+                    border: 'border-green-600'
+                },
+                error: {
+                    bg: 'bg-red-500',
+                    icon: 'fa-exclamation-circle',
+                    border: 'border-red-600'
+                },
+                info: {
+                    bg: 'bg-blue-500',
+                    icon: 'fa-info-circle',
+                    border: 'border-blue-600'
+                },
+                warning: {
+                    bg: 'bg-yellow-500',
+                    icon: 'fa-exclamation-triangle',
+                    border: 'border-yellow-600'
+                }
+            };
+
+            const toastType = types[type] || types.success;
+
+            const toastId = 'toast-' + Date.now();
+            const toast = document.createElement('div');
+            toast.id = toastId;
+            toast.className =
+                `${toastType.bg} ${toastType.border} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 transform transition-all duration-300 translate-x-full`;
+            toast.innerHTML = `
+            <i class="fas ${toastType.icon} text-xl"></i>
+            <div>
+                <p class="font-medium">${message}</p>
+            </div>
+            <button onclick="document.getElementById('${toastId}').remove()" class="ml-4 text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+
+            document.getElementById('toast-container').appendChild(toast);
+
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+                toast.classList.add('translate-x-0');
+            }, 10);
+
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('translate-x-0');
+                toast.classList.add('translate-x-full');
+                setTimeout(() => {
+                    if (document.getElementById(toastId)) {
+                        document.getElementById(toastId).remove();
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Functions that need to be accessible from HTML onclick attributes
+        window.showCreateModal = function() {
+            $('#modalTitle').text('Add New Asset Group');
+            $('#submitText').text('Save');
+            $('#asset_group_id').val('');
+            resetForm();
+            $('#assetGroupModal').removeClass('hidden');
+            $('#group_name').focus();
+        }
+
+        window.clearVehicleSelection = function() {
+            $('#vehicle_id').val('');
+            clearVehicleDetails();
+            // Also clear the auto-generated group name
+            $('#group_name').val('');
+        }
+
+        window.clearTrailerSelection = function() {
+            $('#trailer_id').val('');
+            clearTrailerDetails();
+        }
+
         $(document).ready(function() {
             // Initialize DataTable
             var table = $('#asset-groups-table').DataTable({
@@ -676,20 +798,265 @@
                     applyFilters();
                 }
             });
+
+            // --- ASSET GROUP FORM SPECIFIC LOGIC ---
+
+            // Load vehicle and trailer data
+            function loadAssetData() {
+                $.ajax({
+                    url: '{{ route('admin.asset-group.get-dropdown-data') }}',
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            // Store vehicle data with ID as key for quick lookup
+                            response.vehicles.forEach(function(vehicle) {
+                                vehicleData[vehicle.id] = vehicle;
+                            });
+
+                            // Store trailer data with ID as key for quick lookup
+                            response.trailers.forEach(function(trailer) {
+                                trailerData[trailer.id] = trailer;
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Failed to load asset data:', xhr);
+                    }
+                });
+            }
+
+            // Call this when page loads
+            loadAssetData();
+
+            // Driver selection change handler
+            $('#primary_driver_name').on('change', function() {
+                const driverId = $(this).val();
+
+                if (!driverId) {
+                    // Clear fields if no driver selected
+                    $('#primary_driver_phone').val('');
+                    $('#primary_driver_email').val('');
+                    return;
+                }
+
+                // Get driver data via AJAX
+                $.ajax({
+                    url: '/admin/driver/' + driverId + '/details',
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            // Fill in driver details
+                            $('#primary_driver_phone').val(response.data.main_phone || response
+                                .data.alt_phone || '');
+                            $('#primary_driver_email').val(response.data.email || '');
+                            $('#driver_id').val(driverId);
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Failed to load driver details:', xhr);
+                        showToast('Failed to load driver details', 'error');
+                    }
+                });
+            });
+
+            // Vehicle selection change handler
+            $('#vehicle_id').on('change', function() {
+                const vehicleId = $(this).val();
+
+                if (!vehicleId) {
+                    // Clear vehicle details if no vehicle selected
+                    clearVehicleDetails();
+                    // Also clear the auto-generated group name
+                    $('#group_name').val('');
+                    return;
+                }
+
+                if (vehicleData[vehicleId]) {
+                    displayVehicleDetails(vehicleData[vehicleId]);
+                    autoGenerateGroupName(vehicleData[vehicleId]);
+                } else {
+                    // If not in cache, fetch from server
+                    fetchVehicleDetails(vehicleId);
+                }
+            });
+
+            // Function to auto-generate group name from vehicle unit number
+            function autoGenerateGroupName(vehicle) {
+                if (vehicle && vehicle.unit_no) {
+                    // Format: GR#[vehicle unit_no] - exactly like in the screenshot
+                    const groupName = `GR#${vehicle.unit_no}`;
+                    $('#group_name').val(groupName);
+                } else {
+                    $('#group_name').val('');
+                }
+            }
+
+            // Trailer selection change handler
+            $('#trailer_id').on('change', function() {
+                const trailerId = $(this).val();
+
+                if (!trailerId) {
+                    // Clear trailer details if no trailer selected
+                    clearTrailerDetails();
+                    return;
+                }
+
+                if (trailerData[trailerId]) {
+                    displayTrailerDetails(trailerData[trailerId]);
+                } else {
+                    // If not in cache, fetch from server
+                    fetchTrailerDetails(trailerId);
+                }
+            });
+
+            // Function to display vehicle details like screenshot
+            function displayVehicleDetails(vehicle) {
+                // Create or update the vehicle details container
+                let $container = $('#vehicle-details-container');
+
+                if ($container.length === 0) {
+                    // Create container if it doesn't exist
+                    $container = $('<div>').attr('id', 'vehicle-details-container')
+                        .addClass(
+                            'mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'
+                        );
+                    $('#vehicle_id').after($container);
+                }
+
+                // Build the details display similar to screenshot
+                const detailsHtml = `
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-lg font-semibold text-gray-800 dark:text-white">${vehicle.unit_no || vehicle.id}</span>
+                            <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full dark:bg-blue-900 dark:text-blue-300">Power Unit</span>
+                        </div>
+                        <div class="mt-1 space-y-1">
+                            <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                <i class="fas fa-car mr-2"></i>
+                                <span>${vehicle.year || ''} ${vehicle.make || ''} ${vehicle.model || ''}</span>
+                            </div>
+                            <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                <i class="fas fa-tag mr-2"></i>
+                                <span>License Plate: ${vehicle.license_plate || 'License plate number'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="clearVehicleSelection()" 
+                        class="px-3 py-1 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
+                        Remove
+                    </button>
+                </div>
+            `;
+
+                $container.html(detailsHtml);
+            }
+
+            // Function to display trailer details like screenshot
+            function displayTrailerDetails(trailer) {
+                // Create or update the trailer details container
+                let $container = $('#trailer-details-container');
+
+                if ($container.length === 0) {
+                    // Create container if it doesn't exist
+                    $container = $('<div>').attr('id', 'trailer-details-container')
+                        .addClass(
+                            'mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'
+                        );
+                    $('#trailer_id').after($container);
+                }
+
+                // Get trailer type from your data or use default
+                const trailerType = trailer.trailer_type || trailer.trailer_type || 'Tanker';
+
+                // Build the details display similar to screenshot
+                const detailsHtml = `
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-lg font-semibold text-gray-800 dark:text-white">${trailer.unit_no || trailer.id}</span>
+                            <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full dark:bg-green-900 dark:text-green-300">Trailer</span>
+                        </div>
+                        <div class="mt-1 space-y-1">
+                            <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                <i class="fas fa-trailer mr-2"></i>
+                                <span>Trailer Type: ${trailerType}</span>
+                            </div>
+                            <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                <i class="fas fa-tag mr-2"></i>
+                                <span>License Plate: ${trailer.license_plate || 'License plate number'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="clearTrailerSelection()" 
+                        class="px-3 py-1 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
+                        Remove
+                    </button>
+                </div>
+            `;
+
+                $container.html(detailsHtml);
+            }
+
+            // Function to fetch vehicle details from server
+            function fetchVehicleDetails(vehicleId) {
+                $.ajax({
+                    url: '/admin/vehicle/' + vehicleId + '/details',
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            vehicleData[vehicleId] = response.data;
+                            displayVehicleDetails(response.data);
+                            autoGenerateGroupName(response.data);
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Failed to load vehicle details:', xhr);
+                        showToast('Failed to load vehicle details', 'error');
+
+                        // Create a basic display even if fetch fails
+                        const basicVehicle = {
+                            unit_no: vehicleId,
+                            year: '',
+                            make: '',
+                            model: '',
+                            license_plate: 'License plate number'
+                        };
+                        displayVehicleDetails(basicVehicle);
+                        autoGenerateGroupName(basicVehicle);
+                    }
+                });
+            }
+
+            // Function to fetch trailer details from server
+            function fetchTrailerDetails(trailerId) {
+                $.ajax({
+                    url: '/admin/trailer/' + trailerId + '/details',
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            trailerData[trailerId] = response.data;
+                            displayTrailerDetails(response.data);
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Failed to load trailer details:', xhr);
+                        showToast('Failed to load trailer details', 'error');
+
+                        // Create a basic display even if fetch fails
+                        const basicTrailer = {
+                            unit_no: trailerId,
+                            trailer_type: 'Tanker',
+                            license_plate: 'License plate number'
+                        };
+                        displayTrailerDetails(basicTrailer);
+                    }
+                });
+            }
         });
 
-        // Show create modal
-        function showCreateModal() {
-            $('#modalTitle').text('Add New Asset Group');
-            $('#submitText').text('Save');
-            $('#asset_group_id').val('');
-            resetFormErrors();
-            $('#assetGroupModal').removeClass('hidden');
-            $('#group_name').focus();
-        }
-
-        // Show edit modal
-        function editAssetGroup(id) {
+        // Functions that need to be accessible globally but defined outside document.ready
+        window.editAssetGroup = function(id) {
             resetFormErrors();
 
             // Show loading
@@ -711,11 +1078,42 @@
                             if ($('#' + key).length) {
                                 if ($('#' + key).is('select')) {
                                     $('#' + key).val(value);
+
+                                    // Trigger change events for select fields to load details
+                                    if (key === 'vehicle_id' && value) {
+                                        setTimeout(() => {
+                                            $('#vehicle_id').trigger('change');
+                                        }, 100);
+                                    }
+                                    if (key === 'trailer_id' && value) {
+                                        setTimeout(() => {
+                                            $('#trailer_id').trigger('change');
+                                        }, 100);
+                                    }
+                                    if (key === 'primary_driver_name' && value) {
+                                        setTimeout(() => {
+                                            $('#primary_driver_name').trigger('change');
+                                        }, 100);
+                                    }
                                 } else {
                                     $('#' + key).val(value || '');
                                 }
                             }
                         });
+
+                        // If group name already exists, don't auto-generate it
+                        // This preserves the existing group name during edit
+                        if (!response.data.group_name && response.data.vehicle_id) {
+                            // Auto-generate group name if not already set
+                            setTimeout(() => {
+                                if (typeof vehicleData !== 'undefined' && vehicleData[response.data
+                                        .vehicle_id]) {
+                                    autoGenerateGroupName(vehicleData[response.data.vehicle_id]);
+                                } else {
+                                    fetchVehicleDetails(response.data.vehicle_id);
+                                }
+                            }, 200);
+                        }
                     } else {
                         showToast('Failed to load asset group data', 'error');
                         $('#assetGroupModal').addClass('hidden');
@@ -729,62 +1127,7 @@
             });
         }
 
-        // Submit form
-        function submitAssetGroupForm() {
-            var formData = $('#assetGroupForm').serialize();
-            var url = $('#asset_group_id').val() ?
-                '{{ route('admin.asset-group.update', ':id') }}'.replace(':id', $('#asset_group_id').val()) :
-                '{{ route('admin.asset-group.store') }}';
-            var method = $('#asset_group_id').val() ? 'PUT' : 'POST';
-
-            resetFormErrors();
-
-            // Show loading
-            var originalText = $('#submitText').html();
-            $('#submitText').html('<i class="fas fa-spinner fa-spin mr-2"></i>Processing...');
-
-            $.ajax({
-                url: url,
-                type: 'POST',
-                data: formData,
-                headers: {
-                    'X-HTTP-Method-Override': method,
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-                    $('#submitText').html(originalText);
-                    if (response.success) {
-                        $('#assetGroupModal').addClass('hidden');
-                        $('#asset-groups-table').DataTable().ajax.reload();
-                        showToast(response.message, 'success');
-                        resetForm();
-                    } else {
-                        showToast(response.message || 'Operation failed', 'error');
-                    }
-                },
-                error: function(xhr) {
-                    $('#submitText').html(originalText);
-                    if (xhr.status === 422) {
-                        var errors = xhr.responseJSON.errors;
-                        $.each(errors, function(key, value) {
-                            $('#' + key + '_error').html(value[0]);
-                        });
-                        // Focus on first error field
-                        var firstError = Object.keys(errors)[0];
-                        if (firstError) {
-                            $('#' + firstError).focus();
-                        }
-                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                        showToast(xhr.responseJSON.message, 'error');
-                    } else {
-                        showToast('An error occurred. Please try again.', 'error');
-                    }
-                }
-            });
-        }
-
-        // Delete asset group
-        function deleteAssetGroup(id, groupName) {
+        window.deleteAssetGroup = function(id, groupName) {
             Swal.fire({
                 title: 'Are you sure?',
                 text: "You won't be able to revert this! Asset Group: " + groupName,
@@ -850,8 +1193,7 @@
             });
         }
 
-        // Restore asset group
-        function restoreAssetGroup(id, groupName) {
+        window.restoreAssetGroup = function(id, groupName) {
             Swal.fire({
                 title: 'Restore Asset Group',
                 text: "Are you sure you want to restore asset group: " + groupName + "?",
@@ -913,84 +1255,102 @@
             });
         }
 
-        // Reset form
-        function resetForm() {
-            $('#assetGroupForm')[0].reset();
-            $('#asset_group_id').val('');
+        function submitAssetGroupForm() {
+            var formData = $('#assetGroupForm').serialize();
+            var url = $('#asset_group_id').val() ?
+                '{{ route('admin.asset-group.update', ':id') }}'.replace(':id', $('#asset_group_id').val()) :
+                '{{ route('admin.asset-group.store') }}';
+            var method = $('#asset_group_id').val() ? 'PUT' : 'POST';
+
             resetFormErrors();
-        }
 
-        // Reset form errors
-        function resetFormErrors() {
-            $('.text-red-600').html('');
-        }
+            // Show loading
+            var originalText = $('#submitText').html();
+            $('#submitText').html('<i class="fas fa-spinner fa-spin mr-2"></i>Processing...');
 
-        // Toast notification function (reuse from previous code)
-        function showToast(message, type = 'success') {
-            const types = {
-                success: {
-                    bg: 'bg-green-500',
-                    icon: 'fa-check-circle',
-                    border: 'border-green-600'
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: formData,
+                headers: {
+                    'X-HTTP-Method-Override': method,
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
-                error: {
-                    bg: 'bg-red-500',
-                    icon: 'fa-exclamation-circle',
-                    border: 'border-red-600'
-                },
-                info: {
-                    bg: 'bg-blue-500',
-                    icon: 'fa-info-circle',
-                    border: 'border-blue-600'
-                },
-                warning: {
-                    bg: 'bg-yellow-500',
-                    icon: 'fa-exclamation-triangle',
-                    border: 'border-yellow-600'
-                }
-            };
-
-            const toastType = types[type] || types.success;
-
-            const toastId = 'toast-' + Date.now();
-            const toast = document.createElement('div');
-            toast.id = toastId;
-            toast.className =
-                `${toastType.bg} ${toastType.border} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 transform transition-all duration-300 translate-x-full`;
-            toast.innerHTML = `
-            <i class="fas ${toastType.icon} text-xl"></i>
-            <div>
-                <p class="font-medium">${message}</p>
-            </div>
-            <button onclick="document.getElementById('${toastId}').remove()" class="ml-4 text-white hover:text-gray-200">
-                <i class="fas fa-times"></i>
-            </button>
-        `;
-
-            document.getElementById('toast-container').appendChild(toast);
-
-            // Animate in
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full');
-                toast.classList.add('translate-x-0');
-            }, 10);
-
-            // Auto remove after 3 seconds
-            setTimeout(() => {
-                toast.classList.remove('translate-x-0');
-                toast.classList.add('translate-x-full');
-                setTimeout(() => {
-                    if (document.getElementById(toastId)) {
-                        document.getElementById(toastId).remove();
+                success: function(response) {
+                    $('#submitText').html(originalText);
+                    if (response.success) {
+                        $('#assetGroupModal').addClass('hidden');
+                        $('#asset-groups-table').DataTable().ajax.reload();
+                        showToast(response.message, 'success');
+                        resetForm();
+                    } else {
+                        showToast(response.message || 'Operation failed', 'error');
                     }
-                }, 300);
-            }, 3000);
+                },
+                error: function(xhr) {
+                    $('#submitText').html(originalText);
+                    if (xhr.status === 422) {
+                        var errors = xhr.responseJSON.errors;
+                        $.each(errors, function(key, value) {
+                            $('#' + key + '_error').html(value[0]);
+                        });
+                        // Focus on first error field
+                        var firstError = Object.keys(errors)[0];
+                        if (firstError) {
+                            $('#' + firstError).focus();
+                        }
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        showToast(xhr.responseJSON.message, 'error');
+                    } else {
+                        showToast('An error occurred. Please try again.', 'error');
+                    }
+                }
+            });
         }
 
-        // Make functions available globally
-        window.editAssetGroup = editAssetGroup;
-        window.deleteAssetGroup = deleteAssetGroup;
-        window.restoreAssetGroup = restoreAssetGroup;
-        window.showCreateModal = showCreateModal;
+        // Add these functions to window object for editAssetGroup to use
+        window.autoGenerateGroupName = function(vehicle) {
+            if (vehicle && vehicle.unit_no) {
+                // Format: GR#[vehicle unit_no] - exactly like in the screenshot
+                const groupName = `GR#${vehicle.unit_no}`;
+                $('#group_name').val(groupName);
+            } else {
+                $('#group_name').val('');
+            }
+        };
+
+        window.fetchVehicleDetails = function(vehicleId) {
+            $.ajax({
+                url: '/admin/vehicle/' + vehicleId + '/details',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        vehicleData[vehicleId] = response.data;
+                        // Note: displayVehicleDetails is inside document.ready, so we need to check if it exists
+                        if (typeof displayVehicleDetails !== 'undefined') {
+                            displayVehicleDetails(response.data);
+                        }
+                        autoGenerateGroupName(response.data);
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Failed to load vehicle details:', xhr);
+                    showToast('Failed to load vehicle details', 'error');
+
+                    // Create a basic display even if fetch fails
+                    const basicVehicle = {
+                        unit_no: vehicleId,
+                        year: '',
+                        make: '',
+                        model: '',
+                        license_plate: 'License plate number'
+                    };
+                    if (typeof displayVehicleDetails !== 'undefined') {
+                        displayVehicleDetails(basicVehicle);
+                    }
+                    autoGenerateGroupName(basicVehicle);
+                }
+            });
+        };
     </script>
 @endpush

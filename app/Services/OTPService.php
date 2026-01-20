@@ -247,7 +247,6 @@ class OTPService
 
         // Verify based on method
         if ($otpRecord->method === 'verify_api') {
-            dd('Using Verify API');
             return $this->verifyWithTwilioAPI($phoneNumber, $otpCode, $otpRecord);
         } else {
             dd('Using Database Verification');

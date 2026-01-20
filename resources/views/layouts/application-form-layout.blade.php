@@ -16,9 +16,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://kit.fontawesome.com/14c3ef5dcc.js" crossorigin="anonymous"></script>
 
-    <style>
-        /* Your existing styles... */
-    </style>
+    @stack('styles')
 </head>
 
 <body x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }" x-init="darkMode = JSON.parse(localStorage.getItem('darkMode'));
