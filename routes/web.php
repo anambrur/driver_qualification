@@ -44,82 +44,82 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
     // Step 1: Basic Information (Personal Details)
     Route::get('/step-1', [ApplicationFormController::class, 'step1'])
         ->name('step1')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
     Route::post('/step-1', [ApplicationFormController::class, 'storeStep1'])
         ->name('store.step1')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
 
     // Step 2: Driver License Upload
     Route::get('/step-2/{driver_id}', [ApplicationFormController::class, 'step2'])
         ->name('step2')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
     Route::post('/step-2', [ApplicationFormController::class, 'storeStep2'])
         ->name('store.step2')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
 
     // Step 3: Medical Card Upload
     Route::get('/step-3/{driver_id}', [ApplicationFormController::class, 'step3'])
         ->name('step3')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
     Route::post('/step-3', [ApplicationFormController::class, 'storeStep3'])
         ->name('store.step3')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
 
     // Step 4: Forfeiture Document Upload
     Route::get('/step-4/{driver_id}', [ApplicationFormController::class, 'step4'])
         ->name('step4')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
     Route::post('/step-4', [ApplicationFormController::class, 'storeStep4'])
         ->name('store.step4')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
 
     // Step 5: Violation Record
     Route::get('/step-5/{driver_id}', [ApplicationFormController::class, 'step5'])
         ->name('step5')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
     Route::post('/step-5', [ApplicationFormController::class, 'storeStep5'])
         ->name('store.step5')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
 
     // Step 6: Alcohol & Drug Test Statement
     Route::get('/step-6/{driver_id}', [ApplicationFormController::class, 'step6'])
         ->name('step6')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
     Route::post('/step-6', [ApplicationFormController::class, 'storeStep6'])
         ->name('store.step6')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
 
     // Step 7: FMCSA Clearinghouse Consent
     Route::get('/step-7/{driver_id}', [ApplicationFormController::class, 'step7'])
         ->name('step7')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
     Route::post('/step-7', [ApplicationFormController::class, 'storeStep7'])
         ->name('store.step7')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
 
     // Step 8: PSP Driver Disclosure & Authorization
     Route::get('/step-8/{driver_id}', [ApplicationFormController::class, 'step8'])
         ->name('step8')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
     Route::post('/step-8', [ApplicationFormController::class, 'storeStep8'])
         ->name('store.step8')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
 
     // Step 9: Alcohol & Drug Testing Policy
     Route::get('/step-9/{driver_id}', [ApplicationFormController::class, 'step9'])
         ->name('step9')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
     Route::post('/step-9', [ApplicationFormController::class, 'storeStep9'])
         ->name('store.step9')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
 
     // Step 10: General Work Policy & Final Review
     Route::get('/step-10/{driver_id}', [ApplicationFormController::class, 'step10'])
         ->name('step10')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
     Route::post('/step-10', [ApplicationFormController::class, 'storeStep10'])
         ->name('store.step10')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
 
     // Application Complete/Thank You Page
     Route::get('/complete', [ApplicationFormController::class, 'complete'])->name('complete');
@@ -138,26 +138,9 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
     // Delete/Withdraw Application
     Route::post('/withdraw/{driver_id}', [ApplicationFormController::class, 'withdraw'])
         ->name('withdraw')
-        ->middleware('application.session');
+        ->middleware('check.application.session');
 });
 
-
-// Dynamic route for application form
-// Route::get('/{slug}/apply', [ApplicationFormController::class, 'show'])->name('application.form');
-// Route::get('/{slug}/start', [ApplicationFormController::class, 'start'])->name('public.application.start');
-// Route::post('/{slug}/send-otp', [ApplicationFormController::class, 'sendOtp'])->name('public.application.send.otp');
-
-// Route::get('/{slug}/verify-otp', [ApplicationFormController::class, 'showVerifyOtp'])
-//     ->name('public.application.verify.otp');
-
-// Route::post('/{slug}/verify-otp', [ApplicationFormController::class, 'verifyOtp'])
-//     ->name('public.application.submit.otp');
-
-// Route::post('/{slug}/resend-otp', [ApplicationFormController::class, 'resendOtp'])
-//     ->name('public.application.resend.otp');
-
-// Route::get('/{slug}/main-form', [ApplicationFormController::class, 'mainForm'])
-//     ->name('application.main.form');
 
 // Optional: Add middleware to validate slug exists
 // Route::bind('slug', function ($slug) {

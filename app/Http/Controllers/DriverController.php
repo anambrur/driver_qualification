@@ -1188,11 +1188,18 @@ class DriverController extends Controller
     public function licenseStore(Request $request)
     {
         // Validate input
-        $request->validate([
-            'license_front' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120', // 5MB
-            'license_back' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+       $validator = Validator::make($request->all(), [
+            'license_front' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120', // 5MB
+            'license_back' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
             'driver_id' => 'required|exists:drivers,id',
         ]);
+
+        if ($validator->fails()) {
+            foreach ($validator->errors()->all() as $error) {
+                toastr()->error($error);
+            }
+            return back()->withInput();
+        }
 
         try {
             DB::beginTransaction();

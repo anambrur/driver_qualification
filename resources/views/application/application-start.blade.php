@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="min-h-screen bg-gray-50 flex flex-col items-center p-4 md:p-8">
-        <div class="w-full max-w-4xl mx-auto">
+        <div class="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
             <!-- Header Section -->
             <div class="mb-8 md:mb-12 bg-blue-950 p-4 rounded-lg flex items-center justify-between">
                 <h3 class="text-2xl font-bold text-white mb-1">

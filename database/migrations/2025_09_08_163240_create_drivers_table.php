@@ -17,15 +17,15 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained()->onDelete('cascade');
 
             // Personal Information
-            $table->string('first_name');
+            $table->string('first_name')->nullable();
             $table->string('middle_name')->nullable();
-            $table->string('last_name');
+            $table->string('last_name')->nullable();
             $table->string('suffix')->nullable();
-            $table->date('date_of_birth');
-            $table->string('ssn'); // Encrypted in real application
-            $table->string('main_phone');
+            $table->date('date_of_birth')->nullable();
+            $table->string('ssn')->nullable(); // Encrypted in real application
+            $table->string('main_phone')->nullable();
             $table->string('alt_phone')->nullable();
-            $table->string('email');
+            $table->string('email')->nullable()->unique();
             $table->date('medical_certificate_expiration_date')->nullable();
             $table->text('photo')->nullable();
 
@@ -40,11 +40,11 @@ return new class extends Migration
             ])->nullable();
 
             // Address Information
-            $table->string('address');
-            $table->string('city');
-            $table->string('state');
+            $table->string('address')->nullable();
+            $table->string('city')->nullable();
+            $table->string('state')->nullable();
             $table->string('country')->default('US');
-            $table->string('postal_code');
+            $table->string('postal_code')->nullable();
             $table->boolean('twic_card')->default(false);
             $table->boolean('passport')->default(false);
 
@@ -73,6 +73,8 @@ return new class extends Migration
             $table->timestamp('hired_at')->nullable();
             $table->timestamp('rejected_at')->nullable();
             $table->foreignId('action_by')->nullable()->constrained('users')->after('rejected_at');
+
+            $table->string('source')->default('admin')->comment('admin, public_application');
 
             $table->timestamps();
 
