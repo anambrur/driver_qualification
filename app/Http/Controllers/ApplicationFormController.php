@@ -961,7 +961,8 @@ class ApplicationFormController extends Controller
             'driver',
             'currentStep',
             'driverDocument',
-            'violations'
+            'violations',
+            'isEditMode'
         ));
     }
 
@@ -1070,7 +1071,8 @@ class ApplicationFormController extends Controller
             'company',
             'driver',
             'currentStep',
-            'driverDocument'
+            'driverDocument',
+            'isEditMode'
         ));
     }
 
@@ -1145,7 +1147,8 @@ class ApplicationFormController extends Controller
             'company',
             'driver',
             'currentStep',
-            'driverDocument'
+            'driverDocument',
+            'isEditMode'
         ));
     }
 
@@ -1220,7 +1223,8 @@ class ApplicationFormController extends Controller
             'company',
             'driver',
             'currentStep',
-            'driverDocument'
+            'driverDocument',
+            'isEditMode'
         ));
     }
 
@@ -1296,7 +1300,8 @@ class ApplicationFormController extends Controller
             'driver',
             'currentStep',
             'driverDocument',
-            'policyPdf'
+            'policyPdf',
+            'isEditMode'
         ));
     }
 
@@ -1369,7 +1374,8 @@ class ApplicationFormController extends Controller
             'driver',
             'currentStep',
             'driverDocument',
-            'policyPdf'
+            'policyPdf',
+            'isEditMode'
         ));
     }
 
