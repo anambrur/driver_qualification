@@ -23,5 +23,12 @@ class DatabaseSeeder extends Seeder
         $this->call(PermissionSeeder::class);
         $this->call(CountryStateSeeder::class);
         $this->call(DriverSeeder::class);
+        $this->call(DocumentTypeSeeder::class);
+        $this->call(VehicleTypesSeeder::class);
+        $this->call(FuelTypesSeeder::class);
+        $this->call(VehicleGroupsSeeder::class);
+        $this->call(EquipmentTypesSeeder::class);
+        $this->call(VehiclesSeeder::class);
+        $this->call(TrailersSeeder::class);
     }
 }

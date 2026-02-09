@@ -53,6 +53,7 @@ class PermissionSeeder extends Seeder
             'trailers',
             'asset-groups',
             'asset-histories',
+            'document-types',
         ];
 
         // Define basic actions
@@ -61,6 +62,7 @@ class PermissionSeeder extends Seeder
         // Define special actions for specific modules
         $specialActions = [
             'drivers' => ['hire'],
+            'fleets' => ['dashboard'],
 
         ];
 

@@ -150,12 +150,12 @@
                                 :class="(selected === 'Fleet') ? 'block' : 'hidden'">
                                 <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
                                     class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
-                                    @can('fleets.vehicle')
+                                    @can('fleets.dashboard')
                                         <li>
                                             <a href="{{ route('admin.fleet.vehicle') }}" class="menu-dropdown-item group"
                                                 :class="isCurrentPath('admin/fleet/vehicle') ? 'menu-dropdown-item-active' :
                                                     'menu-dropdown-item-inactive'">
-                                                Vehicles
+                                                Compliance Dashboard
                                             </a>
                                         </li>
                                     @endcan
@@ -325,6 +325,18 @@
                                                         'admin/settings/policy-pdf') ? 'menu-dropdown-item-active' :
                                                     'menu-dropdown-item-inactive'">
                                                 Policy PDF
+                                            </a>
+                                        </li>
+                                    @endcan
+
+
+                                    @can('document-types.view')
+                                        <li>
+                                            <a href="{{ route('admin.settings.document-types.index') }}" class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/settings/document-types') && !isCurrentPath(
+                                                        'admin/settings/document-types') ? 'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Document Types
                                             </a>
                                         </li>
                                     @endcan

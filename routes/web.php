@@ -11,6 +11,7 @@ use App\Http\Controllers\FuelTypeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AssetGroupController;
 use App\Http\Controllers\VehicleTypeController;
+use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\VehicleGroupController;
 use App\Http\Controllers\EquipmentTypeController;
 use App\Http\Controllers\ApplicationFormController;
@@ -320,6 +321,17 @@ Route::middleware('auth')->prefix('admin')->group(function () {
             ->middleware('permission:roles.edit');
         Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('admin.roles.destroy')
             ->middleware('permission:roles.delete');
+
+        // Document Types
+        Route::prefix('document-types')->group(function () {
+            Route::get('/', [DocumentTypeController::class, 'index'])->name('admin.settings.document-types.index');
+            Route::post('/', [DocumentTypeController::class, 'store'])->name('admin.settings.document-types.store');
+            Route::get('/{id}', [DocumentTypeController::class, 'show'])->name('admin.settings.document-types.show');
+            Route::put('/{id}', [DocumentTypeController::class, 'update'])->name('admin.settings.document-types.update');
+            Route::delete('/{id}', [DocumentTypeController::class, 'destroy'])->name('admin.settings.document-types.destroy');
+            Route::post('/{id}/toggle-status', [DocumentTypeController::class, 'toggleStatus'])->name('admin.settings.document-types.toggle-status');
+            Route::get('/by-module', [DocumentTypeController::class, 'getByModule'])->name('admin.settings.document-types.by-module');
+        });
     });
 });
 
