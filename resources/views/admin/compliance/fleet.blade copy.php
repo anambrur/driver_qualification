@@ -242,15 +242,16 @@
                                             <div class="flex items-center gap-2 ml-3 flex-shrink-0">
                                                 @if ($docDetail['status'] !== 'valid')
                                                     <button type="button"
-                                                        onclick="openUploadModal({{ $vehicle['id'] }}, {{ $docDetail['type_id'] }}, 'vehicle')"
+                                                        onclick="uploadDocument({{ $vehicle['id'] }}, {{ $docDetail['type_id'] }}, 'vehicle')"
                                                         class="h-6 text-xs rounded-md px-2 inline-flex items-center font-medium bg-brand-600 hover:bg-brand-700 text-white border border-black/10 dark:border-0">
                                                         Complete
                                                     </button>
                                                 @endif
                                                 <button type="button"
-                                                    onclick="sendReminderEmail({{ $vehicle['id'] }}, {{ $docDetail['type_id'] }}, 'vehicle')"
+                                                    onclick="sendReminder({{ $vehicle['id'] }}, {{ $docDetail['type_id'] }}, 'vehicle')"
                                                     class="h-6 w-6 rounded-md inline-flex items-center justify-center bg-transparent hover:bg-zinc-800/5 dark:hover:bg-white/15 text-zinc-800 dark:text-white">
-                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 16 16">
                                                         <path
                                                             d="M8 2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM9.5 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z">
                                                         </path>
@@ -407,15 +408,16 @@
                                             <div class="flex items-center gap-2 ml-3 flex-shrink-0">
                                                 @if ($docDetail['status'] !== 'valid')
                                                     <button type="button"
-                                                        onclick="openUploadModal({{ $trailer['id'] }}, {{ $docDetail['type_id'] }}, 'trailer')"
+                                                        onclick="uploadDocument({{ $trailer['id'] }}, {{ $docDetail['type_id'] }}, 'trailer')"
                                                         class="h-6 text-xs rounded-md px-2 inline-flex items-center font-medium bg-brand-600 hover:bg-brand-700 text-white border border-black/10 dark:border-0">
                                                         Complete
                                                     </button>
                                                 @endif
                                                 <button type="button"
-                                                    onclick="sendReminderEmail({{ $trailer['id'] }}, {{ $docDetail['type_id'] }}, 'trailer')"
+                                                    onclick="sendReminder({{ $trailer['id'] }}, {{ $docDetail['type_id'] }}, 'trailer')"
                                                     class="h-6 w-6 rounded-md inline-flex items-center justify-center bg-transparent hover:bg-zinc-800/5 dark:hover:bg-white/15 text-zinc-800 dark:text-white">
-                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 16 16">
                                                         <path
                                                             d="M8 2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM9.5 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z">
                                                         </path>
@@ -556,9 +558,6 @@
         </div>
     </div>
 
-    <!-- Include Upload Modal -->
-    @include('admin.compliance.partials.upload-document-modal')
-
     <!-- Toast Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
 @endsection
@@ -683,35 +682,14 @@
             document.body.classList.remove('overflow-hidden');
         }
 
-        // Send reminder email
-        function sendReminderEmail(assetId, docTypeId, assetType) {
-            if (!confirm('Send reminder email to the assigned driver?')) {
-                return;
-            }
+        function uploadDocument(assetId, docTypeId, assetType) {
+            showToast(`Upload document for ${assetType} #${assetId}`, 'info');
+            // Implement your upload logic here
+        }
 
-            fetch('/admin/compliance/documents/send-reminder', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
-                    body: JSON.stringify({
-                        asset_id: assetId,
-                        document_type_id: docTypeId,
-                        asset_type: assetType
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast(data.message, 'success');
-                    } else {
-                        showToast(data.message || 'Failed to send reminder', 'error');
-                    }
-                })
-                .catch(error => {
-                    showToast('Error sending reminder: ' + error.message, 'error');
-                });
+        function sendReminder(assetId, docTypeId, assetType) {
+            showToast('Sending reminder email...', 'info');
+            // Implement your reminder logic here
         }
 
         // Toast Notification Function
@@ -770,7 +748,6 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeVehicleModal();
-                closeUploadModal();
             }
         });
     </script>

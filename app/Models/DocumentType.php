@@ -30,11 +30,43 @@ class DocumentType extends Model
     ];
 
     /**
+     * Get vehicle documents of this type
+     */
+    public function vehicleDocuments()
+    {
+        return $this->hasMany(VehicleDocument::class);
+    }
+
+    /**
+     * Get trailer documents of this type
+     */
+    public function trailerDocuments()
+    {
+        return $this->hasMany(TrailerDocument::class);
+    }
+
+    /**
      * Scope a query to only include active document types.
      */
     public function scopeActive($query)
     {
         return $query->where('status', true);
+    }
+
+    /**
+     * Scope to get vehicle document types
+     */
+    public function scopeVehicle($query)
+    {
+        return $query->where('module', 'vehicle');
+    }
+
+    /**
+     * Scope to get trailer document types
+     */
+    public function scopeTrailer($query)
+    {
+        return $query->where('module', 'trailer');
     }
 
     /**

@@ -47,6 +47,11 @@ class Trailer extends Model
         return $this->hasOne(AssetGroup::class);
     }
 
+    public function documents()
+    {
+        return $this->hasMany(TrailerDocument::class);
+    }
+
     // Scope for searching
     public function scopeSearch($query, $search)
     {
@@ -73,5 +78,67 @@ class Trailer extends Model
             'lease' => 'Leased',
             'rental' => 'Rental'
         ];
+    }
+
+    /**
+     * Get compliance percentage
+     */
+    public function getCompliancePercentageAttribute()
+    {
+        $totalDocs = DocumentType::where('module', 'trailer')
+            ->where('status', true)
+            ->count();
+
+        if ($totalDocs === 0) {
+            return 100;
+        }
+
+        $validDocs = $this->documents()
+            ->whereHas('documentType', function ($query) {
+                $query->where('status', true);
+            })
+            ->where(function ($query) {
+                $query->whereNull('expiry_date')
+                    ->orWhere('expiry_date', '>=', now());
+            })
+            ->count();
+
+        return round(($validDocs / $totalDocs) * 100, 1);
+    }
+
+    /**
+     * Check if trailer is compliant
+     */
+    public function isCompliant()
+    {
+        return $this->compliance_percentage >= 100;
+    }
+
+    /**
+     * Get missing documents
+     */
+    public function getMissingDocumentsAttribute()
+    {
+        $requiredDocs = DocumentType::where('module', 'trailer')
+            ->where('status', true)
+            ->get();
+
+        $missing = [];
+
+        foreach ($requiredDocs as $docType) {
+            $hasDoc = $this->documents()
+                ->where('document_type_id', $docType->id)
+                ->where(function ($query) {
+                    $query->whereNull('expiry_date')
+                        ->orWhere('expiry_date', '>=', now());
+                })
+                ->exists();
+
+            if (!$hasDoc) {
+                $missing[] = $docType->name;
+            }
+        }
+
+        return $missing;
     }
 }
