@@ -152,22 +152,10 @@
                                     class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
                                     @can('fleets.dashboard')
                                         <li>
-                                            <a href="{{ route('admin.fleet.vehicle') }}" class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/fleet/vehicle') ? 'menu-dropdown-item-active' :
+                                            <a href="{{ route('admin.compliance.fleet') }}" class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/compliance/fleet') ? 'menu-dropdown-item-active' :
                                                     'menu-dropdown-item-inactive'">
                                                 Compliance Dashboard
-                                            </a>
-                                        </li>
-                                    @endcan
-
-                                    @can('fleets.view')
-                                        <li>
-                                            <a href="{{ route('admin.driver.index') }}" class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/drivers') && !isCurrentPath(
-                                                        'admin/drivers') ?
-                                                    'menu-dropdown-item-active' :
-                                                    'menu-dropdown-item-inactive'">
-                                                Trailers
                                             </a>
                                         </li>
                                     @endcan

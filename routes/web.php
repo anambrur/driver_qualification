@@ -15,6 +15,7 @@ use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\VehicleGroupController;
 use App\Http\Controllers\EquipmentTypeController;
 use App\Http\Controllers\ApplicationFormController;
+use App\Http\Controllers\ComplianceDashboardController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -289,6 +290,11 @@ Route::middleware('auth')->prefix('admin')->group(function () {
     //Fleet
     Route::prefix('fleet')->group(function () {
         Route::get('/vehicle', [DriverController::class, 'fleets'])->name('admin.fleet.vehicle');
+    });
+
+    Route::prefix('compliance')->group(function () {
+        Route::get('/fleet-compliance', [ComplianceDashboardController::class, 'fleet'])->name('admin.compliance.fleet');
+        Route::get('/vehicles/{id}/details', [ComplianceDashboardController::class, 'vehicleDetails'])->name('admin.vehicles.details');
     });
 
 

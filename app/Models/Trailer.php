@@ -42,6 +42,11 @@ class Trailer extends Model
         return $this->belongsTo(VehicleGroup::class);
     }
 
+    public function assetGroups()
+    {
+        return $this->hasOne(AssetGroup::class);
+    }
+
     // Scope for searching
     public function scopeSearch($query, $search)
     {

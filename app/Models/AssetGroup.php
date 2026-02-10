@@ -39,6 +39,11 @@ class AssetGroup extends Model
         return $this->belongsTo(Trailer::class);
     }
 
+    public function driver()
+    {
+        return $this->belongsTo(Driver::class);
+    }
+
     // Scope for searching
     public function scopeSearch($query, $search)
     {

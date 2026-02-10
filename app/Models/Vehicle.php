@@ -59,6 +59,11 @@ class Vehicle extends Model
         return $this->belongsTo(FuelType::class);
     }
 
+    public function assetGroups()
+    {
+        return $this->hasOne(AssetGroup::class);
+    }
+
     // Scope for searching
     public function scopeSearch($query, $search)
     {

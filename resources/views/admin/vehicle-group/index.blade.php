@@ -3,7 +3,7 @@
 @section('title', 'Vehicle Groups')
 
 @section('content')
-    <div class="p-4 mx-auto max-w-7xl md:p-6">
+    <div class="p-4 mx-auto md:p-6">
         <!-- Page Header -->
         <div class="mb-6">
             <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
