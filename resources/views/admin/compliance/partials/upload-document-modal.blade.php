@@ -86,9 +86,8 @@
                     <div class="relative">
                         <input type="date" id="upload_expiry_date" name="expiry_date" required
                             class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                            placeholder="dd/mm/yyyy">
-                        <i
-                            class="absolute text-gray-400 transform -translate-y-1/2 fas fa-calendar-alt right-3 top-1/2"></i>
+                            min="{{ date('Y-m-d') }}">
+                        <!-- Remove this icon or place it outside the input -->
                     </div>
                 </div>
 
@@ -134,8 +133,7 @@
                                         <p class="text-xs text-gray-500 dark:text-gray-400" id="fileSize"></p>
                                     </div>
                                 </div>
-                                <button type="button" onclick="removeFile()"
-                                    class="text-red-500 hover:text-red-700">
+                                <button type="button" onclick="removeFile()" class="text-red-500 hover:text-red-700">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
@@ -360,24 +358,39 @@
         submitBtn.innerHTML = '<i class="mr-2 fas fa-spinner fa-spin"></i>Uploading...';
         hideUploadError();
 
+        const csrfToken = getCsrfToken();
+        if (!csrfToken) {
+            showUploadError('Security token not found. Please refresh the page.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="mr-2 fas fa-upload"></i>Upload Document';
+            return;
+        }
+
         // Submit form
         fetch('/admin/compliance/documents/upload', {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
                 },
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
+                    // Remove the dd() from your controller first!
                     showToast(data.message || 'Document uploaded successfully', 'success');
                     closeUploadModal();
 
                     // Refresh the page after a short delay
                     setTimeout(() => {
                         location.reload();
-                    }, 1000);
+                    }, 1500);
                 } else {
                     showUploadError(data.message || 'Failed to upload document');
                     submitBtn.disabled = false;
@@ -385,6 +398,7 @@
                 }
             })
             .catch(error => {
+                console.error('Error:', error);
                 showUploadError('Error uploading document: ' + error.message);
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="mr-2 fas fa-upload"></i>Upload Document';
@@ -407,10 +421,7 @@
 
 <style>
     /* Custom styles for the upload modal */
-    #uploadDocumentModal input[type="date"]::-webkit-calendar-picker-indicator {
-        opacity: 0;
-        cursor: pointer;
-    }
+    
 
     #uploadDocumentModal .dropzone-active {
         border-color: var(--color-brand-500);

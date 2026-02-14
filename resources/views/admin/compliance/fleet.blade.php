@@ -590,18 +590,18 @@
                     if (data.success) {
                         const vehicle = data.vehicle;
                         document.getElementById('vehicleModalTitle').textContent =
-                        `Vehicle #${vehicle.unit_no} Details`;
+                            `Vehicle #${vehicle.unit_no} Details`;
 
                         const missingDocsHtml = vehicle.missing_documents && vehicle.missing_documents.length > 0 ? `
                             <div>
                                 <h4 class="mb-2 font-medium text-gray-900 dark:text-white">Missing/Expiring Documents:</h4>
                                 <div class="space-y-2">
                                     ${vehicle.missing_documents.map(doc => `
-                                            <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
-                                                <i class="mr-3 text-amber-500 fas fa-exclamation-circle"></i>
-                                                <span class="text-sm text-gray-700 dark:text-gray-300">${doc}</span>
-                                            </div>
-                                        `).join('')}
+                                                <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
+                                                    <i class="mr-3 text-amber-500 fas fa-exclamation-circle"></i>
+                                                    <span class="text-sm text-gray-700 dark:text-gray-300">${doc}</span>
+                                                </div>
+                                            `).join('')}
                                 </div>
                             </div>
                         ` : '';
@@ -683,9 +683,38 @@
             document.body.classList.remove('overflow-hidden');
         }
 
-        // Send reminder email
+        // Function to get CSRF token from multiple sources
+        function getCsrfToken() {
+            // Try meta tag first
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag && metaTag.content) {
+                return metaTag.content;
+            }
+
+            // Try to find CSRF token in form
+            const csrfInput = document.querySelector('input[name="_token"]');
+            if (csrfInput && csrfInput.value) {
+                return csrfInput.value;
+            }
+
+            // Fallback: try to get from window.Laravel if available
+            if (window.Laravel && window.Laravel.csrfToken) {
+                return window.Laravel.csrfToken;
+            }
+
+            console.error('CSRF token not found');
+            return '';
+        }
+
+        // Update sendReminderEmail function
         function sendReminderEmail(assetId, docTypeId, assetType) {
             if (!confirm('Send reminder email to the assigned driver?')) {
+                return;
+            }
+
+            const csrfToken = getCsrfToken();
+            if (!csrfToken) {
+                showToast('Security token not found. Please refresh the page.', 'error');
                 return;
             }
 
@@ -693,7 +722,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({
                         asset_id: assetId,
@@ -701,15 +731,21 @@
                         asset_type: assetType
                     })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
-                        showToast(data.message, 'success');
+                        showToast(data.message || 'Reminder sent successfully', 'success');
                     } else {
                         showToast(data.message || 'Failed to send reminder', 'error');
                     }
                 })
                 .catch(error => {
+                    console.error('Error:', error);
                     showToast('Error sending reminder: ' + error.message, 'error');
                 });
         }

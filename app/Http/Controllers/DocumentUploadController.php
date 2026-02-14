@@ -92,7 +92,6 @@ class DocumentUploadController extends Controller
      */
     public function uploadDocument(Request $request)
     {
-        dd($request->all());
         // Validate request
         $validator = Validator::make($request->all(), [
             'document_type_id' => 'required|exists:document_types,id',
