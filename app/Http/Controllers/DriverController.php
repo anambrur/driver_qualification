@@ -3,33 +3,35 @@
 namespace App\Http\Controllers;
 
 use Exception;
-use App\Models\State;
-use App\Models\Driver;
 use App\Models\Company;
 use App\Models\Country;
-use App\Models\PolicyPdf;
-use App\Models\Violation;
-use Illuminate\Http\Request;
+use App\Models\Driver;
 use App\Models\DriverDocument;
+use App\Models\PolicyPdf;
+use App\Models\State;
+use App\Models\Violation;
+use App\Traits\CompanyFilterTrait;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use Yajra\DataTables\Facades\DataTables;
 
 class DriverController extends Controller
 {
+    use CompanyFilterTrait;
+
     public function index(Request $request)
     {
-        $company_id = Auth::user()->load('company')->company->id ?? null;
+        // Get base query with company filtering
+        $baseQuery = Driver::query();
+        $baseQuery = $this->applyCompanyFilter($baseQuery);
 
-        // First, get the base query for status counts
-        if (Auth::user()->hasRole('super-admin')) {
-            $baseQuery = Driver::query();
-        } else {
-            $baseQuery = Driver::where('company_id', $company_id)
-                ->where('status', '!=', 'draft');
+        // Exclude draft drivers for non-super-admin users
+        if (!Auth::user()->hasRole('super-admin')) {
+            $baseQuery->where('status', '!=', 'draft');
         }
 
         // Calculate status counts
@@ -44,18 +46,16 @@ class DriverController extends Controller
 
         // Check if it's an AJAX request for DataTables
         if ($request->ajax()) {
-            // Use the same base query for DataTables
-            if (Auth::user()->hasRole('super-admin')) {
-                $drivers = Driver::with(['company', 'licenses' => function ($query) {
-                    $query->latest('expires');
-                }])->select('drivers.*');
-            } else {
-                $drivers = Driver::where('company_id', $company_id)
-                    ->where('status', '!=', 'draft')
-                    ->with(['company', 'licenses' => function ($query) {
-                        $query->latest('expires');
-                    }])
-                    ->select('drivers.*');
+            $drivers = Driver::with(['company', 'licenses' => function ($query) {
+                $query->latest('expires');
+            }])->select('drivers.*');
+
+            // Apply company filter
+            $drivers = $this->applyCompanyFilter($drivers);
+
+            // Exclude draft drivers for non-super-admin users
+            if (!Auth::user()->hasRole('super-admin')) {
+                $drivers->where('status', '!=', 'draft');
             }
 
             // Apply status filter if provided
@@ -70,6 +70,9 @@ class DriverController extends Controller
                         ($driver->middle_name ? $driver->middle_name . ' ' : '') .
                         $driver->last_name .
                         ($driver->suffix ? ' ' . $driver->suffix : '');
+                })
+                ->addColumn('company_name', function ($driver) {
+                    return $driver->company ? $driver->company->company_name : 'N/A';
                 })
                 ->addColumn('state', function ($driver) {
                     return $driver->state ?? 'N/A';
@@ -185,19 +188,22 @@ class DriverController extends Controller
                                 $query->orderBy('first_name', $direction)
                                     ->orderBy('last_name', $direction);
                                 break;
-                            case 2: // Status
+                            case 2: // Company
+                                $query->orderBy('company_id', $direction);
+                                break;
+                            case 3: // Status
                                 $query->orderBy('status', $direction);
                                 break;
-                            case 3: // State
+                            case 4: // State
                                 $query->orderBy('state', $direction);
                                 break;
-                            case 4: // License Exp.
+                            case 5: // License Exp.
                                 $query->orderBy('id', $direction);
                                 break;
-                            case 5: // Medical Exp.
+                            case 6: // Medical Exp.
                                 $query->orderBy('medical_certificate_expiration_date', $direction);
                                 break;
-                            case 6: // Hire Date
+                            case 7: // Hire Date
                                 $query->orderBy('hired_at', $direction);
                                 break;
                             default:
@@ -210,22 +216,47 @@ class DriverController extends Controller
                 ->make(true);
         }
 
+        // Get companies for dropdown (filtered by user role)
+        $companies = $this->getCompaniesForUser();
+
         // For the initial page load, pass status counts to the view
-        return view('admin.driver.index', compact('statusCounts'));
+        return view('admin.driver.index', compact('statusCounts', 'companies'));
     }
 
     public function create()
     {
-        $companies = Company::where('status', 'active')->get();
+        // Get companies based on user role
+        $companies = $this->getCompaniesForUser();
+
+        // If user has no company and is not super-admin, redirect
+        if ($companies->isEmpty() && !Auth::user()->hasRole('super-admin')) {
+            toastr()->error('You do not have a company assigned.');
+            return redirect()->route('admin.driver.index');
+        }
+
         $countries = Country::orderBy('name')->get();
         $defaultCountry = Country::where('iso_code', 'US')->first();
         $states = $defaultCountry ? $defaultCountry->states()->orderBy('name')->get() : collect();
         $currentStep = 1;
+
         return view('admin.driver.create', compact('companies', 'countries', 'states', 'defaultCountry', 'currentStep'));
     }
 
     public function store(Request $request)
     {
+        // Add company validation based on user role
+        $companyId = $this->getUserCompanyId();
+
+        if (!Auth::user()->hasRole('super-admin')) {
+            // Ensure the user is only creating drivers for their own company
+            if ($companyId && $request->company_id != $companyId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only create drivers for your own company.'
+                ], 403);
+            }
+        }
+
         // Main driver validation - simplified to match form structure
         $validator = Validator::make($request->all(), [
             'company_id' => 'required|exists:companies,id',
@@ -374,6 +405,13 @@ class DriverController extends Controller
                 $fileName = 'driver_photo_' . time() . '.' . $extension;
                 $photo = $file->storeAs('images/drivers', $fileName, 'public');
             }
+
+            // Create driver - automatically set company_id if needed
+            $driverData = $request->all();
+            if (!Auth::user()->hasRole('super-admin') && $companyId) {
+                $driverData['company_id'] = $companyId;
+            }
+
 
             // Create driver - FIXED: Use correct field name for medical certificate
             $driver = Driver::create([
@@ -616,13 +654,8 @@ class DriverController extends Controller
             }
         ])->findOrFail($id);
 
-        // Check if user has permission to view this driver
-        if (!Auth::user()->hasRole('super-admin')) {
-            $company_id = Auth::user()->load('company')->company->id ?? null;
-            if ($driver->company_id !== $company_id) {
-                abort(403, 'Unauthorized action.');
-            }
-        }
+        // Check if user has access to this driver
+        $this->authorizeCompanyAccess($driver, 'You do not have permission to view this driver.');
 
         return view('admin.driver.show', compact('driver'));
     }
@@ -651,12 +684,8 @@ class DriverController extends Controller
         ])->findOrFail($id);
 
         // Check if user has permission to edit this driver
-        if (!Auth::user()->hasRole('super-admin')) {
-            $company_id = Auth::user()->load('company')->company->id ?? null;
-            if ($driver->company_id !== $company_id) {
-                abort(403, 'Unauthorized action.');
-            }
-        }
+        $this->authorizeCompanyAccess($driver, 'You do not have permission to edit this driver.');
+
         $currentStep = 1;
         $isEditMode = $request->has('edit') && $request->edit == '1';
 
@@ -683,12 +712,12 @@ class DriverController extends Controller
             'residence_addresses'
         ])->findOrFail($id);
 
-        // Check authorization
+        // Check if user has access to this driver
+        $this->authorizeCompanyAccess($driver, 'You do not have permission to update this driver.');
+
+        // Ensure user can't change company if not super-admin
         if (!Auth::user()->hasRole('super-admin')) {
-            $company_id = Auth::user()->load('company')->company->id ?? null;
-            if ($driver->company_id !== $company_id) {
-                abort(403, 'Unauthorized action.');
-            }
+            $request->merge(['company_id' => $driver->company_id]);
         }
 
         // Main validation - expanded to include all sections
@@ -1101,6 +1130,10 @@ class DriverController extends Controller
     {
         try {
             $driver = Driver::findOrFail($id);
+
+            // Check if user has access to this driver
+            $this->authorizeCompanyAccess($driver, 'You do not have permission to delete this driver.');
+
             $driver->delete();
 
             return response()->json(['success' => true, 'message' => 'Driver deleted successfully']);
@@ -1188,7 +1221,7 @@ class DriverController extends Controller
     public function licenseStore(Request $request)
     {
         // Validate input
-       $validator = Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             'license_front' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120', // 5MB
             'license_back' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
             'driver_id' => 'required|exists:drivers,id',

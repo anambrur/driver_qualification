@@ -5,23 +5,27 @@ namespace App\Http\Controllers;
 use App\Models\Trailer;
 use App\Models\Vehicle;
 use App\Models\DocumentType;
+use App\Traits\CompanyFilterTrait;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class ComplianceDashboardController extends Controller
 {
+    use CompanyFilterTrait;
+
     public function fleet()
     {
-        // Get all vehicles with relationships
-        $vehicles = Vehicle::with(['assetGroups.driver', 'documents.documentType'])
-            ->orderBy('unit_no')
-            ->get();
+        // Get vehicles with company filtering
+        $vehiclesQuery = Vehicle::with(['assetGroups.driver', 'documents.documentType']);
+        $vehiclesQuery = $this->applyCompanyFilter($vehiclesQuery);
+        $vehicles = $vehiclesQuery->orderBy('unit_no')->get();
 
-        // Get all trailers with relationships
-        $trailers = Trailer::with(['assetGroups.driver', 'documents.documentType'])
-            ->orderBy('unit_no')
-            ->get();
+        // Get trailers with company filtering
+        $trailersQuery = Trailer::with(['assetGroups.driver', 'documents.documentType']);
+        $trailersQuery = $this->applyCompanyFilter($trailersQuery);
+        $trailers = $trailersQuery->orderBy('unit_no')->get();
 
-        // Get document types
+        // Get document types (no company filtering needed as these are global)
         $vehicleDocumentTypes = DocumentType::where('module', 'vehicle')
             ->where('status', true)
             ->get();
@@ -46,6 +50,8 @@ class ComplianceDashboardController extends Controller
                 'model' => $vehicle->model,
                 'year' => $vehicle->year,
                 'odometer' => $vehicle->odometer,
+                'company_id' => $vehicle->company_id,
+                'company_name' => $vehicle->company?->company_name,
                 'driver' => $vehicle->assetGroups->driver ?? null,
                 'compliance_status' => $complianceData['status'],
                 'compliance_percentage' => $complianceData['percentage'] . '%',
@@ -75,6 +81,8 @@ class ComplianceDashboardController extends Controller
                 'make' => $trailer->make,
                 'model' => $trailer->model,
                 'year' => $trailer->year,
+                'company_id' => $trailer->company_id,
+                'company_name' => $trailer->company?->company_name,
                 'driver' => $trailer->assetGroups->driver ?? null,
                 'compliance_status' => $complianceData['status'],
                 'compliance_percentage' => $complianceData['percentage'] . '%',
@@ -109,6 +117,9 @@ class ComplianceDashboardController extends Controller
             ? round(($compliantTrailers / $totalTrailers) * 100, 1)
             : 0;
 
+        // Get companies for filter (if super-admin)
+        $companies = $this->getCompaniesForUser();
+
         return view('admin.compliance.fleet', [
             'vehicles' => $processedVehicles,
             'trailers' => $processedTrailers,
@@ -121,6 +132,8 @@ class ComplianceDashboardController extends Controller
             'overallCompliance' => $overallCompliance,
             'vehicleCompliance' => $vehicleCompliance,
             'trailerCompliance' => $trailerCompliance,
+            'companies' => $companies,
+            'isSuperAdmin' => Auth::user()->hasRole('super-admin'),
         ]);
     }
 
@@ -213,8 +226,11 @@ class ComplianceDashboardController extends Controller
     public function getVehicleDetails($id)
     {
         try {
-            $vehicle = Vehicle::with(['assetGroups.driver', 'documents.documentType'])
+            $vehicle = Vehicle::with(['assetGroups.driver', 'documents.documentType', 'company'])
                 ->findOrFail($id);
+
+            // Check if user has access to this vehicle
+            $this->authorizeCompanyAccess($vehicle, 'You do not have permission to view this vehicle.');
 
             $vehicleDocumentTypes = DocumentType::where('module', 'vehicle')
                 ->where('status', true)
@@ -245,6 +261,8 @@ class ComplianceDashboardController extends Controller
                     'year' => $vehicle->year,
                     'vin' => $vehicle->vin,
                     'odometer' => $vehicle->odometer,
+                    'company_id' => $vehicle->company_id,
+                    'company_name' => $vehicle->company?->company_name,
                     'compliance_status' => $complianceData['status'],
                     'compliance_percentage' => $complianceData['percentage'] . '%',
                     'compliant_docs' => $complianceData['compliant_docs'],
@@ -258,7 +276,7 @@ class ComplianceDashboardController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Vehicle not found'
+                'message' => 'Vehicle not found or access denied'
             ], 404);
         }
     }
@@ -269,8 +287,11 @@ class ComplianceDashboardController extends Controller
     public function getTrailerDetails($id)
     {
         try {
-            $trailer = Trailer::with(['assetGroups.driver', 'documents.documentType'])
+            $trailer = Trailer::with(['assetGroups.driver', 'documents.documentType', 'company'])
                 ->findOrFail($id);
+
+            // Check if user has access to this trailer
+            $this->authorizeCompanyAccess($trailer, 'You do not have permission to view this trailer.');
 
             $trailerDocumentTypes = DocumentType::where('module', 'trailer')
                 ->where('status', true)
@@ -300,6 +321,8 @@ class ComplianceDashboardController extends Controller
                     'model' => $trailer->model,
                     'year' => $trailer->year,
                     'vin' => $trailer->vin,
+                    'company_id' => $trailer->company_id,
+                    'company_name' => $trailer->company?->company_name,
                     'compliance_status' => $complianceData['status'],
                     'compliance_percentage' => $complianceData['percentage'] . '%',
                     'compliant_docs' => $complianceData['compliant_docs'],
@@ -313,8 +336,49 @@ class ComplianceDashboardController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Trailer not found'
+                'message' => 'Trailer not found or access denied'
             ], 404);
+        }
+    }
+
+    /**
+     * Get compliance summary by company (for super-admin)
+     */
+    public function getCompanySummary()
+    {
+        if (!Auth::user()->hasRole('super-admin')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access'
+            ], 403);
+        }
+
+        try {
+            $companies = \App\Models\Company::where('status', 'active')->get();
+            $summary = [];
+
+            foreach ($companies as $company) {
+                $vehicles = Vehicle::where('company_id', $company->id)->count();
+                $trailers = Trailer::where('company_id', $company->id)->count();
+
+                $summary[] = [
+                    'company_id' => $company->id,
+                    'company_name' => $company->company_name,
+                    'vehicles' => $vehicles,
+                    'trailers' => $trailers,
+                    'total_assets' => $vehicles + $trailers,
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $summary
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch company summary'
+            ], 500);
         }
     }
 }

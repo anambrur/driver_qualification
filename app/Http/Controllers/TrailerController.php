@@ -2,25 +2,35 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Trailer;
 use App\Models\EquipmentType;
+use App\Models\Trailer;
 use App\Models\VehicleGroup;
+use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use Yajra\DataTables\Facades\DataTables;
 
 class TrailerController extends Controller
 {
+    use CompanyFilterTrait;
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Trailer::with(['equipmentType', 'vehicleGroup'])
+            $query = Trailer::with(['equipmentType', 'vehicleGroup', 'company'])
                 ->select(['trailers.*']);
+
+            // Apply company filter
+            $query = $this->applyCompanyFilter($query);
 
             return DataTables::of($query)
                 ->addIndexColumn()
+                ->addColumn('company_name', function ($row) {
+                    return $row->company ? $row->company->company_name : 'N/A';
+                })
                 ->addColumn('trailer_info', function ($row) {
                     $notesIcon = $row->notes ? '<i class="fas fa-sticky-note ml-2 text-blue-500 text-xs" title="Has notes"></i>' : '';
                     return '
@@ -41,23 +51,20 @@ class TrailerController extends Controller
                         </div>
                     </div>';
                 })
-                ->addColumn('type_group', function ($row) {
-                    $type = $row->equipmentType ? $row->equipmentType->name : '<span class="text-gray-400">N/A</span>';
+                ->addColumn('equipment_group', function ($row) {
+                    $equipment = $row->equipmentType ? $row->equipmentType->name : '<span class="text-gray-400">N/A</span>';
                     $group = $row->vehicleGroup ? $row->vehicleGroup->name : '<span class="text-gray-400">N/A</span>';
                     return '
                     <div class="text-sm">
-                        <div><span class="font-medium">Type:</span> ' . $type . '</div>
+                        <div><span class="font-medium">Equipment:</span> ' . $equipment . '</div>
                         <div><span class="font-medium">Group:</span> ' . $group . '</div>
                     </div>';
                 })
-                ->addColumn('details', function ($row) {
-                    $gvw = $row->gvw ? number_format($row->gvw) . ' lbs' : '<span class="text-gray-400">N/A</span>';
-                    $color = $row->color ?: '<span class="text-gray-400">N/A</span>';
-                    return '
-                    <div class="text-sm">
-                        <div><span class="font-medium">GVW:</span> ' . $gvw . '</div>
-                        <div><span class="font-medium">Color:</span> ' . $color . '</div>
-                    </div>';
+                ->addColumn('gvw', function ($row) {
+                    return $row->gvw ? number_format($row->gvw) . ' lbs' : 'N/A';
+                })
+                ->addColumn('owned_by', function ($row) {
+                    return $row->owned_by ?? 'N/A';
                 })
                 ->addColumn('status', function ($row) {
                     $status = $row->deleted_at ? 'deleted' : 'active';
@@ -91,20 +98,30 @@ class TrailerController extends Controller
                 ->addColumn('created_at_formatted', function ($row) {
                     return $row->created_at->format('M d, Y');
                 })
-                ->rawColumns(['trailer_info', 'type_group', 'details', 'status', 'action'])
+                ->rawColumns(['trailer_info', 'equipment_group', 'status', 'action'])
                 ->make(true);
         }
 
         // Get dropdown data for filters
         $equipmentTypes = EquipmentType::orderBy('name')->get();
         $vehicleGroups = VehicleGroup::orderBy('name')->get();
+        $companies = $this->getCompaniesForUser();
 
-        return view('admin.trailer.index', compact('equipmentTypes', 'vehicleGroups'));
+        return view('admin.trailer.index', compact('equipmentTypes', 'vehicleGroups', 'companies'));
     }
 
     public function store(Request $request)
     {
+        // Add company validation based on user role
+        $companyId = $this->getUserCompanyId();
+
+        if (!Auth::user()->hasRole('super-admin')) {
+            // For non-super-admin, force company_id to their company
+            $request->merge(['company_id' => $companyId]);
+        }
+
         $validator = Validator::make($request->all(), [
+            'company_id' => 'required|exists:companies,id',
             'unit_no' => 'required|string|max:50|unique:trailers,unit_no',
             'vin' => 'required|string|size:17|unique:trailers,vin',
             'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
@@ -151,7 +168,10 @@ class TrailerController extends Controller
 
     public function edit($id)
     {
-        $trailer = Trailer::with(['equipmentType', 'vehicleGroup'])->findOrFail($id);
+        $trailer = Trailer::with(['equipmentType', 'vehicleGroup', 'company'])->findOrFail($id);
+
+        // Check if user has access to this trailer
+        $this->authorizeCompanyAccess($trailer, 'You do not have permission to edit this trailer.');
 
         return response()->json([
             'success' => true,
@@ -163,6 +183,14 @@ class TrailerController extends Controller
     {
         $trailer = Trailer::findOrFail($id);
 
+        // Check if user has access to this trailer
+        $this->authorizeCompanyAccess($trailer, 'You do not have permission to update this trailer.');
+
+        // Ensure user can't change company if not super-admin
+        if (!Auth::user()->hasRole('super-admin')) {
+            $request->merge(['company_id' => $trailer->company_id]);
+        }
+
         $validator = Validator::make($request->all(), [
             'unit_no' => 'required|string|max:50|unique:trailers,unit_no,' . $id,
             'vin' => 'required|string|size:17|unique:trailers,vin,' . $id,
@@ -170,7 +198,7 @@ class TrailerController extends Controller
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
             'equipment_types_id' => 'required|exists:equipment_types,id',
-            'owned_by' => 'required|in:company,lease,rental',
+            'owned_by' => 'nullable|string|max:100',
             'color' => 'nullable|string|max:50',
             'title_no' => 'nullable|string|max:100',
             'tire_size' => 'nullable|string|max:50',
@@ -212,6 +240,9 @@ class TrailerController extends Controller
     {
         $trailer = Trailer::findOrFail($id);
 
+        // Check if user has access to this trailer
+        $this->authorizeCompanyAccess($trailer, 'You do not have permission to delete this trailer.');
+
         DB::beginTransaction();
 
         try {
@@ -235,6 +266,9 @@ class TrailerController extends Controller
     public function restore($id)
     {
         $trailer = Trailer::withTrashed()->findOrFail($id);
+
+        // Check if user has access to this trailer
+        $this->authorizeCompanyAccess($trailer, 'You do not have permission to restore this trailer.');
 
         DB::beginTransaction();
 
@@ -260,12 +294,14 @@ class TrailerController extends Controller
     {
         $equipmentTypes = EquipmentType::orderBy('name')->get(['id', 'name']);
         $vehicleGroups = VehicleGroup::orderBy('name')->get(['id', 'name']);
+        $companies = $this->getCompaniesForUser();
 
         return response()->json([
             'success' => true,
             'equipmentTypes' => $equipmentTypes,
             'vehicleGroups' => $vehicleGroups,
-            'ownedByOptions' => Trailer::getOwnedByOptions()
+            'companies' => $companies,
+            'ownedByOptions' => ['company' => 'Company Owned', 'lease' => 'Leased', 'rental' => 'Rental']
         ]);
     }
 
@@ -274,6 +310,9 @@ class TrailerController extends Controller
         try {
             $trailer = Trailer::findOrFail($id);
 
+            // Check if user has access to this trailer
+            $this->authorizeCompanyAccess($trailer, 'You do not have permission to view this trailer.');
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -281,8 +320,6 @@ class TrailerController extends Controller
                     'year' => $trailer->year,
                     'make' => $trailer->make,
                     'model' => $trailer->model,
-                    'license_plate' => $trailer->license_plate,
-                    'trailer_type' => $trailer->trailer_type, // Make sure this field exists
                     'vin' => $trailer->vin,
                 ]
             ]);

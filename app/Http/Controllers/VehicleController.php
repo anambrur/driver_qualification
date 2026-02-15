@@ -2,26 +2,36 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Vehicle;
 use App\Models\FuelType;
-use App\Models\VehicleType;
+use App\Models\Vehicle;
 use App\Models\VehicleGroup;
+use App\Models\VehicleType;
+use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use Yajra\DataTables\Facades\DataTables;
 
 class VehicleController extends Controller
 {
+    use CompanyFilterTrait;
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Vehicle::with(['vehicleType', 'vehicleGroup', 'fuelType'])
+            $query = Vehicle::with(['vehicleType', 'vehicleGroup', 'fuelType', 'company'])
                 ->select(['vehicles.*']);
+
+            // Apply company filter
+            $query = $this->applyCompanyFilter($query);
 
             return DataTables::of($query)
                 ->addIndexColumn()
+                ->addColumn('company_name', function ($row) {
+                    return $row->company ? $row->company->company_name : 'N/A';
+                })
                 ->addColumn('vehicle_info', function ($row) {
                     $notesIcon = $row->notes ? '<i class="fas fa-sticky-note ml-2 text-blue-500 text-xs" title="Has notes"></i>' : '';
                     return '
@@ -99,13 +109,23 @@ class VehicleController extends Controller
         $vehicleTypes = VehicleType::orderBy('name')->get();
         $vehicleGroups = VehicleGroup::orderBy('name')->get();
         $fuelTypes = FuelType::orderBy('name')->get();
+        $companies = $this->getCompaniesForUser();
 
-        return view('admin.vehicle.index', compact('vehicleTypes', 'vehicleGroups', 'fuelTypes'));
+        return view('admin.vehicle.index', compact('vehicleTypes', 'vehicleGroups', 'fuelTypes', 'companies'));
     }
 
     public function store(Request $request)
     {
+        // Add company validation based on user role
+        $companyId = $this->getUserCompanyId();
+
+        if (!Auth::user()->hasRole('super-admin')) {
+            // For non-super-admin, force company_id to their company
+            $request->merge(['company_id' => $companyId]);
+        }
+
         $validator = Validator::make($request->all(), [
+            'company_id' => 'required|exists:companies,id',
             'unit_no' => 'required|string|max:50|unique:vehicles,unit_no',
             'vin' => 'required|string|size:17|unique:vehicles,vin',
             'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
@@ -161,7 +181,10 @@ class VehicleController extends Controller
 
     public function edit($id)
     {
-        $vehicle = Vehicle::with(['vehicleType', 'vehicleGroup', 'fuelType'])->findOrFail($id);
+        $vehicle = Vehicle::with(['vehicleType', 'vehicleGroup', 'fuelType', 'company'])->findOrFail($id);
+
+        // Check if user has access to this vehicle
+        $this->authorizeCompanyAccess($vehicle, 'You do not have permission to edit this vehicle.');
 
         return response()->json([
             'success' => true,
@@ -172,6 +195,14 @@ class VehicleController extends Controller
     public function update(Request $request, $id)
     {
         $vehicle = Vehicle::findOrFail($id);
+
+        // Check if user has access to this vehicle
+        $this->authorizeCompanyAccess($vehicle, 'You do not have permission to update this vehicle.');
+
+        // Ensure user can't change company if not super-admin
+        if (!Auth::user()->hasRole('super-admin')) {
+            $request->merge(['company_id' => $vehicle->company_id]);
+        }
 
         $validator = Validator::make($request->all(), [
             'unit_no' => 'required|string|max:50|unique:vehicles,unit_no,' . $id,
@@ -231,6 +262,9 @@ class VehicleController extends Controller
     {
         $vehicle = Vehicle::findOrFail($id);
 
+        // Check if user has access to this vehicle
+        $this->authorizeCompanyAccess($vehicle, 'You do not have permission to delete this vehicle.');
+
         DB::beginTransaction();
 
         try {
@@ -254,6 +288,9 @@ class VehicleController extends Controller
     public function restore($id)
     {
         $vehicle = Vehicle::withTrashed()->findOrFail($id);
+
+        // Check if user has access to this vehicle
+        $this->authorizeCompanyAccess($vehicle, 'You do not have permission to restore this vehicle.');
 
         DB::beginTransaction();
 
@@ -280,12 +317,14 @@ class VehicleController extends Controller
         $vehicleTypes = VehicleType::orderBy('name')->get(['id', 'name']);
         $vehicleGroups = VehicleGroup::orderBy('name')->get(['id', 'name']);
         $fuelTypes = FuelType::orderBy('name')->get(['id', 'name']);
+        $companies = $this->getCompaniesForUser();
 
         return response()->json([
             'success' => true,
             'vehicleTypes' => $vehicleTypes,
             'vehicleGroups' => $vehicleGroups,
             'fuelTypes' => $fuelTypes,
+            'companies' => $companies,
             'configurations' => Vehicle::getConfigurationOptions(),
             'ownedByOptions' => Vehicle::getOwnedByOptions()
         ]);
@@ -295,6 +334,9 @@ class VehicleController extends Controller
     {
         try {
             $vehicle = Vehicle::findOrFail($id);
+
+            // Check if user has access to this vehicle
+            $this->authorizeCompanyAccess($vehicle, 'You do not have permission to view this vehicle.');
 
             return response()->json([
                 'success' => true,
