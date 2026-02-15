@@ -7,7 +7,6 @@ use App\Models\Vehicle;
 use App\Models\DocumentType;
 use App\Models\VehicleDocument;
 use App\Models\TrailerDocument;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;

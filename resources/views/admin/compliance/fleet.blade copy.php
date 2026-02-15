@@ -242,16 +242,15 @@
                                             <div class="flex items-center gap-2 ml-3 flex-shrink-0">
                                                 @if ($docDetail['status'] !== 'valid')
                                                     <button type="button"
-                                                        onclick="uploadDocument({{ $vehicle['id'] }}, {{ $docDetail['type_id'] }}, 'vehicle')"
+                                                        onclick="openUploadModal({{ $vehicle['id'] }}, {{ $docDetail['type_id'] }}, 'vehicle')"
                                                         class="h-6 text-xs rounded-md px-2 inline-flex items-center font-medium bg-brand-600 hover:bg-brand-700 text-white border border-black/10 dark:border-0">
                                                         Complete
                                                     </button>
                                                 @endif
                                                 <button type="button"
-                                                    onclick="sendReminder({{ $vehicle['id'] }}, {{ $docDetail['type_id'] }}, 'vehicle')"
+                                                    onclick="sendReminderEmail({{ $vehicle['id'] }}, {{ $docDetail['type_id'] }}, 'vehicle')"
                                                     class="h-6 w-6 rounded-md inline-flex items-center justify-center bg-transparent hover:bg-zinc-800/5 dark:hover:bg-white/15 text-zinc-800 dark:text-white">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 16 16">
+                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
                                                         <path
                                                             d="M8 2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM9.5 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z">
                                                         </path>
@@ -408,16 +407,15 @@
                                             <div class="flex items-center gap-2 ml-3 flex-shrink-0">
                                                 @if ($docDetail['status'] !== 'valid')
                                                     <button type="button"
-                                                        onclick="uploadDocument({{ $trailer['id'] }}, {{ $docDetail['type_id'] }}, 'trailer')"
+                                                        onclick="openUploadModal({{ $trailer['id'] }}, {{ $docDetail['type_id'] }}, 'trailer')"
                                                         class="h-6 text-xs rounded-md px-2 inline-flex items-center font-medium bg-brand-600 hover:bg-brand-700 text-white border border-black/10 dark:border-0">
                                                         Complete
                                                     </button>
                                                 @endif
                                                 <button type="button"
-                                                    onclick="sendReminder({{ $trailer['id'] }}, {{ $docDetail['type_id'] }}, 'trailer')"
+                                                    onclick="sendReminderEmail({{ $trailer['id'] }}, {{ $docDetail['type_id'] }}, 'trailer')"
                                                     class="h-6 w-6 rounded-md inline-flex items-center justify-center bg-transparent hover:bg-zinc-800/5 dark:hover:bg-white/15 text-zinc-800 dark:text-white">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 16 16">
+                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
                                                         <path
                                                             d="M8 2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM9.5 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z">
                                                         </path>
@@ -558,6 +556,9 @@
         </div>
     </div>
 
+    <!-- Include Upload Modal -->
+    @include('admin.compliance.partials.upload-document-modal')
+
     <!-- Toast Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
 @endsection
@@ -589,18 +590,18 @@
                     if (data.success) {
                         const vehicle = data.vehicle;
                         document.getElementById('vehicleModalTitle').textContent =
-                        `Vehicle #${vehicle.unit_no} Details`;
+                            `Vehicle #${vehicle.unit_no} Details`;
 
                         const missingDocsHtml = vehicle.missing_documents && vehicle.missing_documents.length > 0 ? `
                             <div>
                                 <h4 class="mb-2 font-medium text-gray-900 dark:text-white">Missing/Expiring Documents:</h4>
                                 <div class="space-y-2">
                                     ${vehicle.missing_documents.map(doc => `
-                                            <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
-                                                <i class="mr-3 text-amber-500 fas fa-exclamation-circle"></i>
-                                                <span class="text-sm text-gray-700 dark:text-gray-300">${doc}</span>
-                                            </div>
-                                        `).join('')}
+                                                <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
+                                                    <i class="mr-3 text-amber-500 fas fa-exclamation-circle"></i>
+                                                    <span class="text-sm text-gray-700 dark:text-gray-300">${doc}</span>
+                                                </div>
+                                            `).join('')}
                                 </div>
                             </div>
                         ` : '';
@@ -682,14 +683,71 @@
             document.body.classList.remove('overflow-hidden');
         }
 
-        function uploadDocument(assetId, docTypeId, assetType) {
-            showToast(`Upload document for ${assetType} #${assetId}`, 'info');
-            // Implement your upload logic here
+        // Function to get CSRF token from multiple sources
+        function getCsrfToken() {
+            // Try meta tag first
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag && metaTag.content) {
+                return metaTag.content;
+            }
+
+            // Try to find CSRF token in form
+            const csrfInput = document.querySelector('input[name="_token"]');
+            if (csrfInput && csrfInput.value) {
+                return csrfInput.value;
+            }
+
+            // Fallback: try to get from window.Laravel if available
+            if (window.Laravel && window.Laravel.csrfToken) {
+                return window.Laravel.csrfToken;
+            }
+
+            console.error('CSRF token not found');
+            return '';
         }
 
-        function sendReminder(assetId, docTypeId, assetType) {
-            showToast('Sending reminder email...', 'info');
-            // Implement your reminder logic here
+        // Update sendReminderEmail function
+        function sendReminderEmail(assetId, docTypeId, assetType) {
+            if (!confirm('Send reminder email to the assigned driver?')) {
+                return;
+            }
+
+            const csrfToken = getCsrfToken();
+            if (!csrfToken) {
+                showToast('Security token not found. Please refresh the page.', 'error');
+                return;
+            }
+
+            fetch('/admin/compliance/documents/send-reminder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        asset_id: assetId,
+                        document_type_id: docTypeId,
+                        asset_type: assetType
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message || 'Reminder sent successfully', 'success');
+                    } else {
+                        showToast(data.message || 'Failed to send reminder', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error sending reminder: ' + error.message, 'error');
+                });
         }
 
         // Toast Notification Function
@@ -748,6 +806,7 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeVehicleModal();
+                closeUploadModal();
             }
         });
     </script>

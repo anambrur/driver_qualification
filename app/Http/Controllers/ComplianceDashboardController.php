@@ -6,7 +6,6 @@ use App\Models\Trailer;
 use App\Models\Vehicle;
 use App\Models\DocumentType;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 
 class ComplianceDashboardController extends Controller
 {
@@ -26,7 +25,7 @@ class ComplianceDashboardController extends Controller
         $vehicleDocumentTypes = DocumentType::where('module', 'vehicle')
             ->where('status', true)
             ->get();
-            
+
         $trailersDocumentTypes = DocumentType::where('module', 'trailer')
             ->where('status', true)
             ->get();
@@ -38,7 +37,7 @@ class ComplianceDashboardController extends Controller
 
         foreach ($vehicles as $vehicle) {
             $complianceData = $this->calculateCompliance($vehicle, $vehicleDocumentTypes, 'vehicle');
-            
+
             $processedVehicles[] = [
                 'id' => $vehicle->id,
                 'unit_no' => $vehicle->unit_no,
@@ -68,7 +67,7 @@ class ComplianceDashboardController extends Controller
 
         foreach ($trailers as $trailer) {
             $complianceData = $this->calculateCompliance($trailer, $trailersDocumentTypes, 'trailer');
-            
+
             $processedTrailers[] = [
                 'id' => $trailer->id,
                 'unit_no' => $trailer->unit_no,
@@ -94,10 +93,10 @@ class ComplianceDashboardController extends Controller
         $totalVehicles = count($processedVehicles);
         $totalTrailers = count($processedTrailers);
         $totalAssets = $totalVehicles + $totalTrailers;
-        
+
         $totalCompliant = $compliantVehicles + $compliantTrailers;
         $totalWarning = $warningVehicles + $warningTrailers;
-        
+
         $overallCompliance = $totalAssets > 0
             ? round(($totalCompliant / $totalAssets) * 100, 1)
             : 0;
@@ -148,6 +147,9 @@ class ComplianceDashboardController extends Controller
                 'status' => 'missing',
                 'expiry_date' => null,
                 'days_until_expiry' => null,
+                'document_id' => null,
+                'file_path' => null,
+                'description' => null,
             ];
 
             if ($document) {
@@ -157,6 +159,9 @@ class ComplianceDashboardController extends Controller
 
                 $docStatus['expiry_date'] = $document->expiry_date;
                 $docStatus['days_until_expiry'] = $daysUntilExpiry;
+                $docStatus['document_id'] = $document->id;
+                $docStatus['file_path'] = $document->file_path;
+                $docStatus['description'] = $document->description;
 
                 if ($expiryDate->isFuture()) {
                     if ($daysUntilExpiry <= 30) {
@@ -217,6 +222,19 @@ class ComplianceDashboardController extends Controller
 
             $complianceData = $this->calculateCompliance($vehicle, $vehicleDocumentTypes, 'vehicle');
 
+            // Get all documents with their details
+            $documents = $vehicle->documents()->with('documentType')->get()->map(function ($doc) {
+                return [
+                    'id' => $doc->id,
+                    'type_name' => $doc->documentType->name,
+                    'expiry_date' => $doc->expiry_date,
+                    'description' => $doc->description,
+                    'file_path' => $doc->file_path,
+                    'status' => $doc->status,
+                    'days_until_expiry' => $doc->days_until_expiry,
+                ];
+            });
+
             return response()->json([
                 'success' => true,
                 'vehicle' => [
@@ -233,6 +251,8 @@ class ComplianceDashboardController extends Controller
                     'total_docs' => $complianceData['total_docs'],
                     'missing_documents' => $complianceData['missing_documents'],
                     'expiring_documents' => $complianceData['expiring_documents'],
+                    'document_details' => $complianceData['document_details'],
+                    'documents' => $documents,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -258,6 +278,19 @@ class ComplianceDashboardController extends Controller
 
             $complianceData = $this->calculateCompliance($trailer, $trailerDocumentTypes, 'trailer');
 
+            // Get all documents with their details
+            $documents = $trailer->documents()->with('documentType')->get()->map(function ($doc) {
+                return [
+                    'id' => $doc->id,
+                    'type_name' => $doc->documentType->name,
+                    'expiry_date' => $doc->expiry_date,
+                    'description' => $doc->description,
+                    'file_path' => $doc->file_path,
+                    'status' => $doc->status,
+                    'days_until_expiry' => $doc->days_until_expiry,
+                ];
+            });
+
             return response()->json([
                 'success' => true,
                 'trailer' => [
@@ -273,6 +306,8 @@ class ComplianceDashboardController extends Controller
                     'total_docs' => $complianceData['total_docs'],
                     'missing_documents' => $complianceData['missing_documents'],
                     'expiring_documents' => $complianceData['expiring_documents'],
+                    'document_details' => $complianceData['document_details'],
+                    'documents' => $documents,
                 ]
             ]);
         } catch (\Exception $e) {

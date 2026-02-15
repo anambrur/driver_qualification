@@ -1,22 +1,22 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\DriverController;
+use App\Http\Controllers\ApplicationFormController;
+use App\Http\Controllers\AssetGroupController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\ComplianceDashboardController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentTypeController;
+use App\Http\Controllers\DocumentUploadController;
+use App\Http\Controllers\DriverController;
+use App\Http\Controllers\EquipmentTypeController;
+use App\Http\Controllers\FuelTypeController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\VehicleController;
-use App\Http\Controllers\FuelTypeController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\AssetGroupController;
-use App\Http\Controllers\VehicleTypeController;
-use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\VehicleGroupController;
-use App\Http\Controllers\EquipmentTypeController;
-use App\Http\Controllers\DocumentUploadController;
-use App\Http\Controllers\ApplicationFormController;
-use App\Http\Controllers\ComplianceDashboardController;
+use App\Http\Controllers\VehicleTypeController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
@@ -298,28 +298,12 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::get('/vehicles/{id}/details', [ComplianceDashboardController::class, 'vehicleDetails'])->name('admin.vehicles.details');
         Route::get('/vehicles/{id}/details', [ComplianceDashboardController::class, 'getVehicleDetails'])->name('admin.compliance.vehicle.details');
         Route::get('/trailers/{id}/details', [ComplianceDashboardController::class, 'getTrailerDetails'])->name('admin.compliance.trailer.details');
-
-        // ===== Document Upload Routes =====
-
-        // Get vehicles list for upload dropdown
         Route::get('vehicles/list', [DocumentUploadController::class, 'getVehiclesList'])->name('admin.compliance.vehicles.list');
-
-        // Get trailers list for upload dropdown
         Route::get('trailers/list', [DocumentUploadController::class, 'getTrailersList'])->name('admin.compliance.trailers.list');
-
-        // Upload document
         Route::post('documents/upload', [DocumentUploadController::class, 'uploadDocument'])->name('admin.compliance.documents.upload');
-
-        // Delete document
         Route::delete('documents/delete', [DocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.documents.delete');
-
-        // Download document
         Route::get('documents/{documentId}/{assetType}/download', [DocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.documents.download');
-
-        // View document
         Route::get('documents/{documentId}/{assetType}/view', [DocumentUploadController::class, 'viewDocument'])->name('admin.compliance.documents.view');
-
-        // Send reminder email
         Route::post('documents/send-reminder', [DocumentUploadController::class, 'sendReminderEmail'])->name('admin.compliance.documents.send-reminder');
     });
 

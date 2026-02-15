@@ -85,6 +85,7 @@ class PermissionSeeder extends Seeder
         $roles = Role::insert([
             ['name' => 'super-admin', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'admin', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'company', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'manager', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'user', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
         ]);

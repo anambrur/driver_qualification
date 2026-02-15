@@ -3,7 +3,7 @@
 @section('title', 'Driver Management')
 
 @section('content')
-    <div class="mx-auto max-w-7xl p-4 pb-20 md:p-6 md:pb-6">
+    <div class="mx-auto p-4 pb-20 md:p-6 md:pb-6">
         <div class="space-y-5 sm:space-y-6">
             <!-- Header Card -->
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
@@ -114,7 +114,7 @@
                                 <table id="drivers-table" class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
                                     <thead class="bg-gray-50 dark:bg-gray-800/50">
                                         <tr>
-                                            
+
                                             <th scope="col"
                                                 class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">
                                                 Full Name
@@ -277,8 +277,7 @@
                                 );
                             }
                         },
-                        columns: [
-                            {
+                        columns: [{
                                 data: 'full_name',
                                 name: 'first_name',
                                 orderable: true,

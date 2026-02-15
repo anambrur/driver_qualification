@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -18,8 +17,15 @@ class TrailersSeeder extends Seeder
         $equipmentTypes = DB::table('equipment_types')->pluck('id', 'name')->toArray();
         $vehicleGroups = DB::table('vehicle_groups')->pluck('id', 'name')->toArray();
 
+        // Get company IDs
+        $companies = DB::table('companies')->pluck('id');
+
+        // Default to first company if specific companies not found
+        $defaultCompanyId = !empty($companies) ? reset($companies) : null;
+
         $trailers = [
             [
+                'company_id' => $companies->random() ?? $defaultCompanyId,
                 'unit_no' => 'T001',
                 'vin' => '1UYVS2533AM123461',
                 'year' => 2022,
@@ -35,6 +41,7 @@ class TrailersSeeder extends Seeder
                 'notes' => '53ft dry van trailer. Excellent condition.',
             ],
             [
+                'company_id' => $companies->random() ?? $defaultCompanyId,
                 'unit_no' => 'T002',
                 'vin' => '1UYVS2533AM123462',
                 'year' => 2021,
@@ -50,6 +57,7 @@ class TrailersSeeder extends Seeder
                 'notes' => 'Equipment trailer with ramp gate.',
             ],
             [
+                'company_id' => $companies->random() ?? $defaultCompanyId,
                 'unit_no' => 'T003',
                 'vin' => '1UYVS2533AM123463',
                 'year' => 2023,
@@ -65,6 +73,7 @@ class TrailersSeeder extends Seeder
                 'notes' => 'Refrigerated trailer for perishable goods.',
             ],
             [
+                'company_id' => $companies->random() ?? $defaultCompanyId,
                 'unit_no' => 'T004',
                 'vin' => '1UYVS2533AM123464',
                 'year' => 2020,
@@ -80,6 +89,7 @@ class TrailersSeeder extends Seeder
                 'notes' => 'Flatbed trailer for heavy equipment transport.',
             ],
             [
+                'company_id' => $companies->random() ?? $defaultCompanyId,
                 'unit_no' => 'T005',
                 'vin' => '1UYVS2533AM123465',
                 'year' => 2022,
@@ -95,6 +105,7 @@ class TrailersSeeder extends Seeder
                 'notes' => 'Dump trailer for construction materials.',
             ],
             [
+                'company_id' => $companies->random() ?? $defaultCompanyId,
                 'unit_no' => 'T006',
                 'vin' => '1UYVS2533AM123466',
                 'year' => 2024,

@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('trailers', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             // Trailer Information - Required
             $table->string('unit_no')->unique();
             $table->string('vin', 17)->unique();

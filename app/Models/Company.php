@@ -12,4 +12,14 @@ class Company extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function trailers()
+    {
+        return $this->hasMany(Trailer::class);
+    }
+
+    public function vehicles()
+    {
+        return $this->hasMany(Vehicle::class);
+    }
 }

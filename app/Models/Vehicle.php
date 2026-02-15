@@ -49,6 +49,11 @@ class Vehicle extends Model
         return $this->belongsTo(VehicleType::class);
     }
 
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
     public function vehicleGroup()
     {
         return $this->belongsTo(VehicleGroup::class);

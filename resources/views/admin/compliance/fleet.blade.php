@@ -563,6 +563,25 @@
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
 @endsection
 
+@push('styles')
+    <style>
+        /* Add to your existing styles */
+        #imagePreviewModal {
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+@endpush
+
 @push('scripts')
     <script>
         // Refresh Dashboard
@@ -574,15 +593,16 @@
         });
 
         // Vehicle Details Modal Functions
+        // Vehicle Details Modal Functions
         function showVehicleDetails(vehicleId) {
             document.getElementById('vehicleDetailsContent').innerHTML = `
-                <div class="flex items-center justify-center py-12">
-                    <div class="text-center">
-                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-600"></div>
-                        <p class="mt-2 text-gray-600 dark:text-gray-400">Loading vehicle details...</p>
-                    </div>
-                </div>
-            `;
+        <div class="flex items-center justify-center py-12">
+            <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-600"></div>
+                <p class="mt-2 text-gray-600 dark:text-gray-400">Loading vehicle details...</p>
+            </div>
+        </div>
+    `;
 
             fetch(`/admin/compliance/vehicles/${vehicleId}/details`)
                 .then(response => response.json())
@@ -592,91 +612,394 @@
                         document.getElementById('vehicleModalTitle').textContent =
                             `Vehicle #${vehicle.unit_no} Details`;
 
-                        const missingDocsHtml = vehicle.missing_documents && vehicle.missing_documents.length > 0 ? `
-                            <div>
-                                <h4 class="mb-2 font-medium text-gray-900 dark:text-white">Missing/Expiring Documents:</h4>
-                                <div class="space-y-2">
-                                    ${vehicle.missing_documents.map(doc => `
-                                                <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
-                                                    <i class="mr-3 text-amber-500 fas fa-exclamation-circle"></i>
-                                                    <span class="text-sm text-gray-700 dark:text-gray-300">${doc}</span>
+                        // Build documents HTML
+                        let documentsHtml = '';
+                        if (vehicle.documents && vehicle.documents.length > 0) {
+                            documentsHtml = vehicle.documents.map(doc => {
+                                const statusClass = doc.status === 'expired' ?
+                                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                                    doc.status === 'expiring' ?
+                                    'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' :
+                                    'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
+
+                                const statusText = doc.status === 'expired' ? 'Expired' :
+                                    doc.status === 'expiring' ? `Expires in ${doc.days_until_expiry} days` :
+                                    'Valid';
+
+                                const fileUrl = `/storage/${doc.file_path}`;
+                                const fileExtension = doc.file_path ? doc.file_path.split('.').pop()
+                                    .toLowerCase() : '';
+                                const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension);
+
+                                return `
+                            <div class="p-4 border border-gray-200 rounded-lg dark:border-gray-700">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center mb-2">
+                                            <h4 class="font-medium text-gray-900 dark:text-white">${doc.type_name}</h4>
+                                            <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${statusClass}">
+                                                ${statusText}
+                                            </span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2 text-sm">
+                                            <div>
+                                                <p class="text-gray-600 dark:text-gray-400">Expiry Date:</p>
+                                                <p class="font-medium text-gray-900 dark:text-white">${new Date(doc.expiry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                            </div>
+                                            ${doc.description ? `
+                                                        <div>
+                                                            <p class="text-gray-600 dark:text-gray-400">Description:</p>
+                                                            <p class="font-medium text-gray-900 dark:text-white">${doc.description}</p>
+                                                        </div>
+                                                        ` : ''}
+                                        </div>
+                                    </div>
+                                    ${doc.file_path ? `
+                                                <div class="ml-4 flex space-x-2">
+                                                    ${isImage ? `
+                                        <button type="button" onclick="previewImage('${fileUrl}', '${doc.type_name}')" 
+                                            class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="Preview">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        ` : ''}
+                                                    <a href="/admin/compliance/documents/${doc.id}/vehicle/download" 
+                                                        class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="Download">
+                                                        <i class="fas fa-download"></i>
+                                                    </a>
+                                                    <button type="button" onclick="viewDocument('${doc.id}', 'vehicle')" 
+                                                        class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="View">
+                                                        <i class="fas fa-file-pdf"></i>
+                                                    </button>
                                                 </div>
-                                            `).join('')}
+                                                ` : ''}
                                 </div>
                             </div>
-                        ` : '';
+                        `;
+                            }).join('');
+                        } else {
+                            documentsHtml =
+                                '<p class="text-gray-500 dark:text-gray-400 text-center py-4">No documents uploaded yet</p>';
+                        }
+
+                        const missingDocsHtml = vehicle.missing_documents && vehicle.missing_documents.length > 0 ? `
+                    <div class="mt-4">
+                        <h4 class="mb-2 font-medium text-gray-900 dark:text-white">Missing/Expired Documents:</h4>
+                        <div class="space-y-2">
+                            ${vehicle.missing_documents.map(doc => `
+                                            <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
+                                                <i class="mr-3 text-amber-500 fas fa-exclamation-circle"></i>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300">${doc}</span>
+                                            </div>
+                                        `).join('')}
+                        </div>
+                    </div>
+                ` : '';
 
                         document.getElementById('vehicleDetailsContent').innerHTML = `
-                            <div class="space-y-4">
-                                <div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
-                                    <div>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400">Make/Model</p>
-                                        <p class="font-medium text-gray-900 dark:text-white">${vehicle.make} ${vehicle.model}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400">Year</p>
-                                        <p class="font-medium text-gray-900 dark:text-white">${vehicle.year}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400">VIN</p>
-                                        <p class="font-medium text-gray-900 dark:text-white">${vehicle.vin}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400">Odometer</p>
-                                        <p class="font-medium text-gray-900 dark:text-white">${vehicle.odometer.toLocaleString()} miles</p>
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <h4 class="mb-2 font-medium text-gray-900 dark:text-white">Compliance Status</h4>
-                                    <div class="flex items-center justify-between p-3 rounded-lg ${vehicle.compliance_status === 'warning' ? 'bg-amber-50 dark:bg-amber-900/10' : vehicle.compliance_status === 'danger' ? 'bg-red-50 dark:bg-red-900/10' : 'bg-emerald-50 dark:bg-emerald-900/10'}">
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-900 dark:text-white">${vehicle.compliance_percentage} Compliance</p>
-                                            <p class="text-sm text-gray-600 dark:text-gray-400">${vehicle.compliant_docs} of ${vehicle.total_docs} documents</p>
-                                        </div>
-                                        <span class="px-3 py-1 text-sm font-medium rounded-full ${vehicle.compliance_status === 'warning' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : vehicle.compliance_status === 'danger' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'}">
-                                            ${vehicle.compliance_status === 'warning' ? 'Warning' : vehicle.compliance_status === 'danger' ? 'Critical' : 'Compliant'}
-                                        </span>
-                                    </div>
-                                </div>
-                                
-                                ${missingDocsHtml}
-                                
-                                <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
-                                    <div class="flex justify-end space-x-3">
-                                        <button type="button" onclick="closeVehicleModal()" class="px-4 py-2 text-sm font-medium text-gray-700 transition-colors duration-200 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
-                                            Close
-                                        </button>
-                                    </div>
-                                </div>
+                    <div class="space-y-4">
+                        <!-- Vehicle Information -->
+                        <div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Make/Model</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${vehicle.make} ${vehicle.model}</p>
                             </div>
-                        `;
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Year</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${vehicle.year}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">VIN</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${vehicle.vin}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Odometer</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${vehicle.odometer ? vehicle.odometer.toLocaleString() + ' miles' : 'N/A'}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Compliance Status -->
+                        <div>
+                            <h4 class="mb-2 font-medium text-gray-900 dark:text-white">Compliance Status</h4>
+                            <div class="flex items-center justify-between p-3 rounded-lg ${vehicle.compliance_status === 'warning' ? 'bg-amber-50 dark:bg-amber-900/10' : vehicle.compliance_status === 'danger' ? 'bg-red-50 dark:bg-red-900/10' : 'bg-emerald-50 dark:bg-emerald-900/10'}">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">${vehicle.compliance_percentage} Compliance</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">${vehicle.compliant_docs} of ${vehicle.total_docs} documents</p>
+                                </div>
+                                <span class="px-3 py-1 text-sm font-medium rounded-full ${vehicle.compliance_status === 'warning' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : vehicle.compliance_status === 'danger' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'}">
+                                    ${vehicle.compliance_status === 'warning' ? 'Warning' : vehicle.compliance_status === 'danger' ? 'Critical' : 'Compliant'}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Documents Section -->
+                        <div>
+                            <h4 class="mb-3 font-medium text-gray-900 dark:text-white">Documents</h4>
+                            <div class="space-y-3">
+                                ${documentsHtml}
+                            </div>
+                        </div>
+                        
+                        ${missingDocsHtml}
+                        
+                        <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <div class="flex justify-end space-x-3">
+                                <button type="button" onclick="closeVehicleModal()" class="px-4 py-2 text-sm font-medium text-gray-700 transition-colors duration-200 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
                     } else {
                         document.getElementById('vehicleDetailsContent').innerHTML = `
-                            <div class="py-12 text-center">
-                                <i class="mb-3 text-3xl text-red-500 fas fa-exclamation-circle"></i>
-                                <p class="text-gray-700 dark:text-gray-300">Failed to load vehicle details</p>
-                            </div>
-                        `;
+                    <div class="py-12 text-center">
+                        <i class="mb-3 text-3xl text-red-500 fas fa-exclamation-circle"></i>
+                        <p class="text-gray-700 dark:text-gray-300">Failed to load vehicle details</p>
+                    </div>
+                `;
                     }
                 })
                 .catch(error => {
+                    console.error('Error:', error);
                     document.getElementById('vehicleDetailsContent').innerHTML = `
-                        <div class="py-12 text-center">
-                            <i class="mb-3 text-3xl text-red-500 fas fa-exclamation-circle"></i>
-                            <p class="text-gray-700 dark:text-gray-300">Error loading vehicle details</p>
-                        </div>
-                    `;
+                <div class="py-12 text-center">
+                    <i class="mb-3 text-3xl text-red-500 fas fa-exclamation-circle"></i>
+                    <p class="text-gray-700 dark:text-gray-300">Error loading vehicle details</p>
+                </div>
+            `;
                 });
 
             document.getElementById('vehicleDetailsModal').classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
         }
 
+        // Function to show trailer details
         function showTrailerDetails(trailerId) {
-            // Similar implementation for trailers
-            showToast('Trailer details coming soon', 'info');
+            document.getElementById('vehicleDetailsContent').innerHTML = `
+        <div class="flex items-center justify-center py-12">
+            <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-600"></div>
+                <p class="mt-2 text-gray-600 dark:text-gray-400">Loading trailer details...</p>
+            </div>
+        </div>
+    `;
+
+            fetch(`/admin/compliance/trailers/${trailerId}/details`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const trailer = data.trailer;
+                        document.getElementById('vehicleModalTitle').textContent =
+                            `Trailer #${trailer.unit_no} Details`;
+
+                        // Build documents HTML (similar to vehicle)
+                        let documentsHtml = '';
+                        if (trailer.documents && trailer.documents.length > 0) {
+                            documentsHtml = trailer.documents.map(doc => {
+                                const statusClass = doc.status === 'expired' ?
+                                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                                    doc.status === 'expiring' ?
+                                    'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' :
+                                    'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
+
+                                const statusText = doc.status === 'expired' ? 'Expired' :
+                                    doc.status === 'expiring' ? `Expires in ${doc.days_until_expiry} days` :
+                                    'Valid';
+
+                                const fileUrl = `/storage/${doc.file_path}`;
+                                const fileExtension = doc.file_path ? doc.file_path.split('.').pop()
+                                    .toLowerCase() : '';
+                                const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension);
+
+                                return `
+                            <div class="p-4 border border-gray-200 rounded-lg dark:border-gray-700">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center mb-2">
+                                            <h4 class="font-medium text-gray-900 dark:text-white">${doc.type_name}</h4>
+                                            <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${statusClass}">
+                                                ${statusText}
+                                            </span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2 text-sm">
+                                            <div>
+                                                <p class="text-gray-600 dark:text-gray-400">Expiry Date:</p>
+                                                <p class="font-medium text-gray-900 dark:text-white">${new Date(doc.expiry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                            </div>
+                                            ${doc.description ? `
+                                                        <div>
+                                                            <p class="text-gray-600 dark:text-gray-400">Description:</p>
+                                                            <p class="font-medium text-gray-900 dark:text-white">${doc.description}</p>
+                                                        </div>
+                                                        ` : ''}
+                                        </div>
+                                    </div>
+                                    ${doc.file_path ? `
+                                                <div class="ml-4 flex space-x-2">
+                                                    ${isImage ? `
+                                        <button type="button" onclick="previewImage('${fileUrl}', '${doc.type_name}')" 
+                                            class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="Preview">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        ` : ''}
+                                                    <a href="/admin/compliance/documents/${doc.id}/trailer/download" 
+                                                        class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="Download">
+                                                        <i class="fas fa-download"></i>
+                                                    </a>
+                                                    <button type="button" onclick="viewDocument('${doc.id}', 'trailer')" 
+                                                        class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="View">
+                                                        <i class="fas fa-file-pdf"></i>
+                                                    </button>
+                                                </div>
+                                                ` : ''}
+                                </div>
+                            </div>
+                        `;
+                            }).join('');
+                        } else {
+                            documentsHtml =
+                                '<p class="text-gray-500 dark:text-gray-400 text-center py-4">No documents uploaded yet</p>';
+                        }
+
+                        const missingDocsHtml = trailer.missing_documents && trailer.missing_documents.length > 0 ? `
+                    <div class="mt-4">
+                        <h4 class="mb-2 font-medium text-gray-900 dark:text-white">Missing/Expired Documents:</h4>
+                        <div class="space-y-2">
+                            ${trailer.missing_documents.map(doc => `
+                                            <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
+                                                <i class="mr-3 text-amber-500 fas fa-exclamation-circle"></i>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300">${doc}</span>
+                                            </div>
+                                        `).join('')}
+                        </div>
+                    </div>
+                ` : '';
+
+                        document.getElementById('vehicleDetailsContent').innerHTML = `
+                    <div class="space-y-4">
+                        <!-- Trailer Information -->
+                        <div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Make/Model</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${trailer.make} ${trailer.model}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Year</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${trailer.year}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">VIN</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${trailer.vin}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Compliance Status -->
+                        <div>
+                            <h4 class="mb-2 font-medium text-gray-900 dark:text-white">Compliance Status</h4>
+                            <div class="flex items-center justify-between p-3 rounded-lg ${trailer.compliance_status === 'warning' ? 'bg-amber-50 dark:bg-amber-900/10' : trailer.compliance_status === 'danger' ? 'bg-red-50 dark:bg-red-900/10' : 'bg-emerald-50 dark:bg-emerald-900/10'}">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">${trailer.compliance_percentage} Compliance</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">${trailer.compliant_docs} of ${trailer.total_docs} documents</p>
+                                </div>
+                                <span class="px-3 py-1 text-sm font-medium rounded-full ${trailer.compliance_status === 'warning' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : trailer.compliance_status === 'danger' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'}">
+                                    ${trailer.compliance_status === 'warning' ? 'Warning' : trailer.compliance_status === 'danger' ? 'Critical' : 'Compliant'}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Documents Section -->
+                        <div>
+                            <h4 class="mb-3 font-medium text-gray-900 dark:text-white">Documents</h4>
+                            <div class="space-y-3">
+                                ${documentsHtml}
+                            </div>
+                        </div>
+                        
+                        ${missingDocsHtml}
+                        
+                        <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <div class="flex justify-end space-x-3">
+                                <button type="button" onclick="closeVehicleModal()" class="px-4 py-2 text-sm font-medium text-gray-700 transition-colors duration-200 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                    } else {
+                        document.getElementById('vehicleDetailsContent').innerHTML = `
+                    <div class="py-12 text-center">
+                        <i class="mb-3 text-3xl text-red-500 fas fa-exclamation-circle"></i>
+                        <p class="text-gray-700 dark:text-gray-300">Failed to load trailer details</p>
+                    </div>
+                `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('vehicleDetailsContent').innerHTML = `
+                <div class="py-12 text-center">
+                    <i class="mb-3 text-3xl text-red-500 fas fa-exclamation-circle"></i>
+                    <p class="text-gray-700 dark:text-gray-300">Error loading trailer details</p>
+                </div>
+            `;
+                });
+
+            document.getElementById('vehicleDetailsModal').classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
         }
+
+        // Add these new functions for document handling
+        function previewImage(fileUrl, title) {
+            // Create a modal for image preview
+            const modalHtml = `
+        <div id="imagePreviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black bg-opacity-75" onclick="closeImagePreview()"></div>
+            <div class="relative z-50 max-w-4xl max-h-full">
+                <div class="bg-white rounded-lg shadow-xl dark:bg-gray-800">
+                    <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">${title}</h3>
+                        <button type="button" onclick="closeImagePreview()" class="text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <img src="${fileUrl}" alt="${title}" class="max-w-full max-h-[70vh] object-contain">
+                    </div>
+                    <div class="flex justify-end p-4 border-t dark:border-gray-700">
+                        <a href="${fileUrl}" download class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700">
+                            <i class="fas fa-download mr-2"></i>Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+            // Remove existing preview modal if any
+            const existingModal = document.getElementById('imagePreviewModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            // Add new modal
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closeImagePreview() {
+            const modal = document.getElementById('imagePreviewModal');
+            if (modal) {
+                modal.remove();
+                document.body.classList.remove('overflow-hidden');
+            }
+        }
+
+        function viewDocument(documentId, assetType) {
+            window.open(`/admin/compliance/documents/${documentId}/${assetType}/view`, '_blank');
+        }
+
+        
 
         function closeVehicleModal() {
             document.getElementById('vehicleDetailsModal').classList.add('hidden');

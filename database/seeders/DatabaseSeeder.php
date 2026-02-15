@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
         // ]);
 
         $this->call(PermissionSeeder::class);
+        $this->call(CompanySeeder::class);
         $this->call(CountryStateSeeder::class);
         $this->call(DriverSeeder::class);
         $this->call(DocumentTypeSeeder::class);

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -19,8 +18,15 @@ class VehiclesSeeder extends Seeder
         $fuelTypes = DB::table('fuel_types')->pluck('id', 'name')->toArray();
         $vehicleGroups = DB::table('vehicle_groups')->pluck('id', 'name')->toArray();
 
+        // Get company IDs
+        $companies = DB::table('companies')->pluck('id');
+
+        // Default to first company if specific companies not found
+        $defaultCompanyId = !empty($companies) ? reset($companies) : null;
+
         $vehicles = [
             [
+                'company_id' => $companies->random() ?? $defaultCompanyId,
                 'unit_no' => 'V001',
                 'vin' => '1HGCM82633A123456',
                 'year' => 2022,
@@ -45,6 +51,7 @@ class VehiclesSeeder extends Seeder
                 'notes' => 'Service truck with toolbox. Regular maintenance required.',
             ],
             [
+                'company_id' => $companies->random() ?? $defaultCompanyId,
                 'unit_no' => 'V002',
                 'vin' => '5TDZA23C78S123457',
                 'year' => 2023,
@@ -69,6 +76,7 @@ class VehiclesSeeder extends Seeder
                 'notes' => 'Sales representative vehicle. Maintained regularly.',
             ],
             [
+                'company_id' => $companies->random() ?? $defaultCompanyId,
                 'unit_no' => 'V003',
                 'vin' => '1C4RJFBG8MC123458',
                 'year' => 2021,
@@ -93,6 +101,7 @@ class VehiclesSeeder extends Seeder
                 'notes' => 'Executive vehicle with premium package.',
             ],
             [
+                'company_id' => $companies->random() ?? $defaultCompanyId,
                 'unit_no' => 'V004',
                 'vin' => 'WBA7E2C58JG123459',
                 'year' => 2024,
@@ -117,6 +126,7 @@ class VehiclesSeeder extends Seeder
                 'notes' => 'Fully electric vehicle for executive use.',
             ],
             [
+                'company_id' => $companies->random() ?? $defaultCompanyId,
                 'unit_no' => 'V005',
                 'vin' => '1GB3G3CG3GF123460',
                 'year' => 2020,

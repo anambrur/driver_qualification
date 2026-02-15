@@ -37,6 +37,11 @@ class Trailer extends Model
         return $this->belongsTo(EquipmentType::class, 'equipment_types_id');
     }
 
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
     public function vehicleGroup()
     {
         return $this->belongsTo(VehicleGroup::class);
