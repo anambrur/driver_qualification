@@ -61,7 +61,7 @@ class PermissionSeeder extends Seeder
 
         // Define special actions for specific modules
         $specialActions = [
-            'drivers' => ['hire'],
+            'drivers' => ['hire', 'dashboard'],
             'fleets' => ['dashboard'],
 
         ];

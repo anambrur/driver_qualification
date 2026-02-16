@@ -56,4 +56,9 @@ class Driver extends Model
     {
         return $this->hasOne(DriverDocument::class);
     }
+
+    public function documents()
+    {
+        return $this->hasMany(DriverComplianceDocument::class);
+    }
 }

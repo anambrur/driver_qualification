@@ -95,6 +95,16 @@
                                 :class="(selected === 'Driver') ? 'block' : 'hidden'">
                                 <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
                                     class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+                                    @can('drivers.dashboard')
+                                        <li>
+                                            <a href="{{ route('admin.compliance.drivers') }}" class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/compliance/drivers') ? 'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Driver Compliance Dashboard
+                                            </a>
+                                        </li>
+                                    @endcan
+
                                     @can('drivers.create')
                                         <li>
                                             <a href="{{ route('admin.driver.create') }}" class="menu-dropdown-item group"
@@ -320,7 +330,8 @@
 
                                     @can('document-types.view')
                                         <li>
-                                            <a href="{{ route('admin.settings.document-types.index') }}" class="menu-dropdown-item group"
+                                            <a href="{{ route('admin.settings.document-types.index') }}"
+                                                class="menu-dropdown-item group"
                                                 :class="isCurrentPath('admin/settings/document-types') && !isCurrentPath(
                                                         'admin/settings/document-types') ? 'menu-dropdown-item-active' :
                                                     'menu-dropdown-item-inactive'">

@@ -7,7 +7,9 @@ use App\Http\Controllers\ComplianceDashboardController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\DocumentUploadController;
+use App\Http\Controllers\DriverComplianceDashboardController;
 use App\Http\Controllers\DriverController;
+use App\Http\Controllers\DriverDocumentUploadController;
 use App\Http\Controllers\EquipmentTypeController;
 use App\Http\Controllers\FuelTypeController;
 use App\Http\Controllers\ProfileController;
@@ -305,6 +307,18 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::get('documents/{documentId}/{assetType}/download', [DocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.documents.download');
         Route::get('documents/{documentId}/{assetType}/view', [DocumentUploadController::class, 'viewDocument'])->name('admin.compliance.documents.view');
         Route::post('documents/send-reminder', [DocumentUploadController::class, 'sendReminderEmail'])->name('admin.compliance.documents.send-reminder');
+
+
+        // Driver compliance routes
+        Route::get('/drivers', [DriverComplianceDashboardController::class, 'index'])->name('admin.compliance.drivers');
+        Route::get('/drivers/{id}/details', [DriverComplianceDashboardController::class, 'getDriverDetails'])->name('admin.compliance.driver.details');
+
+        // Driver document upload routes
+        Route::get('drivers/list', [DriverDocumentUploadController::class, 'getDriversList'])->name('admin.compliance.drivers.list');
+        Route::post('driver-documents/upload', [DriverDocumentUploadController::class, 'uploadDocument'])->name('admin.compliance.driver.documents.upload');
+        Route::delete('driver-documents/delete', [DriverDocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.driver.documents.delete');
+        Route::get('driver-documents/{documentId}/download', [DriverDocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.driver.documents.download');
+        Route::get('driver-documents/{documentId}/view', [DriverDocumentUploadController::class, 'viewDocument'])->name('admin.compliance.driver.documents.view');
     });
 
 
