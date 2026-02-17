@@ -54,6 +54,7 @@ class PermissionSeeder extends Seeder
             'asset-histories',
             'document-types',
             'maintenance-categories',
+            'maintenance'
         ];
 
         // Define basic actions

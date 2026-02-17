@@ -98,7 +98,8 @@
                                     @can('drivers.dashboard')
                                         <li>
                                             <a href="{{ route('admin.compliance.drivers') }}" class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/compliance/drivers') ? 'menu-dropdown-item-active' :
+                                                :class="isCurrentPath('admin/compliance/drivers') ?
+                                                    'menu-dropdown-item-active' :
                                                     'menu-dropdown-item-inactive'">
                                                 Driver Compliance Dashboard
                                             </a>
@@ -277,6 +278,57 @@
                     <!-- Menu Item Driver End -->
 
 
+                    <!-- Menu Item  Maintenance -->
+                    @can('maintenance.view')
+                        <li>
+                            <a href="#" @click.prevent="selected = (selected === 'Maintenance' ? '':'Maintenance')"
+                                class="menu-item group"
+                                :class="(selected === 'Maintenance') || isCurrentPath('admin/maintenance*') ?
+                                    'menu-item-active' : 'menu-item-inactive'">
+                                <i class="fa-solid fa-gear"
+                                    :class="(selected === 'Maintenance') || isCurrentPath('admin/maintenance*') ?
+                                        'menu-item-icon-active' : 'menu-item-icon-inactive'">
+                                </i>
+
+                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
+                                    Maintenance
+                                </span>
+
+                                <i class="fas fa-angle-down menu-item-arrow"
+                                    :class="[(selected === 'Maintenance') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive',
+                                        sidebarToggle ? 'lg:hidden' : ''
+                                    ]">
+                                </i>
+                            </a>
+
+
+                            <div class="overflow-hidden transform translate"
+                                :class="(selected === 'Maintenance') ? 'block' : 'hidden'">
+                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
+                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+
+                                    @can('maintenance.view')
+                                        <li>
+                                            <a href="{{ route('admin.service-log.index') }}"
+                                                class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/maintenance/service-log') ?
+                                                    'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Service Log
+                                            </a>
+                                        </li>
+                                    @endcan
+
+                                    
+
+
+                                </ul>
+                            </div>
+                        </li>
+                    @endcan
+                    <!-- Menu Item Settings -->
+
+
                     <!-- Menu Item Settings -->
                     @can('settings.view')
                         <li>
@@ -331,7 +383,8 @@
 
                                     @can('policy-pdf.view')
                                         <li>
-                                            <a href="{{ route('admin.settings.policy.pdf') }}" class="menu-dropdown-item group"
+                                            <a href="{{ route('admin.settings.policy.pdf') }}"
+                                                class="menu-dropdown-item group"
                                                 :class="isCurrentPath('admin/settings/policy-pdf') && !isCurrentPath(
                                                         'admin/settings/policy-pdf') ? 'menu-dropdown-item-active' :
                                                     'menu-dropdown-item-inactive'">

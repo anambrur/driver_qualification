@@ -27,6 +27,21 @@ trait CompanyFilterTrait
         return $company ? $company->id : null;
     }
 
+     /**
+     * Get the company ID(s) for the authenticated user
+     * 
+     * @return int|array|null
+     */
+    protected function getAllUserCompanyId()
+    {
+        $user = Auth::user();
+
+        // Get user's company
+        $company = $user->load('company')->company;
+
+        return $company ? $company->id : null;
+    }
+
     /**
      * Apply company filter to a query
      * 

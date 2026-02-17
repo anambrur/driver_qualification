@@ -13,8 +13,10 @@ use App\Http\Controllers\DriverDocumentUploadController;
 use App\Http\Controllers\EquipmentTypeController;
 use App\Http\Controllers\FuelTypeController;
 use App\Http\Controllers\MaintenanceCategoryController;
+use App\Http\Controllers\MaintenanceScheduleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleGroupController;
@@ -329,6 +331,36 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::delete('driver-documents/delete', [DriverDocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.driver.documents.delete');
         Route::get('driver-documents/{documentId}/download', [DriverDocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.driver.documents.download');
         Route::get('driver-documents/{documentId}/view', [DriverDocumentUploadController::class, 'viewDocument'])->name('admin.compliance.driver.documents.view');
+    });
+
+
+    // Service Logs
+    Route::prefix('service-log')->group(function () {
+        Route::get('/', [ServiceLogController::class, 'index'])->name('admin.service-log.index');
+        Route::post('/', [ServiceLogController::class, 'store'])->name('admin.service-log.store');
+        Route::get('/dropdown-data', [ServiceLogController::class, 'getDropdownData'])->name('admin.service-log.dropdown-data');
+        Route::get('/{id}/edit', [ServiceLogController::class, 'edit'])->name('admin.service-log.edit');
+        Route::get('/{id}', [ServiceLogController::class, 'show'])->name('admin.service-log.show');
+        Route::put('/{id}', [ServiceLogController::class, 'update'])->name('admin.service-log.update');
+        Route::delete('/{id}', [ServiceLogController::class, 'destroy'])->name('admin.service-log.destroy');
+
+        Route::get('/vehicle/{id}/details', [ServiceLogController::class, 'getVehicleDetails'])->name('admin.service-log.get-vehicle-details');
+        Route::get('/document/{id}/download', [ServiceLogController::class, 'downloadDocument'])->name('admin.service-log.download-document');
+        Route::delete('/document/{id}', [ServiceLogController::class, 'deleteDocument'])->name('admin.service-log.delete-document');
+    });
+
+    // Maintenance Schedules
+    Route::prefix('maintenance-schedule')->group(function () {
+        Route::get('/', [MaintenanceScheduleController::class, 'index'])->name('admin.maintenance-schedule.index');
+        Route::post('/', [MaintenanceScheduleController::class, 'store'])->name('admin.maintenance-schedule.store');
+        Route::get('/dropdown-data', [MaintenanceScheduleController::class, 'getDropdownData'])->name('admin.maintenance-schedule.dropdown-data');
+        Route::get('/{id}/edit', [MaintenanceScheduleController::class, 'edit'])->name('admin.maintenance-schedule.edit');
+        Route::get('/{id}', [MaintenanceScheduleController::class, 'show'])->name('admin.maintenance-schedule.show');
+        Route::put('/{id}', [MaintenanceScheduleController::class, 'update'])->name('admin.maintenance-schedule.update');
+        Route::delete('/{id}', [MaintenanceScheduleController::class, 'destroy'])->name('admin.maintenance-schedule.destroy');
+
+        Route::get('/vehicle/{id}/details', [MaintenanceScheduleController::class, 'getVehicleDetails'])->name('admin.maintenance-schedule.get-vehicle-details');
+        Route::post('/{id}/mark-completed', [MaintenanceScheduleController::class, 'markAsCompleted'])->name('admin.maintenance-schedule.mark-completed');
     });
 
 
