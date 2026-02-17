@@ -220,6 +220,19 @@
                                         </li>
                                     @endcan
 
+                                    @can('maintenance-categories.view')
+                                        <li>
+                                            <a href="{{ route('admin.maintenance.category.index') }}"
+                                                class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/maintenance-category') && !isCurrentPath(
+                                                        'admin/maintenance-category') ?
+                                                    'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Maintenance Categories
+                                            </a>
+                                        </li>
+                                    @endcan
+
                                     @can('vehicles.view')
                                         <li>
                                             <a href="{{ route('admin.vehicle.index') }}" class="menu-dropdown-item group"

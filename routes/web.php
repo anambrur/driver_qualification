@@ -12,6 +12,7 @@ use App\Http\Controllers\DriverController;
 use App\Http\Controllers\DriverDocumentUploadController;
 use App\Http\Controllers\EquipmentTypeController;
 use App\Http\Controllers\FuelTypeController;
+use App\Http\Controllers\MaintenanceCategoryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TrailerController;
@@ -252,6 +253,15 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         Route::get('/{id}/edit', [EquipmentTypeController::class, 'edit'])->name('admin.equipment.type.edit');
         Route::put('/{id}', [EquipmentTypeController::class, 'update'])->name('admin.equipment.type.update');
         Route::delete('/{id}', [EquipmentTypeController::class, 'destroy'])->name('admin.equipment.type.destroy');
+    });
+
+    // Maintenance Categories
+    Route::prefix('maintenance-category')->group(function () {
+        Route::get('/', [MaintenanceCategoryController::class, 'index'])->name('admin.maintenance.category.index');
+        Route::post('/', [MaintenanceCategoryController::class, 'store'])->name('admin.maintenance.category.store');
+        Route::get('/{id}/edit', [MaintenanceCategoryController::class, 'edit'])->name('admin.maintenance.category.edit');
+        Route::put('/{id}', [MaintenanceCategoryController::class, 'update'])->name('admin.maintenance.category.update');
+        Route::delete('/{id}', [MaintenanceCategoryController::class, 'destroy'])->name('admin.maintenance.category.destroy');
     });
 
     // Vehicles

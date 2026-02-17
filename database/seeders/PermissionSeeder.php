@@ -10,7 +10,6 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class PermissionSeeder extends Seeder
 {
@@ -54,6 +53,7 @@ class PermissionSeeder extends Seeder
             'asset-groups',
             'asset-histories',
             'document-types',
+            'maintenance-categories',
         ];
 
         // Define basic actions
