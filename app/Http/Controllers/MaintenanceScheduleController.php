@@ -314,7 +314,10 @@ class MaintenanceScheduleController extends Controller
 
     public function getDropdownData()
     {
-        $vehicles = Vehicle::orderBy('unit_no')->get(['id', 'unit_no', 'make', 'model', 'year']);
+        $vehiclesQuery = Vehicle::orderBy('unit_no');
+        $vehiclesQuery = $this->applyCompanyFilter($vehiclesQuery);
+        $vehicles = $vehiclesQuery->get(['id', 'unit_no', 'make', 'model', 'year']);
+        
         $maintenanceCategories = MaintenanceCategory::orderBy('name')->get(['id', 'name']);
         $companies = $this->getCompaniesForUser();
 
