@@ -135,14 +135,13 @@ class MaintenanceScheduleController extends Controller
 
     public function store(Request $request)
     {
-        $companyId = $this->getUserCompanyId();
+        $companyId = $this->getAllUserCompanyId();
 
         if (!Auth::user()->hasRole('super-admin')) {
             $request->merge(['company_id' => $companyId]);
         }
 
         $validator = Validator::make($request->all(), [
-            'company_id' => 'required|exists:companies,id',
             'vehicle_id' => 'nullable|exists:vehicles,id',
             'maintenance_category_id' => 'required|exists:maintenance_categories,id',
             'title' => 'nullable|string|max:255',
@@ -169,7 +168,19 @@ class MaintenanceScheduleController extends Controller
         DB::beginTransaction();
 
         try {
-            $schedule = MaintenanceSchedule::create($request->all());
+            $schedule = MaintenanceSchedule::create([
+                'company_id' => $companyId,
+                'vehicle_id' => $request->vehicle_id,
+                'maintenance_category_id' => $request->maintenance_category_id,
+                'title' => $request->title,
+                'schedule_type' => $request->schedule_type,
+                'interval_days' => $request->schedule_type === 'date' ? $request->interval_days : null,
+                'interval_miles' => $request->schedule_type === 'mileage' ? $request->interval_miles : null,
+                'interval_hours' => $request->schedule_type === 'engine_hours' ? $request->interval_hours : null,
+                'description' => $request->description,
+                'notes' => $request->notes,
+                'status' => $request->status,
+            ]);
 
             // Calculate next due date based on current vehicle state
             $schedule->calculateNextDue()->save();

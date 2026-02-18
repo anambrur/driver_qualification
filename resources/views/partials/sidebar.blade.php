@@ -319,6 +319,19 @@
                                         </li>
                                     @endcan
 
+
+                                    @can('scheduled.view')
+                                        <li>
+                                            <a href="{{ route('admin.maintenance-schedule.index') }}"
+                                                class="menu-dropdown-item group"
+                                                :class="isCurrentPath('admin/maintenance-schedule') ?
+                                                    'menu-dropdown-item-active' :
+                                                    'menu-dropdown-item-inactive'">
+                                                Scheduled 
+                                            </a>
+                                        </li>
+                                    @endcan
+
                                     
 
 

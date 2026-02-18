@@ -557,6 +557,57 @@
 
         // Global variables
         let selectedFiles = [];
+        let dropdownDataCache = null; // Cache dropdown data
+
+        // Load dropdown data with caching
+        function loadDropdownData(callback) {
+            if (dropdownDataCache) {
+                populateDropdowns(dropdownDataCache);
+                if (callback) callback();
+                return;
+            }
+
+            $.ajax({
+                url: '{{ route('admin.service-log.dropdown-data') }}',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        dropdownDataCache = response;
+                        populateDropdowns(response);
+                        if (callback) callback();
+                    } else {
+                        showToast('Failed to load form data', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Failed to load dropdown data:', xhr);
+                    showToast('Failed to load form data', 'error');
+                }
+            });
+        }
+
+        // Populate dropdowns with data
+        function populateDropdowns(response) {
+            // Populate vehicles
+            var vehicleSelect = $('#vehicle_id');
+            vehicleSelect.empty().append('<option value="">Select Vehicle</option>');
+            response.vehicles.forEach(function(vehicle) {
+                vehicleSelect.append('<option value="' + vehicle.id + '">' + vehicle.unit_no + ' - ' +
+                    vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model + '</option>');
+            });
+
+            // Populate categories
+            var categoriesContainer = $('#categories-container');
+            categoriesContainer.empty();
+            response.maintenanceCategories.forEach(function(category) {
+                categoriesContainer.append(`
+                <div class="flex items-center">
+                    <input type="checkbox" name="maintenance_categories[]" id="category_${category.id}" value="${category.id}" class="h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded">
+                    <label for="category_${category.id}" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">${category.name}</label>
+                </div>
+            `);
+            });
+        }
 
         // Show create modal
         function showCreateModal() {
@@ -565,7 +616,12 @@
             $('#service_log_id').val('');
             resetFormErrors();
             resetForm();
-            loadDropdownData();
+
+            // Load dropdown data and then reset form
+            loadDropdownData(function() {
+                // Reset form after dropdowns are loaded
+                resetForm();
+            });
 
             // Reset file selection
             selectedFiles = [];
@@ -578,7 +634,7 @@
         function editServiceLog(id) {
             resetFormErrors();
 
-            $('#modalTitle').html('Loading...');
+            $('#modalTitle').html('<i class="fas fa-spinner fa-spin mr-2"></i>Loading...');
             $('#submitText').html('<i class="fas fa-spinner fa-spin mr-2"></i>Loading');
             $('#serviceLogModal').removeClass('hidden');
 
@@ -586,6 +642,14 @@
             selectedFiles = [];
             updateFilePreview();
 
+            // First load dropdown data, then load service log data
+            loadDropdownData(function() {
+                loadServiceLogData(id);
+            });
+        }
+
+        // Load service log data for editing
+        function loadServiceLogData(id) {
             $.ajax({
                 url: '{{ route('admin.service-log.edit', ':id') }}'.replace(':id', id),
                 type: 'GET',
@@ -595,23 +659,8 @@
                         $('#submitText').text('Update Service Log');
                         $('#service_log_id').val(id);
 
-                        $.each(response.data, function(key, value) {
-                            if ($('#' + key).length) {
-                                if (key === 'maintenance_categories' && Array.isArray(value)) {
-                                    value.forEach(function(catId) {
-                                        $('#category_' + catId).prop('checked', true);
-                                    });
-                                } else if (key === 'service_date') {
-                                    $('#service_date').val(value ? value.split('T')[0] : '');
-                                } else if ($('#' + key).is('select')) {
-                                    $('#' + key).val(value);
-                                } else if ($('#' + key).is('textarea')) {
-                                    $('#' + key).val(value || '');
-                                } else {
-                                    $('#' + key).val(value || '');
-                                }
-                            }
-                        });
+                        // Fill form fields
+                        fillFormFields(response.data);
 
                         if (response.data.documents && response.data.documents.length > 0) {
                             renderExistingDocuments(response.data.documents);
@@ -627,6 +676,43 @@
                     $('#serviceLogModal').addClass('hidden');
                 }
             });
+        }
+
+        // Fill form fields with data
+        function fillFormFields(data) {
+            // Set vehicle selection
+            if (data.vehicle_id) {
+                $('#vehicle_id').val(data.vehicle_id);
+            }
+
+            // Set service date
+            if (data.service_date) {
+                $('#service_date').val(data.service_date.split('T')[0]);
+            }
+
+            // Set maintenance notes
+            $('#maintenance_notes').val(data.maintenance_notes || '');
+
+            // Set metrics
+            $('#odometer_at_service').val(data.odometer_at_service || '');
+            $('#current_odometer').val(data.current_odometer || '');
+            $('#engine_hours_at_service').val(data.engine_hours_at_service || '');
+            $('#current_engine_hours').val(data.current_engine_hours || '');
+
+            // Set cost
+            $('#total_cost').val(data.total_cost || '');
+
+            // Set status
+            $('#status').val(data.status || 'completed');
+
+            // Set categories (checkboxes)
+            $('input[name="maintenance_categories[]"]').prop('checked', false);
+            if (data.maintenance_categories && Array.isArray(data.maintenance_categories)) {
+                data.maintenance_categories.forEach(function(cat) {
+                    let catId = typeof cat === 'object' ? cat.id : cat;
+                    $('#category_' + catId).prop('checked', true);
+                });
+            }
         }
 
         // View service log details
@@ -696,14 +782,14 @@
                                 let fileIcon = doc.file_icon || 'fa-file-alt text-gray-500';
 
                                 docsHtml += `
-                                    <div class="flex items-center p-2 border rounded">
-                                        <i class="fas ${fileIcon} mr-2"></i>
-                                        <span class="text-sm truncate flex-1">${doc.original_name}</span>
-                                        <a href="${downloadUrl}" class="text-blue-500 hover:text-blue-700 ml-2" target="_blank">
-                                            <i class="fas fa-download"></i>
-                                        </a>
-                                    </div>
-                                `;
+                                <div class="flex items-center p-2 border rounded">
+                                    <i class="fas ${fileIcon} mr-2"></i>
+                                    <span class="text-sm truncate flex-1">${doc.original_name}</span>
+                                    <a href="${downloadUrl}" class="text-blue-500 hover:text-blue-700 ml-2" target="_blank">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </div>
+                            `;
                             });
                             docsHtml += '</div>';
                             $('#view_documents').html(docsHtml);
@@ -737,7 +823,7 @@
                     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                 ];
                 if (!allowedTypes.includes(file.type) && !file.name.match(
-                    /\.(jpg|jpeg|png|pdf|doc|docx)$/i)) {
+                        /\.(jpg|jpeg|png|pdf|doc|docx)$/i)) {
                     showToast(`File ${file.name} has invalid type. Allowed: PDF, JPG, PNG, DOC, DOCX`,
                         'error');
                     return false;
@@ -808,19 +894,19 @@
                 const fileSize = formatFileSize(file.size);
 
                 const previewHtml = `
-                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg dark:border-gray-700 file-preview-item" data-file-index="${index}">
-                        <div class="flex items-center flex-1">
-                            <i class="mr-3 text-2xl ${fileIcon}"></i>
-                            <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">${file.name}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">${fileSize}</p>
-                            </div>
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg dark:border-gray-700 file-preview-item" data-file-index="${index}">
+                    <div class="flex items-center flex-1">
+                        <i class="mr-3 text-2xl ${fileIcon}"></i>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">${file.name}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${fileSize}</p>
                         </div>
-                        <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700 ml-2">
-                            <i class="fas fa-times"></i>
-                        </button>
                     </div>
-                `;
+                    <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700 ml-2">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
 
                 container.append(previewHtml);
             });
@@ -877,13 +963,15 @@
                 selectedCategories.push($(this).val());
             });
 
+            // Clear existing categories and add selected ones
             formData.delete('maintenance_categories[]');
             selectedCategories.forEach(function(catId) {
                 formData.append('maintenance_categories[]', catId);
             });
 
+            // Add new files
             selectedFiles.forEach((file, index) => {
-                formData.append('documents[' + index + ']', file);
+                formData.append('new_documents[' + index + ']', file);
             });
 
             resetFormErrors();
@@ -918,7 +1006,7 @@
                         $.each(errors, function(key, value) {
                             if (key === 'maintenance_categories') {
                                 $('#categories_error').html(value[0]);
-                            } else if (key.startsWith('documents.')) {
+                            } else if (key.startsWith('new_documents.')) {
                                 $('#documents_error').html(value[0]);
                             } else {
                                 $('#' + key + '_error').html(value[0]);
@@ -998,41 +1086,6 @@
             });
         }
 
-        // Load dropdown data for modal
-        function loadDropdownData() {
-            console.log('Loading dropdown data...');
-            $.ajax({
-                url: '{{ route('admin.service-log.dropdown-data') }}',
-                type: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        var vehicleSelect = $('#vehicle_id');
-                        vehicleSelect.empty().append('<option value="">Select Vehicle</option>');
-                        response.vehicles.forEach(function(vehicle) {
-                            vehicleSelect.append('<option value="' + vehicle.id + '">' + vehicle
-                                .unit_no + ' - ' + vehicle.year + ' ' + vehicle.make + ' ' + vehicle
-                                .model + '</option>');
-                        });
-
-                        var categoriesContainer = $('#categories-container');
-                        categoriesContainer.empty();
-                        response.maintenanceCategories.forEach(function(category) {
-                            categoriesContainer.append(`
-                                <div class="flex items-center">
-                                    <input type="checkbox" name="maintenance_categories[]" id="category_${category.id}" value="${category.id}" class="h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded">
-                                    <label for="category_${category.id}" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">${category.name}</label>
-                                </div>
-                            `);
-                        });
-                    }
-                },
-                error: function(xhr) {
-                    console.error('Failed to load dropdown data:', xhr);
-                    showToast('Failed to load form data', 'error');
-                }
-            });
-        }
-
         // Render existing documents
         function renderExistingDocuments(documents) {
             var container = $('#existing-documents');
@@ -1040,18 +1093,18 @@
 
             if (documents.length > 0) {
                 documents.forEach(function(doc) {
-                    let fileIcon = doc.file_icon || 'fa-file-pdf text-red-500';
+                    let fileIcon = getFileIcon(doc.original_name);
                     container.append(`
-                        <div class="document-preview" data-id="${doc.id}">
-                            <div class="file-icon">
-                                <i class="fas ${fileIcon} text-4xl"></i>
-                            </div>
-                            <div class="text-xs mt-1 max-w-[100px] truncate">${doc.original_name}</div>
-                            <div class="remove-doc" onclick="deleteDocument(${doc.id})">
-                                <i class="fas fa-times"></i>
-                            </div>
+                    <div class="document-preview" data-id="${doc.id}">
+                        <div class="file-icon">
+                            <i class="fas ${fileIcon} text-4xl"></i>
                         </div>
-                    `);
+                        <div class="text-xs mt-1 max-w-[100px] truncate">${doc.original_name}</div>
+                        <div class="remove-doc" onclick="deleteDocument(${doc.id})">
+                            <i class="fas fa-times"></i>
+                        </div>
+                    </div>
+                `);
                 });
             }
         }
@@ -1097,6 +1150,7 @@
             $('#service_log_id').val('');
             resetFormErrors();
 
+            // Uncheck all categories
             $('input[name="maintenance_categories[]"]').prop('checked', false);
 
             $('#existing-documents').empty();
@@ -1143,14 +1197,14 @@
             toast.className =
                 `${toastType.bg} ${toastType.border} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 transform transition-all duration-300 translate-x-full`;
             toast.innerHTML = `
-                <i class="fas ${toastType.icon} text-xl"></i>
-                <div>
-                    <p class="font-medium">${message}</p>
-                </div>
-                <button onclick="document.getElementById('${toastId}').remove()" class="ml-4 text-white hover:text-gray-200">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
+            <i class="fas ${toastType.icon} text-xl"></i>
+            <div>
+                <p class="font-medium">${message}</p>
+            </div>
+            <button onclick="document.getElementById('${toastId}').remove()" class="ml-4 text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
 
             document.getElementById('toast-container').appendChild(toast);
 
@@ -1177,5 +1231,6 @@
         window.deleteServiceLog = deleteServiceLog;
         window.deleteDocument = deleteDocument;
         window.removeFile = removeFile;
+        window.showToast = showToast;
     </script>
 @endpush

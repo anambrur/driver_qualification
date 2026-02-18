@@ -164,6 +164,555 @@
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
 @endsection
 
+@push('scripts')
+    <script>
+        $(document).ready(function() {
+            var table = $('#schedules-table').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: '{{ route('admin.maintenance-schedule.index') }}',
+                    type: 'GET',
+                    data: function(d) {
+                        d.vehicle_id = $('#filter-vehicle').val();
+                        d.category_id = $('#filter-category').val();
+                        d.schedule_type = $('#filter-type').val();
+                        d.status = $('#filter-status').val();
+                    }
+                },
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false,
+                        width: '3%'
+                    },
+                    {
+                        data: 'schedule_info',
+                        name: 'title',
+                        orderable: true,
+                        searchable: true,
+                        width: '20%'
+                    },
+                    {
+                        data: 'vehicle_info',
+                        name: 'vehicle_id',
+                        orderable: true,
+                        searchable: true,
+                        width: '20%'
+                    },
+                    {
+                        data: 'interval',
+                        name: 'interval_days',
+                        orderable: true,
+                        searchable: false,
+                        width: '15%'
+                    },
+                    {
+                        data: 'next_due',
+                        name: 'next_due_date',
+                        orderable: true,
+                        searchable: false,
+                        width: '20%'
+                    },
+                    {
+                        data: 'status',
+                        name: 'status',
+                        orderable: true,
+                        searchable: false,
+                        width: '8%'
+                    },
+                    {
+                        data: 'created_at_formatted',
+                        name: 'created_at',
+                        orderable: true,
+                        searchable: false,
+                        width: '10%'
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false,
+                        searchable: false,
+                        width: '10%'
+                    }
+                ],
+                language: {
+                    search: "",
+                    searchPlaceholder: "Search schedules...",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    emptyTable: "No schedules found",
+                    processing: '<div class="spinner-border text-brand-500"></div> Loading...'
+                },
+                order: [
+                    [4, 'asc']
+                ],
+                drawCallback: function(settings) {
+                    var info = this.api().page.info();
+                    $('#total-records').text(info.recordsTotal);
+                }
+            });
+
+            $('#refresh-table').on('click', function() {
+                table.ajax.reload();
+            });
+
+            $('#closeModal, #closeViewModal').on('click', function() {
+                $('#scheduleModal').addClass('hidden');
+                $('#viewScheduleModal').addClass('hidden');
+                resetForm();
+            });
+
+            $(document).on('click', function(event) {
+                if ($(event.target).hasClass('fixed')) {
+                    $('#scheduleModal').addClass('hidden');
+                    $('#viewScheduleModal').addClass('hidden');
+                    resetForm();
+                }
+            });
+
+            $('#submitForm').on('click', function() {
+                submitScheduleForm();
+            });
+
+            $('#vehicle_id').on('change', function() {
+                var vehicleId = $(this).val();
+                if (vehicleId) {
+                    $.ajax({
+                        url: '{{ route('admin.maintenance-schedule.get-vehicle-details', ':id') }}'
+                            .replace(
+                                ':id', vehicleId),
+                        type: 'GET',
+                        success: function(response) {
+                            if (response.success) {
+                                // You can use this to pre-fill last due values if needed
+                                
+                            }
+                        }
+                    });
+                }
+            });
+
+            window.applyFilters = function() {
+                table.ajax.reload();
+            }
+
+            window.clearFilters = function() {
+                $('#filter-vehicle').val('');
+                $('#filter-category').val('');
+                $('#filter-type').val('');
+                $('#filter-status').val('');
+                table.ajax.reload();
+            }
+        });
+
+        // Global variables
+        let dropdownDataCache = null;
+
+        // Load dropdown data with caching
+        function loadDropdownData(callback) {
+
+            if (dropdownDataCache) {
+                populateDropdowns(dropdownDataCache);
+                if (callback) callback();
+                return;
+            }
+
+            $.ajax({
+                url: '{{ route('admin.maintenance-schedule.dropdown-data') }}',
+                type: 'GET',
+                success: function(response) {
+
+                    if (response.success) {
+                        dropdownDataCache = response;
+                        populateDropdowns(response);
+                        if (callback) callback();
+                    } else {
+                        showToast('Failed to load form data', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Failed to load dropdown data:', xhr);
+                    showToast('Failed to load form data', 'error');
+                }
+            });
+        }
+
+        // Populate dropdowns with data
+        function populateDropdowns(response) {
+            // Populate vehicles
+            var vehicleSelect = $('#vehicle_id');
+            vehicleSelect.empty().append('<option value="">All Vehicles (Global Schedule)</option>');
+            response.vehicles.forEach(function(vehicle) {
+                vehicleSelect.append('<option value="' + vehicle.id + '">' + vehicle.unit_no + ' - ' +
+                    vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model + '</option>');
+            });
+
+            // Populate categories
+            var categorySelect = $('#maintenance_category_id');
+            categorySelect.empty().append('<option value="">Select Category</option>');
+            response.maintenanceCategories.forEach(function(category) {
+                categorySelect.append('<option value="' + category.id + '">' + category.name + '</option>');
+            });
+        }
+
+        // Show create modal
+        function showCreateModal() {
+            $('#modalTitle').text('Create New Schedule');
+            $('#submitText').text('Create Schedule');
+            $('#schedule_id').val('');
+            resetFormErrors();
+
+            // Load dropdown data first, then reset form
+            loadDropdownData(function() {
+                resetForm();
+                selectScheduleType('date');
+            });
+
+            $('#scheduleModal').removeClass('hidden');
+        }
+
+        // Edit schedule
+        function editSchedule(id) {
+
+            resetFormErrors();
+            $('#modalTitle').html('<i class="fas fa-spinner fa-spin mr-2"></i>Loading...');
+            $('#submitText').html('<i class="fas fa-spinner fa-spin mr-2"></i>Loading');
+            $('#scheduleModal').removeClass('hidden');
+
+            // First load dropdown data, then load schedule data
+            loadDropdownData(function() {
+                loadScheduleData(id);
+            });
+        }
+
+        // Load schedule data for editing
+        function loadScheduleData(id) {
+            $.ajax({
+                url: '{{ route('admin.maintenance-schedule.edit', ':id') }}'.replace(':id', id),
+                type: 'GET',
+                success: function(response) {
+                 
+                    if (response.success) {
+                        $('#modalTitle').text('Edit Schedule');
+                        $('#submitText').text('Update Schedule');
+                        $('#schedule_id').val(id);
+
+                        // Fill form fields
+                        fillFormFields(response.data);
+                    } else {
+                        showToast('Failed to load schedule data', 'error');
+                        $('#scheduleModal').addClass('hidden');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Edit error:', xhr);
+                    showToast('Failed to load schedule data', 'error');
+                    $('#scheduleModal').addClass('hidden');
+                }
+            });
+        }
+
+        // Fill form fields with data
+        function fillFormFields(data) {
+            
+            // Set basic fields
+            if (data.maintenance_category_id) {
+                $('#maintenance_category_id').val(data.maintenance_category_id);
+            }
+
+            $('#title').val(data.title || '');
+
+            if (data.vehicle_id) {
+                $('#vehicle_id').val(data.vehicle_id);
+            }
+
+            // Set schedule type and interval
+            if (data.schedule_type) {
+                selectScheduleType(data.schedule_type);
+
+                // Small delay to ensure interval fields are visible
+                setTimeout(function() {
+                    if (data.schedule_type === 'date' && data.interval_days) {
+                        $('#interval_days').val(data.interval_days);
+                    } else if (data.schedule_type === 'mileage' && data.interval_miles) {
+                        $('#interval_miles').val(data.interval_miles);
+                    } else if (data.schedule_type === 'engine_hours' && data.interval_hours) {
+                        $('#interval_hours').val(data.interval_hours);
+                    }
+                }, 100);
+            }
+
+            // Set description and notes
+            $('#description').val(data.description || '');
+            $('#notes').val(data.notes || '');
+
+            // Set status
+            if (data.status) {
+                $('#status').val(data.status);
+            }
+        }
+
+        // View schedule details
+        function viewSchedule(id) {
+            $.ajax({
+                url: '{{ route('admin.maintenance-schedule.show', ':id') }}'.replace(':id', id),
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const data = response.data;
+
+                        $('#view_category').text(data.maintenance_category?.name || 'N/A');
+                        $('#view_title').text(data.title || 'N/A');
+                        $('#view_vehicle').text(data.vehicle ? data.vehicle.full_name : 'All Vehicles');
+                        $('#view_type').text(data.schedule_type_label);
+                        $('#view_interval').text(data.interval_text);
+                        $('#view_next_due').text(data.next_due_text);
+                        $('#view_description').text(data.description || 'No description provided');
+                        $('#view_notes').text(data.notes || 'No notes provided');
+                        $('#view_status').html(data.status_badge);
+
+                        if (data.is_due) {
+                            $('#view_due_status').html('<span class="text-xs text-red-500">Due now!</span>');
+                            $('#mark-completed-btn').removeClass('hidden').data('id', id);
+                        } else {
+                            $('#view_due_status').empty();
+                            $('#mark-completed-btn').addClass('hidden');
+                        }
+
+                        $('#viewScheduleModal').removeClass('hidden');
+                    }
+                },
+                error: function(xhr) {
+                    showToast('Failed to load schedule details', 'error');
+                }
+            });
+        }
+
+        // Mark schedule as completed
+        function markScheduleCompleted() {
+            let id = $('#mark-completed-btn').data('id');
+
+            Swal.fire({
+                title: 'Mark as Completed?',
+                text: 'This will update the last due date and calculate the next due date',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                confirmButtonText: 'Yes, mark completed'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '{{ route('admin.maintenance-schedule.mark-completed', ':id') }}'.replace(
+                            ':id', id),
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                showToast(response.message, 'success');
+                                $('#viewScheduleModal').addClass('hidden');
+                                $('#schedules-table').DataTable().ajax.reload();
+                            }
+                        },
+                        error: function() {
+                            showToast('Failed to mark schedule as completed', 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Submit form
+        function submitScheduleForm() {
+            var formData = new FormData(document.getElementById('scheduleForm'));
+            var id = $('#schedule_id').val();
+            var url = id ? '{{ route('admin.maintenance-schedule.update', ':id') }}'.replace(':id', id) :
+                '{{ route('admin.maintenance-schedule.store') }}';
+
+            if (id) {
+                formData.append('_method', 'PUT');
+            }
+
+            resetFormErrors();
+            var originalText = $('#submitText').html();
+            $('#submitText').html('<i class="fas fa-spinner fa-spin mr-2"></i>Processing...');
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    $('#submitText').html(originalText);
+                    if (response.success) {
+                        $('#scheduleModal').addClass('hidden');
+                        $('#schedules-table').DataTable().ajax.reload();
+                        showToast(response.message, 'success');
+                        resetForm();
+                    } else {
+                        showToast(response.message || 'Operation failed', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    $('#submitText').html(originalText);
+                    if (xhr.status === 422) {
+                        var errors = xhr.responseJSON.errors;
+                        $.each(errors, function(key, value) {
+                            $('#' + key + '_error').html(value[0]);
+                        });
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        showToast(xhr.responseJSON.message, 'error');
+                    } else {
+                        showToast('An error occurred. Please try again.', 'error');
+                    }
+                }
+            });
+        }
+
+        // Delete schedule
+        function deleteSchedule(id) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Deleting...',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    $.ajax({
+                        url: '{{ route('admin.maintenance-schedule.destroy', ':id') }}'.replace(':id', id),
+                        type: 'DELETE',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            Swal.close();
+                            if (response.success) {
+                                $('#schedules-table').DataTable().ajax.reload();
+                                Swal.fire('Deleted!', response.message, 'success');
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.close();
+                            let message = xhr.responseJSON?.message || 'Failed to delete schedule';
+                            Swal.fire('Error!', message, 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Select schedule type
+        function selectScheduleType(type) {
+            // Update hidden input
+            $('#schedule_type').val(type);
+
+            // Update radio indicators
+            $('.schedule-type-option .w-2.5.h-2.5').addClass('hidden');
+            $(`#type-${type}-radio`).removeClass('hidden');
+
+            // Update selected styles
+            $('.schedule-type-option').removeClass('border-brand-500 bg-brand-50 dark:bg-brand-900/20');
+            $(`#type-${type}-option`).addClass('border-brand-500 bg-brand-50 dark:bg-brand-900/20');
+
+            // Show/hide interval inputs
+            $('.interval-input').addClass('hidden');
+            if (type === 'date') {
+                $('#date-interval').removeClass('hidden');
+            } else if (type === 'mileage') {
+                $('#mileage-interval').removeClass('hidden');
+            } else if (type === 'engine_hours') {
+                $('#engine-interval').removeClass('hidden');
+            }
+        }
+
+        // Reset form
+        function resetForm() {
+            $('#scheduleForm')[0].reset();
+            $('#schedule_id').val('');
+            resetFormErrors();
+            selectScheduleType('date');
+        }
+
+        // Reset form errors
+        function resetFormErrors() {
+            $('.text-red-600').html('');
+        }
+
+        // Toast notification function
+        function showToast(message, type = 'success') {
+            const types = {
+                success: {
+                    bg: 'bg-green-500',
+                    icon: 'fa-check-circle'
+                },
+                error: {
+                    bg: 'bg-red-500',
+                    icon: 'fa-exclamation-circle'
+                },
+                info: {
+                    bg: 'bg-blue-500',
+                    icon: 'fa-info-circle'
+                },
+                warning: {
+                    bg: 'bg-yellow-500',
+                    icon: 'fa-exclamation-triangle'
+                }
+            };
+
+            const toastType = types[type] || types.success;
+            const toastId = 'toast-' + Date.now();
+
+            const toast = document.createElement('div');
+            toast.id = toastId;
+            toast.className =
+                `${toastType.bg} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 transform transition-all duration-300 translate-x-full`;
+            toast.innerHTML = `
+            <i class="fas ${toastType.icon} text-xl"></i>
+            <p class="font-medium">${message}</p>
+            <button onclick="document.getElementById('${toastId}').remove()" class="ml-4 text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+
+            document.getElementById('toast-container').appendChild(toast);
+
+            setTimeout(() => toast.classList.remove('translate-x-full'), 10);
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Make functions global
+        window.showCreateModal = showCreateModal;
+        window.editSchedule = editSchedule;
+        window.viewSchedule = viewSchedule;
+        window.deleteSchedule = deleteSchedule;
+        window.markScheduleCompleted = markScheduleCompleted;
+        window.selectScheduleType = selectScheduleType;
+        window.showToast = showToast;
+    </script>
+@endpush
+
 @push('styles')
     <style>
         .dataTables_wrapper {
