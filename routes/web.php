@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\SubscriptionAdminController;
 use App\Http\Controllers\ApplicationFormController;
 use App\Http\Controllers\AssetGroupController;
 use App\Http\Controllers\CompanyController;
@@ -155,11 +156,50 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
 //     return \App\Models\Company::where('slug', $slug)->firstOrFail();
 // });
 
+// ─── Admin routes ─────────────────────────────────────────────────────────────
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+
+    // Subscription dashboard
+    Route::get('/subscriptions', [SubscriptionAdminController::class, 'dashboard'])
+        ->name('subscriptions.dashboard');
+
+    Route::get('/subscriptions/all', [SubscriptionAdminController::class, 'index'])
+        ->name('subscriptions.index');
+
+    Route::get('/subscriptions/user/{user}', [SubscriptionAdminController::class, 'show'])
+        ->name('subscriptions.show');
+
+    Route::post('/subscriptions/user/{user}/grant', [SubscriptionAdminController::class, 'grant'])
+        ->name('subscriptions.grant');
+
+    Route::post('/subscriptions/{subscription}/expire', [SubscriptionAdminController::class, 'expire'])
+        ->name('subscriptions.expire');
+
+    Route::post('/subscriptions/{subscription}/suspend', [SubscriptionAdminController::class, 'suspend'])
+        ->name('subscriptions.suspend');
+
+    Route::post('/subscriptions/{subscription}/reactivate', [SubscriptionAdminController::class, 'reactivate'])
+        ->name('subscriptions.reactivate');
+
+    Route::get('/subscriptions/payments', [SubscriptionAdminController::class, 'payments'])
+        ->name('subscriptions.payments');
+
+    Route::post('/subscriptions/payments/{payment}/mark-paid', [SubscriptionAdminController::class, 'markPaid'])
+        ->name('subscriptions.payments.mark-paid');
+
+    // Plan management
+    Route::get('/plans', [SubscriptionAdminController::class, 'plansIndex'])->name('plans.index');
+    Route::get('/plans/create', [SubscriptionAdminController::class, 'createPlan'])->name('plans.create');
+    Route::post('/plans', [SubscriptionAdminController::class, 'storePlan'])->name('plans.store');
+    Route::get('/plans/{plan}/edit', [SubscriptionAdminController::class, 'editPlan'])->name('plans.edit');
+    Route::put('/plans/{plan}', [SubscriptionAdminController::class, 'updatePlan'])->name('plans.update');
+});
+
 
 
 Route::get('/profit', [DashboardController::class, 'profit'])->name('admin.profit');
 
-Route::middleware('auth')->prefix('admin')->group(function () {
+Route::middleware(['auth', 'subscription'])->prefix('admin')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
