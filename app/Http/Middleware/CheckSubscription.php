@@ -37,12 +37,12 @@ class CheckSubscription
 
             if ($sub && in_array($sub->status, ['expired', 'cancelled', 'suspended'])) {
                 // Don't force logout — redirect to a clear "subscription expired" page
-                return redirect()->route('admin.subscriptions.expire')
+                return redirect()->route('subscription.expired')
                     ->with('warning', 'Your subscription has expired. Please renew to continue.');
             }
 
             // No subscription at all — redirect to plans page
-            return redirect()->route('admin.plans.index')
+            return redirect()->route('subscription.plans')
                 ->with('info', 'Please subscribe to access this feature.');
         }
 

@@ -56,6 +56,7 @@ class PermissionSeeder extends Seeder
             'maintenance-categories',
             'maintenance',
             'scheduled',
+            'subscription',
         ];
 
         // Define basic actions

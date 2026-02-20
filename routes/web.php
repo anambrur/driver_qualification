@@ -18,11 +18,15 @@ use App\Http\Controllers\MaintenanceScheduleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceLogController;
+use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleGroupController;
 use App\Http\Controllers\VehicleTypeController;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/stripe/webhook', [SubscriptionController::class, 'webhook'])
+    ->name('stripe.webhook');
 
 Route::get('/', function () {
     return view('welcome');
@@ -156,43 +160,40 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
 //     return \App\Models\Company::where('slug', $slug)->firstOrFail();
 // });
 
+// ─── Subscription routes (auth required, no subscription check) ───────────────
+Route::middleware(['auth'])->group(function () {
+
+    Route::get('/subscription/plans', [SubscriptionController::class, 'plans'])->name('subscription.plans');
+    Route::get('/subscription/checkout/{plan}', [SubscriptionController::class, 'checkout'])->name('subscription.checkout');
+    Route::post('/subscription/purchase/{plan}', [SubscriptionController::class, 'purchase'])->name('subscription.purchase');
+    Route::get('/subscription/success', [SubscriptionController::class, 'success'])->name('subscription.success');
+    Route::get('/subscription/expired', [SubscriptionController::class, 'expired'])->name('subscription.expired');
+    Route::get('/subscription/my', [SubscriptionController::class, 'mySubscription'])->name('subscription.my');
+    Route::post('/subscription/cancel', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
+    Route::get('/subscription/renew', [SubscriptionController::class, 'renew'])->name('subscription.renew');
+    Route::post('/subscription/renew', [SubscriptionController::class, 'processRenewal'])->name('subscription.renew.process');
+    Route::get('/subscription/invoice/{payment}/download', [SubscriptionController::class, 'downloadInvoice'])->name('subscription.invoice.download');
+});
+
 // ─── Admin routes ─────────────────────────────────────────────────────────────
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'role:super-admin'])->prefix('admin')->name('admin.')->group(function () {
 
-    // Subscription dashboard
-    Route::get('/subscriptions', [SubscriptionAdminController::class, 'dashboard'])
-        ->name('subscriptions.dashboard');
+    Route::get('/subscriptions', [SubscriptionAdminController::class, 'dashboard'])->name('subscriptions.dashboard');
+    Route::get('/subscriptions/all', [SubscriptionAdminController::class, 'index'])->name('subscriptions.index');
+    Route::get('/subscriptions/user/{user}', [SubscriptionAdminController::class, 'show'])->name('subscriptions.show');
+    Route::post('/subscriptions/user/{user}/grant', [SubscriptionAdminController::class, 'grant'])->name('subscriptions.grant');
+    Route::post('/subscriptions/{subscription}/expire', [SubscriptionAdminController::class, 'expire'])->name('subscriptions.expire');
+    Route::post('/subscriptions/{subscription}/suspend', [SubscriptionAdminController::class, 'suspend'])->name('subscriptions.suspend');
+    Route::post('/subscriptions/{subscription}/reactivate', [SubscriptionAdminController::class, 'reactivate'])->name('subscriptions.reactivate');
+    Route::get('/subscriptions/payments', [SubscriptionAdminController::class, 'payments'])->name('subscriptions.payments');
+    Route::post('/subscriptions/payments/{payment}/mark-paid', [SubscriptionAdminController::class, 'markPaid'])->name('subscriptions.payments.mark-paid');
 
-    Route::get('/subscriptions/all', [SubscriptionAdminController::class, 'index'])
-        ->name('subscriptions.index');
-
-    Route::get('/subscriptions/user/{user}', [SubscriptionAdminController::class, 'show'])
-        ->name('subscriptions.show');
-
-    Route::post('/subscriptions/user/{user}/grant', [SubscriptionAdminController::class, 'grant'])
-        ->name('subscriptions.grant');
-
-    Route::post('/subscriptions/{subscription}/expire', [SubscriptionAdminController::class, 'expire'])
-        ->name('subscriptions.expire');
-
-    Route::post('/subscriptions/{subscription}/suspend', [SubscriptionAdminController::class, 'suspend'])
-        ->name('subscriptions.suspend');
-
-    Route::post('/subscriptions/{subscription}/reactivate', [SubscriptionAdminController::class, 'reactivate'])
-        ->name('subscriptions.reactivate');
-
-    Route::get('/subscriptions/payments', [SubscriptionAdminController::class, 'payments'])
-        ->name('subscriptions.payments');
-
-    Route::post('/subscriptions/payments/{payment}/mark-paid', [SubscriptionAdminController::class, 'markPaid'])
-        ->name('subscriptions.payments.mark-paid');
-
-    // Plan management
     Route::get('/plans', [SubscriptionAdminController::class, 'plansIndex'])->name('plans.index');
     Route::get('/plans/create', [SubscriptionAdminController::class, 'createPlan'])->name('plans.create');
     Route::post('/plans', [SubscriptionAdminController::class, 'storePlan'])->name('plans.store');
     Route::get('/plans/{plan}/edit', [SubscriptionAdminController::class, 'editPlan'])->name('plans.edit');
     Route::put('/plans/{plan}', [SubscriptionAdminController::class, 'updatePlan'])->name('plans.update');
+    Route::delete('/plans/{plan}', [SubscriptionAdminController::class, 'destroyPlan'])->name('plans.destroy');
 });
 
 
