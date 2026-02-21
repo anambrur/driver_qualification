@@ -341,15 +341,20 @@
                     @endcan
                     <!-- Menu Item Maintenance -->
 
-                    <!-- Menu Item  subscription -->
+                    <!-- Menu Item Subscription -->
                     @can('subscription.view')
                         <li>
-                            <a href="#" @click.prevent="selected = (selected === 'Subscription' ? '':'Subscription')"
+                            <!-- Parent Subscription -->
+                            <a href="#"
+                                @click.prevent="selected = (selected === 'Subscription' ? '' : 'Subscription')"
                                 class="menu-item group"
-                                :class="(selected === 'Subscription') || isCurrentPath('admin/subscription*') ?
+                                :class="(selected === 'Subscription') || isCurrentPath('admin/subscription*') || isCurrentPath(
+                                        'subscription*') ?
                                     'menu-item-active' : 'menu-item-inactive'">
-                                <i class="fa-solid fa-gear"
-                                    :class="(selected === 'Subscription') || isCurrentPath('admin/subscription*') ?
+
+                                <i class="fa-solid fa-credit-card"
+                                    :class="(selected === 'Subscription') || isCurrentPath('admin/subscription*') ||
+                                        isCurrentPath('subscription*') ?
                                         'menu-item-icon-active' : 'menu-item-icon-inactive'">
                                 </i>
 
@@ -365,204 +370,187 @@
                                 </i>
                             </a>
 
+                            <!-- Parent Dropdown -->
+                            <div class="overflow-hidden" :class="(selected === 'Subscription') ? 'block' : 'hidden'">
 
-                            <div class="overflow-hidden transform translate"
-                                :class="(selected === 'Subscription') ? 'block' : 'hidden'">
                                 <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
                                     class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
 
-                                    @can('subscription.view')
+                                    <!-- ================= USER SUBSCRIPTION ================= -->
+                                    <li>
+                                        <a href="#"
+                                            @click.prevent="selected = (selected === 'UserSubscription' ? '' : 'UserSubscription')"
+                                            class="menu-item group"
+                                            :class="(selected === 'UserSubscription') || isCurrentPath('subscription*') ?
+                                                'menu-item-active' : 'menu-item-inactive'">
 
+                                            <i class="fas fa-user-circle"
+                                                :class="(selected === 'UserSubscription') || isCurrentPath('subscription*') ?
+                                                    'menu-item-icon-active' : 'menu-item-icon-inactive'">
+                                            </i>
+
+                                            <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
+                                                My Subscription
+                                                @php $sub = auth()->user()?->currentSubscription(); @endphp
+                                                @if ($sub && $sub->isExpiringSoon())
+                                                    <span
+                                                        class="ms-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                        {{ $sub->daysRemaining() }}d
+                                                    </span>
+                                                @elseif(!$sub)
+                                                    <span
+                                                        class="ms-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                        None
+                                                    </span>
+                                                @endif
+                                            </span>
+
+                                            <i class="fas fa-angle-down menu-item-arrow"
+                                                :class="[(selected === 'UserSubscription') ? 'menu-item-arrow-active' :
+                                                    'menu-item-arrow-inactive',
+                                                    sidebarToggle ? 'lg:hidden' : ''
+                                                ]">
+                                            </i>
+                                        </a>
+
+                                        <!-- User Dropdown -->
+                                        <div class="overflow-hidden"
+                                            :class="(selected === 'UserSubscription') ? 'block' : 'hidden'">
+                                            <ul class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+
+                                                <li>
+                                                    <a href="{{ route('subscription.my') }}"
+                                                        class="menu-dropdown-item group"
+                                                        :class="isCurrentPath('subscription/my') ?
+                                                            'menu-dropdown-item-active' :
+                                                            'menu-dropdown-item-inactive'">
+                                                        My Subscription
+                                                    </a>
+                                                </li>
+
+                                                <li>
+                                                    <a href="{{ route('subscription.plans') }}"
+                                                        class="menu-dropdown-item group"
+                                                        :class="isCurrentPath('subscription/plans') ?
+                                                            'menu-dropdown-item-active' :
+                                                            'menu-dropdown-item-inactive'">
+                                                        View Plans
+                                                    </a>
+                                                </li>
+
+                                                @php $currentSub = auth()->user()?->currentSubscription(); @endphp
+                                                @if ($currentSub)
+                                                    <li>
+                                                        <a href="{{ route('subscription.renew') }}"
+                                                            class="menu-dropdown-item group"
+                                                            :class="isCurrentPath('subscription/renew') ?
+                                                                'menu-dropdown-item-active' :
+                                                                'menu-dropdown-item-inactive'">
+                                                            Renew Plan
+                                                        </a>
+                                                    </li>
+                                                @endif
+
+                                            </ul>
+                                        </div>
+                                    </li>
+                                    <!-- ================= END USER SUBSCRIPTION ================= -->
+
+
+                                    <!-- ================= ADMIN SUBSCRIPTION ================= -->
+                                    @role('super-admin')
                                         <li>
                                             <a href="#"
-                                                @click.prevent="selected = (selected === 'Subscription' ? '' : 'Subscription')"
+                                                @click.prevent="selected = (selected === 'SubAdmin' ? '' : 'SubAdmin')"
                                                 class="menu-item group"
-                                                :class="(selected === 'Subscription') || isCurrentPath('subscription*') ?
+                                                :class="(selected === 'SubAdmin') || isCurrentPath('admin/subscriptions*') ||
+                                                    isCurrentPath('admin/plans*') ?
                                                     'menu-item-active' : 'menu-item-inactive'">
 
-                                                <i class="fas fa-credit-card"
-                                                    :class="(selected === 'Subscription') || isCurrentPath('subscription*') ?
+                                                <i class="fas fa-crown"
+                                                    :class="(selected === 'SubAdmin') || isCurrentPath(
+                                                        'admin/subscriptions*') || isCurrentPath('admin/plans*') ?
                                                         'menu-item-icon-active' : 'menu-item-icon-inactive'">
                                                 </i>
 
                                                 <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
-                                                    Subscription
-                                                    @php $sub = auth()->user()?->currentSubscription(); @endphp
-                                                    @if ($sub && $sub->isExpiringSoon())
-                                                        <span
-                                                            class="ms-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                            {{ $sub->daysRemaining() }}d
-                                                        </span>
-                                                    @elseif(!$sub)
-                                                        <span
-                                                            class="ms-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                                            None
-                                                        </span>
-                                                    @endif
+                                                    Subscription Management
                                                 </span>
 
                                                 <i class="fas fa-angle-down menu-item-arrow"
-                                                    :class="[(selected === 'Subscription') ? 'menu-item-arrow-active' :
+                                                    :class="[(selected === 'SubAdmin') ? 'menu-item-arrow-active' :
                                                         'menu-item-arrow-inactive',
                                                         sidebarToggle ? 'lg:hidden' : ''
                                                     ]">
                                                 </i>
                                             </a>
 
+                                            <!-- Admin Dropdown -->
                                             <div class="overflow-hidden"
-                                                :class="(selected === 'Subscription') ? 'block' : 'hidden'">
-                                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
-                                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+                                                :class="(selected === 'SubAdmin') ? 'block' : 'hidden'">
+                                                <ul class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
 
                                                     <li>
-                                                        <a href="{{ route('subscription.my') }}"
+                                                        <a href="{{ route('admin.subscriptions.dashboard') }}"
                                                             class="menu-dropdown-item group"
-                                                            :class="isCurrentPath('subscription/my') ?
+                                                            :class="isCurrentPath('admin/subscriptions') ?
                                                                 'menu-dropdown-item-active' :
                                                                 'menu-dropdown-item-inactive'">
-                                                            My Subscription
+                                                            Dashboard
                                                         </a>
                                                     </li>
 
                                                     <li>
-                                                        <a href="{{ route('subscription.plans') }}"
+                                                        <a href="{{ route('admin.subscriptions.index') }}"
                                                             class="menu-dropdown-item group"
-                                                            :class="isCurrentPath('subscription/plans') ?
+                                                            :class="isCurrentPath('admin/subscriptions/all') ?
                                                                 'menu-dropdown-item-active' :
                                                                 'menu-dropdown-item-inactive'">
-                                                            View Plans
+                                                            All Subscribers
                                                         </a>
                                                     </li>
 
-                                                    @php $currentSub = auth()->user()?->currentSubscription(); @endphp
-                                                    @if ($currentSub)
-                                                        <li>
-                                                            <a href="{{ route('subscription.renew') }}"
-                                                                class="menu-dropdown-item group"
-                                                                :class="isCurrentPath('subscription/renew') ?
-                                                                    'menu-dropdown-item-active' :
-                                                                    'menu-dropdown-item-inactive'">
-                                                                Renew Plan
-                                                            </a>
-                                                        </li>
-                                                    @endif
+                                                    <li>
+                                                        <a href="{{ route('admin.subscriptions.payments') }}"
+                                                            class="menu-dropdown-item group"
+                                                            :class="isCurrentPath('admin/subscriptions/payments') ?
+                                                                'menu-dropdown-item-active' :
+                                                                'menu-dropdown-item-inactive'">
+                                                            Payments
+                                                        </a>
+                                                    </li>
+
+                                                    <li>
+                                                        <a href="{{ route('admin.plans.index') }}"
+                                                            class="menu-dropdown-item group"
+                                                            :class="isCurrentPath('admin/plans*') ?
+                                                                'menu-dropdown-item-active' :
+                                                                'menu-dropdown-item-inactive'">
+                                                            Manage Plans
+                                                        </a>
+                                                    </li>
+
+                                                    <li>
+                                                        <a href="{{ route('admin.plans.create') }}"
+                                                            class="menu-dropdown-item group"
+                                                            :class="isCurrentPath('admin/plans/create') ?
+                                                                'menu-dropdown-item-active' :
+                                                                'menu-dropdown-item-inactive'">
+                                                            Create Plan
+                                                        </a>
+                                                    </li>
 
                                                 </ul>
                                             </div>
                                         </li>
-                                        {{-- End Block 1 --}}
-
-                                        @role('super-admin')
-                                            <li>
-                                                <a href="#"
-                                                    @click.prevent="selected = (selected === 'SubAdmin' ? '' : 'SubAdmin')"
-                                                    class="menu-item group"
-                                                    :class="(selected === 'SubAdmin') || isCurrentPath(
-                                                        'admin/subscriptions*') || isCurrentPath('admin/plans*') ?
-                                                        'menu-item-active' : 'menu-item-inactive'">
-
-                                                    <i class="fas fa-crown"
-                                                        :class="(selected === 'SubAdmin') || isCurrentPath(
-                                                                'admin/subscriptions*') || isCurrentPath(
-                                                            'admin/plans*') ?
-                                                            'menu-item-icon-active' : 'menu-item-icon-inactive'">
-                                                    </i>
-
-                                                    <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
-                                                        Subscription Mgmt
-                                                    </span>
-
-                                                    <i class="fas fa-angle-down menu-item-arrow"
-                                                        :class="[(selected === 'SubAdmin') ? 'menu-item-arrow-active' :
-                                                            'menu-item-arrow-inactive',
-                                                            sidebarToggle ? 'lg:hidden' : ''
-                                                        ]">
-                                                    </i>
-                                                </a>
-
-                                                <div class="overflow-hidden"
-                                                    :class="(selected === 'SubAdmin') ? 'block' : 'hidden'">
-                                                    <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
-                                                        class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
-
-                                                        <li>
-                                                            <a href="{{ route('admin.subscriptions.dashboard') }}"
-                                                                class="menu-dropdown-item group"
-                                                                :class="isCurrentPath('admin/subscriptions') && !isCurrentPath(
-                                                                        'admin/subscriptions/*') ?
-                                                                    'menu-dropdown-item-active' :
-                                                                    'menu-dropdown-item-inactive'">
-                                                                Dashboard
-                                                            </a>
-                                                        </li>
-
-                                                        <li>
-                                                            <a href="{{ route('admin.subscriptions.index') }}"
-                                                                class="menu-dropdown-item group"
-                                                                :class="isCurrentPath('admin/subscriptions/all') ?
-                                                                    'menu-dropdown-item-active' :
-                                                                    'menu-dropdown-item-inactive'">
-                                                                All Subscribers
-                                                            </a>
-                                                        </li>
-
-                                                        <li>
-                                                            <a href="{{ route('admin.subscriptions.payments') }}"
-                                                                class="menu-dropdown-item group"
-                                                                :class="isCurrentPath('admin/subscriptions/payments') ?
-                                                                    'menu-dropdown-item-active' :
-                                                                    'menu-dropdown-item-inactive'">
-                                                                Payments
-                                                            </a>
-                                                        </li>
-
-                                                        <li>
-                                                            <a href="{{ route('admin.plans.index') }}"
-                                                                class="menu-dropdown-item group"
-                                                                :class="isCurrentPath('admin/plans*') ?
-                                                                    'menu-dropdown-item-active' :
-                                                                    'menu-dropdown-item-inactive'">
-                                                                Manage Plans
-                                                            </a>
-                                                        </li>
-
-                                                        <li>
-                                                            <a href="{{ route('admin.plans.create') }}"
-                                                                class="menu-dropdown-item group"
-                                                                :class="isCurrentPath('admin/plans/create') ?
-                                                                    'menu-dropdown-item-active' :
-                                                                    'menu-dropdown-item-inactive'">
-                                                                Create Plan
-                                                            </a>
-                                                        </li>
-
-                                                    </ul>
-                                                </div>
-                                            </li>
-                                        @endrole
-                                    @endcan
-
-
-                                    @can('scheduled.view')
-                                        <li>
-                                            <a href="{{ route('admin.maintenance-schedule.index') }}"
-                                                class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/maintenance-schedule') ?
-                                                    'menu-dropdown-item-active' :
-                                                    'menu-dropdown-item-inactive'">
-                                                Scheduled
-                                            </a>
-                                        </li>
-                                    @endcan
-
-
-
+                                    @endrole
+                                    <!-- ================= END ADMIN SUBSCRIPTION ================= -->
 
                                 </ul>
                             </div>
                         </li>
                     @endcan
-                    <!-- Menu Item Maintenance -->
+                    <!-- End Menu Item Subscription -->
 
 
                     <!-- Menu Item Settings -->
