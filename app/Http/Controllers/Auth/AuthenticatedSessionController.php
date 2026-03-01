@@ -26,21 +26,6 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
-        $user = Auth::user();
-
-        // ── Super-admin bypasses subscription check ────────────────────
-        if (!$user->hasRole('super-admin') && !$user->hasActiveSubscription()) {
-            Auth::logout();
-            return back()->withErrors([
-                'email' => match ($user->subscription?->status) {
-                    'expired'   => 'Your subscription has expired. Please renew to log in.',
-                    'cancelled' => 'Your subscription was cancelled. Please subscribe to log in.',
-                    'suspended' => 'Your account has been suspended. Contact support.',
-                    default     => 'You do not have an active subscription.',
-                },
-            ])->onlyInput('email');
-        }
-
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard', absolute: false));

@@ -12,6 +12,8 @@ class PlanSeeder extends Seeder
         $plans = [
             [
                 'name'          => 'Free Trial',
+                'stripe_plan_id' => 'prod_U3duXFkkE7C9f4',
+                'stripe_price_id' => 'price_1T5WcSFeYL7m5keEPgJlhuRz',
                 'slug'          => 'trial',
                 'description'   => 'Try all features for 14 days, no credit card required.',
                 'price'         => 0.00,
@@ -30,9 +32,11 @@ class PlanSeeder extends Seeder
             ],
             [
                 'name'          => 'Starter',
+                'stripe_plan_id' => 'prod_U3du1hpC2zMXds',
+                'stripe_price_id' => 'price_1T5WctFeYL7m5keE19O6Pvg7',
                 'slug'          => 'starter',
                 'description'   => 'Perfect for individuals and small teams.',
-                'price'         => 9.99,
+                'price'         => 29.99,
                 'currency'      => 'USD',
                 'billing_cycle' => 'monthly',
                 'duration_days' => 30,
@@ -48,10 +52,12 @@ class PlanSeeder extends Seeder
                 ],
             ],
             [
-                'name'          => 'Professional',
-                'slug'          => 'professional',
+                'name'          => 'Company',
+                'stripe_plan_id' => 'prod_U3dvvncBIHmj5L',
+                'stripe_price_id' => 'price_1T5WdBFeYL7m5keEHN2z8NzA',
+                'slug'          => 'company',
                 'description'   => 'For growing businesses that need more power.',
-                'price'         => 29.99,
+                'price'         => 99,
                 'currency'      => 'USD',
                 'billing_cycle' => 'monthly',
                 'duration_days' => 30,
@@ -70,16 +76,17 @@ class PlanSeeder extends Seeder
             ],
             [
                 'name'          => 'Enterprise',
+                'stripe_plan_id' => 'prod_U3dvRMLJbBI8EY',
+                'stripe_price_id' => 'price_1T5WdPFeYL7m5keEgWL30Wm8',
                 'slug'          => 'enterprise',
                 'description'   => 'Custom solutions for large organizations.',
-                'price'         => 99.99,
+                'price'         => 499,
                 'currency'      => 'USD',
                 'billing_cycle' => 'monthly',
                 'duration_days' => 30,
                 'trial_days'    => 0,
                 'is_active'     => true,
                 'is_featured'   => false,
-                'max_users'     => null, // unlimited
                 'sort_order'    => 3,
                 'features'      => [
                     'Unlimited users',
@@ -90,25 +97,6 @@ class PlanSeeder extends Seeder
                     'API access',
                     'Custom integrations',
                     'SLA guarantee',
-                ],
-            ],
-            [
-                'name'          => 'Lifetime',
-                'slug'          => 'lifetime',
-                'description'   => 'One-time payment for permanent access.',
-                'price'         => 299.00,
-                'currency'      => 'USD',
-                'billing_cycle' => 'lifetime',
-                'duration_days' => 36500, // 100 years placeholder
-                'trial_days'    => 0,
-                'is_active'     => true,
-                'is_featured'   => false,
-                'sort_order'    => 4,
-                'features'      => [
-                    'All features forever',
-                    'Lifetime updates',
-                    'Priority support',
-                    'Unlimited storage',
                 ],
             ],
         ];

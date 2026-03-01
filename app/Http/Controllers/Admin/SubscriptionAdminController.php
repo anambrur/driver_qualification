@@ -141,7 +141,7 @@ class SubscriptionAdminController extends Controller
     public function plansIndex(): View
     {
         $plans = Plan::withCount('subscriptions')->ordered()->get();
-        return view('admin.plans.index', compact('plans'));
+        return view('admin.subscriptions.plans', compact('plans'));
     }
 
     public function createPlan(): View

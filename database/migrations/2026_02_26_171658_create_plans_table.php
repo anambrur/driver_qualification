@@ -13,21 +13,21 @@ return new class extends Migration
     {
         Schema::create('plans', function (Blueprint $table) {
             $table->id();
-            $table->string('name');                        // Basic, Pro, Enterprise
-            $table->string('slug')->unique();              // basic, pro, enterprise
+            $table->string('name');
+            $table->string('stripe_plan_id')->unique()->nullable();
+            $table->string('stripe_price_id')->unique()->nullable();
+            $table->string('slug')->unique();
             $table->text('description')->nullable();
-            $table->decimal('price', 10, 2);              // 0.00 for free
+            $table->decimal('price', 8, 2);
             $table->string('currency', 3)->default('USD');
-            $table->enum('billing_cycle', ['monthly', 'yearly', 'lifetime', 'trial']);
-            $table->integer('duration_days');              // 30, 365, 0 (lifetime), 14 (trial)
+            $table->string('billing_cycle')->default('monthly');
+            $table->integer('duration_days')->default(30);
             $table->integer('trial_days')->default(0);
             $table->boolean('is_active')->default(true);
             $table->boolean('is_featured')->default(false);
-            $table->integer('max_users')->nullable();      // null = unlimited
-            $table->json('features')->nullable();          // ["feature1", "feature2"]
             $table->integer('sort_order')->default(0);
+            $table->json('features')->nullable();
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

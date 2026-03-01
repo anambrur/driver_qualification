@@ -358,15 +358,7 @@
                                 Subscription
                             </span>
 
-                            {{-- Expiry badge --}}
-                            @php $sub = auth()->user()->currentSubscription(); @endphp
-                            @if ($sub && $sub->isExpiringSoon(7))
-                                <span
-                                    class="ml-auto px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded-full font-medium"
-                                    :class="sidebarToggle ? 'lg:hidden' : ''">
-                                    {{ $sub->daysRemaining() }}d
-                                </span>
-                            @endif
+
 
                             <i class="fas fa-angle-down menu-item-arrow"
                                 :class="[(selected === 'Subscription') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive',
@@ -379,6 +371,14 @@
                             :class="(selected === 'Subscription') ? 'block' : 'hidden'">
                             <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
                                 class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+
+                                <li>
+                                    <a href="{{ route('pricing.plans') }}" class="menu-dropdown-item group"
+                                        :class="isCurrentPath('pricing/plans') ?
+                                            'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
+                                        Plans
+                                    </a>
+                                </li>
 
                                 <li>
                                     <a href="{{ route('subscription.my') }}" class="menu-dropdown-item group"
@@ -396,93 +396,12 @@
                                     </a>
                                 </li>
 
-                                @if ($sub && !$sub->isLifetime())
-                                    <li>
-                                        <a href="{{ route('subscription.renew') }}" class="menu-dropdown-item group"
-                                            :class="isCurrentPath('subscription/renew') ?
-                                                'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                            Renew Plan
-                                        </a>
-                                    </li>
-                                @endif
+
 
                             </ul>
                         </div>
                     </li>
                     {{-- ── End Subscription Menu Item ─────────────────────────────────── --}}
-
-
-                    {{-- ── Super Admin: Subscription Management ───────────────────────── --}}
-                    @role('super-admin')
-                        <li>
-                            <a href="#" @click.prevent="selected = (selected === 'SubAdmin' ? '' : 'SubAdmin')"
-                                class="menu-item group"
-                                :class="(selected === 'SubAdmin') || isCurrentPath('admin/subscriptions*') || isCurrentPath(
-                                        'admin/plans*') ?
-                                    'menu-item-active' : 'menu-item-inactive'">
-                                <i class="fas fa-crown"
-                                    :class="(selected === 'SubAdmin') || isCurrentPath('admin/subscriptions*') ||
-                                        isCurrentPath('admin/plans*') ?
-                                        'menu-item-icon-active' : 'menu-item-icon-inactive'">
-                                </i>
-
-                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
-                                    Subscription Mgmt
-                                </span>
-
-                                <i class="fas fa-angle-down menu-item-arrow"
-                                    :class="[(selected === 'SubAdmin') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive',
-                                        sidebarToggle ? 'lg:hidden' : ''
-                                    ]">
-                                </i>
-                            </a>
-
-                            <div class="overflow-hidden transform translate"
-                                :class="(selected === 'SubAdmin') ? 'block' : 'hidden'">
-                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
-                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
-
-                                    <li>
-                                        <a href="{{ route('admin.subscriptions.dashboard') }}"
-                                            class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/subscriptions') ?
-                                                'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                            Dashboard
-                                        </a>
-                                    </li>
-
-                                    <li>
-                                        <a href="{{ route('admin.subscriptions.index') }}"
-                                            class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/subscriptions/all') ?
-                                                'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                            All Subscriptions
-                                        </a>
-                                    </li>
-
-                                    <li>
-                                        <a href="{{ route('admin.subscriptions.payments') }}"
-                                            class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/subscriptions/payments') ?
-                                                'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                            Payments
-                                        </a>
-                                    </li>
-
-                                    <li>
-                                        <a href="{{ route('admin.plans.index') }}" class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/plans') ?
-                                                'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                            Manage Plans
-                                        </a>
-                                    </li>
-
-                                </ul>
-                            </div>
-                        </li>
-                    @endrole
-                    {{-- ── End Super Admin Subscription ───────────────────────────────── --}}
-                    <!-- Menu Item Maintenance -->
 
 
                     <!-- Menu Item Settings -->
@@ -579,6 +498,29 @@
                     @endcan
                     <!-- Menu Item Settings -->
 
+
+
+                    <!-- Menu Item Usesr -->
+                    @can('users.view')
+                        <li>
+                            {{-- {{ route('admin.calendar') }} --}}
+                            <a href="{{ route('users.index') }}" @click="selected = (selected === 'Users' ? '':'Users')"
+                                class="menu-item group"
+                                :class="(selected === 'Users') && isCurrentPath('admin/users*') ? 'menu-item-active' :
+                                    'menu-item-inactive'">
+                                <i class="fas fa-users"
+                                    :class="(selected === 'Users') && isCurrentPath('admin/users*') ?
+                                        'menu-item-icon-active' :
+                                        'menu-item-icon-inactive'">
+                                </i>
+
+                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
+                                    Users
+                                </span>
+                            </a>
+                        </li>
+                    @endcan
+                    <!-- Menu Item Users -->
 
 
                     <!-- Menu Item Calendar -->

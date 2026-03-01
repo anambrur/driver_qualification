@@ -17,10 +17,10 @@ return new class extends Migration
             $table->string('company_name');
             $table->text('slug')->nullable();
             $table->string('email')->unique();
-            $table->string('address');
-            $table->string('city');
-            $table->string('state');
-            $table->string('zip');
+            $table->string('address')->nullable();
+            $table->string('city')->nullable();
+            $table->string('state')->nullable();
+            $table->string('zip')->nullable();
             $table->text('description')->nullable();
             $table->string('phone', 20)->nullable();
             $table->string('fax', 20)->nullable();

@@ -4,9 +4,10 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class CheckApplicationSession
+class Subscribed
 {
     /**
      * Handle an incoming request.
@@ -15,11 +16,16 @@ class CheckApplicationSession
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if user has verified phone and started application
-        if (!session()->has('verified_phone') || !session()->has('application_driver_id')) {
-            return redirect()->route('public.application.start', $request->route('slug'));
+        $user = Auth::user();
+        
+        if ($user->hasRole('super-admin')) {
+            return $next($request);
         }
 
+        if (! $request->user()?->subscribed()) {
+            // Redirect user to billing page and ask them to subscribe...
+            return redirect('/pricing/plans');
+        }
         return $next($request);
     }
 }

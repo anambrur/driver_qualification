@@ -14,9 +14,19 @@ class Subscription extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'user_id', 'plan_id', 'status', 'starts_at', 'ends_at',
-        'trial_ends_at', 'grace_ends_at', 'cancelled_at', 'last_renewed_at',
-        'auto_renew', 'payment_method', 'external_subscription_id', 'metadata',
+        'user_id',
+        'plan_id',
+        'status',
+        'starts_at',
+        'ends_at',
+        'trial_ends_at',
+        'grace_ends_at',
+        'cancelled_at',
+        'last_renewed_at',
+        'auto_renew',
+        'payment_method',
+        'external_subscription_id',
+        'metadata',
     ];
 
     protected $casts = [
@@ -25,7 +35,7 @@ class Subscription extends Model
         'trial_ends_at'  => 'datetime',
         'grace_ends_at'  => 'datetime',
         'cancelled_at'   => 'datetime',
-        'last_renewed_at'=> 'datetime',
+        'last_renewed_at' => 'datetime',
         'auto_renew'     => 'boolean',
         'metadata'       => 'array',
     ];

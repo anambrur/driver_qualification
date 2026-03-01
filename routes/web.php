@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\SubscriptionAdminController;
 use App\Http\Controllers\ApplicationFormController;
 use App\Http\Controllers\AssetGroupController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ComplianceDashboardController;
 use App\Http\Controllers\DashboardController;
@@ -15,18 +16,20 @@ use App\Http\Controllers\EquipmentTypeController;
 use App\Http\Controllers\FuelTypeController;
 use App\Http\Controllers\MaintenanceCategoryController;
 use App\Http\Controllers\MaintenanceScheduleController;
+use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TrailerController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleGroupController;
 use App\Http\Controllers\VehicleTypeController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/stripe/webhook', [SubscriptionController::class, 'webhook'])
-    ->name('stripe.webhook');
+Route::post('stripe/webhook', '\Laravel\Cashier\Http\Controllers\WebhookController@handleWebhook')
+    ->name('cashier.webhook');
 
 Route::get('/', function () {
     return view('welcome');
@@ -162,6 +165,27 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
 
 // ─── Subscription routes (auth required, no subscription check) ───────────────
 Route::middleware(['auth'])->group(function () {
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        Route::get('/create', [UserController::class, 'create'])->name('create');
+        Route::post('/', [UserController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [UserController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [UserController::class, 'update'])->name('update');
+        Route::delete('/{id}/2fa', [UserController::class, 'reset2FA'])->name('2fa.reset');
+        Route::post('/{id}/suspend', [UserController::class, 'suspend'])->name('suspend');
+        Route::post('/{id}/unsuspend', [UserController::class, 'unsuspend'])->name('unsuspend');
+        Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
+    });
+
+
+
+
+    Route::get('/pricing/plans', [PlanController::class, 'plans'])->name('pricing.plans');
+    Route::get('/checkout-success', [CheckoutController::class, 'success'])->name('checkout.success');
+    Route::get('/checkout/{name}', [CheckoutController::class, 'checkout'])->name('checkout');
+
+
+
 
     Route::get('/subscription/plans', [SubscriptionController::class, 'plans'])->name('subscription.plans');
     Route::get('/subscription/checkout/{plan}', [SubscriptionController::class, 'checkout'])->name('subscription.checkout');
@@ -200,7 +224,7 @@ Route::middleware(['auth', 'role:super-admin'])->prefix('admin')->name('admin.')
 
 Route::get('/profit', [DashboardController::class, 'profit'])->name('admin.profit');
 
-Route::middleware(['auth', 'subscription'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
