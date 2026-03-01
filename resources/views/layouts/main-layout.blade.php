@@ -42,6 +42,8 @@ $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(valu
             @include('partials.header')
             <!-- ===== Header End ===== -->
 
+            <x-subscription-alert />
+
             <!-- ===== Main Content Start ===== -->
             <main>
                 @yield('content')

@@ -8,9 +8,14 @@ use Illuminate\Http\Request;
 class CheckoutController extends Controller
 {
 
-    public function checkout($name, Request $request)
+    public function checkout(string $name, Request $request)
     {
-        $plan = Plan::where('slug', $name)->first();
+        $plan = Plan::where('slug', $name)->firstOrFail();
+
+        if (!$plan->is_active) {
+            return redirect()->route('pricing.plans')->with('error', 'This plan is not available.');
+        }
+
         $planPrice = $plan->stripe_price_id;
 
 
@@ -24,8 +29,14 @@ class CheckoutController extends Controller
             ]);
     }
 
-    public function success()
+    public function success(Request $request)
     {
-        return view('admin.plans.checkout-success');
+        $plan = null;
+        $subscription = $request->user()?->subscription('default');
+        if ($subscription) {
+            $plan = Plan::where('stripe_price_id', $subscription->stripe_price)->first();
+        }
+
+        return view('billing.checkout-success', compact('plan'));
     }
 }

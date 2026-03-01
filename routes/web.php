@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\SubscriptionAdminController;
 use App\Http\Controllers\ApplicationFormController;
 use App\Http\Controllers\AssetGroupController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ComplianceDashboardController;
@@ -20,7 +21,6 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceLogController;
-use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehicleController;
@@ -59,83 +59,63 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
 
     // Step 1: Basic Information (Personal Details)
     Route::get('/step-1', [ApplicationFormController::class, 'step1'])
-        ->name('step1')
-        ->middleware('check.application.session');
+        ->name('step1');
     Route::post('/step-1', [ApplicationFormController::class, 'storeStep1'])
-        ->name('store.step1')
-        ->middleware('check.application.session');
+        ->name('store.step1');
 
     // Step 2: Driver License Upload
     Route::get('/step-2/{driver_id}', [ApplicationFormController::class, 'step2'])
-        ->name('step2')
-        ->middleware('check.application.session');
+        ->name('step2');
     Route::post('/step-2', [ApplicationFormController::class, 'storeStep2'])
-        ->name('store.step2')
-        ->middleware('check.application.session');
+        ->name('store.step2');
 
     // Step 3: Medical Card Upload
     Route::get('/step-3/{driver_id}', [ApplicationFormController::class, 'step3'])
-        ->name('step3')
-        ->middleware('check.application.session');
+        ->name('step3');
     Route::post('/step-3', [ApplicationFormController::class, 'storeStep3'])
-        ->name('store.step3')
-        ->middleware('check.application.session');
+        ->name('store.step3');
 
     // Step 4: Forfeiture Document Upload
     Route::get('/step-4/{driver_id}', [ApplicationFormController::class, 'step4'])
-        ->name('step4')
-        ->middleware('check.application.session');
+        ->name('step4');
     Route::post('/step-4', [ApplicationFormController::class, 'storeStep4'])
-        ->name('store.step4')
-        ->middleware('check.application.session');
+        ->name('store.step4');
 
     // Step 5: Violation Record
     Route::get('/step-5/{driver_id}', [ApplicationFormController::class, 'step5'])
-        ->name('step5')
-        ->middleware('check.application.session');
+        ->name('step5');
     Route::post('/step-5', [ApplicationFormController::class, 'storeStep5'])
-        ->name('store.step5')
-        ->middleware('check.application.session');
+        ->name('store.step5');
 
     // Step 6: Alcohol & Drug Test Statement
     Route::get('/step-6/{driver_id}', [ApplicationFormController::class, 'step6'])
-        ->name('step6')
-        ->middleware('check.application.session');
+        ->name('step6');
     Route::post('/step-6', [ApplicationFormController::class, 'storeStep6'])
-        ->name('store.step6')
-        ->middleware('check.application.session');
+        ->name('store.step6');
 
     // Step 7: FMCSA Clearinghouse Consent
     Route::get('/step-7/{driver_id}', [ApplicationFormController::class, 'step7'])
-        ->name('step7')
-        ->middleware('check.application.session');
+        ->name('step7');
     Route::post('/step-7', [ApplicationFormController::class, 'storeStep7'])
-        ->name('store.step7')
-        ->middleware('check.application.session');
+        ->name('store.step7');
 
     // Step 8: PSP Driver Disclosure & Authorization
     Route::get('/step-8/{driver_id}', [ApplicationFormController::class, 'step8'])
-        ->name('step8')
-        ->middleware('check.application.session');
+        ->name('step8');
     Route::post('/step-8', [ApplicationFormController::class, 'storeStep8'])
-        ->name('store.step8')
-        ->middleware('check.application.session');
+        ->name('store.step8');
 
     // Step 9: Alcohol & Drug Testing Policy
     Route::get('/step-9/{driver_id}', [ApplicationFormController::class, 'step9'])
-        ->name('step9')
-        ->middleware('check.application.session');
+        ->name('step9');
     Route::post('/step-9', [ApplicationFormController::class, 'storeStep9'])
-        ->name('store.step9')
-        ->middleware('check.application.session');
+        ->name('store.step9');
 
     // Step 10: General Work Policy & Final Review
     Route::get('/step-10/{driver_id}', [ApplicationFormController::class, 'step10'])
-        ->name('step10')
-        ->middleware('check.application.session');
+        ->name('step10');
     Route::post('/step-10', [ApplicationFormController::class, 'storeStep10'])
-        ->name('store.step10')
-        ->middleware('check.application.session');
+        ->name('store.step10');
 
     // Application Complete/Thank You Page
     Route::get('/complete', [ApplicationFormController::class, 'complete'])->name('complete');
@@ -153,8 +133,7 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
 
     // Delete/Withdraw Application
     Route::post('/withdraw/{driver_id}', [ApplicationFormController::class, 'withdraw'])
-        ->name('withdraw')
-        ->middleware('check.application.session');
+        ->name('withdraw');
 });
 
 
@@ -180,23 +159,23 @@ Route::middleware(['auth'])->group(function () {
 
 
 
+    // ─── Billing & Subscription (Cashier) ─────────────────────────────────────
+    Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
+    Route::get('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
+    Route::get('/billing/invoice/{id}', [BillingController::class, 'downloadInvoice'])->name('billing.invoice.download');
+    Route::post('/billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
+    Route::post('/billing/resume', [BillingController::class, 'resume'])->name('billing.resume');
+
     Route::get('/pricing/plans', [PlanController::class, 'plans'])->name('pricing.plans');
     Route::get('/checkout-success', [CheckoutController::class, 'success'])->name('checkout.success');
     Route::get('/checkout/{name}', [CheckoutController::class, 'checkout'])->name('checkout');
 
-
-
-
-    Route::get('/subscription/plans', [SubscriptionController::class, 'plans'])->name('subscription.plans');
-    Route::get('/subscription/checkout/{plan}', [SubscriptionController::class, 'checkout'])->name('subscription.checkout');
-    Route::post('/subscription/purchase/{plan}', [SubscriptionController::class, 'purchase'])->name('subscription.purchase');
-    Route::get('/subscription/success', [SubscriptionController::class, 'success'])->name('subscription.success');
-    Route::get('/subscription/expired', [SubscriptionController::class, 'expired'])->name('subscription.expired');
-    Route::get('/subscription/my', [SubscriptionController::class, 'mySubscription'])->name('subscription.my');
-    Route::post('/subscription/cancel', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
-    Route::get('/subscription/renew', [SubscriptionController::class, 'renew'])->name('subscription.renew');
-    Route::post('/subscription/renew', [SubscriptionController::class, 'processRenewal'])->name('subscription.renew.process');
-    Route::get('/subscription/invoice/{payment}/download', [SubscriptionController::class, 'downloadInvoice'])->name('subscription.invoice.download');
+    // Legacy subscription routes (redirect to new billing flow)
+    Route::get('/subscription/plans', fn () => redirect()->route('pricing.plans'));
+    Route::get('/subscription/my', fn () => redirect()->route('billing.index'));
+    Route::get('/subscription/renew', fn () => redirect()->route('billing.portal'));
+    Route::get('/subscription/expired', fn () => redirect()->route('pricing.plans'));
+    Route::get('/subscription/checkout/{plan}', fn (App\Models\Plan $plan) => redirect()->route('checkout', $plan->slug));
 });
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────

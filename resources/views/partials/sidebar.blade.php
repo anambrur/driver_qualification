@@ -376,27 +376,17 @@
                                     <a href="{{ route('pricing.plans') }}" class="menu-dropdown-item group"
                                         :class="isCurrentPath('pricing/plans') ?
                                             'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                        Plans
+                                        Plans & Pricing
                                     </a>
                                 </li>
 
                                 <li>
-                                    <a href="{{ route('subscription.my') }}" class="menu-dropdown-item group"
-                                        :class="isCurrentPath('subscription/my') ?
+                                    <a href="{{ route('billing.index') }}" class="menu-dropdown-item group"
+                                        :class="isCurrentPath('billing') ?
                                             'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                        My Subscription
+                                        Billing & Invoices
                                     </a>
                                 </li>
-
-                                <li>
-                                    <a href="{{ route('subscription.plans') }}" class="menu-dropdown-item group"
-                                        :class="isCurrentPath('subscription/plans') ?
-                                            'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                        View Plans
-                                    </a>
-                                </li>
-
-
 
                             </ul>
                         </div>

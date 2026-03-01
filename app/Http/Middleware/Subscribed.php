@@ -22,9 +22,8 @@ class Subscribed
             return $next($request);
         }
 
-        if (! $request->user()?->subscribed()) {
-            // Redirect user to billing page and ask them to subscribe...
-            return redirect('/pricing/plans');
+        if (! $request->user()?->subscribed('default')) {
+            return redirect()->route('pricing.plans');
         }
         return $next($request);
     }
