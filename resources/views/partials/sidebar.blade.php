@@ -30,41 +30,20 @@
 
                     <!-- Menu Item Dashboard -->
                     <li>
-                        <a href="#" @click.prevent="selected = (selected === 'Dashboard' ? '':'Dashboard')"
+                        <a href="{{ route('dashboard') }}" @click="selected = (selected === 'Dashboard' ? '':'Dashboard')"
                             class="menu-item group"
-                            :class="(selected === 'Dashboard') || isCurrentPath('admin/dashboard*') ?
-                                'menu-item-active' : 'menu-item-inactive'">
+                            :class="(selected === 'Dashboard') && isCurrentPath('dashboard*') ? 'menu-item-active' :
+                                'menu-item-inactive'">
                             <i class="fas fa-th-large"
-                                :class="(selected === 'Dashboard') || isCurrentPath('admin/dashboard*') ?
-                                    'menu-item-icon-active' : 'menu-item-icon-inactive'">
+                                :class="(selected === 'Dashboard') && isCurrentPath('dashboard*') ?
+                                    'menu-item-icon-active' :
+                                    'menu-item-icon-inactive'">
                             </i>
 
                             <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">
                                 Dashboard
                             </span>
-
-                            <i class="fas fa-angle-down menu-item-arrow"
-                                :class="[(selected === 'Dashboard') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive',
-                                    sidebarToggle ? 'lg:hidden' : ''
-                                ]">
-                            </i>
                         </a>
-
-                        <!-- Dropdown Menu Start -->
-                        <div class="overflow-hidden transform translate"
-                            :class="(selected === 'Dashboard') ? 'block' : 'hidden'">
-                            <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
-                                class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
-                                <li>
-                                    <a href="{{ route('admin.dashboard') }}" class="menu-dropdown-item group"
-                                        :class="isCurrentPath('admin/dashboard*') ? 'menu-dropdown-item-active' :
-                                            'menu-dropdown-item-inactive'">
-                                        Dashboard Home
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                        <!-- Dropdown Menu End -->
                     </li>
                     <!-- Menu Item Dashboard -->
 
@@ -514,8 +493,7 @@
 
 
                     <!-- Menu Item Calendar -->
-                    <li>
-                        {{-- {{ route('admin.calendar') }} --}}
+                    {{-- <li>
                         <a href="" @click="selected = (selected === 'Calendar' ? '':'Calendar')"
                             class="menu-item group"
                             :class="(selected === 'Calendar') && isCurrentPath('admin/calendar*') ? 'menu-item-active' :
@@ -530,7 +508,7 @@
                                 Calendar
                             </span>
                         </a>
-                    </li>
+                    </li> --}}
                     <!-- Menu Item Calendar -->
 
 

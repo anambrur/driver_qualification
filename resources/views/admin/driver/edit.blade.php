@@ -34,7 +34,7 @@
                     @csrf
                     @method('PUT')
 
-                    <input type="hidden" name="status" value="{{ $driver->status }}" />
+                    <input type="hidden" name="status" value="{{ $driver->status ?? '' }}" />
 
                     <!-- Company Selection -->
                     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
@@ -52,10 +52,10 @@
                                 <select id="company_id" name="company_id" required
                                     class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                                     <option value="">Select Company</option>
-                                    @foreach ($companies as $company)
-                                        <option value="{{ $company->id }}"
-                                            {{ old('company_id', $driver->company_id) == $company->id ? 'selected' : '' }}>
-                                            {{ $company->company_name }}
+                                    @foreach ($companies ?? [] as $company)
+                                        <option value="{{ $company->id ?? '' }}"
+                                            {{ old('company_id', $driver->company_id ?? '') == ($company->id ?? '') ? 'selected' : '' }}>
+                                            {{ $company->company_name ?? '' }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -79,7 +79,7 @@
                                         First Name <span class="text-error-500">*</span>
                                     </label>
                                     <input type="text" id="first_name" name="first_name"
-                                        value="{{ old('first_name', $driver->first_name) }}" required
+                                        value="{{ old('first_name', $driver->first_name ?? '') }}" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
 
@@ -89,7 +89,7 @@
                                         Middle Name
                                     </label>
                                     <input type="text" id="middle_name" name="middle_name"
-                                        value="{{ old('middle_name', $driver->middle_name) }}"
+                                        value="{{ old('middle_name', $driver->middle_name ?? '') }}"
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
 
@@ -99,7 +99,7 @@
                                         Last Name <span class="text-error-500">*</span>
                                     </label>
                                     <input type="text" id="last_name" name="last_name"
-                                        value="{{ old('last_name', $driver->last_name) }}" required
+                                        value="{{ old('last_name', $driver->last_name ?? '') }}" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
 
@@ -109,7 +109,7 @@
                                         Suffix
                                     </label>
                                     <input type="text" id="suffix" name="suffix"
-                                        value="{{ old('suffix', $driver->suffix) }}"
+                                        value="{{ old('suffix', $driver->suffix ?? '') }}"
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
                             </div>
@@ -122,7 +122,7 @@
                                         Business Name
                                     </label>
                                     <input type="text" id="business_name" name="business_name"
-                                        value="{{ old('business_name', $driver->business_name) }}"
+                                        value="{{ old('business_name', $driver->business_name ?? '') }}"
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
 
@@ -133,7 +133,7 @@
                                     </label>
                                     <input type="text" id="employer_identification_number"
                                         name="employer_identification_number"
-                                        value="{{ old('employer_identification_number', $driver->employer_identification_number) }}"
+                                        value="{{ old('employer_identification_number', $driver->employer_identification_number ?? '') }}"
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
                             </div>
@@ -143,11 +143,17 @@
                                     Federal Tax Classification
                                 </label>
                                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                    @php
+                                        $taxClassification = old(
+                                            'federal_tax_classification',
+                                            $driver->federal_tax_classification ?? '',
+                                        );
+                                    @endphp
                                     @foreach (['individual_sole_proprietor' => 'Individual/Sole Proprietor', 'c_corporation' => 'C Corporation', 's_corporation' => 'S Corporation', 'llc' => 'LLC'] as $value => $label)
                                         <label class="flex items-center">
                                             <input type="radio" name="federal_tax_classification"
                                                 value="{{ $value }}"
-                                                {{ old('federal_tax_classification', $driver->federal_tax_classification) == $value ? 'checked' : '' }}
+                                                {{ $taxClassification == $value ? 'checked' : '' }}
                                                 class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                             <span
                                                 class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ $label }}</span>
@@ -164,7 +170,7 @@
                                         Date of Birth <span class="text-error-500">*</span>
                                     </label>
                                     <input type="date" id="date_of_birth" name="date_of_birth"
-                                        value="{{ old('date_of_birth', $driver->date_of_birth) }}" required
+                                        value="{{ old('date_of_birth', $driver->date_of_birth ?? '') }}" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
 
@@ -174,7 +180,7 @@
                                         Social Security Number <span class="text-error-500">*</span>
                                     </label>
                                     <input type="text" id="ssn" name="ssn"
-                                        value="{{ old('ssn', $driver->ssn) }}" required placeholder="XXX-XX-XXXX"
+                                        value="{{ old('ssn', $driver->ssn ?? '') }}" required placeholder="XXX-XX-XXXX"
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
                             </div>
@@ -187,7 +193,7 @@
                                         Main Phone Number <span class="text-error-500">*</span>
                                     </label>
                                     <input type="tel" id="main_phone" name="main_phone"
-                                        value="{{ old('main_phone', $driver->main_phone) }}" required
+                                        value="{{ old('main_phone', $driver->main_phone ?? '') }}" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
 
@@ -197,7 +203,7 @@
                                         Alt Phone Number
                                     </label>
                                     <input type="tel" id="alt_phone" name="alt_phone"
-                                        value="{{ old('alt_phone', $driver->alt_phone) }}"
+                                        value="{{ old('alt_phone', $driver->alt_phone ?? '') }}"
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
                             </div>
@@ -208,7 +214,7 @@
                                     Email Address <span class="text-error-500">*</span>
                                 </label>
                                 <input type="email" id="email" name="email"
-                                    value="{{ old('email', $driver->email) }}" required
+                                    value="{{ old('email', $driver->email ?? '') }}" required
                                     class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                             </div>
 
@@ -220,7 +226,7 @@
                                     Address <span class="text-error-500">*</span>
                                 </label>
                                 <input type="text" id="address" name="address"
-                                    value="{{ old('address', $driver->address) }}" required
+                                    value="{{ old('address', $driver->address ?? '') }}" required
                                     class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                             </div>
 
@@ -231,7 +237,7 @@
                                         City <span class="text-error-500">*</span>
                                     </label>
                                     <input type="text" id="city" name="city"
-                                        value="{{ old('city', $driver->city) }}" required
+                                        value="{{ old('city', $driver->city ?? '') }}" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
 
@@ -244,10 +250,10 @@
                                     <select id="country" name="country" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                                         <option value="">Select Country</option>
-                                        @foreach ($countries as $country)
-                                            <option value="{{ $country->name }}"
-                                                {{ $driver->country == $country->name ? 'selected' : '' }}>
-                                                {{ $country->name }}
+                                        @foreach ($countries ?? [] as $country)
+                                            <option value="{{ $country->name ?? '' }}"
+                                                {{ ($driver->country ?? '') == ($country->name ?? '') ? 'selected' : '' }}>
+                                                {{ $country->name ?? '' }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -264,11 +270,11 @@
                                     <select id="state" name="state" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                                         <option value="">Select State</option>
-                                        @if (isset($states) && $states->count())
+                                        @if (isset($states) && $states->isNotEmpty())
                                             @foreach ($states as $state)
-                                                <option value="{{ $state->name }}"
-                                                    {{ $driver->state == $state->name ? 'selected' : '' }}>
-                                                    {{ $state->name }}
+                                                <option value="{{ $state->name ?? '' }}"
+                                                    {{ ($driver->state ?? '') == ($state->name ?? '') ? 'selected' : '' }}>
+                                                    {{ $state->name ?? '' }}
                                                 </option>
                                             @endforeach
                                         @endif
@@ -284,7 +290,7 @@
                                         Postal Code <span class="text-error-500">*</span>
                                     </label>
                                     <input type="text" id="postal_code" name="postal_code"
-                                        value="{{ old('postal_code', $driver->postal_code) }}" required
+                                        value="{{ old('postal_code', $driver->postal_code ?? '') }}" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
                             </div>
@@ -293,7 +299,7 @@
                             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <label class="flex items-center">
                                     <input type="checkbox" name="twic_card" value="1"
-                                        {{ old('twic_card', $driver->twic_card) ? 'checked' : '' }}
+                                        {{ old('twic_card', $driver->twic_card ?? false) ? 'checked' : '' }}
                                         class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                     <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Do you have a TWIC
                                         Card?</span>
@@ -301,7 +307,7 @@
 
                                 <label class="flex items-center">
                                     <input type="checkbox" name="passport" value="1"
-                                        {{ old('passport', $driver->passport) ? 'checked' : '' }}
+                                        {{ old('passport', $driver->passport ?? false) ? 'checked' : '' }}
                                         class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                     <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Do you have a
                                         passport?</span>
@@ -322,7 +328,7 @@
                         <div class="p-5 sm:p-6">
                             <label class="flex items-center pb-4">
                                 <input type="checkbox" name="same_address" value="1" id="same_address_checkbox"
-                                    {{ old('same_address', $driver->same_address) ? 'checked' : '' }}
+                                    {{ old('same_address', $driver->same_address ?? false) ? 'checked' : '' }}
                                     class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Same address as from Applicant
                                     Information.</span>
@@ -330,12 +336,14 @@
 
                             <p class="text-sm text-gray-500 dark:text-gray-400 pb-4">List residence for previous 3 years if
                                 you
-                                lived at
-                                the above address less than 3 years.
+                                lived at the above address less than 3 years.
                             </p>
 
                             <div id="residence_fields">
                                 <!-- Initial residence field -->
+                                @php
+                                    $firstResidence = $driver->residence_addresses->first() ?? null;
+                                @endphp
                                 <div
                                     class="residence-field mb-6 p-4 border border-gray-200 rounded-lg dark:border-gray-700">
                                     <div class="pb-4">
@@ -344,7 +352,7 @@
                                             Address
                                         </label>
                                         <input type="text" id="residence_address_0" name="residence_address[]"
-                                            value="{{ old('residence_address.0', $driver->residence_addresses->first()->address) }}"
+                                            value="{{ old('residence_address.0', $firstResidence->address ?? '') }}"
                                             class="residence-address shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                     </div>
 
@@ -355,7 +363,7 @@
                                                 City
                                             </label>
                                             <input type="text" id="residence_city_0" name="residence_city[]"
-                                                value="{{ old('residence_city.0', $driver->residence_addresses->first()->city) }}"
+                                                value="{{ old('residence_city.0', $firstResidence->city ?? '') }}"
                                                 class="residence-city shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                         </div>
 
@@ -367,10 +375,10 @@
                                             <select id="residence_country_0" name="residence_country[]"
                                                 class="residence-country shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                                                 <option value="">Select Country</option>
-                                                @foreach ($countries as $country)
-                                                    <option value="{{ $country->name }}"
-                                                        {{ old('residence_country.0', $driver->residence_addresses->first()->country) == $country->name ? 'selected' : '' }}>
-                                                        {{ $country->name }}
+                                                @foreach ($countries ?? [] as $country)
+                                                    <option value="{{ $country->name ?? '' }}"
+                                                        {{ old('residence_country.0', $firstResidence->country ?? '') == ($country->name ?? '') ? 'selected' : '' }}>
+                                                        {{ $country->name ?? '' }}
                                                     </option>
                                                 @endforeach
                                             </select>
@@ -384,11 +392,11 @@
                                             <select id="residence_state_0" name="residence_state[]"
                                                 class="residence-state shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                                                 <option value="">Select State</option>
-                                                @if (isset($states) && $states->count())
+                                                @if (isset($states) && $states->isNotEmpty())
                                                     @foreach ($states as $state)
-                                                        <option value="{{ $state->name }}"
-                                                            {{ old('residence_state.0', $driver->residence_addresses->first()->state) == $state->name ? 'selected' : '' }}>
-                                                            {{ $state->name }}
+                                                        <option value="{{ $state->name ?? '' }}"
+                                                            {{ old('residence_state.0', $firstResidence->state ?? '') == ($state->name ?? '') ? 'selected' : '' }}>
+                                                            {{ $state->name ?? '' }}
                                                         </option>
                                                     @endforeach
                                                 @endif
@@ -402,7 +410,7 @@
                                             </label>
                                             <input type="text" id="residence_postal_code_0"
                                                 name="residence_postal_code[]"
-                                                value="{{ old('residence_postal_code.0', $driver->residence_addresses->first()->zip) }}"
+                                                value="{{ old('residence_postal_code.0', $firstResidence->zip ?? '') }}"
                                                 class="residence-postal-code shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                         </div>
                                     </div>
@@ -437,19 +445,22 @@
                         </div>
                         <div class="p-5 sm:p-6">
                             <p class="text-sm text-gray-500 dark:text-gray-400 pb-4">List all driver licenses held within
-                                the last
-                                3 years. Enter your first and last name exactly as it appears on your license.
+                                the last 3 years. Enter your first and last name exactly as it appears on your license.
                             </p>
                             <div
                                 class="rounded-lg mb-4 py-2 px-4 text-orange-900 border border-amber-100 bg-amber-100 dark:border-gray-800 dark:bg-white/[0.03]">
                                 <p>Warning! Triple check the license information for accuracy. If you enter the wrong
-                                    information,
-                                    all documents relating to your license will have to be discarded and completed again.
-                                    Failure to
-                                    enter accurate license information may result in non-consideration and a rejected
+                                    information, all documents relating to your license will have to be discarded and
+                                    completed again.
+                                    Failure to enter accurate license information may result in non-consideration and a
+                                    rejected
                                     application!
                                 </p>
                             </div>
+
+                            @php
+                                $firstLicense = $driver->licenses->first() ?? null;
+                            @endphp
 
                             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                                 <div>
@@ -458,8 +469,7 @@
                                         First Name <span class="text-error-500">*</span>
                                     </label>
                                     <input type="text" id="license_first_name" name="license_first_name"
-                                        value="{{ old('license_first_name', $driver->licenses->first()->first_name) }}"
-                                        required
+                                        value="{{ old('license_first_name', $firstLicense->first_name ?? '') }}" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
 
@@ -469,8 +479,7 @@
                                         Last Name <span class="text-error-500">*</span>
                                     </label>
                                     <input type="text" id="license_last_name" name="license_last_name"
-                                        value="{{ old('license_last_name', $driver->licenses->first()->last_name) }}"
-                                        required
+                                        value="{{ old('license_last_name', $firstLicense->last_name ?? '') }}" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
 
@@ -480,7 +489,7 @@
                                         Issued <span class="text-error-500">*</span>
                                     </label>
                                     <input type="date" id="license_issued" name="license_issued"
-                                        value="{{ old('license_issued', $driver->licenses->first()->issued) }}" required
+                                        value="{{ old('license_issued', $firstLicense->issued ?? '') }}" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
 
@@ -490,7 +499,7 @@
                                         Expires <span class="text-error-500">*</span>
                                     </label>
                                     <input type="date" id="license_expires" name="license_expires"
-                                        value="{{ old('license_expires', $driver->licenses->first()->expires) }}" required
+                                        value="{{ old('license_expires', $firstLicense->expires ?? '') }}" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
                             </div>
@@ -504,10 +513,10 @@
                                     <select id="license_country" name="license_country" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                                         <option value="">Select Country</option>
-                                        @foreach ($countries as $country)
-                                            <option value="{{ $country->name }}"
-                                                {{ old('license_country', $driver->licenses->first()->country) == $country->name ? 'selected' : '' }}>
-                                                {{ $country->name }}
+                                        @foreach ($countries ?? [] as $country)
+                                            <option value="{{ $country->name ?? '' }}"
+                                                {{ old('license_country', $firstLicense->country ?? '') == ($country->name ?? '') ? 'selected' : '' }}>
+                                                {{ $country->name ?? '' }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -521,11 +530,11 @@
                                     <select id="license_state" name="license_state" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                                         <option value="">Select State</option>
-                                        @if (isset($states) && $states->count())
+                                        @if (isset($states) && $states->isNotEmpty())
                                             @foreach ($states as $state)
-                                                <option value="{{ $state->name }}"
-                                                    {{ old('license_state', $driver->licenses->first()->state) == $state->name ? 'selected' : '' }}>
-                                                    {{ $state->name }}
+                                                <option value="{{ $state->name ?? '' }}"
+                                                    {{ old('license_state', $firstLicense->state ?? '') == ($state->name ?? '') ? 'selected' : '' }}>
+                                                    {{ $state->name ?? '' }}
                                                 </option>
                                             @endforeach
                                         @endif
@@ -540,44 +549,39 @@
                                     <select id="license_class" name="license_class" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                                         <option value="">Select license class</option>
+                                        @php
+                                            $licenseClass = old('license_class', $firstLicense->class ?? '');
+                                        @endphp
                                         <option value="Class A (CDL-A)"
-                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class A (CDL-A)' ? 'selected' : '' }}>
-                                            Class A
-                                            (CDL-A)
+                                            {{ $licenseClass == 'Class A (CDL-A)' ? 'selected' : '' }}>
+                                            Class A (CDL-A)
                                         </option>
                                         <option value="Class B (CDL-B)"
-                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class B (CDL-B)' ? 'selected' : '' }}>
-                                            Class B
-                                            (CDL-B)
+                                            {{ $licenseClass == 'Class B (CDL-B)' ? 'selected' : '' }}>
+                                            Class B (CDL-B)
                                         </option>
                                         <option value="Class C (CDL-C)"
-                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class C (CDL-C)' ? 'selected' : '' }}>
-                                            Class C
-                                            (CDL-C)
+                                            {{ $licenseClass == 'Class C (CDL-C)' ? 'selected' : '' }}>
+                                            Class C (CDL-C)
                                         </option>
-                                        <option value="Class D"
-                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class D' ? 'selected' : '' }}>
+                                        <option value="Class D" {{ $licenseClass == 'Class D' ? 'selected' : '' }}>
                                             Class D
                                         </option>
                                         <option value="Class C (Non-Commercial)"
-                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class C (Non-Commercial)' ? 'selected' : '' }}>
-                                            Class C
-                                            (Non-Commercial)
+                                            {{ $licenseClass == 'Class C (Non-Commercial)' ? 'selected' : '' }}>
+                                            Class C (Non-Commercial)
                                         </option>
-                                        <option value="Class M"
-                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class M' ? 'selected' : '' }}>
+                                        <option value="Class M" {{ $licenseClass == 'Class M' ? 'selected' : '' }}>
                                             Class M
                                         </option>
-                                        <option value="Class E"
-                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class E' ? 'selected' : '' }}>
+                                        <option value="Class E" {{ $licenseClass == 'Class E' ? 'selected' : '' }}>
                                             Class E
                                         </option>
-                                        <option value="Class F"
-                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class F' ? 'selected' : '' }}>
+                                        <option value="Class F" {{ $licenseClass == 'Class F' ? 'selected' : '' }}>
                                             Class F
                                         </option>
                                         <option value="Class DJ/MJ"
-                                            {{ old('license_class', $driver->licenses->first()->class) == 'Class DJ/MJ' ? 'selected' : '' }}>
+                                            {{ $licenseClass == 'Class DJ/MJ' ? 'selected' : '' }}>
                                             Class DJ/MJ
                                         </option>
                                     </select>
@@ -591,8 +595,7 @@
                                         License Number <span class="text-error-500">*</span>
                                     </label>
                                     <input type="text" id="license_number" name="license_number"
-                                        value="{{ old('license_number', $driver->licenses->first()->license_number) }}"
-                                        required
+                                        value="{{ old('license_number', $firstLicense->license_number ?? '') }}" required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
 
@@ -602,7 +605,7 @@
                                         Repeat License Number: <span class="text-error-500">*</span>
                                     </label>
                                     <input type="text" id="repeat_license_number" name="repeat_license_number"
-                                        value="{{ old('repeat_license_number', $driver->licenses->first()->license_number) }}"
+                                        value="{{ old('repeat_license_number', $firstLicense->license_number ?? '') }}"
                                         required
                                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                 </div>
@@ -613,44 +616,43 @@
                                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                                     <label class="flex items-center">
                                         <input type="checkbox" name="is_h_placarded_hazmat" value="1"
-                                            {{ old('is_h_placarded_hazmat', $driver->licenses->first()->is_h_placarded_hazmat) ? 'checked' : '' }}
+                                            {{ old('is_h_placarded_hazmat', $firstLicense->is_h_placarded_hazmat ?? false) ? 'checked' : '' }}
                                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">H - Placarded
                                             Hazmat.</span>
                                     </label>
                                     <label class="flex items-center">
                                         <input type="checkbox" name="is_n_tank_vehicle" value="1"
-                                            {{ old('is_n_tank_vehicle', $driver->licenses->first()->is_n_tank_vehicle) ? 'checked' : '' }}
+                                            {{ old('is_n_tank_vehicle', $firstLicense->is_n_tank_vehicle ?? false) ? 'checked' : '' }}
                                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">N - Tank
                                             Vehicles.</span>
                                     </label>
                                     <label class="flex items-center">
                                         <input type="checkbox" name="is_p_passengers" value="1"
-                                            {{ old('is_p_passengers', $driver->licenses->first()->is_p_passengers) ? 'checked' : '' }}
+                                            {{ old('is_p_passengers', $firstLicense->is_p_passengers ?? false) ? 'checked' : '' }}
                                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">P - Passengers.</span>
                                     </label>
                                     <label class="flex items-center">
                                         <input type="checkbox" name="is_t_double_trailer" value="1"
-                                            {{ old('is_t_double_trailer', $driver->licenses->first()->is_t_double_trailer) ? 'checked' : '' }}
+                                            {{ old('is_t_double_trailer', $firstLicense->is_t_double_trailer ?? false) ? 'checked' : '' }}
                                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">T - Double/Triple
                                             Trailers.</span>
                                     </label>
                                     <label class="flex items-center">
                                         <input type="checkbox" name="is_s_school_bus" value="1"
-                                            {{ old('is_s_school_bus', $driver->licenses->first()->is_s_school_bus) ? 'checked' : '' }}
+                                            {{ old('is_s_school_bus', $firstLicense->is_s_school_bus ?? false) ? 'checked' : '' }}
                                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">S - School Bus.</span>
                                     </label>
                                     <label class="flex items-center">
                                         <input type="checkbox" name="is_x_placarded_hazmat" value="1"
-                                            {{ old('is_x_placarded_hazmat', $driver->licenses->first()->is_x_placarded_hazmat) ? 'checked' : '' }}
+                                            {{ old('is_x_placarded_hazmat', $firstLicense->is_x_placarded_hazmat ?? false) ? 'checked' : '' }}
                                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">X - Placarded Hazmat &
-                                            Tank
-                                            Vehicles.</span>
+                                            Tank Vehicles.</span>
                                     </label>
                                 </div>
                             </div>
@@ -674,7 +676,7 @@
                                 </label>
                                 <input type="date" id="medical_certificate_expiration_date"
                                     name="medical_certificate_expiration_date"
-                                    value="{{ old('medical_certificate_expiration_date', $driver->medical_certificate_expiration_date) }}"
+                                    value="{{ old('medical_certificate_expiration_date', $driver->medical_certificate_expiration_date ?? '') }}"
                                     required
                                     class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                             </div>
@@ -730,8 +732,8 @@
 
                                         // Create a map of existing experiences by equipment class
                                         $existingExperiences = [];
-                                        foreach ($driver->experiences as $experience) {
-                                            $existingExperiences[$experience->equipment_class] = $experience;
+                                        foreach ($driver->experiences ?? [] as $experience) {
+                                            $existingExperiences[$experience->equipment_class ?? ''] = $experience;
                                         }
                                     @endphp
 
@@ -794,20 +796,24 @@
                             <!-- Question wrapper -->
                             <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
                                 <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Have you had any
-                                    accidents/crashes
-                                    in the last 3 years? <span class="text-red-500">*</span></p>
+                                    accidents/crashes in the last 3 years? <span class="text-red-500">*</span></p>
                                 <div class="flex items-center gap-6">
+                                    @php
+                                        $hasAccidents =
+                                            $driver->accidents->isNotEmpty() &&
+                                            ($driver->accidents->first()->accident ?? 'no') == 'yes';
+                                    @endphp
                                     <!-- YES -->
                                     <label class="inline-flex items-center cursor-pointer select-none">
                                         <input type="radio" name="accident" value="yes"
-                                            {{ count($driver->accidents) > 0 && $driver->accidents->first()->accident == 'yes' ? 'checked' : '' }}
+                                            {{ $hasAccidents ? 'checked' : '' }}
                                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Yes</span>
                                     </label>
                                     <!-- NO -->
                                     <label class="inline-flex items-center cursor-pointer select-none">
                                         <input type="radio" name="accident" value="no"
-                                            {{ count($driver->accidents) == 0 || $driver->accidents->first()->accident == 'no' ? 'checked' : '' }}
+                                            {{ !$hasAccidents ? 'checked' : '' }}
                                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">No</span>
                                     </label>
@@ -846,31 +852,33 @@
                                             $accidents = $driver->accidents->where('accident', 'yes');
                                         @endphp
 
-                                        @if ($accidents->count() > 0)
+                                        @if ($accidents->isNotEmpty())
                                             @foreach ($accidents as $index => $accident)
                                                 <tr class="border border-gray-200 dark:border-gray-700">
                                                     <td
                                                         class="border border-gray-200 p-3 text-sm text-gray-800 dark:text-white/90">
                                                         <input type="date" name="accident_date[]"
-                                                            value="{{ $accident->accident_date }}"
+                                                            value="{{ $accident->accident_date ?? '' }}"
                                                             class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                                     </td>
                                                     <td
                                                         class="border border-gray-200 p-3 text-sm text-gray-800 dark:text-white/90">
                                                         <input type="text" name="accident_location[]"
-                                                            value="{{ $accident->accident_location }}"
+                                                            value="{{ $accident->accident_location ?? '' }}"
                                                             class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                                     </td>
                                                     <td
                                                         class="border border-gray-200 p-3 text-sm text-gray-800 dark:text-white/90">
                                                         <input type="text" name="number_of_injuries[]"
-                                                            value="{{ $accident->number_of_injuries }}" placeholder="0"
+                                                            value="{{ $accident->number_of_injuries ?? '' }}"
+                                                            placeholder="0"
                                                             class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                                     </td>
                                                     <td
                                                         class="border border-gray-200 p-3 text-sm text-gray-800 dark:text-white/90">
                                                         <input type="text" name="number_of_fatalities[]"
-                                                            value="{{ $accident->number_of_fatalities }}" placeholder="0"
+                                                            value="{{ $accident->number_of_fatalities ?? '' }}"
+                                                            placeholder="0"
                                                             class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                                     </td>
                                                     <td
@@ -878,10 +886,11 @@
                                                         <select name="hazmat_spill[]"
                                                             class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                                                             <option value="no"
-                                                                {{ $accident->hazmat_spill == 'no' ? 'selected' : '' }}>No
+                                                                {{ ($accident->hazmat_spill ?? 'no') == 'no' ? 'selected' : '' }}>
+                                                                No
                                                             </option>
                                                             <option value="yes"
-                                                                {{ $accident->hazmat_spill == 'yes' ? 'selected' : '' }}>
+                                                                {{ ($accident->hazmat_spill ?? 'no') == 'yes' ? 'selected' : '' }}>
                                                                 Yes</option>
                                                         </select>
                                                     </td>
@@ -952,20 +961,24 @@
                             <!-- Question wrapper -->
                             <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
                                 <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Have you had any traffic
-                                    violations
-                                    in the last 3 years? <span class="text-red-500">*</span></p>
+                                    violations in the last 3 years? <span class="text-red-500">*</span></p>
                                 <div class="flex items-center gap-6">
+                                    @php
+                                        $hasViolations =
+                                            $driver->violations->isNotEmpty() &&
+                                            ($driver->violations->first()->violation ?? 'no') == 'yes';
+                                    @endphp
                                     <!-- YES -->
                                     <label class="inline-flex items-center cursor-pointer select-none">
                                         <input type="radio" name="violation" value="yes"
-                                            {{ count($driver->violations) > 0 && $driver->violations->first()->violation == 'yes' ? 'checked' : '' }}
+                                            {{ $hasViolations ? 'checked' : '' }}
                                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Yes</span>
                                     </label>
                                     <!-- NO -->
                                     <label class="inline-flex items-center cursor-pointer select-none">
                                         <input type="radio" name="violation" value="no"
-                                            {{ count($driver->violations) == 0 || $driver->violations->first()->violation == 'no' ? 'checked' : '' }}
+                                            {{ !$hasViolations ? 'checked' : '' }}
                                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">No</span>
                                     </label>
@@ -1000,31 +1013,31 @@
                                             $violations = $driver->violations->where('violation', 'yes');
                                         @endphp
 
-                                        @if ($violations->count() > 0)
+                                        @if ($violations->isNotEmpty())
                                             @foreach ($violations as $index => $violation)
                                                 <tr class="border border-gray-200 dark:border-gray-700">
                                                     <td
                                                         class="border border-gray-200 p-3 text-sm text-gray-800 dark:text-white/90">
                                                         <input type="date" name="violation_date[]"
-                                                            value="{{ $violation->violation_date }}"
+                                                            value="{{ $violation->violation_date ?? '' }}"
                                                             class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                                     </td>
                                                     <td
                                                         class="border border-gray-200 p-3 text-sm text-gray-800 dark:text-white/90">
                                                         <input type="text" name="violation_location[]"
-                                                            value="{{ $violation->violation_location }}"
+                                                            value="{{ $violation->violation_location ?? '' }}"
                                                             class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                                     </td>
                                                     <td
                                                         class="border border-gray-200 p-3 text-sm text-gray-800 dark:text-white/90">
                                                         <input type="text" name="offense[]"
-                                                            value="{{ $violation->offense }}"
+                                                            value="{{ $violation->offense ?? '' }}"
                                                             class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                                     </td>
                                                     <td
                                                         class="border border-gray-200 p-3 text-sm text-gray-800 dark:text-white/90">
                                                         <input type="text" name="vehicle_type[]"
-                                                            value="{{ $violation->vehicle_type }}"
+                                                            value="{{ $violation->vehicle_type ?? '' }}"
                                                             class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                                     </td>
                                                 </tr>
@@ -1084,13 +1097,12 @@
                                 Forfeitures Previous 3 Years
                             </h3>
                             @php
-                                $forfeiture = $driver->forfeitures->first();
+                                $forfeiture = $driver->forfeitures->first() ?? null;
                             @endphp
                             <!-- Question wrapper -->
                             <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
                                 <p class="text-sm font-medium text-gray-700 dark:text-gray-300">A. Have you ever been
-                                    denied a
-                                    license, permit or privilege to operate a motor vehicle? <span
+                                    denied a license, permit or privilege to operate a motor vehicle? <span
                                         class="text-red-500">*</span>
                                 </p>
                                 <div class="flex items-center gap-6">
@@ -1113,8 +1125,7 @@
 
                             <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
                                 <p class="text-sm font-medium text-gray-700 dark:text-gray-300">B. Has any license, permit
-                                    or
-                                    privilege ever been revoked? <span class="text-red-500">*</span></p>
+                                    or privilege ever been revoked? <span class="text-red-500">*</span></p>
                                 <div class="flex items-center gap-6">
                                     <!-- YES -->
                                     <label class="inline-flex items-center cursor-pointer select-none">
@@ -1135,8 +1146,7 @@
 
                             <div class="mt-4">
                                 <p class="text-sm font-medium text-gray-700 dark:text-gray-300">C. If yes to either
-                                    question above,
-                                    briefly describe the circumstances.
+                                    question above, briefly describe the circumstances.
                                 </p>
                                 <textarea name="forfeitures" rows="3"
                                     class="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:ring-brand-500/20 focus:border-brand-500 
@@ -1156,14 +1166,13 @@
                         </div>
                         <div class="p-5 sm:p-6">
                             <p class="text-sm text-red-500 dark:text-red-400 pb-4">List all employers for the previous 3
-                                years and
-                                an additional 7 years if you were employed as a DRIVER.
+                                years and an additional 7 years if you were employed as a DRIVER.
                             </p>
 
                             <div id="employment_record_fields">
                                 @php
-                                    $employmentRecords = $driver->employment_records;
-                                    $recordCount = $employmentRecords->count() > 0 ? $employmentRecords->count() : 1;
+                                    $employmentRecords = $driver->employment_records ?? collect();
+                                    $recordCount = $employmentRecords->isNotEmpty() ? $employmentRecords->count() : 1;
                                 @endphp
 
                                 @for ($index = 0; $index < $recordCount; $index++)
@@ -1219,10 +1228,10 @@
                                                     name="employer_record_country[]"
                                                     class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                                                     <option value="">Select Country</option>
-                                                    @foreach ($countries as $country)
-                                                        <option value="{{ $country->name }}"
-                                                            {{ ($record->employer_record_country ?? '') == $country->name ? 'selected' : '' }}>
-                                                            {{ $country->name }}
+                                                    @foreach ($countries ?? [] as $country)
+                                                        <option value="{{ $country->name ?? '' }}"
+                                                            {{ ($record->employer_record_country ?? '') == ($country->name ?? '') ? 'selected' : '' }}>
+                                                            {{ $country->name ?? '' }}
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -1237,11 +1246,11 @@
                                                     name="employer_record_state[]"
                                                     class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                                                     <option value="">Select State</option>
-                                                    @if (isset($states) && $states->count())
+                                                    @if (isset($states) && $states->isNotEmpty())
                                                         @foreach ($states as $state)
-                                                            <option value="{{ $state->name }}"
-                                                                {{ ($record->employer_record_state ?? '') == $state->name ? 'selected' : '' }}>
-                                                                {{ $state->name }}
+                                                            <option value="{{ $state->name ?? '' }}"
+                                                                {{ ($record->employer_record_state ?? '') == ($state->name ?? '') ? 'selected' : '' }}>
+                                                                {{ $state->name ?? '' }}
                                                             </option>
                                                         @endforeach
                                                     @endif
@@ -1346,8 +1355,7 @@
                                         <!-- Question wrapper -->
                                         <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
                                             <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Were you
-                                                subject to
-                                                the DOT/FMCSA regulations while employed by this carrier?
+                                                subject to the DOT/FMCSA regulations while employed by this carrier?
                                             </p>
                                             <div class="flex items-center gap-6">
                                                 <!-- YES -->
@@ -1371,10 +1379,10 @@
 
                                         <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
                                             <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Was your job
-                                                designated as
-                                                a safety sensitive function, in any DOT regulated mode, subject to the
-                                                alcohol and
-                                                controlled substances testing requirements required by 49 CFR Part 40?
+                                                designated as a safety sensitive function, in any DOT regulated mode,
+                                                subject to the
+                                                alcohol and controlled substances testing requirements required by 49 CFR
+                                                Part 40?
                                             </p>
                                             <div class="flex items-center gap-6">
                                                 <!-- YES -->
@@ -1470,9 +1478,9 @@
             </div>
             <div class="md:col-span-3">
                 @include('components.progress-bar', [
-                    'currentStep' => $currentStep,
-                    'totalSteps' => 10,
-                    'isEditMode' => $isEditMode,
+                    'currentStep' => $currentStep ?? 1,
+                    'totalSteps' => $totalSteps ?? 10,
+                    'isEditMode' => $isEditMode ?? true,
                 ])
             </div>
         </div>
@@ -1518,23 +1526,30 @@
                 sameAddressCheckbox.addEventListener('change', function() {
                     if (this.checked) {
                         // Copy main address to first residence
-                        const mainAddress = document.getElementById('address').value;
-                        const mainCity = document.getElementById('city').value;
-                        const mainCountry = document.getElementById('country').value;
-                        const mainState = document.getElementById('state').value;
-                        const mainPostalCode = document.getElementById('postal_code').value;
+                        const mainAddress = document.getElementById('address')?.value || '';
+                        const mainCity = document.getElementById('city')?.value || '';
+                        const mainCountry = document.getElementById('country')?.value || '';
+                        const mainState = document.getElementById('state')?.value || '';
+                        const mainPostalCode = document.getElementById('postal_code')?.value || '';
 
-                        document.getElementById('residence_address_0').value = mainAddress;
-                        document.getElementById('residence_city_0').value = mainCity;
-                        document.getElementById('residence_country_0').value = mainCountry;
-                        document.getElementById('residence_state_0').value = mainState;
-                        document.getElementById('residence_postal_code_0').value = mainPostalCode;
+                        const residenceAddress = document.getElementById('residence_address_0');
+                        const residenceCity = document.getElementById('residence_city_0');
+                        const residenceCountry = document.getElementById('residence_country_0');
+                        const residenceState = document.getElementById('residence_state_0');
+                        const residencePostalCode = document.getElementById('residence_postal_code_0');
+
+                        if (residenceAddress) residenceAddress.value = mainAddress;
+                        if (residenceCity) residenceCity.value = mainCity;
+                        if (residenceCountry) residenceCountry.value = mainCountry;
+                        if (residenceState) residenceState.value = mainState;
+                        if (residencePostalCode) residencePostalCode.value = mainPostalCode;
                     }
                 });
             }
 
             // Residence fields management
-            let residenceCount = 1;
+            let residenceCount =
+                {{ ($driver->residence_addresses->count() ?? 0) > 0 ? $driver->residence_addresses->count() : 1 }};
             const residenceFields = document.getElementById('residence_fields');
             const residenceAddBtn = document.getElementById('residence_add');
             const residenceRemoveBtn = document.getElementById('residence_remove');
@@ -1572,8 +1587,8 @@
                         <select id="residence_country_${residenceCount}" name="residence_country[]"
                             class="residence-country shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                             <option value="">Select Country</option>
-                            @foreach ($countries as $country)
-                                <option value="{{ $country->id }}">{{ $country->name }}</option>
+                            @foreach ($countries ?? [] as $country)
+                                <option value="{{ $country->name ?? '' }}">{{ $country->name ?? '' }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -1586,9 +1601,9 @@
                         <select id="residence_state_${residenceCount}" name="residence_state[]"
                             class="residence-state shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                             <option value="">Select State</option>
-                            @if (isset($states) && $states->count())
+                            @if (isset($states) && $states->isNotEmpty())
                                 @foreach ($states as $state)
-                                    <option value="{{ $state->id }}">{{ $state->name }}</option>
+                                    <option value="{{ $state->name ?? '' }}">{{ $state->name ?? '' }}</option>
                                 @endforeach
                             @endif
                         </select>
@@ -1620,7 +1635,8 @@
             }
 
             // Accident fields management
-            let accidentCount = 1;
+            let accidentCount =
+                {{ ($driver->accidents->where('accident', 'yes')->count() ?? 0) > 0 ? $driver->accidents->where('accident', 'yes')->count() : 1 }};
             const accidentAddBtn = document.getElementById('accident_add');
             const accidentRemoveBtn = document.getElementById('accident_remove');
             const accidentTableBody = document.querySelector('#accident_fields tbody');
@@ -1671,8 +1687,8 @@
 
 
             // violation fields management
-            let violationCount = 1;
-            const violationFields = document.getElementById('violation_fields');
+            let violationCount =
+                {{ ($driver->violations->where('violation', 'yes')->count() ?? 0) > 0 ? $driver->violations->where('violation', 'yes')->count() : 1 }};
             const violationAddBtn = document.getElementById('violation_add');
             const violationRemoveBtn = document.getElementById('violation_remove');
             const violationTableBody = document.querySelector('#violation_fields tbody');
@@ -1695,7 +1711,7 @@
                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                 </td>
                 <td class="border border-gray-200 p-3 text-sm text-gray-800 dark:text-white/90">
-                    <input type="text" name="vehicle_type[]" placeholder="0"
+                    <input type="text" name="vehicle_type[]"
                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                 </td>
             `;
@@ -1717,7 +1733,8 @@
 
 
             // Employment Record fields management
-            let employmentRecordCount = 1;
+            let employmentRecordCount =
+                {{ ($driver->employment_records->count() ?? 0) > 0 ? $driver->employment_records->count() : 1 }};
             const employmentRecordFields = document.getElementById('employment_record_fields');
             const employmentRecordAddBtn = document.getElementById('employment_record_add');
             const employmentRecordRemoveBtn = document.getElementById('employment_record_remove');
@@ -1768,8 +1785,8 @@
                     <select id="employer_record_country_${employmentRecordCount}" name="employer_record_country[]"
                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                         <option value="">Select Country</option>
-                        @foreach ($countries as $country)
-                            <option value="{{ $country->id }}">{{ $country->name }}</option>
+                        @foreach ($countries ?? [] as $country)
+                            <option value="{{ $country->name ?? '' }}">{{ $country->name ?? '' }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -1782,9 +1799,9 @@
                     <select id="employer_record_state_${employmentRecordCount}" name="employer_record_state[]"
                         class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                         <option value="">Select State</option>
-                        @if (isset($states) && $states->count())
+                        @if (isset($states) && $states->isNotEmpty())
                             @foreach ($states as $state)
-                                <option value="{{ $state->id }}">{{ $state->name }}</option>
+                                <option value="{{ $state->name ?? '' }}">{{ $state->name ?? '' }}</option>
                             @endforeach
                         @endif
                     </select>
@@ -1871,12 +1888,12 @@
                 <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Were you subject to the DOT/FMCSA regulations while employed by this carrier?</p>
                 <div class="flex items-center gap-6">
                     <label class="inline-flex items-center cursor-pointer select-none">
-                        <input type="radio" name="employed_regulations[]" value="yes"
+                        <input type="radio" name="employed_regulations[${employmentRecordCount}]" value="yes"
                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Yes</span>
                     </label>
                     <label class="inline-flex items-center cursor-pointer select-none">
-                        <input type="radio" name="employed_regulations[]" value="no" checked
+                        <input type="radio" name="employed_regulations[${employmentRecordCount}]" value="no" checked
                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">No</span>
                     </label>
@@ -1887,12 +1904,12 @@
                 <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Was your job designated as a safety sensitive function?</p>
                 <div class="flex items-center gap-6">
                     <label class="inline-flex items-center cursor-pointer select-none">
-                        <input type="radio" name="safety_sensitive_function[]" value="yes"
+                        <input type="radio" name="safety_sensitive_function[${employmentRecordCount}]" value="yes"
                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Yes</span>
                     </label>
                     <label class="inline-flex items-center cursor-pointer select-none">
-                        <input type="radio" name="safety_sensitive_function[]" value="no" checked
+                        <input type="radio" name="safety_sensitive_function[${employmentRecordCount}]" value="no" checked
                             class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900" />
                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">No</span>
                     </label>
@@ -1947,7 +1964,7 @@
                     const licenseIssued = document.getElementById('license_issued');
                     const licenseExpires = document.getElementById('license_expires');
 
-                    if (licenseIssued && licenseExpires) {
+                    if (licenseIssued && licenseExpires && licenseIssued.value && licenseExpires.value) {
                         const issued = new Date(licenseIssued.value);
                         const expires = new Date(licenseExpires.value);
 
@@ -1961,10 +1978,10 @@
 
                     // Validate date of birth (must be at least 18 years old)
                     const dateOfBirth = document.getElementById('date_of_birth');
-                    if (dateOfBirth) {
+                    if (dateOfBirth && dateOfBirth.value) {
                         const dob = new Date(dateOfBirth.value);
                         const today = new Date();
-                        const age = today.getFullYear() - dob.getFullYear();
+                        let age = today.getFullYear() - dob.getFullYear();
                         const monthDiff = today.getMonth() - dob.getMonth();
 
                         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
@@ -1988,37 +2005,41 @@
                 const previewImg = document.getElementById(inputId + '_preview_img');
                 const pdfPreviewContent = document.getElementById(inputId + '_pdf_preview_content');
 
-                input.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (file) {
-                        // Hide both previews first
-                        imagePreview.classList.add('hidden');
-                        pdfPreview.classList.add('hidden');
+                if (input) {
+                    input.addEventListener('change', function(e) {
+                        const file = e.target.files[0];
+                        if (file) {
+                            // Hide both previews first
+                            if (imagePreview) imagePreview.classList.add('hidden');
+                            if (pdfPreview) pdfPreview.classList.add('hidden');
 
-                        if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-                            reader.onload = function(e) {
-                                previewImg.src = e.target.result;
-                                imagePreview.classList.remove('hidden');
-                            };
-                            reader.readAsDataURL(file);
-                        } else if (file.type === 'application/pdf') {
-                            pdfPreviewContent.innerHTML = `
-                            <div class="flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                <svg class="h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                <div class="ml-3 text-left">
-                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">${file.name}</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">PDF Document</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">${(file.size / 1024).toFixed(2)} KB</p>
-                                </div>
-                            </div>
-                        `;
-                            pdfPreview.classList.remove('hidden');
+                            if (file.type.startsWith('image/')) {
+                                const reader = new FileReader();
+                                reader.onload = function(e) {
+                                    if (previewImg) previewImg.src = e.target.result;
+                                    if (imagePreview) imagePreview.classList.remove('hidden');
+                                };
+                                reader.readAsDataURL(file);
+                            } else if (file.type === 'application/pdf') {
+                                if (pdfPreviewContent) {
+                                    pdfPreviewContent.innerHTML = `
+                                    <div class="flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                        <svg class="h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        <div class="ml-3 text-left">
+                                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">${file.name}</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">PDF Document</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">${(file.size / 1024).toFixed(2)} KB</p>
+                                        </div>
+                                    </div>
+                                `;
+                                }
+                                if (pdfPreview) pdfPreview.classList.remove('hidden');
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
 
             function removePreview(inputId) {
@@ -2026,9 +2047,9 @@
                 const imagePreview = document.getElementById(inputId + '_preview');
                 const pdfPreview = document.getElementById(inputId + '_pdf_preview');
 
-                input.value = '';
-                imagePreview.classList.add('hidden');
-                pdfPreview.classList.add('hidden');
+                if (input) input.value = '';
+                if (imagePreview) imagePreview.classList.add('hidden');
+                if (pdfPreview) pdfPreview.classList.add('hidden');
             }
 
         });
@@ -2037,7 +2058,7 @@
         document.querySelectorAll('input[name="accident"]').forEach(radio => {
             radio.addEventListener('change', function() {
                 const accidentTableBody = document.querySelector('#accident_fields tbody');
-                if (this.value === 'no') {
+                if (this.value === 'no' && accidentTableBody) {
                     // Clear all rows except the first one
                     const rows = accidentTableBody.querySelectorAll('tr');
                     rows.forEach((row, index) => {
@@ -2045,9 +2066,18 @@
                     });
                     // Clear first row values
                     const firstRow = accidentTableBody.querySelector('tr');
-                    firstRow.querySelectorAll('input, select').forEach(input => {
-                        if (input.type !== 'hidden') input.value = '';
-                    });
+                    if (firstRow) {
+                        firstRow.querySelectorAll('input, select').forEach(input => {
+                            if (input.type !== 'hidden' && input.type !== 'radio' && input.type !==
+                                'checkbox') {
+                                if (input.tagName === 'SELECT') {
+                                    input.value = 'no';
+                                } else {
+                                    input.value = '';
+                                }
+                            }
+                        });
+                    }
                 }
             });
         });
@@ -2056,7 +2086,7 @@
         document.querySelectorAll('input[name="violation"]').forEach(radio => {
             radio.addEventListener('change', function() {
                 const violationTableBody = document.querySelector('#violation_fields tbody');
-                if (this.value === 'no') {
+                if (this.value === 'no' && violationTableBody) {
                     // Clear all rows except the first one
                     const rows = violationTableBody.querySelectorAll('tr');
                     rows.forEach((row, index) => {
@@ -2064,9 +2094,18 @@
                     });
                     // Clear first row values
                     const firstRow = violationTableBody.querySelector('tr');
-                    firstRow.querySelectorAll('input, select').forEach(input => {
-                        if (input.type !== 'hidden') input.value = '';
-                    });
+                    if (firstRow) {
+                        firstRow.querySelectorAll('input, select').forEach(input => {
+                            if (input.type !== 'hidden' && input.type !== 'radio' && input.type !==
+                                'checkbox') {
+                                if (input.tagName === 'SELECT') {
+                                    input.value = 'no';
+                                } else {
+                                    input.value = '';
+                                }
+                            }
+                        });
+                    }
                 }
             });
         });
