@@ -172,7 +172,8 @@
                                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Unit Number <span class="text-red-500">*</span>
                                                 </label>
-                                                <input type="text" name="unit_no" id="unit_no" required placeholder="e.g., T001"
+                                                <input type="text" name="unit_no" id="unit_no" required
+                                                    placeholder="e.g., T001"
                                                     class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                 <div id="unit_no_error" class="mt-1 text-sm text-red-600"></div>
                                             </div>
@@ -183,7 +184,8 @@
                                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     VIN (17 characters) <span class="text-red-500">*</span>
                                                 </label>
-                                                <input type="text" name="vin" id="vin" required placeholder="17-character VIN" maxlength="17"
+                                                <input type="text" name="vin" id="vin" required
+                                                    placeholder="17-character VIN" maxlength="17"
                                                     class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                 <div id="vin_error" class="mt-1 text-sm text-red-600"></div>
                                             </div>
@@ -195,8 +197,8 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Year <span class="text-red-500">*</span>
                                                     </label>
-                                                    <input type="number" name="year" id="year" required placeholder="e.g., 2025"
-                                                        min="1900" max="{{ date('Y') + 1 }}"
+                                                    <input type="number" name="year" id="year" required
+                                                        placeholder="e.g., 2025" min="1900" max="{{ date('Y') + 1 }}"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="year_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
@@ -205,7 +207,8 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Make <span class="text-red-500">*</span>
                                                     </label>
-                                                    <input type="text" name="make" id="make" required placeholder="e.g., Peterbilt"
+                                                    <input type="text" name="make" id="make" required
+                                                        placeholder="e.g., Peterbilt"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="make_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
@@ -214,7 +217,8 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Model <span class="text-red-500">*</span>
                                                     </label>
-                                                    <input type="text" name="model" id="model" required placeholder="e.g., 389"
+                                                    <input type="text" name="model" id="model" required
+                                                        placeholder="e.g., 389"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="model_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
@@ -244,7 +248,8 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Owned By
                                                     </label>
-                                                    <input type="text" name="owned_by" id="owned_by" placeholder="Company name"
+                                                    <input type="text" name="owned_by" id="owned_by"
+                                                        placeholder="Company name"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="owned_by_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
@@ -253,7 +258,8 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Color
                                                     </label>
-                                                    <input type="text" name="color" placeholder="e.g., White" id="color"
+                                                    <input type="text" name="color" placeholder="e.g., White"
+                                                        id="color"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="color_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
@@ -274,7 +280,8 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Title Number
                                                     </label>
-                                                    <input type="text" name="title_no" id="title_no" placeholder="Title number"
+                                                    <input type="text" name="title_no" id="title_no"
+                                                        placeholder="Title number"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="title_no_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
@@ -283,7 +290,8 @@
                                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                         Tire Size
                                                     </label>
-                                                    <input type="text" name="tire_size" id="tire_size" placeholder="e.g., 295/75R22.5"
+                                                    <input type="text" name="tire_size" id="tire_size"
+                                                        placeholder="e.g., 295/75R22.5"
                                                         class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <div id="tire_size_error" class="mt-1 text-sm text-red-600"></div>
                                                 </div>
@@ -295,7 +303,8 @@
                                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     GVW (Gross Vehicle Weight in lbs)
                                                 </label>
-                                                <input type="number" name="gvw" placeholder="lbs" id="gvw" min="0"
+                                                <input type="number" name="gvw" placeholder="lbs" id="gvw"
+                                                    min="0"
                                                     class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                                                     placeholder="Enter GVW in pounds">
                                                 <div id="gvw_error" class="mt-1 text-sm text-red-600"></div>
@@ -514,14 +523,14 @@
                         width: '25%'
                     },
                     {
-                        data: 'type_group',
+                        data: 'equipment_group', // ✅ Matches controller's addColumn('equipment_group')
                         name: 'equipment_types_id',
                         orderable: false,
                         searchable: false,
                         width: '20%'
                     },
                     {
-                        data: 'details',
+                        data: 'gvw', // ✅ Matches controller's addColumn('gvw')
                         name: 'gvw',
                         orderable: false,
                         searchable: false,

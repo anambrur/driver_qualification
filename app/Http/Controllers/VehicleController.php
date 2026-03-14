@@ -117,12 +117,9 @@ class VehicleController extends Controller
     public function store(Request $request)
     {
         // Add company validation based on user role
-        $companyId = $this->getUserCompanyId();
+        $companyId = $this->getAllUserCompanyId();
 
-        if (!Auth::user()->hasRole('super-admin')) {
-            // For non-super-admin, force company_id to their company
-            $request->merge(['company_id' => $companyId]);
-        }
+        $request->merge(['company_id' => $companyId]);
 
         $validator = Validator::make($request->all(), [
             'company_id' => 'required|exists:companies,id',
@@ -150,6 +147,7 @@ class VehicleController extends Controller
             'notes' => 'nullable|string|max:2000',
         ]);
 
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
@@ -160,7 +158,31 @@ class VehicleController extends Controller
         DB::beginTransaction();
 
         try {
-            $vehicle = Vehicle::create($request->all());
+            $vehicle = Vehicle::create([
+                'company_id' => $request->company_id,
+                'unit_no' => $request->unit_no,
+                'vin' => $request->vin,
+                'year' => $request->year,
+                'make' => $request->make,
+                'model' => $request->model,
+                'vehicle_type_id' => $request->vehicle_type_id,
+                'owned_by' => $request->owned_by,
+                'color' => $request->color,
+                'title_no' => $request->title_no,
+                'tire_size' => $request->tire_size,
+                'odometer' => $request->odometer,
+                'gvw' => $request->gvw,
+                'vehicle_group_id' => $request->vehicle_group_id,
+                'fuel_type_id' => $request->fuel_type_id,
+                'engine_type' => $request->engine_type,
+                'transmission' => $request->transmission,
+                'suspension' => $request->suspension,
+                'no_axles' => $request->no_axles,
+                'configuration' => $request->configuration,
+                'wheel_base' => $request->wheel_base,
+                'size_dimension' => $request->size_dimension,
+                'notes' => $request->notes,
+            ]);
 
             DB::commit();
 
@@ -211,7 +233,7 @@ class VehicleController extends Controller
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
             'vehicle_type_id' => 'nullable|exists:vehicle_types,id',
-            'owned_by' => 'required|in:company,lease,rental',
+            'owned_by' => 'nullable|string|max:100',
             'color' => 'nullable|string|max:50',
             'title_no' => 'nullable|string|max:100',
             'tire_size' => 'nullable|string|max:50',

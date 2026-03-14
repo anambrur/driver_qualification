@@ -113,12 +113,9 @@ class TrailerController extends Controller
     public function store(Request $request)
     {
         // Add company validation based on user role
-        $companyId = $this->getUserCompanyId();
+        $companyId = $this->getAllUserCompanyId();
 
-        if (!Auth::user()->hasRole('super-admin')) {
-            // For non-super-admin, force company_id to their company
-            $request->merge(['company_id' => $companyId]);
-        }
+        $request->merge(['company_id' => $companyId]);
 
         $validator = Validator::make($request->all(), [
             'company_id' => 'required|exists:companies,id',
