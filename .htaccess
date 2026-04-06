@@ -1,13 +1,17 @@
 <IfModule mod_rewrite.c>
-    RewriteEngine On
+    RewriteCond %{SERVER_PORT} 80
+    RewriteRule ^(.*)$ http://127.0.0.1:8000/$1 [R,L]
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ /public/$1 [L,QSA]   
     
-    # If the request is for a valid file or directory, serve it directly
-    RewriteCond %{REQUEST_FILENAME} -f [OR]
-    RewriteCond %{REQUEST_FILENAME} -d
-    RewriteRule ^ - [L]
-    
-    # If the request is not for the public folder, rewrite to public/
-    RewriteRule ^(.*)$ public/$1 [L]
+    RewriteEngine On        
+    RewriteCond %{HTTPS} !=on    
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    RewriteRule ^(.*)$ public/ [L]
 </IfModule>
 
 # php -- BEGIN cPanel-generated handler, do not edit
@@ -16,4 +20,3 @@
   AddHandler application/x-httpd-ea-php83 .php .php8 .phtml
 </IfModule>
 # php -- END cPanel-generated handler, do not edit
-
