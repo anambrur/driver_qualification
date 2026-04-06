@@ -79,10 +79,8 @@ class UserController extends Controller
             $user->roles()->sync($validated['roles']);
         }
 
-
-        return redirect()
-            ->route('users.index')
-            ->with('success', 'User created successfully.');
+        toastr()->success('User created successfully!');
+        return redirect()->route('users.index');
     }
 
     /**
@@ -109,10 +107,12 @@ class UserController extends Controller
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'roles' => ['array'],
             'roles.*' => ['exists:roles,id'],
+            'status' => ['required', 'in:active,inactive'],
         ]);
 
         $user->name = $validated['name'];
         $user->email = $validated['email'];
+        $user->status = $validated['status'];
 
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
@@ -124,9 +124,8 @@ class UserController extends Controller
             $user->roles()->sync($validated['roles']);
         }
 
-        return redirect()
-            ->route('users.index')
-            ->with('success', 'User updated successfully.');
+        toastr()->success('User updated successfully!');
+        return redirect()->route('users.index');
     }
 
     /**
@@ -138,15 +137,13 @@ class UserController extends Controller
 
         // Prevent self-deletion
         if ($user->id === auth()->id()) {
-            return redirect()
-                ->route('users.index')
-                ->with('error', 'You cannot delete yourself.');
+            toastr()->error('You cannot delete yourself!');
+            return redirect()->route('users.index');
         }
 
         $user->delete();
 
-        return redirect()
-            ->route('users.index')
-            ->with('success', 'User deleted successfully.');
+        toastr()->success('User deleted successfully!');
+        return redirect()->route('users.index');
     }
 }

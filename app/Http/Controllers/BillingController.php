@@ -63,8 +63,8 @@ class BillingController extends Controller
 
         $user->subscription('default')->cancel();
 
-        return redirect()->route('billing.index')
-            ->with('success', 'Your subscription will be cancelled at the end of the current billing period.');
+        toastr()->success('Your subscription will be cancelled at the end of the current billing period.');
+        return redirect()->route('billing.index');
     }
 
     /**
@@ -80,7 +80,7 @@ class BillingController extends Controller
 
         $user->subscription('default')->resume();
 
-        return redirect()->route('billing.index')
-            ->with('success', 'Your subscription has been resumed.');
+        toastr()->success('Your subscription has been resumed.');
+        return redirect()->route('billing.index');
     }
 }

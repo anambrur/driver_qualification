@@ -32,9 +32,11 @@
             </button>
             <!-- Hamburger Toggle BTN -->
 
-            <a href="index.html" class="lg:hidden">
-                <img class="dark:hidden" src="{{ asset('images/logo/logo.svg') }}" alt="Logo" />
-                <img class="hidden dark:block" src="{{ asset('images/logo/logo-dark.svg') }}" alt="Logo" />
+            <a href="{{ route('admin.dashboard') ?? 'index.html' }}" class="lg:hidden">
+                <x-user-avatar :showName="false">
+                    <img class="dark:hidden" src="{{ asset('images/logo/logo.svg') }}" alt="Logo" />
+                    <img class="hidden dark:block" src="{{ asset('images/logo/logo-dark.svg') }}" alt="Logo" />
+                </x-user-avatar>
             </a>
 
             <!-- Application nav menu button -->
@@ -187,16 +189,8 @@
                 <div class="relative" x-data="{ dropdownOpen: false }" @click.outside="dropdownOpen = false">
                     <a class="flex items-center text-gray-700 dark:text-gray-400 cursor-pointer" href="#"
                         @click.prevent="dropdownOpen = ! dropdownOpen">
-                        <span class="mr-3 h-11 w-11 overflow-hidden rounded-full">
-                            @if ($authUser->company && $authUser->company->logo)
-                                <img src="{{ asset('storage/' . $authUser->company->logo) }}"
-                                    alt="{{ $authUser->name }}" class="h-full w-full object-cover">
-                            @else
-                                <div
-                                    class="h-full w-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-medium text-lg">
-                                    {{ strtoupper(substr($authUser->name, 0, 1)) }}
-                                </div>
-                            @endif
+                        <span class="mr-1">
+                            {{-- <x-user-avatar size="h-11 w-11" :showName="false" /> --}}
                         </span>
 
                         <span class="text-theme-sm mr-1 block font-medium"> {{ $authUser->name }} </span>

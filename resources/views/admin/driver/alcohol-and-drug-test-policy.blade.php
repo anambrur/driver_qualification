@@ -155,7 +155,8 @@
 
                                     @if ($policyPdf && $policyPdf->alcohol_drug_test_policy_pdf)
                                         <div class="border border-gray-300 rounded-lg dark:border-gray-700 overflow-hidden">
-                                            <iframe src="{{ asset('storage/' . $policyPdf->alcohol_drug_test_policy_pdf) }}"
+                                            <iframe
+                                                src="{{ asset('storage/' . $policyPdf->alcohol_drug_test_policy_pdf) }}"
                                                 width="100%" height="600px" style="border: none;"
                                                 title="Alcohol & Drug Testing Policy PDF">
                                             </iframe>
@@ -516,7 +517,7 @@
                 submitButton.addEventListener('mouseover', function() {
                     if (!hasPolicyPDF) {
                         this.title =
-                        "Warning: Policy PDF not available. Please request from administrator.";
+                            "Warning: Policy PDF not available. Please request from administrator.";
                     }
                 });
             }

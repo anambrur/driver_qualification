@@ -20,6 +20,7 @@ use App\Http\Controllers\MaintenanceScheduleController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SiteSettingController;
 use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\UserController;
@@ -32,7 +33,8 @@ Route::post('stripe/webhook', '\Laravel\Cashier\Http\Controllers\WebhookControll
     ->name('cashier.webhook');
 
 Route::get('/', function () {
-    return view('welcome');
+    $plans = \App\Models\Plan::active()->ordered()->get();
+    return view('welcome', compact('plans'));
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -123,6 +125,8 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
     // Resume Application (if user leaves and comes back)
     Route::get('/resume', [ApplicationFormController::class, 'resume'])->name('resume');
     Route::post('/resume', [ApplicationFormController::class, 'verifyResume'])->name('verify.resume');
+    Route::post('/check-resume', [ApplicationFormController::class, 'checkResumePhone'])->name('check.resume');
+    Route::post('/check-resume-otp', [ApplicationFormController::class, 'verifyResumeOtpPhone'])->name('verify.resume.otp');
 
     // Application Status Check
     Route::get('/status', [ApplicationFormController::class, 'status'])->name('status');
@@ -410,6 +414,10 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
 
     //Settings
     Route::prefix('settings')->group(function () {
+        // Site Settings
+        Route::get('/site', [SiteSettingController::class, 'index'])->name('admin.settings.site.index');
+        Route::put('/site', [SiteSettingController::class, 'update'])->name('admin.settings.site.update');
+
         // Company Route
         Route::get('/company', [CompanyController::class, 'index'])->name('admin.settings.company')->middleware('permission:companies.view');
         Route::get('/company/create', [CompanyController::class, 'create'])->name('admin.settings.company.create')->middleware('permission:companies.create');

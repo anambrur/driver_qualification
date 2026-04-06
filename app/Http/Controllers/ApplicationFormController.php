@@ -286,6 +286,141 @@ class ApplicationFormController extends Controller
     }
 
     /**
+     * AJAX Verify Phone for Resuming Application
+     */
+    public function checkResumePhone(Request $request, $slug)
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Valid phone number is required.'
+            ]);
+        }
+
+        $phone = $this->formatPhoneForTwilio($request->phone);
+        $company = Company::where('slug', $slug)->first();
+
+        if (!$company) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid company identifier.'
+            ]);
+        }
+
+        // Find driver
+        $driver = Driver::where('company_id', $company->id)
+            ->where('main_phone', $phone)
+            ->where('source', 'public_application')
+            ->whereIn('status', ['draft', 'pending'])
+            ->first();
+
+        if ($driver) {
+            try {
+                // Send OTP
+                $result = $this->otpService->sendOTP($phone);
+                
+                if ($result['success']) {
+                    return response()->json([
+                        'success' => true,
+                        'requires_otp' => true,
+                        'phone' => $phone
+                    ]);
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $result['message']
+                    ]);
+                }
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while sending OTP.'
+                ]);
+            }
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'No application found with this phone number.'
+            ]);
+        }
+    }
+
+    /**
+     * AJAX Verify OTP for Resuming Application
+     */
+    public function verifyResumeOtpPhone(Request $request, $slug)
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required',
+            'otp' => 'required|digits:6',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Valid OTP code is required (6 digits).'
+            ]);
+        }
+
+        $phone = $request->phone;
+        $company = Company::where('slug', $slug)->first();
+
+        if (!$company) {
+            return response()->json(['success' => false, 'message' => 'Invalid company.']);
+        }
+
+        // Verify OTP
+        $result = $this->otpService->verifyOTP($phone, $request->otp);
+
+        if ($result['success']) {
+            // Find driver
+            $driver = Driver::where('company_id', $company->id)
+                ->where('main_phone', $phone)
+                ->where('source', 'public_application')
+                ->whereIn('status', ['draft', 'pending'])
+                ->first();
+
+            if ($driver) {
+                // Restore Session properly for seamless resume logic
+                Session::put([
+                    'verified_phone' => $phone,
+                    'verified_company_slug' => $slug,
+                    'verified_company_id' => $company->id,
+                    'application_started' => true,
+                    'application_driver_id' => $driver->id,
+                    'current_step' => $this->calculateCurrentStep($driver),
+                    'application_session_token' => md5($phone . $company->id . time())
+                ]);
+
+                // Formulate redirect to the specific step
+                $redirectUrl = route('public.application.step' . $this->calculateCurrentStep($driver), [
+                    'slug' => $slug,
+                    'driver_id' => $driver->id
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'redirect' => $redirectUrl
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Driver record lost during verification.'
+                ]);
+            }
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Invalid or expired OTP code.'
+            ]);
+        }
+    }
+
+    /**
      * STEP 1: Basic Information
      */
     public function step1($slug)
