@@ -1,101 +1,110 @@
-{{-- resources/views/subscription/plans.blade.php --}}
 @extends('layouts.main-layout')
 
-@section('title', 'Choose Your Plan')
+@section('title', 'Manage Plans')
 
 @section('content')
-    <div class="container mx-auto px-4 py-5">
-        <div class="text-center mb-5">
-            <h1 class="text-4xl font-bold">Choose Your Plan</h1>
-            <p class="text-xl text-gray-500">Start with a free trial. No credit card required.</p>
+<div class="p-4 sm:p-6">
+
+    <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Subscription Plans</h1>
+            <p class="text-sm text-gray-500 mt-1">Manage pricing tiers, features, and plan statuses.</p>
         </div>
+        <a href="{{ route('admin.plans.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center gap-2">
+            <span>+ Create New Plan</span>
+        </a>
+    </div>
 
-        @if ($currentSubscription)
-            <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-4 flex items-center">
-                <i class="bi bi-info-circle-fill mr-2"></i>
-                <div>
-                    You are currently on the <strong>{{ $currentSubscription->plan->name }}</strong> plan.
-                    @if ($currentSubscription->daysRemaining() !== null)
-                        <strong>{{ $currentSubscription->daysRemaining() }} days</strong> remaining.
-                    @else
-                        Lifetime access.
-                    @endif
-                    <a href="{{ route('subscription.my') }}" class="font-bold underline ml-2">Manage subscription →</a>
-                </div>
-            </div>
-        @endif
+    @if(session('success'))
+        <div class="mb-4 bg-green-50 border-l-4 border-green-500 p-4 text-sm text-green-700">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="mb-4 bg-red-50 border-l-4 border-red-500 p-4 text-sm text-red-700">
+            {{ session('error') }}
+        </div>
+    @endif
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 justify-center">
-            @foreach ($plans as $plan)
-                <div class="col-span-1">
-                    <div
-                        class="bg-white rounded-lg border border-gray-200 shadow-sm h-full flex flex-col relative {{ $plan->is_featured ? 'border-2 border-blue-500' : '' }}">
-                        @if ($plan->is_featured)
-                            <div class="bg-blue-600 text-white text-center py-2 rounded-t-lg">
-                                <small class="font-semibold uppercase tracking-wider">Most Popular</small>
-                            </div>
-                        @endif
-
-                        <div class="p-4 flex flex-col flex-grow">
-                            <h4 class="font-bold text-xl">{{ $plan->name }}</h4>
-                            <p class="text-gray-500 text-sm mb-3">{{ $plan->description }}</p>
-
-                            {{-- Price --}}
-                            <div class="mb-4">
-                                @if ($plan->price == 0)
-                                    <span class="text-3xl font-bold text-green-600">Free</span>
+    {{-- Plans Table --}}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider w-16">Sort</th>
+                        <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Plan Name</th>
+                        <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Pricing</th>
+                        <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Cycle</th>
+                        <th class="px-4 py-3 text-center font-medium text-gray-500 uppercase tracking-wider">Subscribers</th>
+                        <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    @forelse ($plans as $plan)
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-750">
+                            <td class="px-4 py-4 text-gray-500">{{ $plan->sort_order }}</td>
+                            <td class="px-4 py-4">
+                                <div class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    {{ $plan->name }}
+                                    @if($plan->is_featured)
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-800 border border-yellow-200">PROMO</span>
+                                    @endif
+                                </div>
+                                <div class="text-xs text-gray-500 truncate max-w-xs">{{ $plan->description }}</div>
+                            </td>
+                            <td class="px-4 py-4 font-bold text-gray-900 dark:text-white">
+                                @if($plan->price == 0)
+                                    <span class="text-green-600">Free</span>
                                 @else
-                                    <span class="text-3xl font-bold">${{ number_format($plan->price, 2) }}</span>
-                                    <span class="text-gray-500">/{{ $plan->billing_cycle }}</span>
+                                    ${{ number_format($plan->price, 2) }} <span class="text-xs font-normal text-gray-500 uppercase">{{ $plan->currency }}</span>
                                 @endif
-                            </div>
-
-                            {{-- Features --}}
-                            <ul class="list-none mb-4 flex-grow">
-                                @foreach ($plan->features ?? [] as $feature)
-                                    <li class="mb-2 flex items-start">
-                                        <i class="bi bi-check-circle-fill text-green-500 mr-2 mt-1"></i>
-                                        <span class="text-sm">{{ $feature }}</span>
-                                    </li>
-                                @endforeach
-                            </ul>
-
-                            {{-- CTA --}}
-                            @auth
-                                @if ($currentSubscription && $currentSubscription->plan_id === $plan->id)
-                                    <button class="w-full px-4 py-2 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed"
-                                        disabled>Current Plan</button>
-                                @else
-                                    <a href="{{ route('subscription.checkout', $plan) }}"
-                                        class="w-full text-center px-4 py-2 rounded-lg transition-colors {{ $plan->is_featured ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-white border border-blue-600 text-blue-600 hover:bg-blue-50' }}">
-                                        @if ($plan->price == 0)
-                                            Start Free Trial
-                                        @else
-                                            Get Started
-                                        @endif
-                                    </a>
-                                @endif
-                            @else
-                                <a href="{{ route('login') }}"
-                                    class="w-full text-center px-4 py-2 bg-white border border-blue-600 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">Log
-                                    in to Subscribe</a>
-                            @endauth
-                        </div>
-
-                        @if ($plan->billing_cycle === 'trial')
-                            <div
-                                class="border-t border-gray-100 text-center text-gray-500 text-sm py-2 bg-gray-50 rounded-b-lg">
-                                No credit card required
-                            </div>
-                        @elseif($plan->billing_cycle === 'yearly')
-                            <div
-                                class="border-t border-gray-100 text-center text-green-600 text-sm py-2 bg-gray-50 rounded-b-lg">
-                                Save ~17% vs monthly
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            @endforeach
+                            </td>
+                            <td class="px-4 py-4 capitalize text-gray-600 dark:text-gray-300">
+                                {{ $plan->billing_cycle }}
+                                <div class="text-xs text-gray-500 mt-0.5">{{ $plan->duration_days }} days</div>
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-700 font-bold border border-blue-100">
+                                    {{ $plan->subscriptions_count }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-4">
+                                <form action="{{ route('admin.plans.toggle', $plan) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $plan->is_active ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-gray-100 text-gray-800 hover:bg-gray-200' }} transition-colors">
+                                        {{ $plan->is_active ? 'Active' : 'Inactive' }}
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="px-4 py-4 text-right">
+                                <div class="flex justify-end gap-2">
+                                    <a href="{{ route('admin.plans.edit', $plan) }}" class="text-blue-600 hover:text-blue-800 font-medium text-sm">Edit</a>
+                                    
+                                    @if($plan->subscriptions_count == 0)
+                                        <form action="{{ route('admin.plans.destroy', $plan) }}" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete this plan?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-600 hover:text-red-800 font-medium text-sm border-l border-gray-300 pl-2 ml-1">Delete</button>
+                                        </form>
+                                    @else
+                                        <button title="Cannot delete: Plan has active subscribers." class="text-gray-400 font-medium text-sm border-l border-gray-200 pl-2 ml-1 cursor-not-allowed">Delete</button>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                No tracking plans found. <a href="{{ route('admin.plans.create') }}" class="text-blue-600 hover:underline">Create your first plan.</a>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
+
+</div>
 @endsection

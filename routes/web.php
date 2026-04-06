@@ -200,7 +200,8 @@ Route::middleware(['auth', 'role:super-admin'])->prefix('admin')->name('admin.')
     Route::post('/plans', [SubscriptionAdminController::class, 'storePlan'])->name('plans.store');
     Route::get('/plans/{plan}/edit', [SubscriptionAdminController::class, 'editPlan'])->name('plans.edit');
     Route::put('/plans/{plan}', [SubscriptionAdminController::class, 'updatePlan'])->name('plans.update');
-    Route::delete('/plans/{plan}', [SubscriptionAdminController::class, 'destroyPlan'])->name('plans.destroy');
+    Route::delete('/plans/{plan}', [SubscriptionAdminController::class, 'deletePlan'])->name('plans.destroy');
+    Route::post('/plans/{plan}/toggle', [SubscriptionAdminController::class, 'togglePlan'])->name('plans.toggle');
 });
 
 

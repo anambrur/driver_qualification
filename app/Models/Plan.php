@@ -40,4 +40,23 @@ class Plan extends Model
         'is_featured' => 'boolean',
         'price' => 'decimal:2',
     ];
+
+    public function isFree(): bool
+    {
+        return $this->price <= 0;
+    }
+
+    public function isTrial(): bool
+    {
+        return $this->billing_cycle === 'trial';
+    }
+
+    public function isLifetime(): bool
+    {
+        return $this->billing_cycle === 'lifetime';
+    }
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
 }
