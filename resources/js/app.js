@@ -4,6 +4,7 @@ import "../css/app.css";
 import "flatpickr/dist/flatpickr.min.css";
 import Alpine from "alpinejs";
 import persist from "@alpinejs/persist";
+import collapse from "@alpinejs/collapse";
 import flatpickr from "flatpickr";
 import Dropzone from "dropzone";
 
@@ -22,6 +23,7 @@ window.isCurrentPath = (pattern) => {
 };
 
 Alpine.plugin(persist);
+Alpine.plugin(collapse);
 window.Alpine = Alpine;
 Alpine.start();
 
@@ -59,76 +61,67 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Init Dropzone
-const dropzoneArea = document.querySelectorAll("#demo-upload");
-
-if (dropzoneArea.length) {
-    let myDropzone = new Dropzone("#demo-upload", { url: "/file/post" });
+const dropzoneElement = document.getElementById("demo-upload");
+if (dropzoneElement) {
+    new Dropzone("#demo-upload", { url: "/file/post" });
 }
 
 // Document Loaded
 document.addEventListener("DOMContentLoaded", () => {
-    chart01();
-    chart02();
-    chart03();
-    map01();
+    if (typeof chart01 === "function") chart01();
+    if (typeof chart02 === "function") chart02();
+    if (typeof chart03 === "function") chart03();
+    if (typeof map01 === "function") map01();
 });
 
 // Get the current year
-const year = document.getElementById("year");
-if (year) {
-    year.textContent = new Date().getFullYear();
-}
-
-// For Copy//
 document.addEventListener("DOMContentLoaded", () => {
-    const copyInput = document.getElementById("copy-input");
-    if (copyInput) {
-        // Select the copy button and input field
-        const copyButton = document.getElementById("copy-button");
-        const copyText = document.getElementById("copy-text");
-        const websiteInput = document.getElementById("website-input");
+    const year = document.getElementById("year");
+    if (year) {
+        year.textContent = new Date().getFullYear();
+    }
+});
 
-        // Event listener for the copy button
+// For Copy
+document.addEventListener("DOMContentLoaded", () => {
+    const copyButton = document.getElementById("copy-button");
+    const websiteInput = document.getElementById("website-input");
+    const copyText = document.getElementById("copy-text");
+
+    if (copyButton && websiteInput) {
         copyButton.addEventListener("click", () => {
-            // Copy the input value to the clipboard
             navigator.clipboard.writeText(websiteInput.value).then(() => {
-                // Change the text to "Copied"
-                copyText.textContent = "Copied";
-
-                // Reset the text back to "Copy" after 2 seconds
-                setTimeout(() => {
-                    copyText.textContent = "Copy";
-                }, 2000);
+                if (copyText) {
+                    copyText.textContent = "Copied";
+                    setTimeout(() => {
+                        copyText.textContent = "Copy";
+                    }, 2000);
+                }
             });
         });
     }
 });
 
+// For Search
 document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("search-input");
     const searchButton = document.getElementById("search-button");
 
-    // Function to focus the search input
-    function focusSearchInput() {
-        searchInput.focus();
+    if (searchInput && searchButton) {
+        searchButton.addEventListener("click", () => searchInput.focus());
+
+        document.addEventListener("keydown", function (event) {
+            if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+                event.preventDefault();
+                searchInput.focus();
+            }
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "/" && document.activeElement !== searchInput) {
+                event.preventDefault();
+                searchInput.focus();
+            }
+        });
     }
-
-    // Add click event listener to the search button
-    searchButton.addEventListener("click", focusSearchInput);
-
-    // Add keyboard event listener for Cmd+K (Mac) or Ctrl+K (Windows/Linux)
-    document.addEventListener("keydown", function (event) {
-        if ((event.metaKey || event.ctrlKey) && event.key === "k") {
-            event.preventDefault(); // Prevent the default browser behavior
-            focusSearchInput();
-        }
-    });
-
-    // Add keyboard event listener for "/" key
-    document.addEventListener("keydown", function (event) {
-        if (event.key === "/" && document.activeElement !== searchInput) {
-            event.preventDefault(); // Prevent the "/" character from being typed
-            focusSearchInput();
-        }
-    });
 });
