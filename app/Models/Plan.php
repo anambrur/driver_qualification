@@ -57,6 +57,6 @@ class Plan extends Model
     }
     public function subscriptions()
     {
-        return $this->hasMany(Subscription::class);
+        return $this->hasMany(Subscription::class, 'stripe_price', 'stripe_price_id');
     }
 }

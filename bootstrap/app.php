@@ -25,15 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
 
-    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
-        // ── Subscription Scheduler ────────────────────────────────────────────
-        // Run daily at 1:00 AM to expire subscriptions and send warnings
-        $schedule->command('subscriptions:check-expired')
-            ->dailyAt('01:00')
-            ->withoutOverlapping()
-            ->runInBackground()
-            ->appendOutputTo(storage_path('logs/subscriptions.log'));
-    })
+
 
     ->withExceptions(function (Exceptions $exceptions): void {
         //

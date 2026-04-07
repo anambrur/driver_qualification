@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Models\Payment;
-use App\Services\SubscriptionService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,24 +13,17 @@ use Illuminate\View\View;
 
 class SubscriptionAdminController extends Controller
 {
-    public function __construct(private SubscriptionService $subscriptionService)
-    {
-    }
-
     // ─── Dashboard ────────────────────────────────────────────────────────────
 
     public function dashboard(): View
     {
         $stats = [
-            'total_active'    => Subscription::whereIn('status', ['active', 'trial'])->count(),
-            'total_expired'   => Subscription::where('status', 'expired')->count(),
-            'total_cancelled' => Subscription::where('status', 'cancelled')->count(),
-            'total_revenue'   => Payment::where('status', 'paid')->sum('amount'),
-            'monthly_revenue' => Payment::where('status', 'paid')
-                                     ->whereMonth('paid_at', now()->month)
-                                     ->whereYear('paid_at', now()->year)
-                                     ->sum('amount'),
-            'expiring_soon'   => Subscription::expiringSoon(7)->count(),
+            'total_active'    => Subscription::query()->active()->count(),
+            'total_expired'   => Subscription::query()->canceled()->count(),
+            'total_cancelled' => Subscription::query()->canceled()->count(),
+            'total_revenue'   => 0, // Stripe API required for accurate invoices
+            'monthly_revenue' => 0,
+            'expiring_soon'   => Subscription::query()->whereNotNull('ends_at')->whereBetween('ends_at', [now(), now()->addDays(7)])->count(),
             'new_this_month'  => Subscription::whereMonth('created_at', now()->month)->count(),
         ];
 
@@ -42,7 +33,7 @@ class SubscriptionAdminController extends Controller
             ->get();
 
         $plans = Plan::withCount(['subscriptions' => function ($q) {
-            $q->whereIn('status', ['active', 'trial']);
+            $q->where('stripe_status', 'active');
         }])->get();
 
         return view('admin.subscriptions.dashboard', compact('stats', 'recentSubscriptions', 'plans'));
@@ -55,11 +46,15 @@ class SubscriptionAdminController extends Controller
         $query = Subscription::with(['user', 'plan']);
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            // map old status logic to stripe_status
+            $query->where('stripe_status', $request->status);
         }
 
         if ($request->filled('plan_id')) {
-            $query->where('plan_id', $request->plan_id);
+            $plan = Plan::find($request->plan_id);
+            if ($plan) {
+                $query->where('stripe_price', $plan->stripe_price_id);
+            }
         }
 
         if ($request->filled('search')) {
@@ -80,10 +75,22 @@ class SubscriptionAdminController extends Controller
     public function show(User $user): View
     {
         $subscriptions = $user->subscriptions()->with('plan')->latest()->get();
-        $payments      = $user->payments()->with('plan')->latest()->get();
-        $plans         = Plan::active()->get();
+        
+        try {
+            $invoices = $user->hasStripeId() ? $user->invoices() : [];
+        } catch (\Exception $e) {
+            $invoices = [];
+        }
 
-        return view('admin.subscriptions.show', compact('user', 'subscriptions', 'payments', 'plans'));
+        $plans = Plan::active()->get();
+
+        return view('admin.subscriptions.show', [
+            'user' => $user,
+            'subscriptions' => $subscriptions,
+            'payments' => [], // Removed local payments array, we now rely on $invoices or you can map $invoices
+            'invoices' => $invoices,
+            'plans' => $plans
+        ]);
     }
 
     /**
@@ -97,43 +104,64 @@ class SubscriptionAdminController extends Controller
             'custom_end_date' => 'nullable|date|after:today',
         ]);
 
-        $plan       = Plan::findOrFail($request->plan_id);
-        $customDate = $request->custom_end_date ? Carbon::parse($request->custom_end_date) : null;
+        $plan = Plan::findOrFail($request->plan_id);
 
-        $this->subscriptionService->grantManually($user, $plan, $request->notes ?? '', $customDate);
+        if (!$user->hasStripeId()) {
+            $user->createAsStripeCustomer();
+        }
+
+        // Cashier allows manual subscription creation
+        $builder = $user->newSubscription('default', $plan->stripe_price_id);
+        
+        if ($request->filled('custom_end_date')) {
+            $builder->trialUntil(Carbon::parse($request->custom_end_date));
+        }
+
+        $builder->create();
 
         return redirect()->route('admin.subscriptions.show', $user)
             ->with('success', "Subscription granted to {$user->name}.");
     }
 
     /**
-     * Manually expire a subscription.
+     * Manually expire a subscription immediately.
      */
     public function expire(Subscription $subscription): RedirectResponse
     {
-        $subscription->update(['status' => 'expired', 'ends_at' => now()]);
+        if ($subscription->active()) {
+            $subscription->cancelNow();
+            toastr()->success('Subscription cancelled and expired immediately!');
+        } else {
+            toastr()->warning('Subscription is not active.');
+        }
 
-        return back()->with('success', 'Subscription expired.');
+        return back();
     }
 
     /**
-     * Suspend a user's subscription.
+     * Suspend / Cancel a subscription (at period end).
      */
     public function suspend(Subscription $subscription): RedirectResponse
     {
-        $this->subscriptionService->suspend($subscription);
-
-        return back()->with('success', 'Subscription suspended.');
+        if ($subscription->active()) {
+            $subscription->cancel();
+            toastr()->success('Subscription cancelled at period end!');
+        }
+        return back();
     }
 
     /**
-     * Reactivate a suspended/expired subscription.
+     * Reactivate a cancelled subscription.
      */
     public function reactivate(Subscription $subscription): RedirectResponse
     {
-        $this->subscriptionService->reactivate($subscription);
-
-        return back()->with('success', 'Subscription reactivated.');
+        if ($subscription->canceled() && $subscription->onGracePeriod()) {
+            $subscription->resume();
+            toastr()->success('Subscription resumed successfully!');
+        } else {
+            toastr()->error('Cannot resume an expired subscription.');
+        }
+        return back();
     }
 
     // ─── Plan Management ──────────────────────────────────────────────────────
@@ -169,7 +197,8 @@ class SubscriptionAdminController extends Controller
 
         Plan::create($validated);
 
-        return redirect()->route('admin.plans.index')->with('success', 'Plan created successfully.');
+        toastr()->success('Plan created successfully!');
+        return redirect()->route('admin.plans.index');
     }
 
     public function editPlan(Plan $plan): View
@@ -194,44 +223,7 @@ class SubscriptionAdminController extends Controller
 
         $plan->update($validated);
 
-        return redirect()->route('admin.plans.index')->with('success', 'Plan updated.');
-    }
-
-    // ─── Payments ─────────────────────────────────────────────────────────────
-
-    public function payments(Request $request): View
-    {
-        $payments = Payment::with(['user', 'plan'])
-            ->when($request->status, fn($q) => $q->where('status', $request->status))
-            ->when($request->search, function ($q) use ($request) {
-                $q->where('invoice_number', 'like', "%{$request->search}%")
-                  ->orWhereHas('user', fn($u) => $u->where('email', 'like', "%{$request->search}%"));
-            })
-            ->latest()
-            ->paginate(20);
-
-        return view('admin.subscriptions.payments', compact('payments'));
-    }
-
-    /**
-     * Mark a pending payment as paid.
-     */
-    public function markPaid(Request $request, Payment $payment): RedirectResponse
-    {
-        $request->validate(['transaction_id' => 'nullable|string']);
-
-        $payment->update([
-            'status'         => 'paid',
-            'paid_at'        => now(),
-            'transaction_id' => $request->transaction_id ?? $payment->transaction_id,
-        ]);
-
-        // Activate subscription if pending
-        $sub = $payment->subscription;
-        if ($sub && $sub->status !== 'active') {
-            $sub->update(['status' => 'active']);
-        }
-
-        return back()->with('success', 'Payment marked as paid and subscription activated.');
+        toastr()->success('Plan updated successfully!');
+        return redirect()->route('admin.plans.index');
     }
 }

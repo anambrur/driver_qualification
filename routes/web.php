@@ -192,8 +192,6 @@ Route::middleware(['auth', 'role:super-admin'])->prefix('admin')->name('admin.')
     Route::post('/subscriptions/{subscription}/expire', [SubscriptionAdminController::class, 'expire'])->name('subscriptions.expire');
     Route::post('/subscriptions/{subscription}/suspend', [SubscriptionAdminController::class, 'suspend'])->name('subscriptions.suspend');
     Route::post('/subscriptions/{subscription}/reactivate', [SubscriptionAdminController::class, 'reactivate'])->name('subscriptions.reactivate');
-    Route::get('/subscriptions/payments', [SubscriptionAdminController::class, 'payments'])->name('subscriptions.payments');
-    Route::post('/subscriptions/payments/{payment}/mark-paid', [SubscriptionAdminController::class, 'markPaid'])->name('subscriptions.payments.mark-paid');
 
     Route::get('/plans', [SubscriptionAdminController::class, 'plansIndex'])->name('plans.index');
     Route::get('/plans/create', [SubscriptionAdminController::class, 'createPlan'])->name('plans.create');

@@ -15,16 +15,7 @@
         </a>
     </div>
 
-    @if(session('success'))
-        <div class="mb-4 bg-green-50 border-l-4 border-green-500 p-4 text-sm text-green-700">
-            {{ session('success') }}
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="mb-4 bg-red-50 border-l-4 border-red-500 p-4 text-sm text-red-700">
-            {{ session('error') }}
-        </div>
-    @endif
+    
 
     {{-- Plans Table --}}
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">

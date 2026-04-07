@@ -302,14 +302,14 @@
                                             All Subscriptions
                                         </a>
                                     </li>
-                                    <li>
+                                    {{-- <li>
                                         <a href="{{ route('admin.subscriptions.payments') }}"
                                             class="menu-dropdown-item group"
                                             :class="isCurrentPath('admin/subscriptions/payments') ?
                                                 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
                                             Payments & Invoices
                                         </a>
-                                    </li>
+                                    </li> --}}
                                 </ul>
                             </div>
                         </li>
