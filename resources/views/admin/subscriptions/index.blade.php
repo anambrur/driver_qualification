@@ -90,12 +90,12 @@
                                     ];
                                 @endphp
                                 <span class="px-2.5 py-1 rounded-full text-xs font-medium {{ $colors[$sub->status] ?? 'bg-gray-100' }}">
-                                    {{ $sub->status_label }}
+                                    {{ $sub->stripe_status }}
                                 </span>
                             </td>
                             <td class="px-4 py-4">
                                 <div class="text-xs text-gray-500">
-                                    <span class="font-medium">Starts:</span> {{ $sub->starts_at?->format('M d, Y') ?? 'N/A' }}
+                                    <span class="font-medium">Starts:</span> {{ $sub->created_at?->format('M d, Y') ?? 'N/A' }}
                                 </div>
                                 <div class="text-xs text-gray-500 mt-1">
                                     <span class="font-medium">Ends:</span> 

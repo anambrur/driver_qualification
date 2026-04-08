@@ -16,17 +16,20 @@ class CheckoutController extends Controller
             return redirect()->route('pricing.plans')->with('error', 'This plan is not available.');
         }
 
-        $planPrice = $plan->stripe_price_id;
+        $builder = $request->user()->newSubscription('default', $plan->stripe_price_id);
 
+        // Apply trial ONLY when the plan explicitly has trial days.
+        if ((int) ($plan->trial_days ?? 0) > 0) {
+            $builder->trialDays((int) $plan->trial_days);
+        } else {
+            // Allow promo codes only for paid plans (prevents odd trial+promo combinations).
+            $builder->allowPromotionCodes();
+        }
 
-        return $request->user()
-            ->newSubscription('default', $planPrice)
-            ->trialDays(5)
-            ->allowPromotionCodes()
-            ->checkout([
-                'success_url' => route('checkout.success'),
-                'cancel_url' => route('pricing.plans'),
-            ]);
+        return $builder->checkout([
+            'success_url' => route('checkout.success'),
+            'cancel_url' => route('pricing.plans'),
+        ]);
     }
 
     public function success(Request $request)

@@ -53,4 +53,14 @@ class User extends Authenticatable
     {
         return $this->hasOne(Company::class);
     }
+
+    /**
+     * Override Cashier's subscriptions() to use our custom Subscription model
+     * so that the plan() relationship is always available.
+     */
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class, 'user_id')
+            ->orderBy('created_at', 'desc');
+    }
 }

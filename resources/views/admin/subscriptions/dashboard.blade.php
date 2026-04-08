@@ -101,7 +101,7 @@
                                     @endphp
                                     <span
                                         class="px-2 py-1 rounded-full text-xs font-medium {{ $colors[$sub->status] ?? 'bg-gray-100' }}">
-                                        {{ $sub->status_label }}
+                                        {{ $sub->stripe_status }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-gray-500 text-xs">

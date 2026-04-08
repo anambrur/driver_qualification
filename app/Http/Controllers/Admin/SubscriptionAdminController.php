@@ -10,6 +10,12 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Log;
+use Laravel\Cashier\Cashier;
+
+// stripe listen --forward-to http://driver-qualification.test/stripe/webhook
+
+// php artisan cashier:webhook
 
 class SubscriptionAdminController extends Controller
 {
@@ -17,12 +23,70 @@ class SubscriptionAdminController extends Controller
 
     public function dashboard(): View
     {
+        $totalRevenue = 0.0;
+        $monthlyRevenue = 0.0;
+
+        // Revenue is derived from Stripe invoices (Cashier does not persist invoice totals locally).
+        // This is best-effort: if Stripe is unreachable/misconfigured, we fall back to 0.
+        try {
+            $stripe = Cashier::stripe();
+
+            // Sum paid invoices across the whole account (may include non-subscription invoices if you have any).
+            $startingAfter = null;
+            do {
+                $params = [
+                    'limit' => 100,
+                    'status' => 'paid',
+                ];
+                if ($startingAfter) {
+                    $params['starting_after'] = $startingAfter;
+                }
+
+                $page = $stripe->invoices->all($params);
+                foreach ($page->data ?? [] as $invoice) {
+                    // Stripe amounts are in cents.
+                    $totalRevenue += ((float) ($invoice->amount_paid ?? 0)) / 100;
+                }
+
+                $startingAfter = (!empty($page->has_more) && !empty($page->data))
+                    ? end($page->data)->id
+                    : null;
+            } while ($startingAfter);
+
+            // Revenue this month: filter by created timestamp.
+            $monthStart = now()->startOfMonth()->timestamp;
+            $startingAfter = null;
+            do {
+                $params = [
+                    'limit' => 100,
+                    'status' => 'paid',
+                    'created' => ['gte' => $monthStart],
+                ];
+                if ($startingAfter) {
+                    $params['starting_after'] = $startingAfter;
+                }
+
+                $page = $stripe->invoices->all($params);
+                foreach ($page->data ?? [] as $invoice) {
+                    $monthlyRevenue += ((float) ($invoice->amount_paid ?? 0)) / 100;
+                }
+
+                $startingAfter = (!empty($page->has_more) && !empty($page->data))
+                    ? end($page->data)->id
+                    : null;
+            } while ($startingAfter);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to compute Stripe revenue for dashboard', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         $stats = [
             'total_active'    => Subscription::query()->active()->count(),
-            'total_expired'   => Subscription::query()->canceled()->count(),
+            'total_expired'   => Subscription::query()->whereNotNull('ends_at')->where('ends_at', '<', now())->count(), // fix
             'total_cancelled' => Subscription::query()->canceled()->count(),
-            'total_revenue'   => 0, // Stripe API required for accurate invoices
-            'monthly_revenue' => 0,
+            'total_revenue'   => $totalRevenue,
+            'monthly_revenue' => $monthlyRevenue,
             'expiring_soon'   => Subscription::query()->whereNotNull('ends_at')->whereBetween('ends_at', [now(), now()->addDays(7)])->count(),
             'new_this_month'  => Subscription::whereMonth('created_at', now()->month)->count(),
         ];
@@ -75,11 +139,46 @@ class SubscriptionAdminController extends Controller
     public function show(User $user): View
     {
         $subscriptions = $user->subscriptions()->with('plan')->latest()->get();
-        
+        // dd($subscriptions);
+
         try {
             $invoices = $user->hasStripeId() ? $user->invoices() : [];
         } catch (\Exception $e) {
             $invoices = [];
+        }
+
+        // Fetch expanded Stripe subscription objects for rich display/logging in admin UI.
+        // This avoids depending on sparse webhook payloads.
+        $stripeSubscriptions = [];
+        if ($user->hasStripeId()) {
+            $stripe = $user->stripe();
+
+            foreach ($subscriptions as $sub) {
+                if (empty($sub->stripe_id)) {
+                    continue;
+                }
+
+                try {
+                    $stripeSubscriptions[$sub->stripe_id] = $stripe->subscriptions->retrieve($sub->stripe_id, [
+                        'expand' => [
+                            'customer',
+                            'default_payment_method',
+                            'items.data.price',
+                            'items.data.price.product',
+                            'latest_invoice',
+                            'latest_invoice.payment_intent',
+                            'pending_setup_intent',
+                            'schedule',
+                        ],
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to retrieve Stripe subscription for admin display', [
+                        'user_id' => $user->id,
+                        'stripe_subscription_id' => $sub->stripe_id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
         }
 
         $plans = Plan::active()->get();
@@ -89,7 +188,8 @@ class SubscriptionAdminController extends Controller
             'subscriptions' => $subscriptions,
             'payments' => [], // Removed local payments array, we now rely on $invoices or you can map $invoices
             'invoices' => $invoices,
-            'plans' => $plans
+            'plans' => $plans,
+            'stripeSubscriptions' => $stripeSubscriptions,
         ]);
     }
 
@@ -112,7 +212,7 @@ class SubscriptionAdminController extends Controller
 
         // Cashier allows manual subscription creation
         $builder = $user->newSubscription('default', $plan->stripe_price_id);
-        
+
         if ($request->filled('custom_end_date')) {
             $builder->trialUntil(Carbon::parse($request->custom_end_date));
         }
