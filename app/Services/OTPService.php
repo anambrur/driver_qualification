@@ -1,5 +1,6 @@
 <?php
 // app/Services/OTPService.php
+// +1 229 600 6341
 
 namespace App\Services;
 
@@ -249,7 +250,6 @@ class OTPService
         if ($otpRecord->method === 'verify_api') {
             return $this->verifyWithTwilioAPI($phoneNumber, $otpCode, $otpRecord);
         } else {
-            dd('Using Database Verification');
             return $this->verifyWithDatabase($phoneNumber, $otpCode, $otpRecord);
         }
     }
