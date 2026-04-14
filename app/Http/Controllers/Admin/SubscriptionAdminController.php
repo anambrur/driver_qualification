@@ -43,6 +43,7 @@ class SubscriptionAdminController extends Controller
                 }
 
                 $page = $stripe->invoices->all($params);
+                
                 foreach ($page->data ?? [] as $invoice) {
                     // Stripe amounts are in cents.
                     $totalRevenue += ((float) ($invoice->amount_paid ?? 0)) / 100;
@@ -139,7 +140,6 @@ class SubscriptionAdminController extends Controller
     public function show(User $user): View
     {
         $subscriptions = $user->subscriptions()->with('plan')->latest()->get();
-        // dd($subscriptions);
 
         try {
             $invoices = $user->hasStripeId() ? $user->invoices() : [];

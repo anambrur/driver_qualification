@@ -105,7 +105,27 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-gray-500 text-xs">
-                                    {{ $sub->ends_at?->format('M d, Y') ?? 'Lifetime' }}
+                                    @php
+                                        $isCancelled = method_exists($sub, 'canceled')
+                                            ? $sub->canceled()
+                                            : !empty($sub->cancelled_at);
+                                        $isActive = method_exists($sub, 'active')
+                                            ? $sub->active()
+                                            : $sub->stripe_status === 'active';
+                                        $isOnGrace = method_exists($sub, 'onGracePeriod')
+                                            ? $sub->onGracePeriod()
+                                            : false;
+                                    @endphp
+
+                                    @if ($sub->ends_at)
+                                        {{ $sub->ends_at->format('M d, Y g:i A') }}
+                                    @elseif ($isCancelled || $isOnGrace)
+                                        <span class="text-gray-600 dark:text-gray-300">Ends at period end</span>
+                                    @elseif ($isActive)
+                                        <span class="text-green-600 font-medium">Ongoing</span>
+                                    @else
+                                        <span class="text-gray-500">—</span>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3">
                                     <a href="{{ route('admin.subscriptions.show', $sub->user) }}"

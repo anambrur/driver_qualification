@@ -13,7 +13,8 @@ class CheckoutController extends Controller
         $plan = Plan::where('slug', $name)->firstOrFail();
 
         if (!$plan->is_active) {
-            return redirect()->route('pricing.plans')->with('error', 'This plan is not available.');
+            toastr()->error('This plan is not available.');
+            return redirect()->route('pricing.plans');
         }
 
         $builder = $request->user()->newSubscription('default', $plan->stripe_price_id);
