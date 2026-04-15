@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 class RegisteredUserController extends Controller
 {
@@ -31,20 +36,47 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                'unique:' . User::class,
+                'unique:companies,email'
+            ],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
+        try {
+            DB::beginTransaction();
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+            $slug = Str::slug($request->name) . '-' . Str::random(4);
 
-        event(new Registered($user));
+            Company::create([
+                'user_id' => $user->id,
+                'company_name' => $request->name,
+                'email' => $request->email,
+                'slug' => $slug,
+                'status' => 'active',
+            ]);
 
-        Auth::login($user);
+            $user->assignRole('company');
+            DB::commit();
+            event(new Registered($user));
+            Auth::login($user);
+            return redirect(route('dashboard', absolute: false));
+        } catch (\Exception $e) {
+            DB::rollBack();
 
-        return redirect(route('dashboard', absolute: false));
+            Log::error('Registration Failed: ' . $e->getMessage());
+
+            toastr()->error('An error occurred during registration. Please try again.');
+            return back()->withInput();
+        }
     }
 }
