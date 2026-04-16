@@ -51,13 +51,22 @@ trait CompanyFilterTrait
      */
     protected function applyCompanyFilter($query, $companyColumn = 'company_id')
     {
+        $user = Auth::user();
+
+        // Super admins have unrestricted access
+        if ($user && $user->hasRole('super-admin')) {
+            return $query;
+        }
+
         $companyId = $this->getUserCompanyId();
 
         if ($companyId !== null) {
             return $query->where($companyColumn, $companyId);
         }
 
-        return $query;
+        // If a non-super-admin user has NO company assigned (e.g. other roles), 
+        // they should see NO records.
+        return $query->where($companyColumn, -1);
     }
 
     /**
