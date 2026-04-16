@@ -249,7 +249,7 @@ class DriverController extends Controller
 
         if (!Auth::user()->hasRole('super-admin')) {
             // Ensure the user is only creating drivers for their own company
-            if ($companyId && $request->company_id != $companyId) {
+            if ($companyId === null || $request->company_id != $companyId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You can only create drivers for your own company.'
