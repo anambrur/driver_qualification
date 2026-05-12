@@ -28,11 +28,12 @@
                 <div class="text-center mb-8 md:mb-12">
                     <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-3">Start New Application</h3>
                     <p class="text-gray-600 text-lg md:text-xl">
-                        Please complete the fields below to register and begin the application.
+                        Please complete the fields below to register and begin the application.7u
                     </p>
                 </div>
 
-                <form id="applicationForm" action="{{ route('public.application.send.otp', $company->slug) }}" method="POST">
+                <form id="applicationForm" action="{{ route('public.application.send.otp', $company->slug) }}"
+                    method="POST">
                     @csrf
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-10 md:mb-14">
                         <div>
@@ -195,12 +196,16 @@
 
                 if (cleaned.startsWith('1') && (cleaned.length === 11 || cleaned.length === 10)) {
                     return '1'; // US/Canada
-                } else if (cleaned.startsWith('880')) {
-                    return '880'; // Bangladesh
+                } else if (cleaned.startsWith('880') || (cleaned.startsWith('01') && cleaned.length === 11) || (
+                        cleaned.startsWith('1') && cleaned.length === 10 && !cleaned.startsWith('10'))) {
+                    // If it starts with 880, or 01 (BD local), or 1 (BD local without 0)
+                    if (cleaned.startsWith('880')) return '880';
+                    if (cleaned.startsWith('01') && cleaned.length === 11) return '880';
                 } else if (cleaned.startsWith('91')) {
                     return '91'; // India
-                } else if (cleaned.length >= 10 && cleaned.length <= 15) {
-                    // If no specific country code detected but number is valid length
+                }
+
+                if (cleaned.length >= 10 && cleaned.length <= 15) {
                     return 'unknown';
                 }
 
@@ -224,7 +229,11 @@
                     }
                 } else if (countryCode === '880') {
                     // Bangladesh format
-                    const match = cleaned.match(/^880?(\d{2})(\d{3})(\d{3})(\d{2})$/);
+                    let numToFormat = cleaned;
+                    if (cleaned.startsWith('01') && cleaned.length === 11) {
+                        numToFormat = '880' + cleaned.substring(1);
+                    }
+                    const match = numToFormat.match(/^880?(\d{2})(\d{3})(\d{3})(\d{2})$/);
                     if (match) {
                         formatted = `+880 ${match[1]} ${match[2]}-${match[3]}-${match[4]}`;
                     }
@@ -251,86 +260,18 @@
                     };
                 }
 
-                // Remove all non-digits for validation
-                const phoneDigits = digitsOnly;
-
-                // US/Canada: +1 followed by 10 digits
-                if (phoneDigits.startsWith('1') && phoneDigits.length === 11) {
+                if (digitsOnly.length < 10 || digitsOnly.length > 15) {
                     return {
-                        isValid: true,
-                        cleaned: '+' + phoneDigits,
-                        digitsOnly: phoneDigits,
-                        countryCode: '1'
+                        isValid: false,
+                        message: 'Please enter a valid phone number (10-15 digits)'
                     };
-                }
-
-                // Bangladesh: +880 followed by 10 digits starting with 13-19
-                if (phoneDigits.startsWith('880') && phoneDigits.length === 13) {
-                    const afterCode = phoneDigits.substring(3);
-                    if (/^1[3-9]\d{8}$/.test(afterCode)) {
-                        return {
-                            isValid: true,
-                            cleaned: '+' + phoneDigits,
-                            digitsOnly: phoneDigits,
-                            countryCode: '880'
-                        };
-                    } else {
-                        return {
-                            isValid: false,
-                            message: 'Bangladeshi numbers must start with 13-19 after +880'
-                        };
-                    }
-                }
-
-                // India: +91 followed by 10 digits starting with 6-9
-                if (phoneDigits.startsWith('91') && phoneDigits.length === 12) {
-                    const afterCode = phoneDigits.substring(2);
-                    if (/^[6-9]\d{9}$/.test(afterCode)) {
-                        return {
-                            isValid: true,
-                            cleaned: '+' + phoneDigits,
-                            digitsOnly: phoneDigits,
-                            countryCode: '91'
-                        };
-                    } else {
-                        return {
-                            isValid: false,
-                            message: 'Indian numbers must start with 6-9 after +91'
-                        };
-                    }
-                }
-
-                // Check if it's a 10-digit number (assume US)
-                if (phoneDigits.length === 10) {
-                    return {
-                        isValid: true,
-                        cleaned: '+1' + phoneDigits,
-                        digitsOnly: '1' + phoneDigits,
-                        countryCode: '1'
-                    };
-                }
-
-                // Check if it's an 11-digit number without country code (assume US)
-                if (phoneDigits.length === 11 && !phoneDigits.startsWith('880') && !phoneDigits.startsWith('91')) {
-                    // If it starts with 1, it's already US format
-                    if (phoneDigits.startsWith('1')) {
-                        return {
-                            isValid: true,
-                            cleaned: '+' + phoneDigits,
-                            digitsOnly: phoneDigits,
-                            countryCode: '1'
-                        };
-                    } else {
-                        return {
-                            isValid: false,
-                            message: 'US/Canada numbers must start with country code 1'
-                        };
-                    }
                 }
 
                 return {
-                    isValid: false,
-                    message: 'Please enter a valid phone number for US, Bangladesh, or India'
+                    isValid: true,
+                    cleaned: cleaned,
+                    digitsOnly: digitsOnly,
+                    formatted: formatPhoneNumber(cleaned)
                 };
             }
 
@@ -339,17 +280,24 @@
                 const cleaned1 = cleanPhoneNumber(phone1).replace(/\D/g, '');
                 const cleaned2 = cleanPhoneNumber(phone2).replace(/\D/g, '');
 
+
                 // Normalize by removing leading country code zeros
                 const normalize = (num) => {
-                    // Remove leading zeros except for country codes
-                    if (num.startsWith('880')) return '880' + num.substring(3);
-                    if (num.startsWith('91')) return '91' + num.substring(2);
+                    // If number already includes Bangladesh country code
+                    if (num.startsWith('880')) return num;
+                    // If local Bangladeshi format starts with 0 and has 11 digits, replace leading 0 with 880
+                    if (num.length === 11 && num.startsWith('0')) return '880' + num.substring(1);
+                    // US/Canada: keep leading 1, strip additional leading zeros
                     if (num.startsWith('1')) return '1' + num.substring(1).replace(/^0+/, '');
+                    // India: keep leading 91, strip additional leading zeros
+                    if (num.startsWith('91')) return '91' + num.substring(2).replace(/^0+/, '');
+                    // Default: strip leading zeros
                     return num.replace(/^0+/, '');
                 };
 
                 const normalized1 = normalize(cleaned1);
                 const normalized2 = normalize(cleaned2);
+
 
                 if (normalized1 !== normalized2) {
                     return {

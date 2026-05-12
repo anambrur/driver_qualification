@@ -1,6 +1,5 @@
 <?php
 // app/Services/OTPService.php
-// +1 229 600 6341
 
 namespace App\Services;
 
@@ -12,30 +11,24 @@ use Illuminate\Support\Facades\Cache;
 class OTPService
 {
     protected $twilio;
-    protected $from;
     protected $otpExpiryMinutes = 10;
     protected $maxAttempts = 3;
     protected $resendTimeout = 60; // seconds
-    protected $useVerifyApi = true;
     protected $verifyServiceSid;
 
     public function __construct()
     {
-        $this->from = config('services.twilio.from');
         $this->verifyServiceSid = config('services.twilio.verify_sid');
-        $this->useVerifyApi = !empty($this->verifyServiceSid);
-
-        if ($this->useVerifyApi || $this->from) {
-            $sid = config('services.twilio.sid');
-            $token = config('services.twilio.token');
-            $this->twilio = new Client($sid, $token);
-        }
+        
+        $sid = config('services.twilio.sid');
+        $token = config('services.twilio.token');
+        $this->twilio = new Client($sid, $token);
     }
 
     /**
      * Send OTP to phone number
      */
-    public function sendOTP($phoneNumber, $method = null)
+    public function sendOTP($phoneNumber)
     {
         $phoneNumber = $this->cleanPhoneNumber($phoneNumber);
 
@@ -55,47 +48,9 @@ class OTPService
             ];
         }
 
-        // Determine which method to use
-        if ($method) {
-            $useMethod = $method;
-        } else {
-            $useMethod = $this->shouldUseVerifyAPI($phoneNumber) ? 'verify_api' : 'direct_sms';
-        }
-
         // Mark existing OTPs as used
         $this->invalidateExistingOTPs($phoneNumber);
 
-        try {
-            // Try primary method first
-            if ($useMethod === 'verify_api') {
-                return $this->sendViaVerifyAPI($phoneNumber);
-            } else {
-                return $this->sendViaDirectSMS($phoneNumber);
-            }
-        } catch (\Exception $e) {
-            // If direct SMS fails due to rate limit, try Verify API as fallback
-            if ($e->getCode() == 63038 && $useMethod === 'direct_sms') {
-                Log::warning('Direct SMS rate limited, falling back to Verify API', [
-                    'phone' => $phoneNumber,
-                    'error_code' => $e->getCode()
-                ]);
-
-                // Try Verify API if available
-                if ($this->useVerifyApi) {
-                    return $this->sendViaVerifyAPI($phoneNumber);
-                }
-            }
-
-            // Re-throw if no fallback available
-            throw $e;
-        }
-    }
-
-    /**
-     * Send OTP using Twilio Verify API
-     */
-    protected function sendViaVerifyAPI($phoneNumber)
-    {
         try {
             // Create OTP record with placeholder
             $otpRecord = OtpVerification::create([
@@ -147,72 +102,6 @@ class OTPService
     }
 
     /**
-     * Send OTP via direct SMS
-     */
-    protected function sendViaDirectSMS($phoneNumber)
-    {
-        try {
-            // Generate 6-digit OTP
-            $otp = $this->generateOTP();
-
-            // Create OTP record
-            $otpRecord = OtpVerification::create([
-                'phone' => $phoneNumber,
-                'otp' => $otp,
-                'expires_at' => now()->addMinutes($this->otpExpiryMinutes),
-                'is_used' => false,
-                'method' => 'direct_sms',
-                'verification_sid' => null
-            ]);
-
-            // Send SMS
-            $message = "Your verification code is: {$otp}. Valid for {$this->otpExpiryMinutes} minutes.";
-
-            $this->twilio->messages->create(
-                $phoneNumber,
-                [
-                    'from' => $this->from,
-                    'body' => $message
-                ]
-            );
-
-            // Store in cache (without OTP for security)
-            $cacheKey = "otp:{$phoneNumber}:{$otpRecord->id}";
-            Cache::put($cacheKey, [
-                'otp_id' => $otpRecord->id,
-                'phone' => $phoneNumber,
-                'method' => 'direct_sms'
-            ], now()->addMinutes($this->otpExpiryMinutes));
-
-            return [
-                'success' => true,
-                'message' => 'OTP sent successfully',
-                'otp_id' => $otpRecord->id,
-                'method' => 'direct_sms',
-                'expires_in' => $this->otpExpiryMinutes * 60
-            ];
-        } catch (\Exception $e) {
-            Log::error('Direct SMS Error: ' . $e->getMessage(), [
-                'phone' => $phoneNumber,
-                'from' => $this->from,
-                'error_code' => $e->getCode(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            // Delete record if SMS fails
-            if (isset($otpRecord)) {
-                $otpRecord->delete();
-            }
-
-            return [
-                'success' => false,
-                'message' => $this->getErrorMessage($e->getCode()),
-                'error_code' => $e->getCode()
-            ];
-        }
-    }
-
-    /**
      * Verify OTP
      */
     public function verifyOTP($phoneNumber, $otpCode)
@@ -233,32 +122,6 @@ class OTPService
             ];
         }
 
-        // Increment attempts
-        $attemptsKey = "otp_attempts:{$phoneNumber}";
-        // $attempts = Cache::get($attemptsKey, 0) + 1;
-        // Cache::put($attemptsKey, $attempts, now()->addHour());
-
-        // // Check if exceeded max attempts
-        // if ($attempts > $this->maxAttempts) {
-        //     return [
-        //         'success' => false,
-        //         'message' => 'Too many failed attempts. Please request a new OTP.'
-        //     ];
-        // }
-
-        // Verify based on method
-        if ($otpRecord->method === 'verify_api') {
-            return $this->verifyWithTwilioAPI($phoneNumber, $otpCode, $otpRecord);
-        } else {
-            return $this->verifyWithDatabase($phoneNumber, $otpCode, $otpRecord);
-        }
-    }
-
-    /**
-     * Verify using Twilio Verify API
-     */
-    protected function verifyWithTwilioAPI($phoneNumber, $otpCode, $otpRecord)
-    {
         try {
             $verificationCheck = $this->twilio->verify->v2->services($this->verifyServiceSid)
                 ->verificationChecks
@@ -299,32 +162,6 @@ class OTPService
                 'message' => 'OTP verification failed. Please try again.'
             ];
         }
-    }
-
-    /**
-     * Verify using database stored OTP
-     */
-    protected function verifyWithDatabase($phoneNumber, $otpCode, $otpRecord)
-    {
-        if (hash_equals((string) $otpRecord->otp, (string) $otpCode)) {
-            $otpRecord->update([
-                'is_used' => true,
-                'verified_at' => now()
-            ]);
-
-            // Clear attempts cache
-            Cache::forget("otp_attempts:{$phoneNumber}");
-
-            return [
-                'success' => true,
-                'message' => 'OTP verified successfully'
-            ];
-        }
-
-        return [
-            'success' => false,
-            'message' => 'Invalid OTP code'
-        ];
     }
 
     /**
@@ -378,6 +215,11 @@ class OTPService
         // Remove all non-numeric characters
         $cleaned = preg_replace('/[^0-9]/', '', $phoneNumber);
 
+        // Handle Bangladesh local format (11 digits starting with 01)
+        if (str_starts_with($cleaned, '01') && strlen($cleaned) == 11) {
+            return '+880' . substr($cleaned, 1);
+        }
+
         // Remove leading 0 if present
         if (str_starts_with($cleaned, '0')) {
             $cleaned = substr($cleaned, 1);
@@ -398,51 +240,8 @@ class OTPService
             return '+1' . $cleaned;
         }
 
-        // If already has +, return as-is
-        if (str_starts_with($phoneNumber, '+')) {
-            return $phoneNumber;
-        }
-
         // Default: add + prefix
         return '+' . $cleaned;
-    }
-
-    /**
-     * Generate 6-digit OTP
-     */
-    protected function generateOTP()
-    {
-        // Generate cryptographically secure random OTP
-        return random_int(100000, 999999);
-    }
-
-    /**
-     * Determine if we should use Verify API
-     */
-    protected function shouldUseVerifyAPI($phoneNumber)
-    {
-        if (!$this->useVerifyApi) {
-            return false;
-        }
-
-        // Check if phone number is supported by Verify API
-        $countryCode = substr($phoneNumber, 0, 4); // Changed from 3 to 4
-
-        // Verify API supports these country codes well (including Bangladesh +880)
-        $supportedCountries = [
-            '+1',   // US/Canada
-            '+44',  // UK
-            '+91',  // India
-            '+880', // Bangladesh
-            '+65',  // Singapore
-            '+60',  // Malaysia
-            '+62',  // Indonesia
-            '+81',  // Japan
-            '+971', // UAE
-            '+966'  // Saudi Arabia
-        ];
-
-        return in_array($countryCode, $supportedCountries);
     }
 
     /**
