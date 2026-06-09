@@ -754,47 +754,7 @@
         }
 
         // Send reminder email function
-        function sendReminderEmail(driverId, docTypeId, assetType) {
-            if (!confirm('Send reminder email to the driver?')) {
-                return;
-            }
-
-            const csrfToken = getCsrfToken();
-            if (!csrfToken) {
-                showToast('Security token not found. Please refresh the page.', 'error');
-                return;
-            }
-
-            fetch('/admin/compliance/driver-documents/send-reminder', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        driver_id: driverId,
-                        document_type_id: docTypeId
-                    })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        showToast(data.message || 'Reminder sent successfully', 'success');
-                    } else {
-                        showToast(data.message || 'Failed to send reminder', 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showToast('Error sending reminder: ' + error.message, 'error');
-                });
-        }
+        @include('admin.compliance.partials.send-reminder-script')
 
         // Toast Notification Function
         function showToast(message, type = 'info') {

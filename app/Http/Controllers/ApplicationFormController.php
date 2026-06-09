@@ -1,32 +1,30 @@
 <?php
+
 // app/Http/Controllers/ApplicationFormController.php
 
 namespace App\Http\Controllers;
 
-use App\Models\Driver;
 use App\Models\Company;
 use App\Models\Country;
-use App\Models\State;
+use App\Models\Driver;
+use App\Models\DriverDocument;
 use App\Models\PolicyPdf;
+use App\Models\State;
 use App\Models\Violation;
 use App\Services\OTPService;
+use App\Services\PhoneNumberService;
 use Illuminate\Http\Request;
-use App\Models\DriverDocument;
-use App\Models\OtpVerification;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class ApplicationFormController extends Controller
 {
-    protected $otpService;
-
-    public function __construct(OTPService $otpService)
-    {
-        $this->otpService = $otpService;
-    }
+    public function __construct(
+        protected OTPService $otpService,
+        protected PhoneNumberService $phoneNumbers,
+    ) {}
 
     /**
      * Show the application landing page
@@ -39,7 +37,7 @@ class ApplicationFormController extends Controller
             ->firstOrFail();
 
         // Check if company allows applications
-        if (!$company) {
+        if (! $company) {
             abort(404, 'This company is not currently accepting applications.');
         }
 
@@ -73,6 +71,7 @@ class ApplicationFormController extends Controller
 
                     if (strlen($phone) < 10 || strlen($phone) > 15) {
                         $fail('Phone number must be 10-15 digits.');
+
                         return;
                     }
 
@@ -85,7 +84,7 @@ class ApplicationFormController extends Controller
                     if ($exists) {
                         $fail('This phone number is already registered with our company.');
                     }
-                }
+                },
             ],
             'confirm_phone' => 'required|same:phone',
         ]);
@@ -94,26 +93,30 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
-        $phone = $this->formatPhoneForTwilio($request->phone);
+        $phone = $this->formatPhoneNumber($request->phone);
 
-        if (!$this->otpService->validatePhoneNumber($phone)) {
+        if (! $this->otpService->validatePhoneNumber($phone)) {
             toastr()->error('Invalid phone number format. Please enter a valid number.');
+
             return back()->withInput();
         }
 
         try {
             $status = $this->otpService->checkOTPStatus($phone);
 
-            if (!$status['can_resend']) {
+            if (! $status['can_resend']) {
                 toastr()->error('Please wait before requesting a new OTP.');
+
                 return back()->withInput();
             }
 
             if ($status['attempts_count'] >= $status['max_attempts']) {
                 toastr()->error('Maximum OTP attempts reached. Please try again later.');
+
                 return back()->withInput();
             }
 
@@ -124,18 +127,21 @@ class ApplicationFormController extends Controller
                     'otp_verification_phone' => $phone,
                     'otp_company_slug' => $slug,
                     'otp_method' => $result['method'],
-                    'otp_sent_at' => now()->timestamp
+                    'otp_sent_at' => now()->timestamp,
                 ]);
 
                 toastr()->success('OTP sent successfully!');
+
                 return redirect()->route('public.application.verify.otp', $slug);
             } else {
                 toastr()->error($result['message']);
+
                 return back()->withInput();
             }
         } catch (\Exception $e) {
-            Log::error('OTP Send Error: ' . $e->getMessage());
+            Log::error('OTP Send Error: '.$e->getMessage());
             toastr()->error('An error occurred while sending OTP. Please try again.');
+
             return back()->withInput();
         }
     }
@@ -149,8 +155,9 @@ class ApplicationFormController extends Controller
         $phone = Session::get('otp_verification_phone');
         $method = Session::get('otp_method', 'direct_sms');
 
-        if (!$phone) {
+        if (! $phone) {
             toastr()->error('Please start the application process first.');
+
             return redirect()->route('public.application.start', $slug);
         }
 
@@ -167,8 +174,9 @@ class ApplicationFormController extends Controller
         $company = Company::where('slug', $slug)->firstOrFail();
         $phone = Session::get('otp_verification_phone');
 
-        if (!$phone) {
+        if (! $phone) {
             toastr()->error('Session expired. Please start again.');
+
             return redirect()->route('public.application.start', $slug);
         }
 
@@ -178,6 +186,7 @@ class ApplicationFormController extends Controller
 
         if ($validator->fails()) {
             toastr()->error('Please enter a valid 6-digit OTP.');
+
             return back()->withInput();
         }
 
@@ -188,7 +197,7 @@ class ApplicationFormController extends Controller
                 'otp_verification_phone',
                 'otp_company_slug',
                 'otp_method',
-                'otp_sent_at'
+                'otp_sent_at',
             ]);
 
             // Check if driver already exists in draft
@@ -198,7 +207,7 @@ class ApplicationFormController extends Controller
                 ->where('source', 'public_application')
                 ->first();
 
-            if (!$driver) {
+            if (! $driver) {
                 // Create new driver record
                 $driver = Driver::create([
                     'company_id' => $company->id,
@@ -218,13 +227,15 @@ class ApplicationFormController extends Controller
                 'application_started' => true,
                 'application_driver_id' => $driver->id,
                 'current_step' => 1,
-                'application_session_token' => md5($phone . $company->id . time())
+                'application_session_token' => md5($phone.$company->id.time()),
             ]);
 
             toastr()->success('Phone number verified successfully!');
+
             return redirect()->route('public.application.step1', $slug);
         } else {
             toastr()->error($result['message']);
+
             return back()->withInput();
         }
     }
@@ -235,6 +246,7 @@ class ApplicationFormController extends Controller
     public function resume($slug)
     {
         $company = Company::where('slug', $slug)->firstOrFail();
+
         return view('application.resume', compact('company'));
     }
 
@@ -249,10 +261,11 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
-        $phone = $this->formatPhoneForTwilio($request->phone);
+        $phone = $this->formatPhoneNumber($request->phone);
         $company = Company::where('slug', $slug)->firstOrFail();
 
         // Find driver
@@ -271,16 +284,18 @@ class ApplicationFormController extends Controller
                 'application_started' => true,
                 'application_driver_id' => $driver->id,
                 'current_step' => $this->calculateCurrentStep($driver),
-                'application_session_token' => md5($phone . $company->id . time())
+                'application_session_token' => md5($phone.$company->id.time()),
             ]);
 
             toastr()->success('Application found! Redirecting to where you left off...');
-            return redirect()->route('public.application.step' . $this->calculateCurrentStep($driver), [
+
+            return redirect()->route('public.application.step'.$this->calculateCurrentStep($driver), [
                 'slug' => $slug,
-                'driver_id' => $driver->id
+                'driver_id' => $driver->id,
             ]);
         } else {
             toastr()->error('No application found with those details.');
+
             return back()->withInput();
         }
     }
@@ -297,17 +312,17 @@ class ApplicationFormController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Valid phone number is required.'
+                'message' => 'Valid phone number is required.',
             ]);
         }
 
-        $phone = $this->formatPhoneForTwilio($request->phone);
+        $phone = $this->formatPhoneNumber($request->phone);
         $company = Company::where('slug', $slug)->first();
 
-        if (!$company) {
+        if (! $company) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid company identifier.'
+                'message' => 'Invalid company identifier.',
             ]);
         }
 
@@ -322,29 +337,29 @@ class ApplicationFormController extends Controller
             try {
                 // Send OTP
                 $result = $this->otpService->sendOTP($phone);
-                
+
                 if ($result['success']) {
                     return response()->json([
                         'success' => true,
                         'requires_otp' => true,
-                        'phone' => $phone
+                        'phone' => $phone,
                     ]);
                 } else {
                     return response()->json([
                         'success' => false,
-                        'message' => $result['message']
+                        'message' => $result['message'],
                     ]);
                 }
             } catch (\Exception $e) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'An error occurred while sending OTP.'
+                    'message' => 'An error occurred while sending OTP.',
                 ]);
             }
         } else {
             return response()->json([
                 'success' => false,
-                'message' => 'No application found with this phone number.'
+                'message' => 'No application found with this phone number.',
             ]);
         }
     }
@@ -362,14 +377,14 @@ class ApplicationFormController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Valid OTP code is required (6 digits).'
+                'message' => 'Valid OTP code is required (6 digits).',
             ]);
         }
 
         $phone = $request->phone;
         $company = Company::where('slug', $slug)->first();
 
-        if (!$company) {
+        if (! $company) {
             return response()->json(['success' => false, 'message' => 'Invalid company.']);
         }
 
@@ -393,29 +408,29 @@ class ApplicationFormController extends Controller
                     'application_started' => true,
                     'application_driver_id' => $driver->id,
                     'current_step' => $this->calculateCurrentStep($driver),
-                    'application_session_token' => md5($phone . $company->id . time())
+                    'application_session_token' => md5($phone.$company->id.time()),
                 ]);
 
                 // Formulate redirect to the specific step
-                $redirectUrl = route('public.application.step' . $this->calculateCurrentStep($driver), [
+                $redirectUrl = route('public.application.step'.$this->calculateCurrentStep($driver), [
                     'slug' => $slug,
-                    'driver_id' => $driver->id
+                    'driver_id' => $driver->id,
                 ]);
 
                 return response()->json([
                     'success' => true,
-                    'redirect' => $redirectUrl
+                    'redirect' => $redirectUrl,
                 ]);
             } else {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Driver record lost during verification.'
+                    'message' => 'Driver record lost during verification.',
                 ]);
             }
         } else {
             return response()->json([
                 'success' => false,
-                'message' => $result['message'] ?? 'Invalid or expired OTP code.'
+                'message' => $result['message'] ?? 'Invalid or expired OTP code.',
             ]);
         }
     }
@@ -459,7 +474,7 @@ class ApplicationFormController extends Controller
             'main_phone' => 'required|string|max:20',
             'alt_phone' => 'nullable|string|max:20',
             'email' => 'required|email|max:255',
-            'medical_certificate_expiration_date' => 'required|date|after_or_equal:' . now()->format('Y-m-d'),
+            'medical_certificate_expiration_date' => 'required|date|after_or_equal:'.now()->format('Y-m-d'),
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'business_name' => 'nullable|string|max:255',
             'employer_identification_number' => 'nullable|string|max:20',
@@ -574,6 +589,7 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -586,7 +602,7 @@ class ApplicationFormController extends Controller
             $photo = null;
             if ($request->hasFile('photo')) {
                 $file = $request->file('photo');
-                $fileName = 'driver_photo_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $fileName = 'driver_photo_'.time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
                 $photo = $file->storeAs('images/drivers', $fileName, 'public');
             }
 
@@ -628,7 +644,7 @@ class ApplicationFormController extends Controller
                 $residences = [];
                 foreach ($request->residence_address as $index => $address) {
                     // Only create if address is provided
-                    if (!empty(trim($address ?? ''))) {
+                    if (! empty(trim($address ?? ''))) {
                         $resCountry = $request->residence_country[$index] ?? null;
                         $resState = $request->residence_state[$index] ?? null;
 
@@ -645,7 +661,7 @@ class ApplicationFormController extends Controller
                         ];
                     }
                 }
-                if (!empty($residences)) {
+                if (! empty($residences)) {
                     DB::table('residence_addresses')->insert($residences);
                 }
             }
@@ -693,7 +709,7 @@ class ApplicationFormController extends Controller
                     ];
                 }
             }
-            if (!empty($experiences)) {
+            if (! empty($experiences)) {
                 DB::table('experiences')->insert($experiences);
             }
 
@@ -701,7 +717,7 @@ class ApplicationFormController extends Controller
             if ($request->accident === 'yes' && $request->has('accident_date')) {
                 $accidents = [];
                 foreach ($request->accident_date as $index => $date) {
-                    if (!empty($date)) {
+                    if (! empty($date)) {
                         $accidents[] = [
                             'driver_id' => $driver->id,
                             'accident' => 'yes',
@@ -715,7 +731,7 @@ class ApplicationFormController extends Controller
                         ];
                     }
                 }
-                if (!empty($accidents)) {
+                if (! empty($accidents)) {
                     DB::table('accidents')->insert($accidents);
                 }
             } else {
@@ -732,7 +748,7 @@ class ApplicationFormController extends Controller
             if ($request->violation === 'yes' && $request->has('violation_date')) {
                 $violations = [];
                 foreach ($request->violation_date as $index => $date) {
-                    if (!empty($date)) {
+                    if (! empty($date)) {
                         $violations[] = [
                             'driver_id' => $driver->id,
                             'violation' => 'yes',
@@ -745,7 +761,7 @@ class ApplicationFormController extends Controller
                         ];
                     }
                 }
-                if (!empty($violations)) {
+                if (! empty($violations)) {
                     DB::table('violations')->insert($violations);
                 }
             } else {
@@ -772,7 +788,7 @@ class ApplicationFormController extends Controller
             if ($request->has('employer_name')) {
                 $employmentRecords = [];
                 foreach ($request->employer_name as $index => $employerName) {
-                    if (!empty(trim($employerName ?? ''))) {
+                    if (! empty(trim($employerName ?? ''))) {
                         $empCountry = $request->employer_record_country[$index] ?? null;
                         $empState = $request->employer_record_state[$index] ?? null;
 
@@ -798,7 +814,7 @@ class ApplicationFormController extends Controller
                         ];
                     }
                 }
-                if (!empty($employmentRecords)) {
+                if (! empty($employmentRecords)) {
                     DB::table('employment_records')->insert($employmentRecords);
                 }
             }
@@ -809,14 +825,16 @@ class ApplicationFormController extends Controller
             DB::commit();
 
             toastr()->success('Basic information saved successfully!');
+
             return redirect()->route('public.application.step2', [
                 'slug' => $slug,
-                'driver_id' => $driver->id
+                'driver_id' => $driver->id,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Step 1 Save Error: ' . $e->getMessage());
+            Log::error('Step 1 Save Error: '.$e->getMessage());
             toastr()->error('Failed to save information. Please try again.');
+
             return back()->withInput();
         }
     }
@@ -857,6 +875,7 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -870,7 +889,7 @@ class ApplicationFormController extends Controller
             $licenseFront = $request->file('license_front');
             $frontPath = $licenseFront->storeAs(
                 'images/documents',
-                'license_front_' . time() . '_' . uniqid() . '.' . $licenseFront->getClientOriginalExtension(),
+                'license_front_'.time().'_'.uniqid().'.'.$licenseFront->getClientOriginalExtension(),
                 'public'
             );
 
@@ -878,7 +897,7 @@ class ApplicationFormController extends Controller
             $licenseBack = $request->file('license_back');
             $backPath = $licenseBack->storeAs(
                 'images/documents',
-                'license_back_' . time() . '_' . uniqid() . '.' . $licenseBack->getClientOriginalExtension(),
+                'license_back_'.time().'_'.uniqid().'.'.$licenseBack->getClientOriginalExtension(),
                 'public'
             );
 
@@ -897,14 +916,16 @@ class ApplicationFormController extends Controller
             DB::commit();
 
             toastr()->success('License uploaded successfully!');
+
             return redirect()->route('public.application.step3', [
                 'slug' => $slug,
-                'driver_id' => $driver->id
+                'driver_id' => $driver->id,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Step 2 Save Error: ' . $e->getMessage());
+            Log::error('Step 2 Save Error: '.$e->getMessage());
             toastr()->error('Failed to upload license. Please try again.');
+
             return back()->withInput();
         }
     }
@@ -944,6 +965,7 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -957,7 +979,7 @@ class ApplicationFormController extends Controller
             $medicalCard = $request->file('medical_card');
             $medicalCardPath = $medicalCard->storeAs(
                 'images/documents/public',
-                'medical_card_' . time() . '_' . uniqid() . '.' . $medicalCard->getClientOriginalExtension(),
+                'medical_card_'.time().'_'.uniqid().'.'.$medicalCard->getClientOriginalExtension(),
                 'public'
             );
 
@@ -980,14 +1002,16 @@ class ApplicationFormController extends Controller
             DB::commit();
 
             toastr()->success('Medical card uploaded successfully!');
+
             return redirect()->route('public.application.step4', [
                 'slug' => $slug,
-                'driver_id' => $driver->id
+                'driver_id' => $driver->id,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Step 3 Save Error: ' . $e->getMessage());
+            Log::error('Step 3 Save Error: '.$e->getMessage());
             toastr()->error('Failed to upload medical card. Please try again.');
+
             return back()->withInput();
         }
     }
@@ -1027,6 +1051,7 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -1042,7 +1067,7 @@ class ApplicationFormController extends Controller
                 $forfeitureDoc = $request->file('forfeiture_document');
                 $forfeiturePath = $forfeitureDoc->storeAs(
                     'images/documents/public',
-                    'forfeiture_' . time() . '_' . uniqid() . '.' . $forfeitureDoc->getClientOriginalExtension(),
+                    'forfeiture_'.time().'_'.uniqid().'.'.$forfeitureDoc->getClientOriginalExtension(),
                     'public'
                 );
             }
@@ -1063,14 +1088,16 @@ class ApplicationFormController extends Controller
             DB::commit();
 
             toastr()->success('Forfeiture information saved successfully!');
+
             return redirect()->route('public.application.step5', [
                 'slug' => $slug,
-                'driver_id' => $driver->id
+                'driver_id' => $driver->id,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Step 4 Save Error: ' . $e->getMessage());
+            Log::error('Step 4 Save Error: '.$e->getMessage());
             toastr()->error('Failed to save forfeiture information. Please try again.');
+
             return back()->withInput();
         }
     }
@@ -1120,6 +1147,7 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -1134,7 +1162,7 @@ class ApplicationFormController extends Controller
 
             if ($request->violation === 'yes' && $request->has('violation_date')) {
                 foreach ($request->violation_date as $index => $date) {
-                    if (!empty(trim($date ?? ''))) {
+                    if (! empty(trim($date ?? ''))) {
                         Violation::create([
                             'driver_id' => $driver->id,
                             'violation' => 'yes',
@@ -1175,14 +1203,16 @@ class ApplicationFormController extends Controller
             DB::commit();
 
             toastr()->success('Violation record saved successfully!');
+
             return redirect()->route('public.application.step6', [
                 'slug' => $slug,
-                'driver_id' => $driver->id
+                'driver_id' => $driver->id,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Step 5 Save Error: ' . $e->getMessage());
+            Log::error('Step 5 Save Error: '.$e->getMessage());
             toastr()->error('Failed to save violation record. Please try again.');
+
             return back()->withInput();
         }
     }
@@ -1225,6 +1255,7 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -1251,14 +1282,16 @@ class ApplicationFormController extends Controller
             DB::commit();
 
             toastr()->success('Alcohol and drug test statement saved successfully!');
+
             return redirect()->route('public.application.step7', [
                 'slug' => $slug,
-                'driver_id' => $driver->id
+                'driver_id' => $driver->id,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Step 6 Save Error: ' . $e->getMessage());
+            Log::error('Step 6 Save Error: '.$e->getMessage());
             toastr()->error('Failed to save statement. Please try again.');
+
             return back()->withInput();
         }
     }
@@ -1300,6 +1333,7 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -1327,14 +1361,16 @@ class ApplicationFormController extends Controller
             DB::commit();
 
             toastr()->success('FMCSA Clearinghouse consent saved successfully!');
+
             return redirect()->route('public.application.step8', [
                 'slug' => $slug,
-                'driver_id' => $driver->id
+                'driver_id' => $driver->id,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Step 7 Save Error: ' . $e->getMessage());
+            Log::error('Step 7 Save Error: '.$e->getMessage());
             toastr()->error('Failed to save consent. Please try again.');
+
             return back()->withInput();
         }
     }
@@ -1376,6 +1412,7 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -1402,14 +1439,16 @@ class ApplicationFormController extends Controller
             DB::commit();
 
             toastr()->success('PSP Driver Disclosure & Authorization saved successfully!');
+
             return redirect()->route('public.application.step9', [
                 'slug' => $slug,
-                'driver_id' => $driver->id
+                'driver_id' => $driver->id,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Step 8 Save Error: ' . $e->getMessage());
+            Log::error('Step 8 Save Error: '.$e->getMessage());
             toastr()->error('Failed to save authorization. Please try again.');
+
             return back()->withInput();
         }
     }
@@ -1452,6 +1491,7 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -1476,14 +1516,16 @@ class ApplicationFormController extends Controller
             DB::commit();
 
             toastr()->success('Alcohol & Drug Testing Policy saved successfully!');
+
             return redirect()->route('public.application.step10', [
                 'slug' => $slug,
-                'driver_id' => $driver->id
+                'driver_id' => $driver->id,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Step 9 Save Error: ' . $e->getMessage());
+            Log::error('Step 9 Save Error: '.$e->getMessage());
             toastr()->error('Failed to save policy agreement. Please try again.');
+
             return back()->withInput();
         }
     }
@@ -1527,6 +1569,7 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -1560,7 +1603,7 @@ class ApplicationFormController extends Controller
                 'application_session_token',
                 'verified_company_slug',
                 'verified_company_id',
-                'phone_verified_at'
+                'phone_verified_at',
             ]);
 
             // Keep only phone for status check
@@ -1569,11 +1612,13 @@ class ApplicationFormController extends Controller
             DB::commit();
 
             toastr()->success('Application submitted successfully! We will review it shortly.');
+
             return redirect()->route('public.application.complete', $slug);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Step 10 Save Error: ' . $e->getMessage());
+            Log::error('Step 10 Save Error: '.$e->getMessage());
             toastr()->error('Failed to submit application. Please try again.');
+
             return back()->withInput();
         }
     }
@@ -1605,6 +1650,7 @@ class ApplicationFormController extends Controller
     public function status($slug)
     {
         $company = Company::where('slug', $slug)->firstOrFail();
+
         return view('application.status', compact('company'));
     }
 
@@ -1619,10 +1665,11 @@ class ApplicationFormController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
-        $phone = $this->formatPhoneForTwilio($request->phone);
+        $phone = $this->formatPhoneNumber($request->phone);
         $company = Company::where('slug', $slug)->firstOrFail();
 
         $driver = Driver::where('company_id', $company->id)
@@ -1645,6 +1692,7 @@ class ApplicationFormController extends Controller
             return view('application.status-result', compact('company', 'driver', 'status'));
         } else {
             toastr()->error('No application found with those details.');
+
             return back()->withInput();
         }
     }
@@ -1677,17 +1725,19 @@ class ApplicationFormController extends Controller
                 'application_started',
                 'application_driver_id',
                 'current_step',
-                'application_session_token'
+                'application_session_token',
             ]);
 
             DB::commit();
 
             toastr()->success('Application withdrawn successfully.');
+
             return redirect()->route('public.application.start', $slug);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Withdraw Error: ' . $e->getMessage());
+            Log::error('Withdraw Error: '.$e->getMessage());
             toastr()->error('Failed to withdraw application. Please try again.');
+
             return back();
         }
     }
@@ -1699,10 +1749,10 @@ class ApplicationFormController extends Controller
     {
         $phone = $request->phone ?? Session::get('otp_verification_phone');
 
-        if (!$phone) {
+        if (! $phone) {
             return response()->json([
                 'success' => false,
-                'message' => 'Phone number not found.'
+                'message' => 'Phone number not found.',
             ], 400);
         }
 
@@ -1712,7 +1762,7 @@ class ApplicationFormController extends Controller
             Session::put([
                 'otp_verification_phone' => $phone,
                 'otp_method' => $result['method'],
-                'otp_sent_at' => now()->timestamp
+                'otp_sent_at' => now()->timestamp,
             ]);
         }
 
@@ -1725,17 +1775,19 @@ class ApplicationFormController extends Controller
     private function checkApplicationSession($slug, $driver_id = null)
     {
         if (
-            !Session::has('application_started') ||
-            !Session::has('application_driver_id') ||
-            !Session::has('verified_phone')
+            ! Session::has('application_started') ||
+            ! Session::has('application_driver_id') ||
+            ! Session::has('verified_phone')
         ) {
 
             toastr()->error('Please start the application process first.');
+
             return redirect()->route('public.application.start', $slug);
         }
 
         if ($driver_id && Session::get('application_driver_id') != $driver_id) {
             toastr()->error('Unauthorized access.');
+
             return redirect()->route('public.application.start', $slug);
         }
     }
@@ -1745,50 +1797,32 @@ class ApplicationFormController extends Controller
         // Determine which step the user is on based on completed data
         $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
 
-        if (!$driver->first_name || !$driver->last_name) {
+        if (! $driver->first_name || ! $driver->last_name) {
             return 1;
-        } elseif (!$driverDocument || (!$driverDocument->license_front && !$driverDocument->license_back)) {
+        } elseif (! $driverDocument || (! $driverDocument->license_front && ! $driverDocument->license_back)) {
             return 2;
-        } elseif (!$driverDocument || !$driverDocument->medical_card) {
+        } elseif (! $driverDocument || ! $driverDocument->medical_card) {
             return 3;
-        } elseif (!$driverDocument || !$driverDocument->forfeiture_document) {
+        } elseif (! $driverDocument || ! $driverDocument->forfeiture_document) {
             return 4;
-        } elseif (!$driverDocument || !$driverDocument->violation_record_signature) {
+        } elseif (! $driverDocument || ! $driverDocument->violation_record_signature) {
             return 5;
-        } elseif (!$driverDocument || !$driverDocument->drug_test_signature) {
+        } elseif (! $driverDocument || ! $driverDocument->drug_test_signature) {
             return 6;
-        } elseif (!$driverDocument || !$driverDocument->fmcsa_consent) {
+        } elseif (! $driverDocument || ! $driverDocument->fmcsa_consent) {
             return 7;
-        } elseif (!$driverDocument || !$driverDocument->psp_authorization) {
+        } elseif (! $driverDocument || ! $driverDocument->psp_authorization) {
             return 8;
-        } elseif (!$driverDocument || !$driverDocument->alcohol_drug_test_policy_signature) {
+        } elseif (! $driverDocument || ! $driverDocument->alcohol_drug_test_policy_signature) {
             return 9;
         } else {
             return 10;
         }
     }
 
-    protected function formatPhoneForTwilio($phone)
+    protected function formatPhoneNumber(string $phone): string
     {
-        $cleaned = preg_replace('/\D/', '', $phone);
-
-        if (str_starts_with($cleaned, '0')) {
-            $cleaned = substr($cleaned, 1);
-        }
-
-        if (strlen($cleaned) == 10) {
-            return '+1' . $cleaned;
-        } elseif (str_starts_with($cleaned, '880') && strlen($cleaned) == 13) {
-            return '+880' . substr($cleaned, 3);
-        } elseif (str_starts_with($cleaned, '91') && strlen($cleaned) == 12) {
-            return '+91' . substr($cleaned, 2);
-        }
-
-        if (str_starts_with($phone, '+')) {
-            return $phone;
-        }
-
-        return '+' . $cleaned;
+        return $this->phoneNumbers->normalize($phone);
     }
 
     protected function getOtpFromRequest(Request $request)
@@ -1807,7 +1841,7 @@ class ApplicationFormController extends Controller
         ];
 
         $digits = array_filter($digits, function ($digit) {
-            return !is_null($digit) && $digit !== '';
+            return ! is_null($digit) && $digit !== '';
         });
 
         if (count($digits) === 6) {

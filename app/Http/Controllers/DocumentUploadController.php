@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Trailer;
-use App\Models\Vehicle;
 use App\Models\DocumentType;
-use App\Models\VehicleDocument;
+use App\Models\Trailer;
 use App\Models\TrailerDocument;
+use App\Models\Vehicle;
+use App\Models\VehicleDocument;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 
 class DocumentUploadController extends Controller
 {
@@ -40,7 +40,7 @@ class DocumentUploadController extends Controller
                         'unit_no' => $vehicle->unit_no,
                         'has_document' => VehicleDocument::where('vehicle_id', $vehicle->id)
                             ->where('document_type_id', $documentTypeId)
-                            ->exists()
+                            ->exists(),
                     ];
                 });
 
@@ -50,7 +50,7 @@ class DocumentUploadController extends Controller
                     'success' => true,
                     'assets' => [],
                     'document_type_name' => $documentType ? $documentType->name : 'Document',
-                    'message' => 'No vehicles found for your company'
+                    'message' => 'No vehicles found for your company',
                 ]);
             }
 
@@ -58,12 +58,12 @@ class DocumentUploadController extends Controller
                 'success' => true,
                 'assets' => $vehicles,
                 'document_type_name' => $documentType ? $documentType->name : 'Document',
-                'total' => $vehicles->count()
+                'total' => $vehicles->count(),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load vehicles: ' . $e->getMessage()
+                'message' => 'Failed to load vehicles: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -90,7 +90,7 @@ class DocumentUploadController extends Controller
                         'unit_no' => $trailer->unit_no,
                         'has_document' => TrailerDocument::where('trailer_id', $trailer->id)
                             ->where('document_type_id', $documentTypeId)
-                            ->exists()
+                            ->exists(),
                     ];
                 });
 
@@ -100,7 +100,7 @@ class DocumentUploadController extends Controller
                     'success' => true,
                     'assets' => [],
                     'document_type_name' => $documentType ? $documentType->name : 'Document',
-                    'message' => 'No trailers found for your company'
+                    'message' => 'No trailers found for your company',
                 ]);
             }
 
@@ -108,12 +108,12 @@ class DocumentUploadController extends Controller
                 'success' => true,
                 'assets' => $trailers,
                 'document_type_name' => $documentType ? $documentType->name : 'Document',
-                'total' => $trailers->count()
+                'total' => $trailers->count(),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load trailers: ' . $e->getMessage()
+                'message' => 'Failed to load trailers: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -137,7 +137,7 @@ class DocumentUploadController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => $validator->errors()->first()
+                'message' => $validator->errors()->first(),
             ], 422);
         }
 
@@ -152,8 +152,8 @@ class DocumentUploadController extends Controller
 
             // Handle file upload
             $file = $request->file('file');
-            $fileName = time() . '_' . str_replace(' ', '_', $file->getClientOriginalName());
-            $filePath = $file->storeAs('documents/' . $assetType . 's', $fileName, 'public');
+            $fileName = time().'_'.str_replace(' ', '_', $file->getClientOriginalName());
+            $filePath = $file->storeAs('documents/'.$assetType.'s', $fileName, 'public');
 
             $uploadedCount = 0;
             $updatedCount = 0;
@@ -240,7 +240,7 @@ class DocumentUploadController extends Controller
                 'success' => true,
                 'message' => $message,
                 'uploaded_count' => $uploadedCount,
-                'updated_count' => $updatedCount
+                'updated_count' => $updatedCount,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -252,7 +252,7 @@ class DocumentUploadController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to upload document: ' . $e->getMessage()
+                'message' => 'Failed to upload document: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -267,7 +267,7 @@ class DocumentUploadController extends Controller
         if ($assetType === 'vehicle') {
             // Double-check vehicle belongs to user's company
             $vehicle = Vehicle::findOrFail($assetId);
-            if (!$this->userHasAccess($vehicle)) {
+            if (! $this->userHasAccess($vehicle)) {
                 throw new \Exception('Unauthorized access to vehicle');
             }
 
@@ -303,7 +303,7 @@ class DocumentUploadController extends Controller
         } else {
             // Double-check trailer belongs to user's company
             $trailer = Trailer::findOrFail($assetId);
-            if (!$this->userHasAccess($trailer)) {
+            if (! $this->userHasAccess($trailer)) {
                 throw new \Exception('Unauthorized access to trailer');
             }
 
@@ -354,7 +354,7 @@ class DocumentUploadController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => $validator->errors()->first()
+                'message' => $validator->errors()->first(),
             ], 422);
         }
 
@@ -385,12 +385,12 @@ class DocumentUploadController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Document deleted successfully'
+                'message' => 'Document deleted successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete document: ' . $e->getMessage()
+                'message' => 'Failed to delete document: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -417,12 +417,12 @@ class DocumentUploadController extends Controller
                 }
             }
 
-            if (!$document->file_path || !Storage::disk('public')->exists($document->file_path)) {
+            if (! $document->file_path || ! Storage::disk('public')->exists($document->file_path)) {
                 abort(404, 'File not found');
             }
 
             $filePath = Storage::disk('public')->path($document->file_path);
-            $fileName = $document->documentType->name . '_' . basename($document->file_path);
+            $fileName = $document->documentType->name.'_'.basename($document->file_path);
 
             return response()->download($filePath, $fileName);
         } catch (\Exception $e) {
@@ -455,7 +455,7 @@ class DocumentUploadController extends Controller
                 }
             }
 
-            if (!$document->file_path || !Storage::disk('public')->exists($document->file_path)) {
+            if (! $document->file_path || ! Storage::disk('public')->exists($document->file_path)) {
                 abort(404, 'File not found');
             }
 
@@ -463,77 +463,13 @@ class DocumentUploadController extends Controller
             $mimeType = Storage::disk('public')->mimeType($document->file_path);
 
             return response()->file($filePath, [
-                'Content-Type' => $mimeType
+                'Content-Type' => $mimeType,
             ]);
         } catch (\Exception $e) {
             if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
                 throw $e;
             }
             abort(404, 'Document not found');
-        }
-    }
-
-    /**
-     * Send reminder email with company validation
-     */
-    public function sendReminderEmail(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'asset_id' => 'required|integer',
-            'document_type_id' => 'required|integer',
-            'asset_type' => 'required|in:vehicle,trailer',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first()
-            ], 422);
-        }
-
-        try {
-            // Get asset and document type with company validation
-            if ($request->asset_type === 'vehicle') {
-                $asset = Vehicle::with('assetGroups.driver')->findOrFail($request->asset_id);
-                $this->authorizeCompanyAccess($asset, 'You do not have permission to access this vehicle.');
-            } else {
-                $asset = Trailer::with('assetGroups.driver')->findOrFail($request->asset_id);
-                $this->authorizeCompanyAccess($asset, 'You do not have permission to access this trailer.');
-            }
-
-            $documentType = DocumentType::findOrFail($request->document_type_id);
-
-            // Check if driver is assigned
-            if (!$asset->assetGroups || !$asset->assetGroups->driver) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No driver assigned to this asset'
-                ], 400);
-            }
-
-            $driver = $asset->assetGroups->driver;
-
-            // Check if driver belongs to the same company (optional, depending on your logic)
-            if (!$this->userHasAccess($driver, 'company_id')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Driver does not belong to your company'
-                ], 403);
-            }
-
-            // TODO: Implement email sending logic here
-            // Example:
-            // Mail::to($driver->email)->send(new DocumentReminderMail($asset, $documentType));
-
-            return response()->json([
-                'success' => true,
-                'message' => "Reminder email sent to {$driver->first_name} {$driver->last_name}"
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send reminder: ' . $e->getMessage()
-            ], 500);
         }
     }
 

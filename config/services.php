@@ -35,16 +35,15 @@ return [
         ],
     ],
 
-    'twilio' => [
-        'sid' => env('TWILIO_SID'),
-        'token' => env('TWILIO_TOKEN'),
-        'from' => env('TWILIO_FROM'),
-        'verify_sid' => env('TWILIO_VERIFY_SID'),
+    'vonage' => [
+        'api_key' => env('VONAGE_API_KEY'),
+        'api_secret' => env('VONAGE_API_SECRET'),
+        'sms_from' => env('VONAGE_SMS_FROM'),
     ],
 
     'stripe' => [
-        'key'            => env('STRIPE_KEY'),
-        'secret'         => env('STRIPE_SECRET'),
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ComplianceDashboardController;
+use App\Http\Controllers\ComplianceReminderController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\DocumentUploadController;
@@ -20,8 +21,8 @@ use App\Http\Controllers\MaintenanceScheduleController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\SiteSettingController;
 use App\Http\Controllers\ServiceLogController;
+use App\Http\Controllers\SiteSettingController;
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehicleController;
@@ -34,14 +35,13 @@ Route::post('stripe/webhook', '\Laravel\Cashier\Http\Controllers\WebhookControll
 
 Route::get('/', function () {
     $plans = \App\Models\Plan::active()->ordered()->get();
+
     return view('welcome', compact('plans'));
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
-
-
 
 // =====================================================================
 // PUBLIC APPLICATION ROUTES (NO AUTH REQUIRED)
@@ -140,7 +140,6 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
         ->name('withdraw');
 });
 
-
 // Optional: Add middleware to validate slug exists
 // Route::bind('slug', function ($slug) {
 //     return \App\Models\Company::where('slug', $slug)->firstOrFail();
@@ -159,9 +158,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/unsuspend', [UserController::class, 'unsuspend'])->name('unsuspend');
         Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
     });
-
-
-
 
     // ─── Billing & Subscription (Cashier) ─────────────────────────────────────
     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
@@ -202,8 +198,6 @@ Route::middleware(['auth', 'role:super-admin'])->prefix('admin')->name('admin.')
     Route::post('/plans/{plan}/toggle', [SubscriptionAdminController::class, 'togglePlan'])->name('plans.toggle');
 });
 
-
-
 Route::get('/profit', [DashboardController::class, 'profit'])->name('admin.profit');
 
 Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
@@ -214,8 +208,7 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
 
-
-    //Driver
+    // Driver
     Route::prefix('driver')->group(function () {
         // Document upload routes (static paths) - MUST COME FIRST
         Route::post('/license', [DriverController::class, 'licenseStore'])->name('admin.driver.license.store');
@@ -232,7 +225,6 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
 
         Route::post('/drug-test', [DriverController::class, 'alcoholAndDrugTestStore'])->name('admin.driver.alcohol.and.drug.store');
         Route::get('/drug-test/{driver_id}', [DriverController::class, 'alcoholAndDrugTest'])->name('admin.driver.alcohol.and.drug.test');
-
 
         Route::post('/fmcsa_consent', [DriverController::class, 'consentStore'])->name('admin.driver.fmcsa.consent.store');
         Route::get('/fmcsa_consent/{driver_id}', [DriverController::class, 'consent'])->name('admin.driver.fmcsa.consent');
@@ -254,8 +246,6 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::get('/create', [DriverController::class, 'create'])->name('admin.driver.create')->middleware('permission:drivers.create');
         Route::post('/', [DriverController::class, 'store'])->name('admin.driver.store')->middleware('permission:drivers.create');
 
-
-
         // Single driver routes with {id} parameter - MUST COME LAST
         Route::get('/{id}', [DriverController::class, 'show'])->name('admin.driver.show')->middleware('permission:drivers.view');
         Route::get('/{id}/edit', [DriverController::class, 'edit'])->name('admin.driver.edit')->middleware('permission:drivers.edit');
@@ -265,9 +255,7 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::get('/{id}/details', [DriverController::class, 'getDriverDetails'])->name('admin.drivers.get-driver-details');
     });
 
-
-
-    //Vehicle types
+    // Vehicle types
     Route::prefix('vehicle-type')->group(function () {
         Route::get('/', [VehicleTypeController::class, 'index'])->name('admin.vehicle.type.index');
         Route::get('/create', [VehicleTypeController::class, 'create'])->name('admin.vehicle.type.create');
@@ -349,7 +337,7 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::get('/dropdown-data', [AssetGroupController::class, 'getDropdownData'])->name('admin.asset-group.dropdown.data');
     });
 
-    //Fleet
+    // Fleet
     Route::prefix('fleet')->group(function () {
         Route::get('/vehicle', [DriverController::class, 'fleets'])->name('admin.fleet.vehicle');
     });
@@ -365,8 +353,7 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::delete('documents/delete', [DocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.documents.delete');
         Route::get('documents/{documentId}/{assetType}/download', [DocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.documents.download');
         Route::get('documents/{documentId}/{assetType}/view', [DocumentUploadController::class, 'viewDocument'])->name('admin.compliance.documents.view');
-        Route::post('documents/send-reminder', [DocumentUploadController::class, 'sendReminderEmail'])->name('admin.compliance.documents.send-reminder');
-
+        Route::post('documents/send-reminder', [ComplianceReminderController::class, 'sendVehicleReminder'])->name('admin.compliance.documents.send-reminder');
 
         // Driver compliance routes
         Route::get('/drivers', [DriverComplianceDashboardController::class, 'index'])->name('admin.compliance.drivers');
@@ -378,8 +365,8 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::delete('driver-documents/delete', [DriverDocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.driver.documents.delete');
         Route::get('driver-documents/{documentId}/download', [DriverDocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.driver.documents.download');
         Route::get('driver-documents/{documentId}/view', [DriverDocumentUploadController::class, 'viewDocument'])->name('admin.compliance.driver.documents.view');
+        Route::post('driver-documents/send-reminder', [ComplianceReminderController::class, 'sendDriverReminder'])->name('admin.compliance.driver.documents.send-reminder');
     });
-
 
     // Service Logs
     Route::prefix('service-log')->group(function () {
@@ -410,8 +397,7 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::post('/{id}/mark-completed', [MaintenanceScheduleController::class, 'markAsCompleted'])->name('admin.maintenance-schedule.mark-completed');
     });
 
-
-    //Settings
+    // Settings
     Route::prefix('settings')->group(function () {
         // Site Settings
         Route::get('/site', [SiteSettingController::class, 'index'])->name('admin.settings.site.index');
@@ -428,8 +414,7 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::get('/policy-pdf', [CompanyController::class, 'policyPDF'])->name('admin.settings.policy.pdf')->middleware('permission:policy-pdf.view');
         Route::post('/policy-pdf', [CompanyController::class, 'policyPDFStore'])->name('admin.settings.policy.pdf.store')->middleware('permission:policy-pdf.edit');
 
-
-        //roles routes
+        // roles routes
         Route::get('/roles', [RoleController::class, 'index'])->name('admin.roles.index')
             ->middleware('permission:roles.view');
         Route::get('/roles/create', [RoleController::class, 'create'])->name('admin.roles.create')
@@ -458,4 +443,4 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
     });
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

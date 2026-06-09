@@ -1029,49 +1029,8 @@
             return '';
         }
 
-        // Update sendReminderEmail function
-        function sendReminderEmail(assetId, docTypeId, assetType) {
-            if (!confirm('Send reminder email to the assigned driver?')) {
-                return;
-            }
-
-            const csrfToken = getCsrfToken();
-            if (!csrfToken) {
-                showToast('Security token not found. Please refresh the page.', 'error');
-                return;
-            }
-
-            fetch('/admin/compliance/documents/send-reminder', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        asset_id: assetId,
-                        document_type_id: docTypeId,
-                        asset_type: assetType
-                    })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        showToast(data.message || 'Reminder sent successfully', 'success');
-                    } else {
-                        showToast(data.message || 'Failed to send reminder', 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showToast('Error sending reminder: ' + error.message, 'error');
-                });
-        }
+        // Send reminder email function
+        @include('admin.compliance.partials.send-reminder-script')
 
         // Toast Notification Function
         function showToast(message, type = 'info') {
