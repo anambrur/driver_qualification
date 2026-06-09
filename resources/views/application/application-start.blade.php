@@ -28,7 +28,7 @@
                 <div class="text-center mb-8 md:mb-12">
                     <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-3">Start New Application</h3>
                     <p class="text-gray-600 text-lg md:text-xl">
-                        Please complete the fields below to register and begin the application.7u
+                        Please complete the fields below to register and begin the application.
                     </p>
                 </div>
 
@@ -127,8 +127,6 @@
 
 @push('scripts')
     <script>
-        // Real-time validation and form submission handler
-        // Real-time validation and form submission handler
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('applicationForm');
             const phoneInput = document.getElementById('phone');
@@ -139,120 +137,90 @@
             const errorList = document.getElementById('error-list');
             const submitBtn = document.getElementById('submitBtn');
 
-            // Phone number validation regex for US, Bangladesh, and India
-            // US: +1 xxx xxx xxxx or 1 xxx xxx xxxx
-            // Bangladesh: +880 1X XXXXXXX or 880 1X XXXXXXX
-            // India: +91 XXXXX XXXXX or 91 XXXXX XXXXX
-            const phoneRegex = /^(?:\+?(1|88|91))?[-. (]*(\d{1,4})[-. )]*(\d{1,4})[-. ]*(\d{1,9})$/;
-
-            // Country specific validation
-            function validateCountrySpecific(phone, countryCode) {
-                const cleaned = phone.replace(/\D/g, '');
-                const withoutCountryCode = cleaned.replace(new RegExp('^' + countryCode), '');
-
-                switch (countryCode) {
-                    case '1': // US/Canada
-                        if (withoutCountryCode.length !== 10) {
-                            return {
-                                isValid: false,
-                                message: 'US/Canada numbers must be 10 digits (excluding country code)'
-                            };
-                        }
-                        break;
-                    case '880': // Bangladesh
-                        if (!/^1[3-9]\d{8}$/.test(withoutCountryCode)) {
-                            return {
-                                isValid: false,
-                                message: 'Bangladeshi numbers must start with 1[3-9] and be 10 digits'
-                            };
-                        }
-                        break;
-                    case '91': // India
-                        if (!/^[6-9]\d{9}$/.test(withoutCountryCode)) {
-                            return {
-                                isValid: false,
-                                message: 'Indian numbers must start with 6-9 and be 10 digits'
-                            };
-                        }
-                        break;
-                }
-
-                return {
-                    isValid: true
-                };
+            function digitsOnly(phone) {
+                return (phone || '').replace(/\D/g, '');
             }
 
-            // Clean phone number - remove all non-digit characters except leading +
-            function cleanPhoneNumber(phone) {
-                // Keep leading + if present
-                const hasPlus = phone.startsWith('+');
-                const cleaned = phone.replace(/\D/g, '');
-                return hasPlus ? '+' + cleaned : cleaned;
+            function isValidNanpNationalNumber(digits) {
+                return /^[2-9]\d{2}[2-9]\d{6}$/.test(digits);
             }
 
-            // Detect country code from phone number
-            function detectCountryCode(phone) {
-                const cleaned = phone.replace(/\D/g, '');
+            function normalizePhone(phone) {
+                let digits = digitsOnly(phone);
 
-                if (cleaned.startsWith('1') && (cleaned.length === 11 || cleaned.length === 10)) {
-                    return '1'; // US/Canada
-                } else if (cleaned.startsWith('880') || (cleaned.startsWith('01') && cleaned.length === 11) || (
-                        cleaned.startsWith('1') && cleaned.length === 10 && !cleaned.startsWith('10'))) {
-                    // If it starts with 880, or 01 (BD local), or 1 (BD local without 0)
-                    if (cleaned.startsWith('880')) return '880';
-                    if (cleaned.startsWith('01') && cleaned.length === 11) return '880';
-                } else if (cleaned.startsWith('91')) {
-                    return '91'; // India
+                if (!digits) {
+                    return '';
                 }
 
-                if (cleaned.length >= 10 && cleaned.length <= 15) {
-                    return 'unknown';
+                if (digits.length === 12 && digits.startsWith('11') && isValidNanpNationalNumber(digits.slice(2))) {
+                    digits = digits.slice(1);
                 }
 
-                return null;
+                if (digits.length === 10 && isValidNanpNationalNumber(digits)) {
+                    return '+1' + digits;
+                }
+
+                if (digits.length === 11 && digits.startsWith('1')) {
+                    return '+' + digits;
+                }
+
+                if (digits.length === 11 && digits.startsWith('01')) {
+                    return '+880' + digits.slice(1);
+                }
+
+                if (digits.length === 13 && digits.startsWith('880')) {
+                    return '+' + digits;
+                }
+
+                if (digits.length === 12 && digits.startsWith('91')) {
+                    return '+' + digits;
+                }
+
+                return '+' + digits;
             }
 
-            // Format phone number for display based on country
-            function formatPhoneNumber(phone) {
-                const cleaned = phone.replace(/\D/g, '');
-                const countryCode = detectCountryCode(cleaned);
-
-                if (!countryCode) return phone;
-
-                let formatted = '';
-
-                if (countryCode === '1') {
-                    // US/Canada format
-                    const match = cleaned.match(/^1?(\d{3})(\d{3})(\d{4})$/);
-                    if (match) {
-                        formatted = `+1 (${match[1]}) ${match[2]}-${match[3]}`;
-                    }
-                } else if (countryCode === '880') {
-                    // Bangladesh format
-                    let numToFormat = cleaned;
-                    if (cleaned.startsWith('01') && cleaned.length === 11) {
-                        numToFormat = '880' + cleaned.substring(1);
-                    }
-                    const match = numToFormat.match(/^880?(\d{2})(\d{3})(\d{3})(\d{2})$/);
-                    if (match) {
-                        formatted = `+880 ${match[1]} ${match[2]}-${match[3]}-${match[4]}`;
-                    }
-                } else if (countryCode === '91') {
-                    // India format
-                    const match = cleaned.match(/^91?(\d{5})(\d{5})$/);
-                    if (match) {
-                        formatted = `+91 ${match[1]}-${match[2]}`;
-                    }
+            function isValidPhone(normalized) {
+                if (!/^\+[1-9]\d{1,14}$/.test(normalized)) {
+                    return false;
                 }
 
-                return formatted || phone;
+                const digits = normalized.slice(1);
+
+                if (digits.startsWith('1')) {
+                    return digits.length === 11 && isValidNanpNationalNumber(digits.slice(1));
+                }
+
+                if (digits.startsWith('880')) {
+                    return /^8801[3-9]\d{8}$/.test(digits);
+                }
+
+                if (digits.startsWith('91')) {
+                    return /^91[6-9]\d{9}$/.test(digits);
+                }
+
+                return normalized.length >= 10 && normalized.length <= 16;
             }
 
-            // Validate phone number
+            function formatPhoneNumber(normalized) {
+                const digits = normalized.slice(1);
+
+                if (digits.startsWith('1') && digits.length === 11) {
+                    const national = digits.slice(1);
+                    return `+1 (${national.slice(0, 3)}) ${national.slice(3, 6)}-${national.slice(6)}`;
+                }
+
+                if (digits.startsWith('880') && digits.length === 13) {
+                    return `+880 ${digits.slice(3, 5)} ${digits.slice(5, 8)}-${digits.slice(8, 11)}-${digits.slice(11)}`;
+                }
+
+                if (digits.startsWith('91') && digits.length === 12) {
+                    return `+91 ${digits.slice(2, 7)}-${digits.slice(7)}`;
+                }
+
+                return normalized;
+            }
+
             function validatePhone(phone) {
-                const cleaned = cleanPhoneNumber(phone);
-                const digitsOnly = cleaned.replace(/\D/g, '');
-
                 if (!phone.trim()) {
                     return {
                         isValid: false,
@@ -260,49 +228,62 @@
                     };
                 }
 
-                if (digitsOnly.length < 10 || digitsOnly.length > 15) {
+                const digits = digitsOnly(phone);
+                const hasExplicitCountryPrefix = phone.trim().startsWith('+');
+
+                if (!hasExplicitCountryPrefix) {
+                    const isUsNational = digits.length === 10 && isValidNanpNationalNumber(digits);
+                    const isUsWithCountryCode = digits.length === 11 && digits.startsWith('1') &&
+                        isValidNanpNationalNumber(digits.slice(1));
+                    const isBangladeshLocal = digits.length === 11 && digits.startsWith('01');
+                    const isBangladeshWithCountryCode = digits.length === 13 && digits.startsWith('880');
+                    const isIndiaWithCountryCode = digits.length === 12 && digits.startsWith('91');
+
+                    if (
+                        !isUsNational &&
+                        !isUsWithCountryCode &&
+                        !isBangladeshLocal &&
+                        !isBangladeshWithCountryCode &&
+                        !isIndiaWithCountryCode
+                    ) {
+                        return {
+                            isValid: false,
+                            message: 'Please enter a valid phone number.'
+                        };
+                    }
+                }
+
+                const normalized = normalizePhone(phone);
+
+                if (!isValidPhone(normalized)) {
                     return {
                         isValid: false,
-                        message: 'Please enter a valid phone number (10-15 digits)'
+                        message: 'Please enter a valid phone number.'
                     };
                 }
 
                 return {
                     isValid: true,
-                    cleaned: cleaned,
-                    digitsOnly: digitsOnly,
-                    formatted: formatPhoneNumber(cleaned)
+                    normalized: normalized,
+                    formatted: formatPhoneNumber(normalized)
                 };
             }
 
-            // Validate phone match
             function validatePhoneMatch(phone1, phone2) {
-                const cleaned1 = cleanPhoneNumber(phone1).replace(/\D/g, '');
-                const cleaned2 = cleanPhoneNumber(phone2).replace(/\D/g, '');
+                const phone1Result = validatePhone(phone1);
+                const phone2Result = validatePhone(phone2);
 
-
-                // Normalize by removing leading country code zeros
-                const normalize = (num) => {
-                    // If number already includes Bangladesh country code
-                    if (num.startsWith('880')) return num;
-                    // If local Bangladeshi format starts with 0 and has 11 digits, replace leading 0 with 880
-                    if (num.length === 11 && num.startsWith('0')) return '880' + num.substring(1);
-                    // US/Canada: keep leading 1, strip additional leading zeros
-                    if (num.startsWith('1')) return '1' + num.substring(1).replace(/^0+/, '');
-                    // India: keep leading 91, strip additional leading zeros
-                    if (num.startsWith('91')) return '91' + num.substring(2).replace(/^0+/, '');
-                    // Default: strip leading zeros
-                    return num.replace(/^0+/, '');
-                };
-
-                const normalized1 = normalize(cleaned1);
-                const normalized2 = normalize(cleaned2);
-
-
-                if (normalized1 !== normalized2) {
+                if (!phone1Result.isValid || !phone2Result.isValid) {
                     return {
                         isValid: false,
-                        message: 'Phone numbers do not match'
+                        message: 'Enter both phone numbers before confirming.'
+                    };
+                }
+
+                if (phone1Result.normalized !== phone2Result.normalized) {
+                    return {
+                        isValid: false,
+                        message: 'Phone numbers do not match.'
                     };
                 }
 
@@ -343,22 +324,17 @@
 
             // Real-time validation on input
             phoneInput.addEventListener('input', function() {
-                const phone = this.value;
-                const result = validatePhone(phone);
+                const result = validatePhone(this.value);
 
                 if (!result.isValid) {
                     showError(phoneInput, phoneError, result.message);
                 } else {
                     hideError(phoneInput, phoneError);
-                    // Format phone number as user types
-                    if (result.formatted && phone !== result.formatted) {
-                        this.value = result.formatted;
-                    }
                 }
 
                 // Also validate match if confirm phone is filled
                 if (confirmPhoneInput.value.trim()) {
-                    const matchResult = validatePhoneMatch(phone, confirmPhoneInput.value);
+                    const matchResult = validatePhoneMatch(phoneInput.value, confirmPhoneInput.value);
                     if (!matchResult.isValid) {
                         showError(confirmPhoneInput, confirmPhoneError, matchResult.message);
                     } else {
@@ -377,11 +353,6 @@
                 if (!phone2Result.isValid) {
                     showError(confirmPhoneInput, confirmPhoneError, phone2Result.message);
                 } else {
-                    // Format confirm phone as user types
-                    if (phone2Result.formatted && phone2 !== phone2Result.formatted) {
-                        this.value = phone2Result.formatted;
-                    }
-
                     // Validate match only if both fields are valid
                     const phone1Result = validatePhone(phone1);
                     if (phone1Result.isValid) {
@@ -405,6 +376,9 @@
                 const result = validatePhone(this.value);
                 if (!result.isValid) {
                     showError(phoneInput, phoneError, result.message);
+                } else {
+                    this.value = result.formatted;
+                    hideError(phoneInput, phoneError);
                 }
                 updateSubmitButton();
             });
@@ -413,6 +387,14 @@
                 const result = validatePhone(this.value);
                 if (!result.isValid) {
                     showError(confirmPhoneInput, confirmPhoneError, result.message);
+                } else {
+                    this.value = result.formatted;
+                    const matchResult = validatePhoneMatch(phoneInput.value, this.value);
+                    if (!matchResult.isValid) {
+                        showError(confirmPhoneInput, confirmPhoneError, matchResult.message);
+                    } else {
+                        hideError(confirmPhoneInput, confirmPhoneError);
+                    }
                 }
                 updateSubmitButton();
             });
@@ -498,9 +480,8 @@
         `;
                 submitBtn.disabled = true;
 
-                // Clean phone numbers before submitting
-                const cleanedPhone = cleanPhoneNumber(phoneInput.value);
-                const cleanedConfirmPhone = cleanPhoneNumber(confirmPhoneInput.value);
+                const cleanedPhone = phone1Result.normalized;
+                const cleanedConfirmPhone = phone2Result.normalized;
 
                 // Update form values with cleaned versions
                 phoneInput.value = cleanedPhone;

@@ -68,7 +68,6 @@ class OtpVerification extends Model
     {
         $this->update([
             'is_used' => true,
-            'verified_at' => now()
         ]);
     }
 }

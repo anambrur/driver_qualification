@@ -11,7 +11,7 @@ use Vonage\Verify\Request;
 
 class OTPService
 {
-    protected int $otpExpiryMinutes = 10;
+    protected int $otpExpiryMinutes = 5;
 
     protected int $maxAttempts = 3;
 
@@ -120,6 +120,35 @@ class OTPService
     public function verifyOTP(string $phoneNumber, string $otpCode): array
     {
         $phoneNumber = $this->phoneNumbers->normalize($phoneNumber);
+        $otpCode = trim($otpCode);
+
+        if (! preg_match('/^\d{6}$/', $otpCode)) {
+            return [
+                'success' => false,
+                'message' => 'Please enter a valid 6-digit verification code.',
+            ];
+        }
+
+        $otpRecord = OtpVerification::forPhone($phoneNumber)
+            ->where('is_used', false)
+            ->orderByDesc('created_at')
+            ->first();
+
+        if (! $otpRecord) {
+            return [
+                'success' => false,
+                'message' => 'Invalid verification code. Please request a new OTP if needed.',
+            ];
+        }
+
+        if ($otpRecord->isExpired()) {
+            $otpRecord->update(['is_used' => true]);
+
+            return [
+                'success' => false,
+                'message' => 'OTP expired. Please request a new verification code.',
+            ];
+        }
 
         $otpRecord = OtpVerification::valid()
             ->forPhone($phoneNumber)
@@ -254,8 +283,6 @@ class OTPService
             ->where('expires_at', '<', now())
             ->orWhere('created_at', '<', now()->subDays(7))
             ->delete();
-
-        Cache::flush();
 
         return $deleted;
     }

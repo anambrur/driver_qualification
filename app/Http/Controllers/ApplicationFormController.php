@@ -67,10 +67,10 @@ class ApplicationFormController extends Controller
             'phone' => [
                 'required',
                 function ($attribute, $value, $fail) use ($company) {
-                    $phone = preg_replace('/\D/', '', $value);
+                    $phone = $this->phoneNumbers->normalize((string) $value);
 
-                    if (strlen($phone) < 10 || strlen($phone) > 15) {
-                        $fail('Phone number must be 10-15 digits.');
+                    if (! $this->phoneNumbers->isValid($phone)) {
+                        $fail('Please enter a valid phone number.');
 
                         return;
                     }
@@ -86,7 +86,23 @@ class ApplicationFormController extends Controller
                     }
                 },
             ],
-            'confirm_phone' => 'required|same:phone',
+            'confirm_phone' => [
+                'required',
+                function ($attribute, $value, $fail) use ($request) {
+                    $phone = $this->phoneNumbers->normalize((string) $request->phone);
+                    $confirmPhone = $this->phoneNumbers->normalize((string) $value);
+
+                    if (! $this->phoneNumbers->isValid($confirmPhone)) {
+                        $fail('Please enter a valid confirmation phone number.');
+
+                        return;
+                    }
+
+                    if ($phone !== $confirmPhone) {
+                        $fail('Phone and confirm phone must match.');
+                    }
+                },
+            ],
         ]);
 
         if ($validator->fails()) {
@@ -381,7 +397,7 @@ class ApplicationFormController extends Controller
             ]);
         }
 
-        $phone = $request->phone;
+        $phone = $this->formatPhoneNumber($request->phone);
         $company = Company::where('slug', $slug)->first();
 
         if (! $company) {
@@ -1755,6 +1771,8 @@ class ApplicationFormController extends Controller
                 'message' => 'Phone number not found.',
             ], 400);
         }
+
+        $phone = $this->formatPhoneNumber($phone);
 
         $result = $this->otpService->resendOTP($phone);
 

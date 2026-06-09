@@ -41,7 +41,7 @@
                     </div>
                     <p class="text-sm text-gray-500 mt-2">
                         OTP sent successfully. Code expires in <span id="timer"
-                            class="font-semibold text-blue-600">10:00</span> minutes
+                            class="font-semibold text-blue-600">5:00</span> minutes
                     </p>
                 </div>
 
@@ -153,14 +153,18 @@
             const otpError = document.getElementById('otp-error');
             const verifyBtn = document.getElementById('verifyBtn');
             const resendBtn = document.getElementById('resendBtn');
-            const countdownElement = document.getElementById('countdown');
             const timerElement = document.getElementById('timer');
             const validationSummary = document.getElementById('validation-summary');
             const errorList = document.getElementById('error-list');
             const form = document.getElementById('otpVerificationForm');
 
+            const defaultOtpSeconds = 300;
+            const initialOtpSeconds = @json(max(0, min(300, (int) ($expiryInfo['seconds_left'] ?? 0))));
             let countdown = 60;
-            let otpTimer = 600; // 10 minutes in seconds
+            let otpTimer = initialOtpSeconds;
+            let resendCountdownInterval = null;
+            let otpTimerInterval = null;
+            let otpExpired = otpTimer <= 0;
 
             // Initialize OTP input handling
             otpInputs.forEach((input, index) => {
@@ -234,16 +238,20 @@
                 const otp = hiddenOtpInput.value;
 
                 // Clear error
-                otpError.classList.add('hidden');
-                otpError.textContent = '';
+                if (!otpExpired) {
+                    otpError.classList.add('hidden');
+                    otpError.textContent = '';
+                }
 
                 // Remove error styling from all inputs
-                otpInputs.forEach(input => {
-                    input.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
-                    input.classList.add('border-gray-300');
-                });
+                if (!otpExpired) {
+                    otpInputs.forEach(input => {
+                        input.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
+                        input.classList.add('border-gray-300');
+                    });
+                }
 
-                if (otp.length === 6) {
+                if (otp.length === 6 && !otpExpired) {
                     // All good
                     verifyBtn.disabled = false;
                     verifyBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -285,16 +293,25 @@
 
             // Start countdown timer for resend button
             function startResendCountdown() {
+                if (resendCountdownInterval) {
+                    clearInterval(resendCountdownInterval);
+                }
+
                 countdown = 60;
                 resendBtn.disabled = true;
                 resendBtn.classList.add('disabled:text-gray-400', 'disabled:cursor-not-allowed');
+                document.getElementById('resendText').innerHTML = 'Resend OTP (<span id="countdown">60</span>s)';
 
-                const countdownInterval = setInterval(() => {
+                resendCountdownInterval = setInterval(() => {
                     countdown--;
-                    countdownElement.textContent = countdown;
+                    const currentCountdown = document.getElementById('countdown');
+                    if (currentCountdown) {
+                        currentCountdown.textContent = countdown;
+                    }
 
                     if (countdown <= 0) {
-                        clearInterval(countdownInterval);
+                        clearInterval(resendCountdownInterval);
+                        resendCountdownInterval = null;
                         resendBtn.disabled = false;
                         resendBtn.classList.remove('disabled:text-gray-400', 'disabled:cursor-not-allowed');
                         document.getElementById('resendText').innerHTML = 'Resend OTP';
@@ -303,26 +320,46 @@
             }
 
             // Start OTP expiration timer
-            function startOtpTimer() {
-                otpTimer = 600;
+            function startOtpTimer(seconds = defaultOtpSeconds) {
+                if (otpTimerInterval) {
+                    clearInterval(otpTimerInterval);
+                }
 
-                const timerInterval = setInterval(() => {
-                    otpTimer--;
+                const parsedSeconds = parseInt(seconds, 10);
+                otpTimer = Number.isFinite(parsedSeconds) ? Math.max(0, parsedSeconds) : defaultOtpSeconds;
+                otpExpired = otpTimer <= 0;
+
+                timerElement.classList.remove('text-red-600');
+                timerElement.classList.add('text-blue-600');
+
+                function renderTimer() {
                     const minutes = Math.floor(otpTimer / 60);
                     const seconds = otpTimer % 60;
                     timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
                     if (otpTimer <= 0) {
-                        clearInterval(timerInterval);
-                        timerElement.textContent = 'Expired!';
+                        if (otpTimerInterval) {
+                            clearInterval(otpTimerInterval);
+                            otpTimerInterval = null;
+                        }
+
+                        otpExpired = true;
+                        timerElement.textContent = 'Expired';
                         timerElement.classList.remove('text-blue-600');
                         timerElement.classList.add('text-red-600');
 
                         // Disable verify button
                         verifyBtn.disabled = true;
                         verifyBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                        showOtpError('OTP has expired. Please request a new one.');
+                        showOtpError('OTP expired. Please request a new verification code.');
                     }
+                }
+
+                renderTimer();
+
+                otpTimerInterval = setInterval(() => {
+                    otpTimer--;
+                    renderTimer();
                 }, 1000);
             }
 
@@ -349,16 +386,19 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
+                            otpExpired = false;
+
                             // Reset OTP inputs
                             otpInputs.forEach(input => {
                                 input.value = '';
                             });
                             updateHiddenOtp();
+                            otpInputs[0].focus();
                             validateOtp();
 
                             // Reset timers
                             startResendCountdown();
-                            startOtpTimer();
+                            startOtpTimer(data.expires_in || defaultOtpSeconds);
 
                             // Show success message
                             if (typeof Swal !== 'undefined') {
@@ -371,6 +411,9 @@
                                 });
                             }
                         } else {
+                            resendBtn.disabled = false;
+                            resendBtn.classList.remove('disabled:text-gray-400', 'disabled:cursor-not-allowed');
+
                             // Show error message
                             if (typeof Swal !== 'undefined') {
                                 Swal.fire({
@@ -385,6 +428,9 @@
                     })
                     .catch(error => {
                         console.error('Error:', error);
+                        resendBtn.disabled = false;
+                        resendBtn.classList.remove('disabled:text-gray-400', 'disabled:cursor-not-allowed');
+
                         if (typeof Swal !== 'undefined') {
                             Swal.fire({
                                 title: 'Error',
@@ -395,8 +441,10 @@
                         }
                     })
                     .finally(() => {
-                        // Restore button state
-                        resendBtn.innerHTML = originalText;
+                        if (countdown > 0 && !resendCountdownInterval) {
+                            resendBtn.innerHTML = originalText;
+                        }
+
                         if (countdown <= 0) {
                             resendBtn.disabled = false;
                         }
@@ -411,7 +459,10 @@
                 const errors = [];
 
                 // Validate OTP
-                if (otp.length !== 6) {
+                if (otpExpired) {
+                    showOtpError('OTP expired. Please request a new verification code.');
+                    errors.push('OTP: OTP expired. Please request a new verification code.');
+                } else if (otp.length !== 6) {
                     showOtpError('Please enter the complete 6-digit verification code.');
                     errors.push('OTP: Please enter the complete 6-digit verification code.');
                 } else if (!/^\d{6}$/.test(otp)) {
@@ -451,7 +502,7 @@
             // Initialize
             validateOtp();
             startResendCountdown();
-            startOtpTimer();
+            startOtpTimer(otpTimer);
 
             // Auto-focus on OTP inputs when page loads
             setTimeout(() => {

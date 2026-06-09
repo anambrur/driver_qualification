@@ -29,7 +29,8 @@ test('sendOTP starts verification via Vonage Verify and stores request ID', func
     $mockVerify->shouldReceive('start')
         ->once()
         ->with(Mockery::on(function (VerifyRequest $request) {
-            return $request->getCodeLength() === 6;
+            return $request->getCodeLength() === 6
+                && $request->getPinExpiry() === 300;
         }))
         ->andReturn($mockVerification);
 
@@ -53,6 +54,12 @@ test('sendOTP starts verification via Vonage Verify and stores request ID', func
         'method' => 'vonage_verify',
         'is_used' => false,
     ]);
+
+    $record = OtpVerification::where('phone', $phone)->first();
+
+    expect((int) now()->diffInSeconds($record->expires_at))->toBeGreaterThanOrEqual(295)
+        ->and((int) now()->diffInSeconds($record->expires_at))->toBeLessThanOrEqual(300)
+        ->and($result['expires_in'])->toBe(300);
 });
 
 test('verifyOTP calls check on Vonage Verify client', function () {
@@ -92,4 +99,34 @@ test('verifyOTP calls check on Vonage Verify client', function () {
 
     expect($result['success'])->toBeTrue();
     expect($otpRecord->fresh()->is_used)->toBeTrue();
+});
+
+test('verifyOTP rejects locally expired records before calling Vonage', function () {
+    $phone = '+12092776341';
+    $requestId = 'expired-request-id';
+
+    $otpRecord = OtpVerification::create([
+        'phone' => $phone,
+        'otp' => 'vonage_verify',
+        'expires_at' => now()->subSecond(),
+        'is_used' => false,
+        'method' => 'vonage_verify',
+        'verification_sid' => $requestId,
+    ]);
+
+    $mockVerify = Mockery::mock(VerifyClient::class);
+    $mockVerify->shouldNotReceive('check');
+
+    $mockVonage = Mockery::mock(Client::class);
+    $mockVonage->shouldReceive('verify')
+        ->never();
+
+    $phoneService = new PhoneNumberService();
+    $service = new OTPService($mockVonage, $phoneService);
+
+    $result = $service->verifyOTP($phone, '123456');
+
+    expect($result['success'])->toBeFalse()
+        ->and($result['message'])->toBe('OTP expired. Please request a new verification code.')
+        ->and($otpRecord->fresh()->is_used)->toBeTrue();
 });
