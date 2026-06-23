@@ -229,7 +229,7 @@ class CompanyController extends Controller
             'description' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
             'fax' => 'nullable|string|max:20',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'logo' => 'nullable',
             'status' => 'required|in:active,inactive',
         ]);
 
