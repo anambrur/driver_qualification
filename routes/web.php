@@ -23,6 +23,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\SiteSettingController;
+use App\Http\Controllers\TawkToSettingController;
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehicleController;
@@ -402,6 +403,14 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         // Site Settings
         Route::get('/site', [SiteSettingController::class, 'index'])->name('admin.settings.site.index');
         Route::put('/site', [SiteSettingController::class, 'update'])->name('admin.settings.site.update');
+
+        // Tawk.to Chat Settings
+        Route::get('/tawk', [TawkToSettingController::class, 'index'])
+            ->name('admin.settings.tawk.index')
+            ->middleware('permission:settings.view');
+        Route::put('/tawk', [TawkToSettingController::class, 'update'])
+            ->name('admin.settings.tawk.update')
+            ->middleware('permission:settings.edit');
 
         // Company Route
         Route::get('/company', [CompanyController::class, 'index'])->name('admin.settings.company')->middleware('permission:companies.view');

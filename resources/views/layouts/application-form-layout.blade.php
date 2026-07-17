@@ -50,6 +50,7 @@ $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(valu
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
 
     @stack('scripts')
+    @include('partials.tawk-widget')
 </body>
 
 </html>

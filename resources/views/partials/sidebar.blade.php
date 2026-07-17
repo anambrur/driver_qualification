@@ -346,12 +346,14 @@
                             <a href="#" @click.prevent="selected = (selected === 'Settings' ? '':'Settings')"
                                 class="menu-item group"
                                 :class="(selected === 'Settings') || isCurrentPath('admin/settings/site') || isCurrentPath(
-                                        'admin/settings/company') || isCurrentPath('admin/settings/policy-pdf') ||
+                                        'admin/settings/tawk') || isCurrentPath('admin/settings/company') ||
+                                    isCurrentPath('admin/settings/policy-pdf') ||
                                     isCurrentPath('admin/settings/document-types') || isCurrentPath('admin/roles') ?
                                     'menu-item-active' : 'menu-item-inactive'">
                                 <i class="fa-solid fa-gear"
                                     :class="(selected === 'Settings') || isCurrentPath('admin/settings/site') || isCurrentPath(
-                                            'admin/settings/company') || isCurrentPath('admin/settings/policy-pdf') ||
+                                            'admin/settings/tawk') || isCurrentPath('admin/settings/company') ||
+                                        isCurrentPath('admin/settings/policy-pdf') ||
                                         isCurrentPath('admin/settings/document-types') || isCurrentPath('admin/roles') ?
                                         'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
                                 <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">System
@@ -372,6 +374,14 @@
                                             :class="isCurrentPath('admin/settings/site') ? 'menu-dropdown-item-active' :
                                                 'menu-dropdown-item-inactive'">
                                             Site Configuration
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ route('admin.settings.tawk.index') }}"
+                                            class="menu-dropdown-item group"
+                                            :class="isCurrentPath('admin/settings/tawk') ? 'menu-dropdown-item-active' :
+                                                'menu-dropdown-item-inactive'">
+                                            Tawk.to Chat
                                         </a>
                                     </li>
                                     @can('companies.view')

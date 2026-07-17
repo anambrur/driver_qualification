@@ -24,7 +24,19 @@ class SiteSetting extends Model
         'meta_description',
         'meta_keywords',
         'google_analytics_id',
+        'tawk_enabled',
+        'tawk_property_id',
+        'tawk_widget_id',
+        'tawk_widget_code',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'tawk_enabled' => 'boolean',
+            'tawk_widget_code' => 'encrypted',
+        ];
+    }
 
     /**
      * The "booted" method of the model.

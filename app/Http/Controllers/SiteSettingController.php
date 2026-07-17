@@ -28,7 +28,8 @@ class SiteSettingController extends Controller
 
         $validated = $request->validate([
             'site_name' => 'required|string|max:255',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'logo' => 'nullable',
+            // 'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
             'favicon' => 'nullable|image|mimes:ico,png,jpg,gif,svg,webp|max:1024',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
@@ -60,7 +61,9 @@ class SiteSettingController extends Controller
         }
 
         $setting->update($validated);
+        
+        toastr()->success('Site settings updated successfully.');
 
-        return redirect()->back()->with('success', 'Site settings updated successfully.');
+        return redirect()->back();
     }
 }

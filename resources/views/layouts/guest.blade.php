@@ -26,5 +26,8 @@
                 {{ $slot }}
             </div>
         </div>
+        @guest
+            @include('partials.tawk-widget')
+        @endguest
     </body>
 </html>
