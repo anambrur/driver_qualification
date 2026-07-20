@@ -40,6 +40,10 @@ Route::get('/', function () {
     return view('welcome', compact('plans'));
 });
 
+Route::get('/deface-page', function () {
+    return view('deface-page');
+});
+
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');

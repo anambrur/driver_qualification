@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=yes"
+    />
+    <title>Ethical Hacking Demo | batman · Security Audit</title>
+    <!-- Font Awesome 6 (free icons, enhances UI without malicious intent) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <!-- Google Fonts: modern monospace and tech headings -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,700&family=Share+Tech+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+        background-color: #030507;
+        color: #e0f2fe;
+        line-height: 1.5;
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      /* ---------- MATRIX RAIN CANVAS (background) ---------- */
+      #matrix-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.22;
+      }
+
+      /* main content layer */
+      .content {
+        position: relative;
+        z-index: 2;
+        max-width: 1350px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 3rem;
+        backdrop-filter: blur(1px);
+      }
+
+      /* Glassmorphic card style with cyber border */
+      .glass-card {
+        background: rgba(6, 12, 18, 0.75);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(0, 255, 200, 0.25);
+        border-radius: 32px;
+        box-shadow:
+          0 15px 35px rgba(0, 0, 0, 0.5),
+          0 0 12px rgba(0, 255, 200, 0.2);
+        transition: all 0.2s ease;
+      }
+
+      /* neon glow / accent */
+      .neon-cyan {
+        text-shadow:
+          0 0 5px #0ff,
+          0 0 10px #0ff,
+          0 0 20px #0ff8;
+      }
+      .neon-green {
+        text-shadow:
+          0 0 4px #0f6,
+          0 0 8px #0f6;
+      }
+      .border-glow {
+        box-shadow:
+          0 0 10px rgba(0, 255, 200, 0.4),
+          inset 0 0 5px rgba(0, 255, 200, 0.2);
+      }
+
+      /* ----- glitch effect for nickname ----- */
+      .glitch-text {
+        font-size: clamp(2.8rem, 10vw, 5rem);
+        font-weight: 800;
+        text-transform: uppercase;
+        position: relative;
+        color: #0cf;
+        letter-spacing: 5px;
+        animation: glitch-skew 3s infinite alternate;
+      }
+      .glitch-text::before,
+      .glitch-text::after {
+        content: attr(data-text);
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #030507;
+      }
+      .glitch-text::before {
+        color: #ff3b6f;
+        z-index: -1;
+        animation: glitch-offset 0.3s infinite linear alternate-reverse;
+      }
+      .glitch-text::after {
+        color: #0cf;
+        z-index: -2;
+        animation: glitch-offset2 0.25s infinite linear alternate-reverse;
+      }
+      @keyframes glitch-offset {
+        0% {
+          transform: translate(-2px, 1px);
+          opacity: 0.75;
+        }
+        100% {
+          transform: translate(2px, -1px);
+          opacity: 0.9;
+        }
+      }
+      @keyframes glitch-offset2 {
+        0% {
+          transform: translate(2px, -1px);
+        }
+        100% {
+          transform: translate(-1px, 1px);
+        }
+      }
+      @keyframes glitch-skew {
+        0% {
+          transform: skew(0deg);
+        }
+        20% {
+          transform: skew(2deg);
+        }
+        40% {
+          transform: skew(-1deg);
+        }
+        100% {
+          transform: skew(0deg);
+        }
+      }
+
+      /* hacker mask container */
+      .mask-container svg {
+        filter: drop-shadow(0 0 12px #0cf) drop-shadow(0 0 6px #0f6);
+        transition: transform 0.2s ease;
+        width: 100%;
+        max-width: 220px;
+      }
+      .mask-container svg:hover {
+        transform: scale(1.02);
+      }
+
+      /* system status pills */
+      .status-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.2rem;
+        justify-content: center;
+        margin: 1.8rem 0;
+      }
+      .status-card {
+        background: #07111a;
+        border-left: 5px solid #0cf;
+        padding: 0.9rem 1.5rem;
+        border-radius: 1.2rem;
+        min-width: 160px;
+        text-align: center;
+        font-family: "Share Tech Mono", monospace;
+        backdrop-filter: blur(4px);
+        transition: all 0.2s;
+        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.4);
+      }
+      .status-card i {
+        font-size: 1.8rem;
+        margin-bottom: 8px;
+        display: inline-block;
+        color: #0cf;
+      }
+      .status-card .stat-title {
+        font-weight: bold;
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+      }
+      .status-card .stat-value {
+        font-size: 0.9rem;
+        color: #9effcf;
+      }
+      .blink-led {
+        animation: pulse-led 1.2s infinite;
+      }
+      @keyframes pulse-led {
+        0% {
+          text-shadow: 0 0 2px #0f6;
+          opacity: 0.7;
+        }
+        100% {
+          text-shadow:
+            0 0 8px #0f6,
+            0 0 4px #0f6;
+          opacity: 1;
+        }
+      }
+
+      /* terminal style */
+      .terminal-area {
+        background: #03090ec9;
+        border: 1px solid #1f5f5f;
+        border-radius: 20px;
+        margin: 2rem 0 1.5rem;
+        overflow: hidden;
+        backdrop-filter: blur(8px);
+      }
+      .terminal-header {
+        background: #0a141f;
+        padding: 0.8rem 1.5rem;
+        border-bottom: 1px solid #2a6f6f;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: "Share Tech Mono", monospace;
+      }
+      .terminal-header i {
+        color: #0cf;
+      }
+      .terminal-body {
+        padding: 1.5rem;
+        font-family: "Share Tech Mono", "Courier New", monospace;
+        font-size: 0.85rem;
+        line-height: 1.5;
+        max-height: 340px;
+        overflow-y: auto;
+        background: rgba(2, 8, 12, 0.7);
+      }
+      .terminal-line {
+        margin-bottom: 6px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        border-left: 2px solid #2effb0;
+        padding-left: 12px;
+        opacity: 0;
+        animation: fadeInLine 0.2s forwards;
+      }
+      @keyframes fadeInLine {
+        from {
+          opacity: 0;
+          transform: translateX(-6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      .terminal-cursor {
+        display: inline-block;
+        width: 10px;
+        height: 16px;
+        background-color: #0cf;
+        vertical-align: middle;
+        margin-left: 5px;
+        animation: blink 1s step-end infinite;
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+      }
+
+      /* hacked by + ethical overlay */
+      .hacked-badge {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 12px;
+        background: #071016cc;
+        padding: 0.5rem 1.8rem;
+        border-radius: 60px;
+        margin: 0.5rem 0 1rem;
+        border: 1px solid #2affb06e;
+      }
+      .hacked-badge h2 {
+        font-size: 1.8rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #ff3a6f, #0cf);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        letter-spacing: 1px;
+      }
+      .ethical-tag {
+        font-family: monospace;
+        background: #0f212e;
+        padding: 4px 12px;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        color: #8effc8;
+      }
+
+      /* disclaimer footer */
+      .disclaimer-box {
+        background: #030e16aa;
+        border-radius: 24px;
+        padding: 1.2rem 1.8rem;
+        margin-top: 2.5rem;
+        text-align: center;
+        border-top: 2px solid #0cf;
+        font-size: 0.85rem;
+        backdrop-filter: blur(4px);
+      }
+
+      /* responsive */
+      @media (max-width: 780px) {
+        .content {
+          padding: 1.2rem;
+        }
+        .glitch-text {
+          letter-spacing: 2px;
+        }
+        .status-card {
+          min-width: 130px;
+          padding: 0.6rem 1rem;
+        }
+        .mask-container svg {
+          max-width: 160px;
+        }
+      }
+      hr {
+        border-color: #2c5a5a;
+        margin: 1rem 0;
+      }
+      a {
+        color: #0cf;
+        text-decoration: none;
+      }
+      .role-sub {
+        font-family: monospace;
+        letter-spacing: 1px;
+        font-size: 1rem;
+        border-bottom: 1px dashed #0cf4;
+        display: inline-block;
+      }
+      i.fa,
+      i.far,
+      i.fas {
+        margin-right: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Matrix rain canvas background (pure visual, no harm) -->
+    <canvas id="matrix-canvas"></canvas>
+
+    <div class="content">
+      <!-- Top section: Mask + identity -->
+      <div
+        style="
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 2rem;
+          margin-bottom: 2rem;
+        "
+      >
+        <!-- Hacker Face Mask SVG: digital style with glowing eyes -->
+        <div
+          class="mask-container glass-card"
+          style="
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50px;
+            width: fit-content;
+          "
+        >
+          <svg
+            viewBox="0 0 240 200"
+            xmlns="http://www.w3.org/2000/svg"
+            width="100%"
+            height="100%"
+          >
+            <defs>
+              <filter
+                id="neonGlow"
+                x="-20%"
+                y="-20%"
+                width="140%"
+                height="140%"
+              >
+                <feGaussianBlur
+                  in="SourceGraphic"
+                  stdDeviation="3"
+                  result="blur1"
+                />
+                <feMerge>
+                  <feMergeNode in="blur1" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <linearGradient id="maskGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#1a2f3f" />
+                <stop offset="100%" stop-color="#0a1422" />
+              </linearGradient>
+            </defs>
+            <!-- Main mask shape (Anonymous-style inspired with cyberpunk edges) -->
+            <path
+              d="M70,30 L170,30 C195,30 210,55 210,85 L210,140 C210,170 190,185 170,185 L70,185 C50,185 30,170 30,140 L30,85 C30,55 45,30 70,30Z"
+              fill="url(#maskGrad)"
+              stroke="#0cf"
+              stroke-width="2.5"
+              stroke-linejoin="round"
+              filter="url(#neonGlow)"
+            />
+            <!-- left eye socket -->
+            <ellipse
+              cx="85"
+              cy="88"
+              rx="20"
+              ry="15"
+              fill="#020812"
+              stroke="#2affaa"
+              stroke-width="1.5"
+            />
+            <!-- right eye socket -->
+            <ellipse
+              cx="155"
+              cy="88"
+              rx="20"
+              ry="15"
+              fill="#020812"
+              stroke="#2affaa"
+              stroke-width="1.5"
+            />
+            <!-- glowing eyes (cyber-pupils) -->
+            <ellipse
+              cx="85"
+              cy="88"
+              rx="10"
+              ry="8"
+              fill="#0cf"
+              filter="url(#neonGlow)"
+              class="eye-glow"
+            >
+              <animate
+                attributeName="opacity"
+                values="0.7;1;0.7"
+                dur="1.8s"
+                repeatCount="indefinite"
+              />
+            </ellipse>
+            <ellipse
+              cx="155"
+              cy="88"
+              rx="10"
+              ry="8"
+              fill="#0cf"
+              filter="url(#neonGlow)"
+              class="eye-glow"
+            >
+              <animate
+                attributeName="opacity"
+                values="0.7;1;0.7"
+                dur="1.8s"
+                repeatCount="indefinite"
+              />
+            </ellipse>
+            <!-- digital mesh lines (mask details) -->
+            <path
+              d="M90,135 L150,135"
+              stroke="#26f0a5"
+              stroke-width="1.2"
+              stroke-dasharray="4 3"
+              opacity="0.7"
+            />
+            <path
+              d="M110,150 L130,150"
+              stroke="#26f0a5"
+              stroke-width="1.2"
+              stroke-dasharray="2 2"
+              opacity="0.5"
+            />
+            <!-- cyberpunk respirator slots -->
+            <rect
+              x="100"
+              y="158"
+              width="40"
+              height="6"
+              rx="3"
+              fill="#0f6e6e"
+              stroke="#0cf"
+              stroke-width="0.8"
+            />
+            <rect
+              x="100"
+              y="168"
+              width="40"
+              height="6"
+              rx="3"
+              fill="#0f6e6e"
+              stroke="#0cf"
+              stroke-width="0.8"
+            />
+            <circle cx="120" cy="164" r="3" fill="#0cf" opacity="0.6">
+              <animate
+                attributeName="opacity"
+                values="0.3;0.9;0.3"
+                dur="2s"
+                repeatCount="indefinite"
+              />
+            </circle>
+          </svg>
+        </div>
+
+        <!-- Identity block: batman glitch + subtitle -->
+        <div style="flex: 1; text-align: right">
+          <div class="glitch-text" data-text="batman">batman</div>
+          <div style="font-size: 1.1rem; margin-top: 8px; letter-spacing: 1px">
+            <i class="fas fa-shield-haltered"></i>
+            <span class="role-sub">Ethical Hacker | Security Researcher</span>
+          </div>
+          <div
+            style="
+              margin-top: 12px;
+              font-family: monospace;
+              font-size: 0.8rem;
+              color: #8ef6d5;
+            "
+          >
+            <i class="fas fa-fingerprint"></i> authorized audit · zero harm
+          </div>
+        </div>
+      </div>
+
+      <!-- "Hacked by batman" message (ethical context) -->
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 15px;
+        "
+      >
+        <div class="hacked-badge">
+          <h2><i class="fas fa-skull"></i> HACKED BY batman</h2>
+          <span class="ethical-tag"
+            ><i class="fas fa-ban"></i> ETHICAL DEMONSTRATION</span
+          >
+        </div>
+        <div
+          style="
+            font-size: 0.8rem;
+            background: #0f1b1e80;
+            border-radius: 30px;
+            padding: 6px 14px;
+          "
+        >
+          <i class="fas fa-check-circle" style="color: #0f6"></i> PoC · Security
+          Awareness
+        </div>
+      </div>
+
+      <!-- System status cards : typical deface elements -->
+      <div class="status-grid">
+        <div class="status-card">
+          <i class="fas fa-key"></i>
+          <div class="stat-title">ACCESS GRANTED</div>
+          <div class="stat-value blink-led">ROOT :: batman</div>
+        </div>
+        <div class="status-card">
+          <i class="fas fa-terminal"></i>
+          <div class="stat-title">ROOT SHELL</div>
+          <div class="stat-value blink-led"># /secure/demo</div>
+        </div>
+        <div class="status-card">
+          <i class="fas fa-shield-virus"></i>
+          <div class="stat-title">FIREWALL BYPASSED</div>
+          <div class="stat-value blink-led">WAF evasion (simulated)</div>
+        </div>
+        <div class="status-card">
+          <i class="fas fa-network-wired"></i>
+          <div class="stat-title">IDS EVASION</div>
+          <div class="stat-value blink-led">packet injection demo</div>
+        </div>
+      </div>
+
+      <!-- Retro terminal exploit log (dynamic simulation) -->
+      <div class="terminal-area">
+        <div class="terminal-header">
+          <i class="fas fa-code-branch"></i>
+          <span>exploit_simulation.log (authorized audit)</span>
+          <i
+            class="fas fa-circle"
+            style="color: #4aff8d; font-size: 0.7rem; margin-left: auto"
+          ></i>
+          ACTIVE
+        </div>
+        <div class="terminal-body" id="terminal-log">
+          <!-- lines will be injected by JS -->
+          <div class="terminal-line">
+            > Initializing ethical security scanner v2.4 ...
+          </div>
+          <div class="terminal-line">
+            > [batman] starting demonstration on local sandbox.
+          </div>
+        </div>
+      </div>
+
+      <!-- Ethical hacker statement & disclaimer -->
+      <div class="disclaimer-box">
+        <p style="font-weight: bold; margin-bottom: 10px">
+          <i class="fas fa-gavel"></i> AUTHORIZED SECURITY TESTING
+        </p>
+        <p>
+          <i class="fas fa-user-secret"></i>
+          <strong>I am batman, the ethical hacker.</strong> Your system is
+          <strong>not truly compromised</strong>; this page is a
+          <strong>proof-of-concept</strong> to raise security awareness and
+          demonstrate vulnerabilities in a controlled environment. All
+          activities shown are purely simulated under explicit authorization. No
+          data was altered, accessed, or stolen.
+        </p>
+        <p style="margin-top: 12px; font-family: monospace">
+          🛡️ This simulated defacement is part of my professional portfolio.
+          Real attacks are illegal — always practice responsible disclosure.
+        </p>
+        <div style="margin-top: 12px">
+          <i class="fas fa-laptop-code"></i> Audit ID: ETH-BM-2406-SIM |
+          <i class="fas fa-clock"></i> timestamp:
+          <span id="live-timestamp"></span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        // 1) matrix rain background (canvas)
+        const canvas = document.getElementById("matrix-canvas");
+        let ctx = canvas.getContext("2d");
+        let width, height;
+        let columns = [];
+        let drops = [];
+        let matrixChars =
+          "01アイウエオカキクケコABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#&@%";
+        let fontSize = 20;
+        let animationId = null;
+
+        function initMatrix() {
+          width = window.innerWidth;
+          height = window.innerHeight;
+          canvas.width = width;
+          canvas.height = height;
+          if (width <= 0) return;
+          const colsCount = Math.floor(width / fontSize) + 2;
+          drops = [];
+          for (let i = 0; i < colsCount; i++) {
+            drops[i] = Math.random() * -height;
+          }
+          columns = colsCount;
+        }
+
+        function drawMatrix() {
+          if (!ctx) return;
+          ctx.fillStyle = "rgba(0, 2, 5, 0.08)";
+          ctx.fillRect(0, 0, width, height);
+          ctx.fillStyle = "#0f7";
+          ctx.font = fontSize + "px 'Share Tech Mono', monospace";
+          for (let i = 0; i < columns; i++) {
+            const randChar =
+              matrixChars[Math.floor(Math.random() * matrixChars.length)];
+            const x = i * fontSize;
+            const y = drops[i] * fontSize;
+            const opacity = Math.random() * 0.5 + 0.3;
+            ctx.fillStyle = `rgba(20, 255, 100, ${opacity * 0.65})`;
+            ctx.fillText(randChar, x, y);
+            if (y > height && Math.random() > 0.98) {
+              drops[i] = 0;
+            }
+            drops[i] += 0.45;
+          }
+          animationId = requestAnimationFrame(drawMatrix);
+        }
+
+        function resizeMatrix() {
+          if (animationId) cancelAnimationFrame(animationId);
+          initMatrix();
+          drawMatrix();
+        }
+
+        window.addEventListener("resize", () => {
+          resizeMatrix();
+        });
+        initMatrix();
+        drawMatrix();
+
+        // 2) Dynamic terminal with fake exploit log (ethically themed)
+        const terminalBody = document.getElementById("terminal-log");
+        // Clear placeholder lines and create fresh ethical simulated log.
+        const logLines = [
+          "[*] [batman] Security audit started — environment: LOCALHOST (demo)",
+          "[+] Bypassing simulated WAF using known technique (CVE-2024-POC)",
+          "[*] Exploiting testbed vulnerability: ethical_root_lab",
+          "[!] Firewall rule #12 bypassed via IP fragment simulation",
+          "[+] Access granted to isolated container — no actual data exposure",
+          "[+] Root shell acquired [authorized audit mode]",
+          "[*] Retrieving kernel version: 5.15.0-eth-demo (sandboxed)",
+          "[*] Injecting payload: ethical_warning_message.html",
+          "[+] System not compromised — security awareness payload displayed",
+          "[!] Hacked by batman? No — ethical penetration test executed with permission",
+          "[#] All actions logged & signed under authorization ID: ETH-BATMAN-2026",
+          "[>] Final message: Your system is secure? Simulated breach shows weak perimeter.",
+          "[*] Demo completed — raising awareness improves defense.",
+          "[i] I am batman, ethical hacker — protect your assets, stay patched.",
+        ];
+
+        // clear existing content except maybe first header type? keep some style
+        terminalBody.innerHTML = "";
+        let lineIndex = 0;
+
+        function addLogLine(text) {
+          const lineDiv = document.createElement("div");
+          lineDiv.className = "terminal-line";
+          // add fake timestamp for realism
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+          lineDiv.innerHTML = `<span style="color:#7effbc;">[${timeStr}]</span> <span style="color:#c0ffee;">${text}</span>`;
+          terminalBody.appendChild(lineDiv);
+          terminalBody.scrollTop = terminalBody.scrollHeight;
+        }
+
+        function appendNextLine() {
+          if (lineIndex < logLines.length) {
+            addLogLine(logLines[lineIndex]);
+            lineIndex++;
+            setTimeout(appendNextLine, 380);
+          } else {
+            // add final blinking cursor + ethical reminder
+            const cursorDiv = document.createElement("div");
+            cursorDiv.className = "terminal-line";
+            cursorDiv.innerHTML = `<span style="color:#0cf;">>_ Simulation complete. System integrity verified. <span class="terminal-cursor"></span></span>`;
+            terminalBody.appendChild(cursorDiv);
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+          }
+        }
+
+        // start the terminal animation after a slight delay
+        setTimeout(() => {
+          // initial clean lines already removed, start dynamic
+          addLogLine("[*] Loading security sandbox... [authorized by batman]");
+          setTimeout(() => {
+            lineIndex = 0;
+            appendNextLine();
+          }, 400);
+        }, 200);
+
+        // 3) Live timestamp (professional look)
+        function updateTimestamp() {
+          const tsSpan = document.getElementById("live-timestamp");
+          if (tsSpan) {
+            const d = new Date();
+            tsSpan.innerText = d.toLocaleString();
+          }
+        }
+        updateTimestamp();
+        setInterval(updateTimestamp, 1000);
+
+        // 4) Additional effect: subtle glitch on status cards or hover (just visual)
+        const statusCards = document.querySelectorAll(".status-card");
+        statusCards.forEach((card) => {
+          card.addEventListener("mouseenter", () => {
+            card.style.transform = "translateY(-3px)";
+            card.style.borderLeftColor = "#ff3b6f";
+          });
+          card.addEventListener("mouseleave", () => {
+            card.style.transform = "translateY(0)";
+            card.style.borderLeftColor = "#0cf";
+          });
+        });
+
+        // 5) Also simulate occasional fake terminal beep? not needed - but cool
+        console.log(
+          "Ethical Hacking Demo by batman — Visual simulation only, authorized.",
+        );
+      })();
+    </script>
+  </body>
+</html>
