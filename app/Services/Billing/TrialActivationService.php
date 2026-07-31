@@ -34,7 +34,7 @@ class TrialActivationService
 
         $endsAt = now()->addDays((int) $plan->trial_days);
 
-        return DB::transaction(function () use ($user, $plan, $endsAt) {
+        $subscription = DB::transaction(function () use ($user, $plan, $endsAt) {
             return Subscription::create([
                 'user_id' => $user->id,
                 'plan_id' => $plan->id,
@@ -51,5 +51,9 @@ class TrialActivationService
                 'source' => 'trial',
             ]);
         });
+
+        app(SubscriptionNotificationService::class)->sendActivated($subscription);
+
+        return $subscription;
     }
 }

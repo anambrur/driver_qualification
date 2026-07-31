@@ -7,6 +7,7 @@ use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Billing\SubscriptionNotificationService;
 use App\Services\Stripe\SubscriptionService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -129,7 +130,7 @@ class SubscriptionAdminController extends Controller
             ? Carbon::parse($request->custom_end_date)->endOfDay()
             : now()->addDays((int) ($plan->duration_days ?: 30));
 
-        Subscription::create([
+        $subscription = Subscription::create([
             'user_id' => $user->id,
             'plan_id' => $plan->id,
             'stripe_subscription_id' => null,
@@ -144,6 +145,8 @@ class SubscriptionAdminController extends Controller
             'ends_at' => $endsAt,
             'source' => 'admin',
         ]);
+
+        app(SubscriptionNotificationService::class)->sendActivated($subscription);
 
         return redirect()->route('admin.subscriptions.show', $user)
             ->with('success', "Complimentary subscription granted to {$user->name}.");

@@ -2,9 +2,14 @@
 
 namespace App\Services\Driver;
 
+use App\Mail\DriverHiredMail;
+use App\Mail\DriverRejectedMail;
 use App\Models\Driver;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use InvalidArgumentException;
+use Throwable;
 
 class DriverHireService
 {
@@ -14,7 +19,7 @@ class DriverHireService
             throw new InvalidArgumentException('This driver is not in pending status.');
         }
 
-        return DB::transaction(function () use ($driver, $data, $actorId) {
+        $driver = DB::transaction(function () use ($driver, $data, $actorId) {
             $driver->update([
                 'status' => 'active',
                 'hire_date' => $data['hire_date'],
@@ -28,8 +33,12 @@ class DriverHireService
                 'rejected_at' => null,
             ]);
 
-            return $driver->fresh();
+            return $driver->fresh(['company']);
         });
+
+        $this->queueHireEmail($driver);
+
+        return $driver;
     }
 
     public function reject(Driver $driver, array $data, int $actorId): Driver
@@ -38,7 +47,7 @@ class DriverHireService
             throw new InvalidArgumentException('This driver is not in pending status.');
         }
 
-        return DB::transaction(function () use ($driver, $data, $actorId) {
+        $driver = DB::transaction(function () use ($driver, $data, $actorId) {
             $driver->update([
                 'status' => 'rejected',
                 'rejection_reason' => $data['rejection_reason'],
@@ -52,8 +61,12 @@ class DriverHireService
                 'hired_at' => null,
             ]);
 
-            return $driver->fresh();
+            return $driver->fresh(['company']);
         });
+
+        $this->queueRejectEmail($driver);
+
+        return $driver;
     }
 
     public function getRejectionReasonLabel(?string $reason): ?string
@@ -89,5 +102,44 @@ class DriverHireService
         ];
 
         return $labels[$status] ?? ucfirst($status);
+    }
+
+    private function queueHireEmail(Driver $driver): void
+    {
+        if (empty($driver->email)) {
+            return;
+        }
+
+        try {
+            Mail::to($driver->email)->send(new DriverHiredMail(
+                driver: $driver,
+                companyName: $driver->company?->company_name,
+            ));
+        } catch (Throwable $e) {
+            Log::error('Failed to queue driver hired email.', [
+                'driver_id' => $driver->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function queueRejectEmail(Driver $driver): void
+    {
+        if (empty($driver->email)) {
+            return;
+        }
+
+        try {
+            Mail::to($driver->email)->send(new DriverRejectedMail(
+                driver: $driver,
+                reasonLabel: $this->getRejectionReasonLabel($driver->rejection_reason),
+                companyName: $driver->company?->company_name,
+            ));
+        } catch (Throwable $e) {
+            Log::error('Failed to queue driver rejected email.', [
+                'driver_id' => $driver->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

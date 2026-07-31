@@ -6,6 +6,7 @@ use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Billing\SubscriptionNotificationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +17,8 @@ class WebhookProcessor
 {
     public function __construct(
         private readonly StripeClientFactory $stripe,
-        private readonly SubscriptionService $subscriptions
+        private readonly SubscriptionService $subscriptions,
+        private readonly SubscriptionNotificationService $subscriptionNotifications,
     ) {}
 
     public function constructEvent(string $payload, string $signature): Event
@@ -285,7 +287,9 @@ class WebhookProcessor
 
     private function handleSubscriptionUpsert(object $stripeSub, array $fallbackMeta = []): void
     {
-        DB::transaction(function () use ($stripeSub, $fallbackMeta) {
+        $createdSubscription = null;
+
+        DB::transaction(function () use ($stripeSub, $fallbackMeta, &$createdSubscription) {
             $meta = $stripeSub->metadata ?? (object) [];
             $userId = (int) ($meta->user_id ?? $fallbackMeta['user_id'] ?? 0);
             $planId = (int) ($meta->plan_id ?? $fallbackMeta['plan_id'] ?? 0);
@@ -381,9 +385,13 @@ class WebhookProcessor
             if ($subscription) {
                 $subscription->update($payload);
             } else {
-                Subscription::create($payload);
+                $createdSubscription = Subscription::create($payload);
             }
         });
+
+        if ($createdSubscription) {
+            $this->subscriptionNotifications->sendActivated($createdSubscription);
+        }
     }
 
     private function handleSubscriptionDeleted(object $stripeSub): void
@@ -453,5 +461,13 @@ class WebhookProcessor
                 ],
             ]
         );
+
+        if ($subscription) {
+            $this->subscriptionNotifications->sendPaymentFailed(
+                $subscription,
+                (string) $invoice->id,
+                $invoice->hosted_invoice_url ?? null,
+            );
+        }
     }
 }

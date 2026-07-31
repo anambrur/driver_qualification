@@ -12,3 +12,8 @@ Schedule::command('subscriptions:send-expiry-reminders')
     ->dailyAt('09:00')
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command('compliance:send-digest-reminders')
+    ->dailyAt('09:30')
+    ->withoutOverlapping()
+    ->runInBackground();

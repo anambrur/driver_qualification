@@ -9,6 +9,7 @@ use App\Models\Driver;
 use App\Models\DriverDocument;
 use App\Models\PolicyPdf;
 use App\Models\State;
+use App\Services\Compliance\DriverComplianceService;
 use App\Services\Driver\DriverCrudService;
 use App\Services\Driver\DriverDocumentWizardService;
 use App\Services\Driver\DriverHireService;
@@ -67,6 +68,17 @@ class DriverController extends Controller
 
             return DataTables::of($drivers)
                 ->addIndexColumn()
+                ->addColumn('photo', function ($driver) {
+                    $initials = strtoupper(substr($driver->first_name ?? 'D', 0, 1) . substr($driver->last_name ?? 'R', 0, 1));
+
+                    if ($driver->photo) {
+                        $photoUrl = e(asset('storage/' . $driver->photo));
+
+                        return '<img src="' . $photoUrl . '" alt="' . e($driver->first_name) . '" class="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-sm" />';
+                    }
+
+                    return '<span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700 ring-2 ring-white dark:bg-brand-900/40 dark:text-brand-300 dark:ring-gray-800">' . e($initials) . '</span>';
+                })
                 ->addColumn('full_name', function ($driver) {
                     return $driver->first_name . ' ' .
                         ($driver->middle_name ? $driver->middle_name . ' ' : '') .
@@ -157,7 +169,7 @@ class DriverController extends Controller
                 </button>
             </div>';
                 })
-                ->rawColumns(['status', 'action'])
+                ->rawColumns(['photo', 'status', 'action'])
                 ->filter(function ($query) use ($request) {
                     if ($request->has('search') && !empty($request->search['value'])) {
                         $search = $request->search['value'];
@@ -182,25 +194,21 @@ class DriverController extends Controller
                         $direction = $request->order[0]['dir'];
 
                         // Map DataTables columns to database columns
+                        // 0: photo, 1: full_name, 2: email, 3: status, 4: state,
+                        // 5: license_exp, 6: medical_exp, 7: hired_at, 8: action
                         switch ($columnIndex) {
-                            case 0: // #
-                                $query->orderBy('id', $direction);
-                                break;
                             case 1: // Full Name
                                 $query->orderBy('first_name', $direction)
                                     ->orderBy('last_name', $direction);
                                 break;
-                            case 2: // Company
-                                $query->orderBy('company_id', $direction);
+                            case 2: // Email
+                                $query->orderBy('email', $direction);
                                 break;
                             case 3: // Status
                                 $query->orderBy('status', $direction);
                                 break;
                             case 4: // State
                                 $query->orderBy('state', $direction);
-                                break;
-                            case 5: // License Exp.
-                                $query->orderBy('id', $direction);
                                 break;
                             case 6: // Medical Exp.
                                 $query->orderBy('medical_certificate_expiration_date', $direction);
@@ -262,7 +270,7 @@ class DriverController extends Controller
         }
     }
 
-    public function show($id)
+    public function show($id, DriverComplianceService $complianceService)
     {
         $driver = Driver::with([
             'company',
@@ -270,6 +278,7 @@ class DriverController extends Controller
                 $query->orderBy('expires', 'desc');
             },
             'driver_documents',
+            'documents.documentType',
             'residence_addresses' => function ($query) {
                 $query->orderBy('is_current', 'desc')->orderBy('created_at', 'desc');
             },
@@ -277,7 +286,59 @@ class DriverController extends Controller
 
         $this->authorizeCompanyAccess($driver, 'You do not have permission to view this driver.');
 
-        return view('admin.driver.show', compact('driver'));
+        $compliance = $complianceService->forDriver($driver);
+
+        $uploadedDocuments = $driver->documents
+            ->filter(fn ($doc) => filled($doc->file_path))
+            ->sortByDesc('updated_at')
+            ->values();
+
+        $activityLogs = collect();
+
+        foreach ($uploadedDocuments as $doc) {
+            $typeName = $doc->documentType?->name ?? 'Document';
+            $isReplace = $doc->created_at && $doc->updated_at
+                && $doc->created_at->timestamp !== $doc->updated_at->timestamp;
+
+            $activityLogs->push([
+                'at' => $doc->updated_at,
+                'label' => $isReplace
+                    ? "Updated {$typeName}"
+                    : "Uploaded {$typeName}",
+                'detail' => $doc->description,
+                'icon' => $isReplace ? 'fa-sync-alt' : 'fa-upload',
+                'tone' => 'brand',
+            ]);
+        }
+
+        if ($driver->hired_at) {
+            $activityLogs->push([
+                'at' => $driver->hired_at,
+                'label' => 'Driver hired',
+                'detail' => null,
+                'icon' => 'fa-user-check',
+                'tone' => 'green',
+            ]);
+        }
+
+        if ($driver->rejected_at) {
+            $activityLogs->push([
+                'at' => $driver->rejected_at,
+                'label' => 'Driver not hired',
+                'detail' => $driver->rejection_reason
+                    ? ucfirst(str_replace('_', ' ', $driver->rejection_reason))
+                    : null,
+                'icon' => 'fa-user-times',
+                'tone' => 'red',
+            ]);
+        }
+
+        $activityLogs = $activityLogs
+            ->filter(fn ($log) => filled($log['at']))
+            ->sortByDesc('at')
+            ->values();
+
+        return view('admin.driver.show', compact('driver', 'compliance', 'uploadedDocuments', 'activityLogs'));
     }
 
     public function edit($id, Request $request)

@@ -114,10 +114,17 @@
                                 <table id="drivers-table" class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
                                     <thead class="bg-gray-50 dark:bg-gray-800/50">
                                         <tr>
-
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300 w-14">
+                                                Photo
+                                            </th>
                                             <th scope="col"
                                                 class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">
                                                 Full Name
+                                            </th>
+                                            <th scope="col"
+                                                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                Email
                                             </th>
                                             <th scope="col"
                                                 class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">
@@ -278,11 +285,25 @@
                             }
                         },
                         columns: [{
+                                data: 'photo',
+                                name: 'photo',
+                                orderable: false,
+                                searchable: false,
+                                className: 'px-4 py-3'
+                            },
+                            {
                                 data: 'full_name',
                                 name: 'first_name',
                                 orderable: true,
                                 searchable: true,
                                 className: 'px-4 py-3 text-sm text-gray-900 dark:text-white font-medium'
+                            },
+                            {
+                                data: 'email',
+                                name: 'email',
+                                orderable: true,
+                                searchable: true,
+                                className: 'px-4 py-3 text-sm'
                             },
                             {
                                 data: 'status',
@@ -468,9 +489,12 @@
                         const card = `
                             <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
                                 <div class="flex justify-between items-start mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
-                                    <div>
-                                        <h4 class="font-medium text-gray-900 dark:text-white">${row.full_name || 'N/A'}</h4>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Driver #${row.DT_RowIndex || index + 1}</p>
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-shrink-0">${row.photo || ''}</div>
+                                        <div>
+                                            <h4 class="font-medium text-gray-900 dark:text-white">${row.full_name || 'N/A'}</h4>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Driver #${row.DT_RowIndex || index + 1}</p>
+                                        </div>
                                     </div>
                                     <span class="${statusClasses}">
                                         <span class="${dotClass}"></span>

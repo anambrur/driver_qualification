@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Driver;
 use App\Models\DocumentType;
+use App\Services\Compliance\DriverComplianceService;
 use App\Traits\CompanyFilterTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -11,6 +12,10 @@ use Illuminate\Support\Facades\Auth;
 class DriverComplianceDashboardController extends Controller
 {
     use CompanyFilterTrait;
+
+    public function __construct(
+        private readonly DriverComplianceService $complianceService
+    ) {}
 
     public function index()
     {
@@ -31,7 +36,7 @@ class DriverComplianceDashboardController extends Controller
         $criticalDrivers = 0;
 
         foreach ($drivers as $driver) {
-            $complianceData = $this->calculateCompliance($driver, $driverDocumentTypes);
+            $complianceData = $this->complianceService->calculateCompliance($driver, $driverDocumentTypes);
 
             $processedDrivers[] = [
                 'id' => $driver->id,
@@ -92,96 +97,6 @@ class DriverComplianceDashboardController extends Controller
     }
 
     /**
-     * Calculate compliance for a driver
-     */
-    private function calculateCompliance($driver, $documentTypes)
-    {
-        $totalDocs = $documentTypes->count();
-        $compliantDocs = 0;
-        $missingDocs = [];
-        $expiringDocs = [];
-        $documentDetails = [];
-
-        foreach ($documentTypes as $docType) {
-            // Use eager-loaded collection to avoid N+1 queries
-            $document = $driver->documents->firstWhere('document_type_id', $docType->id);
-
-            $docStatus = [
-                'type_id' => $docType->id,
-                'type_name' => $docType->name,
-                'status' => 'missing',
-                'file_date' => null,
-                'expiry_date' => null,
-                'days_until_expiry' => null,
-                'document_id' => null,
-                'file_path' => null,
-                'description' => null,
-            ];
-
-            if ($document) {
-                $docStatus['file_date'] = $document->file_date;
-                $docStatus['expiry_date'] = $document->expiry_date;
-                $docStatus['document_id'] = $document->id;
-                $docStatus['file_path'] = $document->file_path;
-                $docStatus['description'] = $document->description;
-
-                if ($document->expiry_date) {
-                    $expiryDate = Carbon::parse($document->expiry_date);
-                    $today = Carbon::today();
-                    $daysUntilExpiry = $today->diffInDays($expiryDate, false);
-
-                    $docStatus['days_until_expiry'] = $daysUntilExpiry;
-
-                    if ($expiryDate->isFuture()) {
-                        if ($daysUntilExpiry <= 30) {
-                            // Expiring soon (within 30 days)
-                            $docStatus['status'] = 'expiring';
-                            $expiringDocs[] = $docType->name . ' (expires in ' . $daysUntilExpiry . ' days)';
-                        } else {
-                            // Valid and not expiring soon
-                            $docStatus['status'] = 'valid';
-                            $compliantDocs++;
-                        }
-                    } else {
-                        // Expired
-                        $docStatus['status'] = 'expired';
-                        $missingDocs[] = $docType->name . ' (expired)';
-                    }
-                } else {
-                    // Document has no expiry date (like certificates without expiry)
-                    $docStatus['status'] = 'valid';
-                    $compliantDocs++;
-                }
-            } else {
-                // Document missing
-                $missingDocs[] = $docType->name;
-            }
-
-            $documentDetails[] = $docStatus;
-        }
-
-        $percentage = $totalDocs > 0 ? round(($compliantDocs / $totalDocs) * 100, 1) : 0;
-
-        // Determine overall status
-        $status = 'compliant';
-        if (count($missingDocs) > 0 || $percentage < 100) {
-            $status = 'danger';
-        } elseif (count($expiringDocs) > 0) {
-            $status = 'warning';
-        }
-
-        return [
-            'total_docs' => $totalDocs,
-            'compliant_docs' => $compliantDocs,
-            'percentage' => $percentage,
-            'missing_documents' => $missingDocs,
-            'expiring_documents' => $expiringDocs,
-            'document_details' => $documentDetails,
-            'status' => $status,
-        ];
-    }
-
-    /**
      * Get driver details for modal
      */
     public function getDriverDetails($id)
@@ -193,11 +108,7 @@ class DriverComplianceDashboardController extends Controller
             // Check if user has access to this driver
             $this->authorizeCompanyAccess($driver, 'You do not have permission to view this driver.');
 
-            $driverDocumentTypes = DocumentType::where('module', 'driver')
-                ->where('status', true)
-                ->get();
-
-            $complianceData = $this->calculateCompliance($driver, $driverDocumentTypes);
+            $complianceData = $this->complianceService->forDriver($driver);
 
             // Use already eager-loaded documents collection
             $documents = $driver->documents->map(function ($doc) {

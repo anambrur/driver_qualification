@@ -20,6 +20,7 @@ use App\Models\Driver;
 use App\Models\DriverDocument;
 use App\Models\PolicyPdf;
 use App\Models\Violation;
+use App\Mail\ApplicationSubmittedMail;
 use App\Services\Driver\DriverCrudService;
 use App\Services\Driver\DriverDocumentWizardService;
 use App\Services\OTPService;
@@ -27,6 +28,7 @@ use App\Services\PhoneNumberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 
@@ -939,6 +941,23 @@ class ApplicationFormController extends Controller
         try {
             $driver = Driver::findOrFail($request->driver_id);
             $documents->saveGeneralWorkPolicy($driver, $request->validated(), finalizeToPending: true);
+
+            $driver->refresh();
+            $driver->loadMissing('company');
+
+            if (! empty($driver->email)) {
+                try {
+                    Mail::to($driver->email)->send(new ApplicationSubmittedMail(
+                        driver: $driver,
+                        companyName: $driver->company?->company_name,
+                    ));
+                } catch (\Throwable $e) {
+                    Log::error('Failed to queue application submitted email.', [
+                        'driver_id' => $driver->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             $phone = Session::get('verified_phone');
             Session::forget([

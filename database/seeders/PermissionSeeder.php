@@ -95,7 +95,7 @@ class PermissionSeeder extends Seeder
         $roleSuperAdmin->givePermissionTo(Permission::all());
 
         $roleCompany = Role::where('name', 'company')->first();
-        $companyModules = ['drivers', 'fleets', 'vehicles', 'trailers'];
+        $companyModules = ['drivers', 'fleets', 'vehicles', 'trailers', 'maintenance', 'scheduled'];
         $roleCompany->givePermissionTo(
             Permission::where(function ($query) use ($companyModules) {
                 foreach ($companyModules as $module) {
