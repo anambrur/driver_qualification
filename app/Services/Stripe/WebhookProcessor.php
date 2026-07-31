@@ -32,17 +32,23 @@ class WebhookProcessor
 
     public function handle(Event $event): void
     {
+        Log::info('Stripe webhook received', ['type' => $event->type, 'id' => $event->id]);
+
         match ($event->type) {
             'checkout.session.completed' => $this->syncCheckoutSession($event->data->object),
             'customer.subscription.created',
             'customer.subscription.updated' => $this->handleSubscriptionUpsert($event->data->object),
             'customer.subscription.deleted' => $this->handleSubscriptionDeleted($event->data->object),
-            'invoice.paid' => $this->handleInvoicePaid($event->data->object),
+            'invoice.paid' => $this->recordPaidInvoice($event->data->object),
             'invoice.payment_failed' => $this->handleInvoicePaymentFailed($event->data->object),
             default => Log::debug('Unhandled Stripe webhook event', ['type' => $event->type]),
         };
     }
 
+    /**
+     * Dual-write entry: sync subscription + first paid invoice from Checkout Session.
+     * Used by webhook and /checkout-success (works on localhost without webhook forwarding).
+     */
     public function syncCheckoutSession(object $session): void
     {
         $userId = (int) ($session->metadata->user_id ?? $session->client_reference_id ?? 0);
@@ -52,9 +58,15 @@ class WebhookProcessor
             $user->forceFill(['stripe_id' => $session->customer])->save();
         }
 
-        if (! empty($session->subscription)) {
+        $subscriptionId = is_string($session->subscription ?? null)
+            ? $session->subscription
+            : ($session->subscription->id ?? null);
+
+        if ($subscriptionId) {
             try {
-                $stripeSub = $this->stripe->make()->subscriptions->retrieve($session->subscription);
+                $stripeSub = $this->stripe->make()->subscriptions->retrieve($subscriptionId, [
+                    'expand' => ['latest_invoice'],
+                ]);
                 $this->handleSubscriptionUpsert($stripeSub, [
                     'user_id' => $session->metadata->user_id ?? null,
                     'plan_id' => $session->metadata->plan_id ?? null,
@@ -63,12 +75,212 @@ class WebhookProcessor
                     'checkout_session_id' => $session->id,
                 ]);
             } catch (\Throwable $e) {
-                Log::warning('Failed to sync subscription after checkout.session.completed', [
+                Log::warning('Failed to sync subscription after checkout session', [
                     'session_id' => $session->id ?? null,
                     'error' => $e->getMessage(),
                 ]);
             }
         }
+
+        $this->syncPaymentFromCheckoutSession($session);
+    }
+
+    /**
+     * Record payment from a completed Checkout Session (success page / webhook).
+     */
+    public function syncPaymentFromCheckoutSession(object $session): ?Payment
+    {
+        $paymentStatus = $session->payment_status ?? null;
+        if (! in_array($paymentStatus, ['paid', 'no_payment_required'], true)
+            && ($session->status ?? null) !== 'complete') {
+            Log::debug('Checkout session not paid yet; skipping payment sync', [
+                'session_id' => $session->id ?? null,
+                'payment_status' => $paymentStatus,
+            ]);
+
+            return null;
+        }
+
+        $checkoutSessionId = $session->id ?? null;
+        $invoice = null;
+
+        try {
+            $client = $this->stripe->make();
+
+            $invoiceId = is_string($session->invoice ?? null)
+                ? $session->invoice
+                : ($session->invoice->id ?? null);
+
+            if ($invoiceId) {
+                $invoice = $client->invoices->retrieve($invoiceId);
+            } elseif (! empty($session->subscription)) {
+                $subscriptionId = is_string($session->subscription)
+                    ? $session->subscription
+                    : ($session->subscription->id ?? null);
+
+                if ($subscriptionId) {
+                    $invoices = $client->invoices->all([
+                        'subscription' => $subscriptionId,
+                        'limit' => 5,
+                        'status' => 'paid',
+                    ]);
+                    $invoice = $invoices->data[0] ?? null;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed retrieving invoice for checkout session', [
+                'session_id' => $checkoutSessionId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        if (! $invoice) {
+            Log::warning('No paid invoice found for checkout session', [
+                'session_id' => $checkoutSessionId,
+            ]);
+
+            return null;
+        }
+
+        return $this->recordPaidInvoice($invoice, $checkoutSessionId);
+    }
+
+    /**
+     * Idempotent paid-invoice → payments row. Used by webhook, checkout success, and backfill.
+     */
+    public function recordPaidInvoice(object $invoice, ?string $checkoutSessionId = null): ?Payment
+    {
+        return DB::transaction(function () use ($invoice, $checkoutSessionId) {
+            $user = null;
+            $customerId = is_string($invoice->customer ?? null)
+                ? $invoice->customer
+                : ($invoice->customer->id ?? null);
+
+            if ($customerId) {
+                $user = User::where('stripe_id', $customerId)->first();
+            }
+
+            $subscriptionId = is_string($invoice->subscription ?? null)
+                ? $invoice->subscription
+                : ($invoice->subscription->id ?? null);
+
+            $subscription = null;
+            if ($subscriptionId) {
+                $subscription = Subscription::where('stripe_subscription_id', $subscriptionId)->first();
+                if ($subscription && ! $user) {
+                    $user = $subscription->user;
+                }
+            }
+
+            if (! $user) {
+                Log::warning('Paid invoice missing local user', [
+                    'invoice' => $invoice->id ?? null,
+                    'customer' => $customerId,
+                ]);
+
+                return null;
+            }
+
+            if ($subscription && $subscriptionId) {
+                try {
+                    $stripeSub = $this->stripe->make()->subscriptions->retrieve($subscriptionId);
+                    $this->subscriptions->syncFromStripeObject($subscription, $stripeSub);
+                    $subscription->refresh();
+                } catch (\Throwable $e) {
+                    Log::warning('Failed refreshing subscription on paid invoice', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            $amount = ((float) ($invoice->amount_paid ?? 0)) / 100;
+            $paidAt = ! empty($invoice->status_transitions->paid_at)
+                ? Carbon::createFromTimestamp($invoice->status_transitions->paid_at)
+                : now();
+
+            $paymentIntent = is_string($invoice->payment_intent ?? null)
+                ? $invoice->payment_intent
+                : ($invoice->payment_intent->id ?? null);
+
+            $attrs = [
+                'user_id' => $user->id,
+                'plan_id' => $subscription?->plan_id,
+                'subscription_id' => $subscription?->id,
+                'stripe_payment_intent_id' => $paymentIntent,
+                'amount' => $amount,
+                'currency' => strtoupper($invoice->currency ?? 'usd'),
+                'status' => 'paid',
+                'billing_reason' => $invoice->billing_reason ?? 'subscription_create',
+                'hosted_invoice_url' => $invoice->hosted_invoice_url ?? null,
+                'paid_at' => $paidAt,
+                'raw' => [
+                    'id' => $invoice->id,
+                    'number' => $invoice->number ?? null,
+                    'billing_reason' => $invoice->billing_reason ?? null,
+                ],
+            ];
+
+            if ($checkoutSessionId) {
+                $attrs['stripe_checkout_session_id'] = $checkoutSessionId;
+            }
+
+            $payment = Payment::updateOrCreate(
+                ['stripe_invoice_id' => $invoice->id],
+                $attrs
+            );
+
+            Log::info('Payment recorded from Stripe invoice', [
+                'payment_id' => $payment->id,
+                'invoice_id' => $invoice->id,
+                'amount' => $payment->amount,
+                'user_id' => $user->id,
+                'source' => $checkoutSessionId ? 'checkout_session' : 'webhook_or_sync',
+            ]);
+
+            return $payment;
+        });
+    }
+
+    /**
+     * Sync all paid invoices for a local Stripe subscription (backfill / repair).
+     *
+     * @return int Number of payment rows upserted
+     */
+    public function syncPaidInvoicesForSubscription(Subscription $subscription): int
+    {
+        if (! $subscription->stripe_subscription_id) {
+            return 0;
+        }
+
+        $count = 0;
+        $startingAfter = null;
+
+        do {
+            $params = [
+                'subscription' => $subscription->stripe_subscription_id,
+                'status' => 'paid',
+                'limit' => 100,
+            ];
+            if ($startingAfter) {
+                $params['starting_after'] = $startingAfter;
+            }
+
+            $page = $this->stripe->make()->invoices->all($params);
+
+            foreach ($page->data ?? [] as $invoice) {
+                if ($this->recordPaidInvoice($invoice)) {
+                    $count++;
+                }
+            }
+
+            $startingAfter = (! empty($page->has_more) && ! empty($page->data))
+                ? end($page->data)->id
+                : null;
+        } while ($startingAfter);
+
+        return $count;
     }
 
     private function handleSubscriptionUpsert(object $stripeSub, array $fallbackMeta = []): void
@@ -83,7 +295,12 @@ class WebhookProcessor
             $user = $userId ? User::find($userId) : null;
 
             if (! $user && ! empty($stripeSub->customer)) {
-                $user = User::where('stripe_id', $stripeSub->customer)->first();
+                $customerId = is_string($stripeSub->customer)
+                    ? $stripeSub->customer
+                    : ($stripeSub->customer->id ?? null);
+                if ($customerId) {
+                    $user = User::where('stripe_id', $customerId)->first();
+                }
             }
 
             if (! $user) {
@@ -94,8 +311,12 @@ class WebhookProcessor
                 return;
             }
 
-            if (! empty($stripeSub->customer) && $user->stripe_id !== $stripeSub->customer) {
-                $user->forceFill(['stripe_id' => $stripeSub->customer])->save();
+            $customerId = is_string($stripeSub->customer ?? null)
+                ? $stripeSub->customer
+                : ($stripeSub->customer->id ?? null);
+
+            if ($customerId && $user->stripe_id !== $customerId) {
+                $user->forceFill(['stripe_id' => $customerId])->save();
             }
 
             $plan = $planId ? Plan::find($planId) : null;
@@ -184,83 +405,27 @@ class WebhookProcessor
         ]);
     }
 
-    private function handleInvoicePaid(object $invoice): void
-    {
-        DB::transaction(function () use ($invoice) {
-            $user = null;
-            if (! empty($invoice->customer)) {
-                $user = User::where('stripe_id', $invoice->customer)->first();
-            }
-
-            $subscription = null;
-            if (! empty($invoice->subscription)) {
-                $subscription = Subscription::where('stripe_subscription_id', $invoice->subscription)->first();
-                if ($subscription && ! $user) {
-                    $user = $subscription->user;
-                }
-            }
-
-            if (! $user) {
-                Log::warning('invoice.paid missing local user', ['invoice' => $invoice->id ?? null]);
-
-                return;
-            }
-
-            if ($subscription) {
-                try {
-                    $stripeSub = $this->stripe->make()->subscriptions->retrieve($invoice->subscription);
-                    $this->subscriptions->syncFromStripeObject($subscription, $stripeSub);
-                    $subscription->refresh();
-                } catch (\Throwable $e) {
-                    Log::warning('Failed refreshing subscription on invoice.paid', [
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            $amount = ((float) ($invoice->amount_paid ?? 0)) / 100;
-            $paidAt = ! empty($invoice->status_transitions->paid_at)
-                ? Carbon::createFromTimestamp($invoice->status_transitions->paid_at)
-                : now();
-
-            Payment::updateOrCreate(
-                ['stripe_invoice_id' => $invoice->id],
-                [
-                    'user_id' => $user->id,
-                    'plan_id' => $subscription?->plan_id,
-                    'subscription_id' => $subscription?->id,
-                    'stripe_payment_intent_id' => is_string($invoice->payment_intent ?? null)
-                        ? $invoice->payment_intent
-                        : ($invoice->payment_intent->id ?? null),
-                    'amount' => $amount,
-                    'currency' => strtoupper($invoice->currency ?? 'usd'),
-                    'status' => 'paid',
-                    'billing_reason' => $invoice->billing_reason ?? 'subscription_cycle',
-                    'hosted_invoice_url' => $invoice->hosted_invoice_url ?? null,
-                    'paid_at' => $paidAt,
-                    'raw' => [
-                        'id' => $invoice->id,
-                        'number' => $invoice->number ?? null,
-                        'billing_reason' => $invoice->billing_reason ?? null,
-                    ],
-                ]
-            );
-        });
-    }
-
     private function handleInvoicePaymentFailed(object $invoice): void
     {
+        $subscriptionId = is_string($invoice->subscription ?? null)
+            ? $invoice->subscription
+            : ($invoice->subscription->id ?? null);
+
         $subscription = null;
-        if (! empty($invoice->subscription)) {
-            $subscription = Subscription::where('stripe_subscription_id', $invoice->subscription)->first();
+        if ($subscriptionId) {
+            $subscription = Subscription::where('stripe_subscription_id', $subscriptionId)->first();
             if ($subscription) {
                 $subscription->update(['stripe_status' => 'past_due']);
             }
         }
 
         $user = $subscription?->user;
-        if (! $user && ! empty($invoice->customer)) {
-            $user = User::where('stripe_id', $invoice->customer)->first();
+        $customerId = is_string($invoice->customer ?? null)
+            ? $invoice->customer
+            : ($invoice->customer->id ?? null);
+
+        if (! $user && $customerId) {
+            $user = User::where('stripe_id', $customerId)->first();
         }
 
         if (! $user) {

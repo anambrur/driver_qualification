@@ -74,23 +74,29 @@ class CheckoutController extends Controller
 
         if ($sessionId && $user) {
             try {
-                $session = $stripe->make()->checkout->sessions->retrieve($sessionId);
+                $session = $stripe->make()->checkout->sessions->retrieve($sessionId, [
+                    'expand' => ['invoice', 'subscription'],
+                ]);
                 $belongsToUser = ((string) ($session->metadata->user_id ?? '') === (string) $user->id)
                     || ((string) ($session->client_reference_id ?? '') === (string) $user->id);
 
                 if ($belongsToUser) {
+                    // Dual-write: subscription + payment (works without webhook on localhost).
                     $processor->syncCheckoutSession($session);
                 }
             } catch (\Throwable $e) {
-                Log::debug('Checkout success secondary sync skipped', [
+                Log::warning('Checkout success sync failed', [
+                    'session_id' => $sessionId,
                     'error' => $e->getMessage(),
                 ]);
             }
         }
 
+        $user?->refresh();
         $subscription = $user?->activeSubscription();
         $plan = $subscription?->plan;
+        $latestPayment = $user?->payments()->where('status', 'paid')->first();
 
-        return view('billing.checkout-success', compact('plan', 'subscription'));
+        return view('billing.checkout-success', compact('plan', 'subscription', 'latestPayment'));
     }
 }

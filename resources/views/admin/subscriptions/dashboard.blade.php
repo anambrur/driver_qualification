@@ -34,9 +34,13 @@
         {{-- Revenue --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
             <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-                <p class="text-sm text-gray-500 font-medium">Total Revenue</p>
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-gray-500 font-medium">Total Revenue</p>
+                    <a href="{{ route('admin.subscriptions.payments') }}" class="text-xs text-indigo-600 hover:underline">Payments →</a>
+                </div>
                 <p class="text-4xl font-bold text-gray-900 dark:text-white mt-1">
                     ${{ number_format($stats['total_revenue'], 2) }}</p>
+                <p class="text-xs text-gray-400 mt-2">From local paid payment records</p>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
                 <p class="text-sm text-gray-500 font-medium">Revenue This Month</p>
@@ -75,6 +79,7 @@
                         <tr>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">User</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Plan</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-500">Amount</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Expires</th>
                             <th class="px-4 py-3 text-left font-medium text-gray-500">Action</th>
@@ -87,42 +92,37 @@
                                     <div class="font-medium text-gray-900 dark:text-white">{{ $sub->user->name }}</div>
                                     <div class="text-xs text-gray-400">{{ $sub->user->email }}</div>
                                 </td>
-                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ $sub->plan->name }}</td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    <div>{{ $sub->plan->name ?? '—' }}</div>
+                                    <div class="text-xs text-gray-400 capitalize">{{ $sub->billing_cycle }}</div>
+                                </td>
+                                <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">
+                                    @if ((float) $sub->amount > 0)
+                                        ${{ number_format($sub->amount, 2) }}
+                                    @else
+                                        <span class="text-green-600 font-medium">Free</span>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3">
                                     @php
                                         $colors = [
                                             'active' => 'bg-green-100 text-green-700',
-                                            'trial' => 'bg-blue-100 text-blue-700',
-                                            'grace' => 'bg-yellow-100 text-yellow-700',
-                                            'expired' => 'bg-red-100 text-red-700',
-                                            'cancelled' => 'bg-gray-100 text-gray-600',
-                                            'suspended' => 'bg-orange-100 text-orange-700',
+                                            'trialing' => 'bg-blue-100 text-blue-700',
+                                            'past_due' => 'bg-yellow-100 text-yellow-700',
+                                            'canceled' => 'bg-gray-100 text-gray-600',
+                                            'unpaid' => 'bg-red-100 text-red-700',
                                         ];
                                     @endphp
                                     <span
-                                        class="px-2 py-1 rounded-full text-xs font-medium {{ $colors[$sub->status] ?? 'bg-gray-100' }}">
+                                        class="px-2 py-1 rounded-full text-xs font-medium capitalize {{ $colors[$sub->stripe_status] ?? 'bg-gray-100' }}">
                                         {{ $sub->stripe_status }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-gray-500 text-xs">
-                                    @php
-                                        $isCancelled = method_exists($sub, 'canceled')
-                                            ? $sub->canceled()
-                                            : !empty($sub->cancelled_at);
-                                        $isActive = method_exists($sub, 'active')
-                                            ? $sub->active()
-                                            : $sub->stripe_status === 'active';
-                                        $isOnGrace = method_exists($sub, 'onGracePeriod')
-                                            ? $sub->onGracePeriod()
-                                            : false;
-                                    @endphp
-
-                                    @if ($sub->ends_at)
-                                        {{ $sub->ends_at->format('M d, Y g:i A') }}
-                                    @elseif ($isCancelled || $isOnGrace)
-                                        <span class="text-gray-600 dark:text-gray-300">Ends at period end</span>
-                                    @elseif ($isActive)
-                                        <span class="text-green-600 font-medium">Ongoing</span>
+                                    @if ($sub->accessEndsAt())
+                                        {{ $sub->accessEndsAt()->format('M d, Y') }}
+                                    @elseif ($sub->active())
+                                        <span class="text-green-600 font-medium">Auto-renew</span>
                                     @else
                                         <span class="text-gray-500">—</span>
                                     @endif

@@ -18,10 +18,21 @@ class CheckoutService
     public function createOrGetCustomer(User $user): Customer
     {
         $client = $this->stripe->make();
+        $appMeta = $this->appMetadata();
 
         if ($user->stripe_id) {
             try {
-                return $client->customers->retrieve($user->stripe_id);
+                $customer = $client->customers->retrieve($user->stripe_id);
+                // Keep app identity on the customer for shared Stripe accounts.
+                $client->customers->update($user->stripe_id, [
+                    'metadata' => array_merge(
+                        (array) ($customer->metadata?->toArray() ?? []),
+                        $appMeta,
+                        ['user_id' => (string) $user->id]
+                    ),
+                ]);
+
+                return $customer;
             } catch (ApiErrorException $e) {
                 Log::warning('Stored Stripe customer missing; creating a new one.', [
                     'user_id' => $user->id,
@@ -34,9 +45,10 @@ class CheckoutService
         $customer = $client->customers->create([
             'email' => $user->email,
             'name' => $user->name,
-            'metadata' => [
+            'description' => $this->appLabel().' customer #'.$user->id,
+            'metadata' => array_merge($appMeta, [
                 'user_id' => (string) $user->id,
-            ],
+            ]),
         ]);
 
         $user->forceFill(['stripe_id' => $customer->id])->save();
@@ -68,14 +80,20 @@ class CheckoutService
         }
 
         $customer = $this->createOrGetCustomer($user);
+        $appMeta = $this->appMetadata();
+        $productName = $this->labeledProductName($plan);
+        $description = $this->labeledDescription($plan);
+
+        $planMeta = [
+            'user_id' => (string) $user->id,
+            'plan_id' => (string) $plan->id,
+            'plan_slug' => $plan->slug,
+            'billing_cycle' => $plan->billing_cycle,
+        ];
 
         $subscriptionData = [
-            'metadata' => [
-                'user_id' => (string) $user->id,
-                'plan_id' => (string) $plan->id,
-                'plan_slug' => $plan->slug,
-                'billing_cycle' => $plan->billing_cycle,
-            ],
+            'description' => $description,
+            'metadata' => array_merge($appMeta, $planMeta),
         ];
 
         if ((int) $plan->trial_days > 0) {
@@ -94,8 +112,10 @@ class CheckoutService
                         'interval' => $interval,
                     ],
                     'product_data' => [
-                        'name' => $plan->name,
-                        'description' => $plan->description ?: $plan->name,
+                        // Appears on invoices / line items in Stripe (best visible label).
+                        'name' => $productName,
+                        'description' => $description,
+                        'metadata' => $appMeta,
                     ],
                 ],
                 'quantity' => 1,
@@ -103,14 +123,50 @@ class CheckoutService
             'success_url' => route('checkout.success').'?session_id={CHECKOUT_SESSION_ID}',
             'cancel_url' => route('pricing.plans'),
             'client_reference_id' => (string) $user->id,
-            'metadata' => [
-                'user_id' => (string) $user->id,
-                'plan_id' => (string) $plan->id,
-                'plan_slug' => $plan->slug,
-                'billing_cycle' => $plan->billing_cycle,
-            ],
+            'metadata' => array_merge($appMeta, $planMeta),
             'subscription_data' => $subscriptionData,
             'allow_promotion_codes' => true,
         ]);
+    }
+
+    public function appLabel(): string
+    {
+        return (string) (config('services.stripe.app_label') ?: config('app.name') ?: 'DriverFilesHub');
+    }
+
+    public function appHost(): string
+    {
+        $host = parse_url((string) config('app.url'), PHP_URL_HOST);
+
+        return $host ?: 'driverfileshub.com';
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function appMetadata(): array
+    {
+        return [
+            'application' => $this->appLabel(),
+            'app_url' => (string) config('app.url'),
+            'app_host' => $this->appHost(),
+        ];
+    }
+
+    public function labeledProductName(Plan $plan): string
+    {
+        return $this->appLabel().' — '.$plan->name;
+    }
+
+    public function labeledDescription(Plan $plan): string
+    {
+        $cycle = ucfirst($plan->billing_cycle);
+
+        return sprintf(
+            '%s subscription (%s) · %s',
+            $this->appLabel(),
+            $cycle,
+            $this->appHost()
+        );
     }
 }

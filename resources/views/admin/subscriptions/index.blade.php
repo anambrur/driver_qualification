@@ -62,6 +62,7 @@
                     <tr>
                         <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">User</th>
                         <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Plan</th>
+                        <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                         <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Dates</th>
                         <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Action</th>
@@ -76,20 +77,27 @@
                             </td>
                             <td class="px-4 py-4">
                                 <div class="font-medium text-gray-900 dark:text-white">{{ $sub->plan->name ?? 'Deleted Plan' }}</div>
-                                <div class="text-xs text-gray-400 capitalize">{{ $sub->plan->billing_cycle ?? 'N/A' }}</div>
+                                <div class="text-xs text-gray-400 capitalize">{{ $sub->billing_cycle ?? 'N/A' }} · {{ $sub->source }}</div>
+                            </td>
+                            <td class="px-4 py-4 font-semibold text-gray-900 dark:text-white">
+                                @if ((float) $sub->amount > 0)
+                                    ${{ number_format($sub->amount, 2) }}
+                                    <span class="text-xs font-normal text-gray-500 uppercase">{{ $sub->currency }}</span>
+                                @else
+                                    <span class="text-green-600">Free</span>
+                                @endif
                             </td>
                             <td class="px-4 py-4">
                                 @php
                                     $colors = [
                                         'active' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-                                        'trial' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-                                        'grace' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-                                        'expired' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-                                        'cancelled' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-                                        'suspended' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+                                        'trialing' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+                                        'past_due' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+                                        'canceled' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+                                        'unpaid' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
                                     ];
                                 @endphp
-                                <span class="px-2.5 py-1 rounded-full text-xs font-medium {{ $colors[$sub->status] ?? 'bg-gray-100' }}">
+                                <span class="px-2.5 py-1 rounded-full text-xs font-medium capitalize {{ $colors[$sub->stripe_status] ?? 'bg-gray-100' }}">
                                     {{ $sub->stripe_status }}
                                 </span>
                             </td>
@@ -98,11 +106,13 @@
                                     <span class="font-medium">Starts:</span> {{ $sub->created_at?->format('M d, Y') ?? 'N/A' }}
                                 </div>
                                 <div class="text-xs text-gray-500 mt-1">
-                                    <span class="font-medium">Ends:</span> 
-                                    @if($sub->ends_at)
-                                        {{ $sub->ends_at->format('M d, Y') }}
+                                    <span class="font-medium">Ends:</span>
+                                    @if($sub->accessEndsAt())
+                                        {{ $sub->accessEndsAt()->format('M d, Y') }}
+                                    @elseif($sub->isAccessible())
+                                        Auto-renew
                                     @else
-                                        Lifetime
+                                        —
                                     @endif
                                 </div>
                             </td>
@@ -116,7 +126,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                                 No subscriptions found matching your criteria.
                             </td>
                         </tr>

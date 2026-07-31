@@ -87,14 +87,22 @@ class PermissionSeeder extends Seeder
         // Create roles
         $roles = Role::insert([
             ['name' => 'super-admin', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'admin', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'company', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'manager', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'user', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         $roleSuperAdmin = Role::where('name', 'super-admin')->first();
         $roleSuperAdmin->givePermissionTo(Permission::all());
+
+        $roleCompany = Role::where('name', 'company')->first();
+        $companyModules = ['drivers', 'fleets', 'vehicles', 'trailers'];
+        $roleCompany->givePermissionTo(
+            Permission::where(function ($query) use ($companyModules) {
+                foreach ($companyModules as $module) {
+                    $query->orWhere('name', 'like', $module . '.%');
+                }
+            })->get()
+        );
 
         // Create demo users
         $superAdmin = User::factory()->create([

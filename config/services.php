@@ -45,6 +45,8 @@ return [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        // Shown on Stripe products/invoices so multi-app accounts can tell traffic apart.
+        'app_label' => env('STRIPE_APP_LABEL', env('APP_NAME', 'DriverFilesHub')),
     ],
 
 ];
