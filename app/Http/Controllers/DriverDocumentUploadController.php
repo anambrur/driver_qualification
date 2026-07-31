@@ -25,20 +25,23 @@ class DriverDocumentUploadController extends Controller
 
             $documentType = DocumentType::find($documentTypeId);
 
-            // Apply company filter to drivers query
-            $driversQuery = Driver::select('drivers.id', 'drivers.first_name', 'drivers.last_name');
+            // Apply company filter and load has_document in one query (avoid N+1 exists)
+            $driversQuery = Driver::select('drivers.id', 'drivers.first_name', 'drivers.last_name')
+                ->withExists([
+                    'documents as has_document' => function ($query) use ($documentTypeId) {
+                        $query->where('document_type_id', $documentTypeId);
+                    },
+                ]);
             $driversQuery = $this->applyCompanyFilter($driversQuery);
 
             $drivers = $driversQuery->orderBy('drivers.first_name')
                 ->orderBy('drivers.last_name')
                 ->get()
-                ->map(function ($driver) use ($documentTypeId) {
+                ->map(function ($driver) {
                     return [
                         'id' => $driver->id,
                         'full_name' => $driver->first_name . ' ' . $driver->last_name,
-                        'has_document' => DriverComplianceDocument::where('driver_id', $driver->id)
-                            ->where('document_type_id', $documentTypeId)
-                            ->exists()
+                        'has_document' => (bool) $driver->has_document,
                     ];
                 });
 

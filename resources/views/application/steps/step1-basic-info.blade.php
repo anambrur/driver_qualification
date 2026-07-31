@@ -44,8 +44,25 @@
                         id="driverForm" enctype="multipart/form-data">
                         @csrf
 
+                        <div class="mb-4 md:hidden rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                            <label for="driver-section-jump-mobile"
+                                class="text-xs font-medium text-gray-500 dark:text-gray-400">Jump to section</label>
+                            <select id="driver-section-jump-mobile"
+                                class="driver-section-jump mt-2 w-full shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                <option value="">Select…</option>
+                                <option value="section-applicant">Applicant</option>
+                                <option value="section-residences">Residences</option>
+                                <option value="section-license">License</option>
+                                <option value="section-experience">Experience</option>
+                                <option value="section-accidents">Accidents</option>
+                                <option value="section-violations">Violations</option>
+                                <option value="section-employment">Employment</option>
+                                <option value="section-photo">Photo</option>
+                            </select>
+                        </div>
+
                         <!-- Personal Information Section -->
-                        <div
+                        <div id="section-applicant"
                             class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
                             <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
                                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
@@ -288,12 +305,16 @@
                                             passport?</span>
                                     </label>
                                 </div>
+
+                                <div id="section-photo" class="pt-4 border-t border-gray-100 dark:border-gray-800">
+                                    <x-driver-photo-upload />
+                                </div>
                             </div>
                         </div>
 
 
                         <!-- Residences Section -->
-                        <div
+                        <div id="section-residences"
                             class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
                             <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
                                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
@@ -411,7 +432,7 @@
 
 
                         <!-- Driving License Section -->
-                        <div
+                        <div id="section-license"
                             class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
                             <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
                                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
@@ -663,7 +684,7 @@
 
 
                         <!-- Experience Section -->
-                        <div
+                        <div id="section-experience"
                             class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
                             <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
                                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
@@ -758,7 +779,7 @@
 
 
                         <!-- Accidents/Crashes Section -->
-                        <div
+                        <div id="section-accidents"
                             class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
                             <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
                                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
@@ -878,7 +899,7 @@
 
 
                         <!-- Moving Traffic Violations Section -->
-                        <div
+                        <div id="section-violations"
                             class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
                             <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
                                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
@@ -1057,7 +1078,7 @@
 
 
                         <!-- Employment Record Section -->
-                        <div
+                        <div id="section-employment"
                             class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
                             <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
                                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
@@ -1318,56 +1339,44 @@
 
                         </div>
 
-                        <div
-                            class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
-                            <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
-                                <div>
-                                    <label for="photo"
-                                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                        Upload Driver Photo
-                                    </label>
-                                    <div class="flex items-center justify-center w-full">
-                                        <label for="photo"
-                                            class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
-                                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                                <i
-                                                    class="fas fa-cloud-upload-alt mb-3 text-2xl text-gray-500 dark:text-gray-400"></i>
-                                                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span
-                                                        class="font-semibold">Click to upload</span> or drag and drop</p>
-                                                <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF, SVG
-                                                    (MAX.
-                                                    2MB)</p>
-                                            </div>
-                                            <input id="photo" name="photo" type="file" class="hidden"
-                                                accept="image/*" />
-                                        </label>
-                                    </div>
-                                    @error('photo')
-                                        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
-
-
-
-
                         <!-- Form Actions -->
                         <div
-                            class="flex flex-col sm:flex-row gap-4 justify-end pt-6 border-t border-gray-200 dark:border-gray-800">
-                            <a href="{{ route('admin.driver.index') }}"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                                Cancel
-                            </a>
-
-                            <button type="submit"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
-                                Continue
-                            </button>
+                            class="sticky bottom-0 z-30 -mx-4 mt-6 border-t border-gray-200 bg-white/95 px-4 py-4 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95 sm:mx-0 sm:rounded-xl">
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Saves as draft and continues to
+                                    license documents.</p>
+                                <div class="flex gap-3 justify-end">
+                                    <a href="{{ route('public.application.step1', ['slug' => $company->slug]) }}"
+                                        class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                        Cancel
+                                    </a>
+                                    <button type="submit"
+                                        class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                                        Continue
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
                 <div class="md:col-span-3">
+                    <div
+                        class="mb-4 hidden md:block rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                        <label for="driver-section-jump"
+                            class="text-xs font-medium text-gray-500 dark:text-gray-400">Jump to section</label>
+                        <select id="driver-section-jump"
+                            class="driver-section-jump mt-2 w-full shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            <option value="">Select…</option>
+                            <option value="section-applicant">Applicant</option>
+                            <option value="section-residences">Residences</option>
+                            <option value="section-license">License</option>
+                            <option value="section-experience">Experience</option>
+                            <option value="section-accidents">Accidents</option>
+                            <option value="section-violations">Violations</option>
+                            <option value="section-employment">Employment</option>
+                            <option value="section-photo">Photo</option>
+                        </select>
+                    </div>
                     @include('components.progress-bar', ['currentStep' => $currentStep])
                 </div>
             </div>
@@ -1378,36 +1387,6 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            setupFilePreview('photo');
-            // Format SSN input
-            const ssnInput = document.getElementById('ssn');
-            if (ssnInput) {
-                ssnInput.addEventListener('input', function(e) {
-                    let value = e.target.value.replace(/\D/g, '');
-                    if (value.length > 3 && value.length <= 5) {
-                        value = value.slice(0, 3) + '-' + value.slice(3);
-                    } else if (value.length > 5) {
-                        value = value.slice(0, 3) + '-' + value.slice(3, 5) + '-' + value.slice(5, 9);
-                    }
-                    e.target.value = value;
-                });
-            }
-
-            // Format phone numbers
-            const phoneInputs = document.querySelectorAll('input[type="tel"]');
-            phoneInputs.forEach(input => {
-                input.addEventListener('input', function(e) {
-                    let value = e.target.value.replace(/\D/g, '');
-                    if (value.length > 3 && value.length <= 6) {
-                        value = '(' + value.slice(0, 3) + ') ' + value.slice(3);
-                    } else if (value.length > 6) {
-                        value = '(' + value.slice(0, 3) + ') ' + value.slice(3, 6) + '-' + value
-                            .slice(6, 10);
-                    }
-                    e.target.value = value;
-                });
-            });
-
             // Same address checkbox functionality
             const sameAddressCheckbox = document.getElementById('same_address_checkbox');
             if (sameAddressCheckbox) {
@@ -1812,121 +1791,9 @@
 
 
 
-            // License number validation
-            const licenseNumber = document.getElementById('license_number');
-            const repeatLicenseNumber = document.getElementById('repeat_license_number');
 
-            if (licenseNumber && repeatLicenseNumber) {
-                repeatLicenseNumber.addEventListener('input', function() {
-                    if (licenseNumber.value !== repeatLicenseNumber.value) {
-                        repeatLicenseNumber.classList.add('border-red-500');
-                    } else {
-                        repeatLicenseNumber.classList.remove('border-red-500');
-                    }
-                });
-            }
-
-            // Form validation before submission
-            const form = document.getElementById('driverForm');
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    // Validate license numbers match
-                    if (licenseNumber && repeatLicenseNumber && licenseNumber.value !== repeatLicenseNumber
-                        .value) {
-                        e.preventDefault();
-                        alert('License numbers do not match. Please check and try again.');
-                        repeatLicenseNumber.focus();
-                        return false;
-                    }
-
-                    // Validate dates
-                    const licenseIssued = document.getElementById('license_issued');
-                    const licenseExpires = document.getElementById('license_expires');
-
-                    if (licenseIssued && licenseExpires) {
-                        const issued = new Date(licenseIssued.value);
-                        const expires = new Date(licenseExpires.value);
-
-                        if (issued >= expires) {
-                            e.preventDefault();
-                            alert('License expiration date must be after the issued date.');
-                            licenseExpires.focus();
-                            return false;
-                        }
-                    }
-
-                    // Validate date of birth (must be at least 18 years old)
-                    const dateOfBirth = document.getElementById('date_of_birth');
-                    if (dateOfBirth) {
-                        const dob = new Date(dateOfBirth.value);
-                        const today = new Date();
-                        const age = today.getFullYear() - dob.getFullYear();
-                        const monthDiff = today.getMonth() - dob.getMonth();
-
-                        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-                            age--;
-                        }
-
-                        if (age < 18) {
-                            e.preventDefault();
-                            alert('Driver must be at least 18 years old.');
-                            dateOfBirth.focus();
-                            return false;
-                        }
-                    }
-                });
-            }
-
-            function setupFilePreview(inputId) {
-                const input = document.getElementById(inputId);
-                const imagePreview = document.getElementById(inputId + '_preview');
-                const pdfPreview = document.getElementById(inputId + '_pdf_preview');
-                const previewImg = document.getElementById(inputId + '_preview_img');
-                const pdfPreviewContent = document.getElementById(inputId + '_pdf_preview_content');
-
-                input.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (file) {
-                        // Hide both previews first
-                        imagePreview.classList.add('hidden');
-                        pdfPreview.classList.add('hidden');
-
-                        if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-                            reader.onload = function(e) {
-                                previewImg.src = e.target.result;
-                                imagePreview.classList.remove('hidden');
-                            };
-                            reader.readAsDataURL(file);
-                        } else if (file.type === 'application/pdf') {
-                            pdfPreviewContent.innerHTML = `
-                            <div class="flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                <svg class="h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                <div class="ml-3 text-left">
-                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">${file.name}</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">PDF Document</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">${(file.size / 1024).toFixed(2)} KB</p>
-                                </div>
-                            </div>
-                        `;
-                            pdfPreview.classList.remove('hidden');
-                        }
-                    }
-                });
-            }
-
-            function removePreview(inputId) {
-                const input = document.getElementById(inputId);
-                const imagePreview = document.getElementById(inputId + '_preview');
-                const pdfPreview = document.getElementById(inputId + '_pdf_preview');
-
-                input.value = '';
-                imagePreview.classList.add('hidden');
-                pdfPreview.classList.add('hidden');
-            }
 
         });
     </script>
+    <script src="{{ asset('js/driver-form-validation.js') }}"></script>
 @endpush

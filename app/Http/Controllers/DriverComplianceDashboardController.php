@@ -103,10 +103,8 @@ class DriverComplianceDashboardController extends Controller
         $documentDetails = [];
 
         foreach ($documentTypes as $docType) {
-            // Find the document for this type
-            $document = $driver->documents()
-                ->where('document_type_id', $docType->id)
-                ->first();
+            // Use eager-loaded collection to avoid N+1 queries
+            $document = $driver->documents->firstWhere('document_type_id', $docType->id);
 
             $docStatus = [
                 'type_id' => $docType->id,
@@ -201,8 +199,8 @@ class DriverComplianceDashboardController extends Controller
 
             $complianceData = $this->calculateCompliance($driver, $driverDocumentTypes);
 
-            // Get all documents with their details
-            $documents = $driver->documents()->with('documentType')->get()->map(function ($doc) {
+            // Use already eager-loaded documents collection
+            $documents = $driver->documents->map(function ($doc) {
                 $daysUntilExpiry = null;
                 if ($doc->expiry_date) {
                     $expiryDate = Carbon::parse($doc->expiry_date);
@@ -212,7 +210,7 @@ class DriverComplianceDashboardController extends Controller
 
                 return [
                     'id' => $doc->id,
-                    'type_name' => $doc->documentType->name,
+                    'type_name' => $doc->documentType?->name,
                     'file_date' => $doc->file_date,
                     'expiry_date' => $doc->expiry_date,
                     'description' => $doc->description,

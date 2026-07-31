@@ -7,124 +7,144 @@ use Illuminate\Support\Facades\Auth;
 
 trait CompanyFilterTrait
 {
-    /**
-     * Get the company ID(s) for the authenticated user
-     * 
-     * @return int|array|null
-     */
-    protected function getUserCompanyId()
-    {
-        $user = Auth::user();
+    protected bool $companyContextResolved = false;
 
-        // Super admin can access all companies
-        if ($user->hasRole('super-admin')) {
-            return null; // null means no filtering
+    protected ?bool $resolvedSuperAdmin = null;
+
+    protected ?int $resolvedCompanyId = null;
+
+    /**
+     * Resolve and memoize company context once per request/controller instance.
+     */
+    protected function resolveCompanyContext(): void
+    {
+        if ($this->companyContextResolved) {
+            return;
         }
 
-        // Get user's company
-        $company = $user->load('company')->company;
-
-        return $company ? $company->id : null;
-    }
-
-     /**
-     * Get the company ID(s) for the authenticated user
-     * 
-     * @return int|array|null
-     */
-    protected function getAllUserCompanyId()
-    {
         $user = Auth::user();
+        $this->resolvedSuperAdmin = $user?->hasRole('super-admin') ?? false;
 
-        // Get user's company
-        $company = $user->load('company')->company;
+        if (! $this->resolvedSuperAdmin && $user) {
+            $user->loadMissing('company');
+            $this->resolvedCompanyId = $user->company?->id;
+        }
 
-        return $company ? $company->id : null;
+        $this->companyContextResolved = true;
     }
 
     /**
-     * Apply company filter to a query
-     * 
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $companyColumn
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Get the company ID for the authenticated user.
+     * Super-admin returns null (no filtering).
      */
-    protected function applyCompanyFilter($query, $companyColumn = 'company_id')
+    protected function getUserCompanyId(): ?int
+    {
+        $this->resolveCompanyContext();
+
+        if ($this->resolvedSuperAdmin) {
+            return null;
+        }
+
+        return $this->resolvedCompanyId;
+    }
+
+    /**
+     * Get the company ID for the authenticated user (including super-admin's owned company).
+     * Used when a company must be selected/forced on create.
+     */
+    protected function getAllUserCompanyId(): ?int
     {
         $user = Auth::user();
 
-        // Super admins have unrestricted access
-        if ($user && $user->hasRole('super-admin')) {
+        if (! $user) {
+            return null;
+        }
+
+        $user->loadMissing('company');
+
+        return $user->company?->id;
+    }
+
+    /**
+     * Apply company filter to a query.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $companyColumn
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    protected function applyCompanyFilter($query, string $companyColumn = 'company_id')
+    {
+        $this->resolveCompanyContext();
+
+        if ($this->resolvedSuperAdmin) {
             return $query;
         }
 
-        $companyId = $this->getUserCompanyId();
-
-        if ($companyId !== null) {
-            return $query->where($companyColumn, $companyId);
+        if ($this->resolvedCompanyId !== null) {
+            return $query->where($companyColumn, $this->resolvedCompanyId);
         }
 
-        // If a non-super-admin user has NO company assigned (e.g. other roles), 
-        // they should see NO records.
+        // Non-super-admin with no company assigned should see no records.
         return $query->where($companyColumn, -1);
     }
 
     /**
-     * Check if user has access to a specific company resource
-     * 
-     * @param mixed $resource
-     * @param string $companyColumn
-     * @return bool
+     * Check if user has access to a specific company resource.
+     *
+     * @param  mixed  $resource
+     * @param  string  $companyColumn
      */
-    protected function userHasAccess($resource, $companyColumn = 'company_id')
+    protected function userHasAccess($resource, string $companyColumn = 'company_id'): bool
     {
-        $user = Auth::user();
+        $this->resolveCompanyContext();
 
-        // Super admin has access to everything
-        if ($user->hasRole('super-admin')) {
+        if ($this->resolvedSuperAdmin) {
             return true;
         }
 
-        $companyId = $this->getUserCompanyId();
-
-        // If user has no company, they can't access any company-specific resources
-        if (!$companyId) {
+        if ($this->resolvedCompanyId === null) {
             return false;
         }
 
-        return $resource->$companyColumn == $companyId;
+        return (int) $resource->$companyColumn === $this->resolvedCompanyId;
     }
 
     /**
-     * Authorize user action on a resource
-     * 
-     * @param mixed $resource
-     * @param string $message
-     * @param string $companyColumn
+     * Authorize user action on a resource.
+     *
+     * @param  mixed  $resource
+     * @param  string  $message
+     * @param  string  $companyColumn
      * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
      */
-    protected function authorizeCompanyAccess($resource, $message = 'Unauthorized access.', $companyColumn = 'company_id')
+    protected function authorizeCompanyAccess($resource, string $message = 'Unauthorized access.', string $companyColumn = 'company_id'): void
     {
-        if (!$this->userHasAccess($resource, $companyColumn)) {
+        if (! $this->userHasAccess($resource, $companyColumn)) {
             abort(403, $message);
         }
     }
 
     /**
-     * Get companies for dropdown based on user role
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
+     * Get companies for dropdown based on user role.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection|\Illuminate\Support\Collection
      */
     protected function getCompaniesForUser()
     {
-        $user = Auth::user();
+        $this->resolveCompanyContext();
 
-        if ($user->hasRole('super-admin')) {
+        if ($this->resolvedSuperAdmin) {
             return Company::where('status', 'active')->get();
         }
 
-        $company = $user->load('company')->company;
+        $user = Auth::user();
 
-        return $company ? collect([$company]) : collect();
+        if (! $user) {
+            return collect();
+        }
+
+        $user->loadMissing('company');
+
+        return $user->company ? collect([$user->company]) : collect();
     }
 }

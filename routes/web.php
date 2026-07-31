@@ -212,36 +212,39 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
 
     // Driver
     Route::prefix('driver')->group(function () {
+        $wizardPermission = 'permission:drivers.create|drivers.edit';
+
         // Document upload routes (static paths) - MUST COME FIRST
-        Route::post('/license', [DriverController::class, 'licenseStore'])->name('admin.driver.license.store');
-        Route::get('/license/{driver_id}', [DriverController::class, 'license'])->name('admin.driver.license');
+        Route::post('/license', [DriverController::class, 'licenseStore'])->name('admin.driver.license.store')->middleware($wizardPermission);
+        Route::get('/license/{driver_id}', [DriverController::class, 'license'])->name('admin.driver.license')->middleware($wizardPermission);
 
-        Route::post('/medical-card', [DriverController::class, 'medicalCardStore'])->name('admin.driver.medical.card.store');
-        Route::get('/medical-card/{driver_id}', [DriverController::class, 'medicalCard'])->name('admin.driver.medical.card');
+        Route::post('/medical-card', [DriverController::class, 'medicalCardStore'])->name('admin.driver.medical.card.store')->middleware($wizardPermission);
+        Route::get('/medical-card/{driver_id}', [DriverController::class, 'medicalCard'])->name('admin.driver.medical.card')->middleware($wizardPermission);
 
-        Route::post('/forfeiture-document', [DriverController::class, 'forfeitureStore'])->name('admin.driver.forfeiture.store');
-        Route::get('/forfeiture-document/{driver_id}', [DriverController::class, 'forfeiture'])->name('admin.driver.forfeiture');
+        Route::post('/forfeiture-document', [DriverController::class, 'forfeitureStore'])->name('admin.driver.forfeiture.store')->middleware($wizardPermission);
+        Route::get('/forfeiture-document/{driver_id}', [DriverController::class, 'forfeiture'])->name('admin.driver.forfeiture')->middleware($wizardPermission);
 
-        Route::post('/violation', [DriverController::class, 'violationStore'])->name('admin.driver.violation.store');
-        Route::get('/violation/{driver_id}', [DriverController::class, 'violation'])->name('admin.driver.violation');
+        Route::post('/violation', [DriverController::class, 'violationStore'])->name('admin.driver.violation.store')->middleware($wizardPermission);
+        Route::get('/violation/{driver_id}', [DriverController::class, 'violation'])->name('admin.driver.violation')->middleware($wizardPermission);
 
-        Route::post('/drug-test', [DriverController::class, 'alcoholAndDrugTestStore'])->name('admin.driver.alcohol.and.drug.store');
-        Route::get('/drug-test/{driver_id}', [DriverController::class, 'alcoholAndDrugTest'])->name('admin.driver.alcohol.and.drug.test');
+        Route::post('/drug-test', [DriverController::class, 'alcoholAndDrugTestStore'])->name('admin.driver.alcohol.and.drug.store')->middleware($wizardPermission);
+        Route::get('/drug-test/{driver_id}', [DriverController::class, 'alcoholAndDrugTest'])->name('admin.driver.alcohol.and.drug.test')->middleware($wizardPermission);
 
-        Route::post('/fmcsa_consent', [DriverController::class, 'consentStore'])->name('admin.driver.fmcsa.consent.store');
-        Route::get('/fmcsa_consent/{driver_id}', [DriverController::class, 'consent'])->name('admin.driver.fmcsa.consent');
+        Route::post('/fmcsa_consent', [DriverController::class, 'consentStore'])->name('admin.driver.fmcsa.consent.store')->middleware($wizardPermission);
+        Route::get('/fmcsa_consent/{driver_id}', [DriverController::class, 'consent'])->name('admin.driver.fmcsa.consent')->middleware($wizardPermission);
 
-        Route::post('/psp', [DriverController::class, 'pspStore'])->name('admin.driver.psp.store');
-        Route::get('/psp/{driver_id}', [DriverController::class, 'psp'])->name('admin.driver.psp');
+        Route::post('/psp', [DriverController::class, 'pspStore'])->name('admin.driver.psp.store')->middleware($wizardPermission);
+        Route::get('/psp/{driver_id}', [DriverController::class, 'psp'])->name('admin.driver.psp')->middleware($wizardPermission);
 
-        Route::post('/alcohol-drug-test-policy', [DriverController::class, 'alcoholAndDrugTestPolicyStore'])->name('admin.driver.alcohol.and.drug.test.policy.store');
-        Route::get('/alcohol-drug-test-policy/{driver_id}', [DriverController::class, 'alcoholAndDrugTestPolicy'])->name('admin.driver.alcohol.and.drug.test.policy');
+        Route::post('/alcohol-drug-test-policy', [DriverController::class, 'alcoholAndDrugTestPolicyStore'])->name('admin.driver.alcohol.and.drug.test.policy.store')->middleware($wizardPermission);
+        Route::get('/alcohol-drug-test-policy/{driver_id}', [DriverController::class, 'alcoholAndDrugTestPolicy'])->name('admin.driver.alcohol.and.drug.test.policy')->middleware($wizardPermission);
 
-        Route::post('/general-work-policy', [DriverController::class, 'generalWorkPolicyStore'])->name('admin.driver.general.work.policy.store');
-        Route::get('/general-work-policy/{driver_id}', [DriverController::class, 'generalWorkPolicy'])->name('admin.driver.general.work.policy');
+        Route::post('/general-work-policy', [DriverController::class, 'generalWorkPolicyStore'])->name('admin.driver.general.work.policy.store')->middleware($wizardPermission);
+        Route::get('/general-work-policy/{driver_id}', [DriverController::class, 'generalWorkPolicy'])->name('admin.driver.general.work.policy')->middleware($wizardPermission);
 
         Route::post('/{driver}/hire-status', [DriverController::class, 'updateHireStatus'])
-            ->name('admin.driver.hire-status');
+            ->name('admin.driver.hire-status')
+            ->middleware('permission:drivers.hire');
 
         // Basic CRUD routes
         Route::get('/', [DriverController::class, 'index'])->name('admin.driver.index')->middleware('permission:drivers.view');
@@ -254,7 +257,7 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::put('/{id}', [DriverController::class, 'update'])->name('admin.driver.update')->middleware('permission:drivers.edit');
         Route::post('/{id}/status', [DriverController::class, 'updateStatus'])->name('admin.driver.update.status')->middleware('permission:drivers.edit');
         Route::delete('/{id}', [DriverController::class, 'destroy'])->name('admin.driver.destroy')->middleware('permission:drivers.delete');
-        Route::get('/{id}/details', [DriverController::class, 'getDriverDetails'])->name('admin.drivers.get-driver-details');
+        Route::get('/{id}/details', [DriverController::class, 'getDriverDetails'])->name('admin.drivers.get-driver-details')->middleware('permission:drivers.view');
     });
 
     // Vehicle types
@@ -337,11 +340,6 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::delete('/{id}', [AssetGroupController::class, 'destroy'])->name('admin.asset-group.destroy');
         Route::post('/{id}/restore', [AssetGroupController::class, 'restore'])->name('admin.asset-group.restore');
         Route::get('/dropdown-data', [AssetGroupController::class, 'getDropdownData'])->name('admin.asset-group.dropdown.data');
-    });
-
-    // Fleet
-    Route::prefix('fleet')->group(function () {
-        Route::get('/vehicle', [DriverController::class, 'fleets'])->name('admin.fleet.vehicle');
     });
 
     Route::prefix('compliance')->group(function () {

@@ -16,12 +16,12 @@ class ComplianceDashboardController extends Controller
     public function fleet()
     {
         // Get vehicles with company filtering
-        $vehiclesQuery = Vehicle::with(['assetGroups.driver', 'documents.documentType']);
+        $vehiclesQuery = Vehicle::with(['assetGroups.driver', 'documents.documentType', 'company']);
         $vehiclesQuery = $this->applyCompanyFilter($vehiclesQuery);
         $vehicles = $vehiclesQuery->orderBy('unit_no')->get();
 
         // Get trailers with company filtering
-        $trailersQuery = Trailer::with(['assetGroups.driver', 'documents.documentType']);
+        $trailersQuery = Trailer::with(['assetGroups.driver', 'documents.documentType', 'company']);
         $trailersQuery = $this->applyCompanyFilter($trailersQuery);
         $trailers = $trailersQuery->orderBy('unit_no')->get();
 
@@ -149,10 +149,8 @@ class ComplianceDashboardController extends Controller
         $documentDetails = [];
 
         foreach ($documentTypes as $docType) {
-            // Find the document for this type
-            $document = $asset->documents()
-                ->where('document_type_id', $docType->id)
-                ->first();
+            // Use eager-loaded collection to avoid N+1 queries
+            $document = $asset->documents->firstWhere('document_type_id', $docType->id);
 
             $docStatus = [
                 'type_id' => $docType->id,
@@ -239,7 +237,7 @@ class ComplianceDashboardController extends Controller
             $complianceData = $this->calculateCompliance($vehicle, $vehicleDocumentTypes, 'vehicle');
 
             // Get all documents with their details
-            $documents = $vehicle->documents()->with('documentType')->get()->map(function ($doc) {
+            $documents = $vehicle->documents->map(function ($doc) {
                 return [
                     'id' => $doc->id,
                     'type_name' => $doc->documentType->name,
@@ -300,7 +298,7 @@ class ComplianceDashboardController extends Controller
             $complianceData = $this->calculateCompliance($trailer, $trailerDocumentTypes, 'trailer');
 
             // Get all documents with their details
-            $documents = $trailer->documents()->with('documentType')->get()->map(function ($doc) {
+            $documents = $trailer->documents->map(function ($doc) {
                 return [
                     'id' => $doc->id,
                     'type_name' => $doc->documentType->name,
