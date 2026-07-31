@@ -168,12 +168,12 @@
                     <a href="/" class="inline-block">
                         @if (settings('logo'))
                             <img src="{{ asset('storage/' . settings('logo')) }}"
-                                alt="{{ settings('site_name', 'Company') }} Logo" class="h-8 max-w-xs object-contain">
+                                alt="{{ settings('site_name', 'Company') }} Logo"
+                                class="h-11 lg:h-14 w-auto max-w-[200px] lg:max-w-[240px] object-contain">
                         @else
-                            <img src="{{ asset('images/logo/logo.svg') }}"
-                                alt="Driver Qualification File Management Logo" class="h-8 dark:hidden">
                             <img src="{{ asset('images/logo/logo-dark.svg') }}"
-                                alt="Driver Qualification File Management Logo" class="h-8 hidden dark:block">
+                                alt="Driver Qualification File Management Logo"
+                                class="h-11 lg:h-14 w-auto object-contain">
                         @endif
                     </a>
                 </div>
@@ -256,9 +256,16 @@
                 {{-- Mobile logo --}}
                 <div class="lg:hidden text-center mb-8">
                     <a href="/" class="inline-block">
-                        <img src="{{ asset('images/logo/logo.svg') }}" alt="Logo" class="h-8 mx-auto dark:hidden">
-                        <img src="{{ asset('images/logo/logo-dark.svg') }}" alt="Logo"
-                            class="h-8 mx-auto hidden dark:block">
+                        @if (settings('logo'))
+                            <img src="{{ asset('storage/' . settings('logo')) }}"
+                                alt="{{ settings('site_name', 'Company') }} Logo"
+                                class="h-11 w-auto max-w-[200px] mx-auto object-contain">
+                        @else
+                            <img src="{{ asset('images/logo/logo.svg') }}" alt="Logo"
+                                class="h-11 w-auto mx-auto object-contain dark:hidden">
+                            <img src="{{ asset('images/logo/logo-dark.svg') }}" alt="Logo"
+                                class="h-11 w-auto mx-auto object-contain hidden dark:block">
+                        @endif
                     </a>
                 </div>
 
@@ -294,8 +301,8 @@
                                 </svg>
                             </div>
                             <input id="email" type="email" name="email" value="{{ old('email') }}" required
-                                autofocus autocomplete="username"
-                                class="auth-input w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0"
+                                autofocus autocomplete="username" autocapitalize="none" spellcheck="false"
+                                class="auth-input w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0 lowercase"
                                 placeholder="you@company.com">
                         </div>
                         <x-input-error :messages="$errors->get('email')" class="mt-1.5" />
@@ -398,6 +405,31 @@
         </div>
     </div>
     @include('partials.tawk-widget')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const emailInput = document.getElementById('email');
+            const form = emailInput?.closest('form');
+
+            if (!emailInput || !form) return;
+
+            const normalizeEmail = () => {
+                emailInput.value = emailInput.value.trim().toLowerCase();
+            };
+
+            emailInput.addEventListener('blur', normalizeEmail);
+            emailInput.addEventListener('input', function() {
+                // Keep caret position while lowercasing as the user types
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.toLowerCase();
+                this.setSelectionRange(start, end);
+            });
+
+            form.addEventListener('submit', function() {
+                normalizeEmail();
+            });
+        });
+    </script>
 </body>
 
 </html>

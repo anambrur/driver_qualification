@@ -14,13 +14,6 @@
                         trailers</p>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <!-- Reports & Records Button -->
-                    {{-- {{ route('admin.reports.index') ?? '#' }} --}}
-                    <a href=""
-                        class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-200 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">
-                        <i class="fas fa-file-alt mr-2"></i>Reports & Records
-                    </a>
-
                     <!-- Driver Management Button -->
                     <a href="{{ route('admin.driver.index') }}"
                         class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white transition-colors duration-200 bg-brand-600 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-700 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2">

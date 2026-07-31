@@ -9,7 +9,6 @@ use App\Models\Vehicle;
 use App\Models\VehicleDocument;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -286,7 +285,6 @@ class DocumentUploadController extends Controller
                     'expiry_date' => $expiryDate,
                     'description' => $description,
                     'file_path' => $filePath,
-                    'uploaded_by' => Auth::id(),
                 ]);
             } else {
                 // Create new document
@@ -296,7 +294,6 @@ class DocumentUploadController extends Controller
                     'expiry_date' => $expiryDate,
                     'description' => $description,
                     'file_path' => $filePath,
-                    'uploaded_by' => Auth::id(),
                 ]);
                 $created = true;
             }
@@ -322,7 +319,6 @@ class DocumentUploadController extends Controller
                     'expiry_date' => $expiryDate,
                     'description' => $description,
                     'file_path' => $filePath,
-                    'uploaded_by' => Auth::id(),
                 ]);
             } else {
                 // Create new document
@@ -332,7 +328,6 @@ class DocumentUploadController extends Controller
                     'expiry_date' => $expiryDate,
                     'description' => $description,
                     'file_path' => $filePath,
-                    'uploaded_by' => Auth::id(),
                 ]);
                 $created = true;
             }

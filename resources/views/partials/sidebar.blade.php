@@ -39,45 +39,7 @@
                         </a>
                     </li>
 
-                    <!-- Subscription (User) -->
-                    <li>
-                        <a href="#"
-                            @click.prevent="selected = (selected === 'MySubscription' ? '' : 'MySubscription')"
-                            class="menu-item group"
-                            :class="(selected === 'MySubscription') || isCurrentPath('pricing/plans') || isCurrentPath(
-                                'billing') ? 'menu-item-active' : 'menu-item-inactive'">
-                            <i class="fas fa-credit-card"
-                                :class="(selected === 'MySubscription') || isCurrentPath('pricing/plans') || isCurrentPath(
-                                    'billing') ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
-                            <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">My
-                                Subscription</span>
-                            <i class="fas fa-angle-down menu-item-arrow"
-                                :class="[(selected === 'MySubscription') ? 'menu-item-arrow-active' :
-                                    'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : ''
-                                ]"></i>
-                        </a>
 
-                        <div class="overflow-hidden transform translate" x-show="selected === 'MySubscription'"
-                            style="display:none;" x-collapse>
-                            <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
-                                class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
-                                <li>
-                                    <a href="{{ route('pricing.plans') }}" class="menu-dropdown-item group"
-                                        :class="isCurrentPath('pricing/plans') ? 'menu-dropdown-item-active' :
-                                            'menu-dropdown-item-inactive'">
-                                        Plans & Pricing
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="{{ route('billing.index') }}" class="menu-dropdown-item group"
-                                        :class="isCurrentPath('billing') ? 'menu-dropdown-item-active' :
-                                            'menu-dropdown-item-inactive'">
-                                        Billing & Invoices
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
                 </ul>
             </div>
 
@@ -148,12 +110,13 @@
                         <li>
                             <a href="#" @click.prevent="selected = (selected === 'Fleet' ? '':'Fleet')"
                                 class="menu-item group"
-                                :class="(selected === 'Fleet') || isCurrentPath('admin/compliance/fleet') || isCurrentPath(
-                                        'admin/vehicle') || isCurrentPath('admin/trailer') ? 'menu-item-active' :
+                                :class="(selected === 'Fleet') || isCurrentPath('admin/compliance/fleet-compliance') ||
+                                    isCurrentPath(
+                                        'admin/vehicle*') || isCurrentPath('admin/trailer*') ? 'menu-item-active' :
                                     'menu-item-inactive'">
                                 <i class="fas fa-truck"
-                                    :class="(selected === 'Fleet') || isCurrentPath('admin/compliance/fleet') ||
-                                        isCurrentPath('admin/vehicle') || isCurrentPath('admin/trailer') ?
+                                    :class="(selected === 'Fleet') || isCurrentPath('admin/compliance/fleet-compliance') ||
+                                        isCurrentPath('admin/vehicle*') || isCurrentPath('admin/trailer*') ?
                                         'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
                                 <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Fleet
                                     Management</span>
@@ -170,7 +133,8 @@
                                     @can('fleets.dashboard')
                                         <li>
                                             <a href="{{ route('admin.compliance.fleet') }}" class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/compliance/fleet') ? 'menu-dropdown-item-active' :
+                                                :class="isCurrentPath('admin/compliance/fleet-compliance') ?
+                                                    'menu-dropdown-item-active' :
                                                     'menu-dropdown-item-inactive'">
                                                 Compliance Dash
                                             </a>
@@ -179,7 +143,7 @@
                                     @can('vehicles.view')
                                         <li>
                                             <a href="{{ route('admin.vehicle.index') }}" class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/vehicle') ? 'menu-dropdown-item-active' :
+                                                :class="isCurrentPath('admin/vehicle*') ? 'menu-dropdown-item-active' :
                                                     'menu-dropdown-item-inactive'">
                                                 Vehicles
                                             </a>
@@ -188,7 +152,7 @@
                                     @can('trailers.view')
                                         <li>
                                             <a href="{{ route('admin.trailer.index') }}" class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/trailer') ? 'menu-dropdown-item-active' :
+                                                :class="isCurrentPath('admin/trailer*') ? 'menu-dropdown-item-active' :
                                                     'menu-dropdown-item-inactive'">
                                                 Trailers
                                             </a>
@@ -248,90 +212,7 @@
                 </ul>
             </div>
 
-            <!-- GROUP: ADMINISTRATION (Super Admin Only) -->
-            @hasrole('super-admin')
-                <div>
-                    <h3 class="mb-4 text-xs uppercase leading-[20px] text-gray-400">
-                        <span class="menu-group-title" :class="sidebarToggle ? 'lg:hidden' : ''">ADMINISTRATION</span>
-                    </h3>
-                    <ul class="flex flex-col gap-2 mb-6">
-
-                        <!-- System Subscriptions -->
-                        <li>
-                            <a href="#"
-                                @click.prevent="selected = (selected === 'AdminSubscriptions' ? '':'AdminSubscriptions')"
-                                class="menu-item group"
-                                :class="(selected === 'AdminSubscriptions') || isCurrentPath('admin/subscriptions*') ||
-                                    isCurrentPath('admin/plans*') ? 'menu-item-active' : 'menu-item-inactive'">
-                                <i class="fas fa-chart-pie"
-                                    :class="(selected === 'AdminSubscriptions') || isCurrentPath('admin/subscriptions*') ||
-                                        isCurrentPath('admin/plans*') ? 'menu-item-icon-active' :
-                                        'menu-item-icon-inactive'"></i>
-                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Module
-                                    Subscriptions</span>
-                                <i class="fas fa-angle-down menu-item-arrow"
-                                    :class="[(selected === 'AdminSubscriptions') ? 'menu-item-arrow-active' :
-                                        'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : ''
-                                    ]"></i>
-                            </a>
-
-                            <div class="overflow-hidden transform translate" x-show="selected === 'AdminSubscriptions'"
-                                style="display:none;" x-collapse>
-                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
-                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
-                                    <li>
-                                        <a href="{{ route('admin.subscriptions.dashboard') }}"
-                                            class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/subscriptions') ? 'menu-dropdown-item-active' :
-                                                'menu-dropdown-item-inactive'">
-                                            Revenue Dashboard
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ route('admin.plans.index') }}" class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/plans') ? 'menu-dropdown-item-active' :
-                                                'menu-dropdown-item-inactive'">
-                                            Manage Plans
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ route('admin.subscriptions.index') }}"
-                                            class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/subscriptions/all') ? 'menu-dropdown-item-active' :
-                                                'menu-dropdown-item-inactive'">
-                                            All Subscriptions
-                                        </a>
-                                    </li>
-                                    {{-- <li>
-                                        <a href="{{ route('admin.subscriptions.payments') }}"
-                                            class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/subscriptions/payments') ?
-                                                'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                            Payments & Invoices
-                                        </a>
-                                    </li> --}}
-                                </ul>
-                            </div>
-                        </li>
-
-                        <!-- User Management -->
-                        @can('users.view')
-                            <li>
-                                <a href="{{ route('users.index') }}" @click="selected = (selected === 'Users' ? '':'Users')"
-                                    class="menu-item group"
-                                    :class="(selected === 'Users') && isCurrentPath('users*') ? 'menu-item-active' :
-                                        'menu-item-inactive'">
-                                    <i class="fas fa-users"
-                                        :class="(selected === 'Users') && isCurrentPath('users*') ?
-                                            'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
-                                    <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">All Users</span>
-                                </a>
-                            </li>
-                        @endcan
-
-                    </ul>
-                </div>
-            @endhasrole
+            
 
             <!-- GROUP: SETTINGS -->
             @can('settings.view')
@@ -518,6 +399,92 @@
                 </div>
             @endcan
 
+
+            <!-- GROUP: ADMINISTRATION (Super Admin Only) -->
+            @hasrole('super-admin')
+                <div>
+                    <h3 class="mb-4 text-xs uppercase leading-[20px] text-gray-400">
+                        <span class="menu-group-title" :class="sidebarToggle ? 'lg:hidden' : ''">ADMINISTRATION</span>
+                    </h3>
+                    <ul class="flex flex-col gap-2 mb-6">
+
+                        <!-- System Subscriptions -->
+                        <li>
+                            <a href="#"
+                                @click.prevent="selected = (selected === 'AdminSubscriptions' ? '':'AdminSubscriptions')"
+                                class="menu-item group"
+                                :class="(selected === 'AdminSubscriptions') || isCurrentPath('admin/subscriptions*') ||
+                                    isCurrentPath('admin/plans*') ? 'menu-item-active' : 'menu-item-inactive'">
+                                <i class="fas fa-chart-pie"
+                                    :class="(selected === 'AdminSubscriptions') || isCurrentPath('admin/subscriptions*') ||
+                                        isCurrentPath('admin/plans*') ? 'menu-item-icon-active' :
+                                        'menu-item-icon-inactive'"></i>
+                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Module
+                                    Subscriptions</span>
+                                <i class="fas fa-angle-down menu-item-arrow"
+                                    :class="[(selected === 'AdminSubscriptions') ? 'menu-item-arrow-active' :
+                                        'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : ''
+                                    ]"></i>
+                            </a>
+
+                            <div class="overflow-hidden transform translate" x-show="selected === 'AdminSubscriptions'"
+                                style="display:none;" x-collapse>
+                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
+                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+                                    <li>
+                                        <a href="{{ route('admin.subscriptions.dashboard') }}"
+                                            class="menu-dropdown-item group"
+                                            :class="isCurrentPath('admin/subscriptions') ? 'menu-dropdown-item-active' :
+                                                'menu-dropdown-item-inactive'">
+                                            Revenue Dashboard
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ route('admin.plans.index') }}" class="menu-dropdown-item group"
+                                            :class="isCurrentPath('admin/plans') ? 'menu-dropdown-item-active' :
+                                                'menu-dropdown-item-inactive'">
+                                            Manage Plans
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ route('admin.subscriptions.index') }}"
+                                            class="menu-dropdown-item group"
+                                            :class="isCurrentPath('admin/subscriptions/all') ? 'menu-dropdown-item-active' :
+                                                'menu-dropdown-item-inactive'">
+                                            All Subscriptions
+                                        </a>
+                                    </li>
+                                    {{-- <li>
+                                        <a href="{{ route('admin.subscriptions.payments') }}"
+                                            class="menu-dropdown-item group"
+                                            :class="isCurrentPath('admin/subscriptions/payments') ?
+                                                'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
+                                            Payments & Invoices
+                                        </a>
+                                    </li> --}}
+                                </ul>
+                            </div>
+                        </li>
+
+                        <!-- User Management -->
+                        @can('users.view')
+                            <li>
+                                <a href="{{ route('users.index') }}" @click="selected = (selected === 'Users' ? '':'Users')"
+                                    class="menu-item group"
+                                    :class="(selected === 'Users') && isCurrentPath('users*') ? 'menu-item-active' :
+                                        'menu-item-inactive'">
+                                    <i class="fas fa-users"
+                                        :class="(selected === 'Users') && isCurrentPath('users*') ?
+                                            'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
+                                    <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">All Users</span>
+                                </a>
+                            </li>
+                        @endcan
+
+                    </ul>
+                </div>
+            @endhasrole
+
             <!-- GROUP: ACCOUNT -->
             <div>
                 <h3 class="mb-4 text-xs uppercase leading-[20px] text-gray-400">
@@ -531,18 +498,60 @@
                         @if ($companyId)
                             <li>
                                 <a href="{{ route('admin.settings.company.edit', $companyId) }}"
-                                    @click="selected = (selected === 'Account' ? '':'Account')"
-                                    class="menu-item group"
-                                    :class="(selected === 'Account') || isCurrentPath('admin/settings/company/{{ $companyId }}') ?
+                                    @click="selected = (selected === 'Account' ? '':'Account')" class="menu-item group"
+                                    :class="(selected === 'Account') || isCurrentPath(
+                                            'admin/settings/company/{{ $companyId }}') ?
                                         'menu-item-active' : 'menu-item-inactive'">
                                     <i class="fa-solid fa-user"
-                                        :class="(selected === 'Account') || isCurrentPath('admin/settings/company/{{ $companyId }}') ?
+                                        :class="(selected === 'Account') || isCurrentPath(
+                                                'admin/settings/company/{{ $companyId }}') ?
                                             'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
-                                    <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">My Account</span>
+                                    <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">My
+                                        Account</span>
                                 </a>
                             </li>
                         @endif
                     @endcan
+
+                    <!-- Subscription (User) -->
+                    <li>
+                        <a href="#"
+                            @click.prevent="selected = (selected === 'MySubscription' ? '' : 'MySubscription')"
+                            class="menu-item group"
+                            :class="(selected === 'MySubscription') || isCurrentPath('pricing/plans') || isCurrentPath(
+                                'billing') ? 'menu-item-active' : 'menu-item-inactive'">
+                            <i class="fas fa-credit-card"
+                                :class="(selected === 'MySubscription') || isCurrentPath('pricing/plans') || isCurrentPath(
+                                    'billing') ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
+                            <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">My
+                                Subscription</span>
+                            <i class="fas fa-angle-down menu-item-arrow"
+                                :class="[(selected === 'MySubscription') ? 'menu-item-arrow-active' :
+                                    'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : ''
+                                ]"></i>
+                        </a>
+
+                        <div class="overflow-hidden transform translate" x-show="selected === 'MySubscription'"
+                            style="display:none;" x-collapse>
+                            <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
+                                class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
+                                <li>
+                                    <a href="{{ route('pricing.plans') }}" class="menu-dropdown-item group"
+                                        :class="isCurrentPath('pricing/plans') ? 'menu-dropdown-item-active' :
+                                            'menu-dropdown-item-inactive'">
+                                        Plans & Pricing
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('billing.index') }}" class="menu-dropdown-item group"
+                                        :class="isCurrentPath('billing') ? 'menu-dropdown-item-active' :
+                                            'menu-dropdown-item-inactive'">
+                                        Billing & Invoices
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
                 </ul>
             </div>
 

@@ -164,30 +164,37 @@ class ComplianceDashboardController extends Controller
             ];
 
             if ($document) {
-                $expiryDate = Carbon::parse($document->expiry_date);
-                $today = Carbon::today();
-                $daysUntilExpiry = $today->diffInDays($expiryDate, false);
-
-                $docStatus['expiry_date'] = $document->expiry_date;
-                $docStatus['days_until_expiry'] = $daysUntilExpiry;
                 $docStatus['document_id'] = $document->id;
                 $docStatus['file_path'] = $document->file_path;
                 $docStatus['description'] = $document->description;
 
-                if ($expiryDate->isFuture()) {
-                    if ($daysUntilExpiry <= 30) {
-                        // Expiring soon (within 30 days)
-                        $docStatus['status'] = 'expiring';
-                        $expiringDocs[] = $docType->name . ' (expires in ' . $daysUntilExpiry . ' days)';
-                    } else {
-                        // Valid and not expiring soon
-                        $docStatus['status'] = 'valid';
-                        $compliantDocs++;
-                    }
+                if (! $document->expiry_date) {
+                    // Present with no expiry treated as valid
+                    $docStatus['status'] = 'valid';
+                    $compliantDocs++;
                 } else {
-                    // Expired
-                    $docStatus['status'] = 'expired';
-                    $missingDocs[] = $docType->name . ' (expired)';
+                    $expiryDate = Carbon::parse($document->expiry_date);
+                    $today = Carbon::today();
+                    $daysUntilExpiry = $today->diffInDays($expiryDate, false);
+
+                    $docStatus['expiry_date'] = $document->expiry_date;
+                    $docStatus['days_until_expiry'] = $daysUntilExpiry;
+
+                    if ($expiryDate->isFuture()) {
+                        if ($daysUntilExpiry <= 30) {
+                            // Expiring soon (within 30 days)
+                            $docStatus['status'] = 'expiring';
+                            $expiringDocs[] = $docType->name . ' (expires in ' . $daysUntilExpiry . ' days)';
+                        } else {
+                            // Valid and not expiring soon
+                            $docStatus['status'] = 'valid';
+                            $compliantDocs++;
+                        }
+                    } else {
+                        // Expired
+                        $docStatus['status'] = 'expired';
+                        $missingDocs[] = $docType->name . ' (expired)';
+                    }
                 }
             } else {
                 // Document missing
@@ -197,11 +204,12 @@ class ComplianceDashboardController extends Controller
             $documentDetails[] = $docStatus;
         }
 
+        // Count only fully valid (non-expiring) docs for the percentage display
         $percentage = $totalDocs > 0 ? round(($compliantDocs / $totalDocs) * 100, 1) : 0;
 
-        // Determine overall status
+        // Missing/expired = danger; only expiring soon = warning; all valid = compliant
         $status = 'compliant';
-        if (count($missingDocs) > 0 || $percentage < 100) {
+        if (count($missingDocs) > 0) {
             $status = 'danger';
         } elseif (count($expiringDocs) > 0) {
             $status = 'warning';

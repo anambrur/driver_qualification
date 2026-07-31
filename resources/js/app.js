@@ -15,10 +15,10 @@ import map01 from "./components/map-01";
 import "./components/calendar-init.js";
 import "./components/image-resize";
 
-// URL pattern matching function
+// URL pattern matching function (pathname without leading slash)
 window.isCurrentPath = (pattern) => {
-    const path = window.location.pathname;
-    const regex = new RegExp("^" + pattern.replace("*", ".*") + "$");
+    const path = window.location.pathname.replace(/^\/+/, "");
+    const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
     return regex.test(path);
 };
 

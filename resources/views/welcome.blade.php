@@ -266,12 +266,12 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 lg:h-20">
                 {{-- Logo --}}
-                <a href="/" class="flex items-center gap-2 group" aria-label="{{ settings('site_name', 'Home') }}">
+                <a href="/" class="flex items-center gap-2 group shrink-0" aria-label="{{ settings('site_name', 'Home') }}">
                     @if(settings('logo'))
-                        <img src="{{ asset('storage/' . settings('logo')) }}" alt="{{ settings('site_name', 'Company') }} Logo" class="h-8 max-w-xs object-contain">
+                        <img src="{{ asset('storage/' . settings('logo')) }}" alt="{{ settings('site_name', 'Company') }} Logo" class="h-11 lg:h-14 w-auto max-w-[200px] lg:max-w-[240px] object-contain">
                     @else
-                        <img src="{{ asset('images/logo/logo.svg') }}" alt="Driver Qualification File Management Logo" class="h-8 dark:hidden">
-                        <img src="{{ asset('images/logo/logo-dark.svg') }}" alt="Driver Qualification File Management Logo" class="h-8 hidden dark:block">
+                        <img src="{{ asset('images/logo/logo.svg') }}" alt="Driver Qualification File Management Logo" class="h-11 lg:h-14 w-auto object-contain dark:hidden">
+                        <img src="{{ asset('images/logo/logo-dark.svg') }}" alt="Driver Qualification File Management Logo" class="h-11 lg:h-14 w-auto object-contain hidden dark:block">
                     @endif
                 </a>
 

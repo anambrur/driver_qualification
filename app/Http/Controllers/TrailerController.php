@@ -112,10 +112,10 @@ class TrailerController extends Controller
 
     public function store(Request $request)
     {
-        // Add company validation based on user role
-        $companyId = $this->getAllUserCompanyId();
-
-        $request->merge(['company_id' => $companyId]);
+        // Company users are locked to their company; super-admin may choose
+        if (! Auth::user()->hasRole('super-admin')) {
+            $request->merge(['company_id' => $this->getAllUserCompanyId()]);
+        }
 
         $validator = Validator::make($request->all(), [
             'company_id' => 'required|exists:companies,id',
@@ -189,6 +189,7 @@ class TrailerController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
+            'company_id' => 'required|exists:companies,id',
             'unit_no' => 'required|string|max:50|unique:trailers,unit_no,' . $id,
             'vin' => 'required|string|size:17|unique:trailers,vin,' . $id,
             'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),

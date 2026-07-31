@@ -308,26 +308,26 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
 
     // Vehicles
     Route::prefix('vehicle')->group(function () {
-        Route::get('/', [VehicleController::class, 'index'])->name('admin.vehicle.index');
-        Route::post('/', [VehicleController::class, 'store'])->name('admin.vehicle.store');
-        Route::get('/{id}/edit', [VehicleController::class, 'edit'])->name('admin.vehicle.edit');
-        Route::put('/{id}', [VehicleController::class, 'update'])->name('admin.vehicle.update');
-        Route::delete('/{id}', [VehicleController::class, 'destroy'])->name('admin.vehicle.destroy');
-        Route::post('/{id}/restore', [VehicleController::class, 'restore'])->name('admin.vehicle.restore');
-        Route::get('/dropdown-data', [VehicleController::class, 'getDropdownData'])->name('admin.vehicle.dropdown.data');
-        Route::get('/{id}/details', [VehicleController::class, 'getVehicleDetails'])->name('admin.vehicles.get-vehicle-details');
+        Route::get('/', [VehicleController::class, 'index'])->name('admin.vehicle.index')->middleware('permission:vehicles.view');
+        Route::get('/dropdown-data', [VehicleController::class, 'getDropdownData'])->name('admin.vehicle.dropdown.data')->middleware('permission:vehicles.view');
+        Route::post('/', [VehicleController::class, 'store'])->name('admin.vehicle.store')->middleware('permission:vehicles.create');
+        Route::get('/{id}/edit', [VehicleController::class, 'edit'])->name('admin.vehicle.edit')->middleware('permission:vehicles.edit');
+        Route::put('/{id}', [VehicleController::class, 'update'])->name('admin.vehicle.update')->middleware('permission:vehicles.edit');
+        Route::delete('/{id}', [VehicleController::class, 'destroy'])->name('admin.vehicle.destroy')->middleware('permission:vehicles.delete');
+        Route::post('/{id}/restore', [VehicleController::class, 'restore'])->name('admin.vehicle.restore')->middleware('permission:vehicles.edit');
+        Route::get('/{id}/details', [VehicleController::class, 'getVehicleDetails'])->name('admin.vehicles.get-vehicle-details')->middleware('permission:vehicles.view');
     });
 
     // Trailers
     Route::prefix('trailer')->group(function () {
-        Route::get('/', [TrailerController::class, 'index'])->name('admin.trailer.index');
-        Route::post('/', [TrailerController::class, 'store'])->name('admin.trailer.store');
-        Route::get('/{id}/edit', [TrailerController::class, 'edit'])->name('admin.trailer.edit');
-        Route::put('/{id}', [TrailerController::class, 'update'])->name('admin.trailer.update');
-        Route::delete('/{id}', [TrailerController::class, 'destroy'])->name('admin.trailer.destroy');
-        Route::post('/{id}/restore', [TrailerController::class, 'restore'])->name('admin.trailer.restore');
-        Route::get('/dropdown-data', [TrailerController::class, 'getDropdownData'])->name('admin.trailer.dropdown.data');
-        Route::get('/{id}/details', [TrailerController::class, 'getTrailerDetails'])->name('admin.trailers.get-trailer-details');
+        Route::get('/', [TrailerController::class, 'index'])->name('admin.trailer.index')->middleware('permission:trailers.view');
+        Route::get('/dropdown-data', [TrailerController::class, 'getDropdownData'])->name('admin.trailer.dropdown.data')->middleware('permission:trailers.view');
+        Route::post('/', [TrailerController::class, 'store'])->name('admin.trailer.store')->middleware('permission:trailers.create');
+        Route::get('/{id}/edit', [TrailerController::class, 'edit'])->name('admin.trailer.edit')->middleware('permission:trailers.edit');
+        Route::put('/{id}', [TrailerController::class, 'update'])->name('admin.trailer.update')->middleware('permission:trailers.edit');
+        Route::delete('/{id}', [TrailerController::class, 'destroy'])->name('admin.trailer.destroy')->middleware('permission:trailers.delete');
+        Route::post('/{id}/restore', [TrailerController::class, 'restore'])->name('admin.trailer.restore')->middleware('permission:trailers.edit');
+        Route::get('/{id}/details', [TrailerController::class, 'getTrailerDetails'])->name('admin.trailers.get-trailer-details')->middleware('permission:trailers.view');
     });
 
     // Asset Groups
@@ -343,29 +343,28 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
     });
 
     Route::prefix('compliance')->group(function () {
-        Route::get('/fleet-compliance', [ComplianceDashboardController::class, 'fleet'])->name('admin.compliance.fleet');
-        Route::get('/vehicles/{id}/details', [ComplianceDashboardController::class, 'vehicleDetails'])->name('admin.vehicles.details');
-        Route::get('/vehicles/{id}/details', [ComplianceDashboardController::class, 'getVehicleDetails'])->name('admin.compliance.vehicle.details');
-        Route::get('/trailers/{id}/details', [ComplianceDashboardController::class, 'getTrailerDetails'])->name('admin.compliance.trailer.details');
-        Route::get('vehicles/list', [DocumentUploadController::class, 'getVehiclesList'])->name('admin.compliance.vehicles.list');
-        Route::get('trailers/list', [DocumentUploadController::class, 'getTrailersList'])->name('admin.compliance.trailers.list');
-        Route::post('documents/upload', [DocumentUploadController::class, 'uploadDocument'])->name('admin.compliance.documents.upload');
-        Route::delete('documents/delete', [DocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.documents.delete');
-        Route::get('documents/{documentId}/{assetType}/download', [DocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.documents.download');
-        Route::get('documents/{documentId}/{assetType}/view', [DocumentUploadController::class, 'viewDocument'])->name('admin.compliance.documents.view');
-        Route::post('documents/send-reminder', [ComplianceReminderController::class, 'sendVehicleReminder'])->name('admin.compliance.documents.send-reminder');
+        Route::get('/fleet-compliance', [ComplianceDashboardController::class, 'fleet'])->name('admin.compliance.fleet')->middleware('permission:fleets.dashboard');
+        Route::get('vehicles/list', [DocumentUploadController::class, 'getVehiclesList'])->name('admin.compliance.vehicles.list')->middleware('permission:fleets.dashboard');
+        Route::get('trailers/list', [DocumentUploadController::class, 'getTrailersList'])->name('admin.compliance.trailers.list')->middleware('permission:fleets.dashboard');
+        Route::get('/vehicles/{id}/details', [ComplianceDashboardController::class, 'getVehicleDetails'])->name('admin.compliance.vehicle.details')->middleware('permission:fleets.dashboard');
+        Route::get('/trailers/{id}/details', [ComplianceDashboardController::class, 'getTrailerDetails'])->name('admin.compliance.trailer.details')->middleware('permission:fleets.dashboard');
+        Route::post('documents/upload', [DocumentUploadController::class, 'uploadDocument'])->name('admin.compliance.documents.upload')->middleware('permission:fleets.edit');
+        Route::delete('documents/delete', [DocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.documents.delete')->middleware('permission:fleets.edit');
+        Route::get('documents/{documentId}/{assetType}/download', [DocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.documents.download')->middleware('permission:fleets.dashboard');
+        Route::get('documents/{documentId}/{assetType}/view', [DocumentUploadController::class, 'viewDocument'])->name('admin.compliance.documents.view')->middleware('permission:fleets.dashboard');
+        Route::post('documents/send-reminder', [ComplianceReminderController::class, 'sendVehicleReminder'])->name('admin.compliance.documents.send-reminder')->middleware('permission:fleets.edit');
 
         // Driver compliance routes
-        Route::get('/drivers', [DriverComplianceDashboardController::class, 'index'])->name('admin.compliance.drivers');
-        Route::get('/drivers/{id}/details', [DriverComplianceDashboardController::class, 'getDriverDetails'])->name('admin.compliance.driver.details');
+        Route::get('/drivers', [DriverComplianceDashboardController::class, 'index'])->name('admin.compliance.drivers')->middleware('permission:drivers.dashboard');
+        Route::get('drivers/list', [DriverDocumentUploadController::class, 'getDriversList'])->name('admin.compliance.drivers.list')->middleware('permission:drivers.dashboard');
+        Route::get('/drivers/{id}/details', [DriverComplianceDashboardController::class, 'getDriverDetails'])->name('admin.compliance.driver.details')->middleware('permission:drivers.dashboard');
 
         // Driver document upload routes
-        Route::get('drivers/list', [DriverDocumentUploadController::class, 'getDriversList'])->name('admin.compliance.drivers.list');
-        Route::post('driver-documents/upload', [DriverDocumentUploadController::class, 'uploadDocument'])->name('admin.compliance.driver.documents.upload');
-        Route::delete('driver-documents/delete', [DriverDocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.driver.documents.delete');
-        Route::get('driver-documents/{documentId}/download', [DriverDocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.driver.documents.download');
-        Route::get('driver-documents/{documentId}/view', [DriverDocumentUploadController::class, 'viewDocument'])->name('admin.compliance.driver.documents.view');
-        Route::post('driver-documents/send-reminder', [ComplianceReminderController::class, 'sendDriverReminder'])->name('admin.compliance.driver.documents.send-reminder');
+        Route::post('driver-documents/upload', [DriverDocumentUploadController::class, 'uploadDocument'])->name('admin.compliance.driver.documents.upload')->middleware('permission:drivers.edit');
+        Route::delete('driver-documents/delete', [DriverDocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.driver.documents.delete')->middleware('permission:drivers.edit');
+        Route::get('driver-documents/{documentId}/download', [DriverDocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.driver.documents.download')->middleware('permission:drivers.dashboard');
+        Route::get('driver-documents/{documentId}/view', [DriverDocumentUploadController::class, 'viewDocument'])->name('admin.compliance.driver.documents.view')->middleware('permission:drivers.dashboard');
+        Route::post('driver-documents/send-reminder', [ComplianceReminderController::class, 'sendDriverReminder'])->name('admin.compliance.driver.documents.send-reminder')->middleware('permission:drivers.edit');
     });
 
     // Service Logs
