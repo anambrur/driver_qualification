@@ -3,93 +3,49 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Stripe\SubscriptionService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
-use Laravel\Cashier\Cashier;
-
-// stripe listen --forward-to http://driver-qualification.test/stripe/webhook
-
-// php artisan cashier:webhook
+use Illuminate\View\View;
 
 class SubscriptionAdminController extends Controller
 {
-    // ─── Dashboard ────────────────────────────────────────────────────────────
-
     public function dashboard(): View
     {
-        $totalRevenue = 0.0;
-        $monthlyRevenue = 0.0;
-
-        // Revenue is derived from Stripe invoices (Cashier does not persist invoice totals locally).
-        // This is best-effort: if Stripe is unreachable/misconfigured, we fall back to 0.
-        try {
-            $stripe = Cashier::stripe();
-
-            // Sum paid invoices across the whole account (may include non-subscription invoices if you have any).
-            $startingAfter = null;
-            do {
-                $params = [
-                    'limit' => 100,
-                    'status' => 'paid',
-                ];
-                if ($startingAfter) {
-                    $params['starting_after'] = $startingAfter;
-                }
-
-                $page = $stripe->invoices->all($params);
-                
-                foreach ($page->data ?? [] as $invoice) {
-                    // Stripe amounts are in cents.
-                    $totalRevenue += ((float) ($invoice->amount_paid ?? 0)) / 100;
-                }
-
-                $startingAfter = (!empty($page->has_more) && !empty($page->data))
-                    ? end($page->data)->id
-                    : null;
-            } while ($startingAfter);
-
-            // Revenue this month: filter by created timestamp.
-            $monthStart = now()->startOfMonth()->timestamp;
-            $startingAfter = null;
-            do {
-                $params = [
-                    'limit' => 100,
-                    'status' => 'paid',
-                    'created' => ['gte' => $monthStart],
-                ];
-                if ($startingAfter) {
-                    $params['starting_after'] = $startingAfter;
-                }
-
-                $page = $stripe->invoices->all($params);
-                foreach ($page->data ?? [] as $invoice) {
-                    $monthlyRevenue += ((float) ($invoice->amount_paid ?? 0)) / 100;
-                }
-
-                $startingAfter = (!empty($page->has_more) && !empty($page->data))
-                    ? end($page->data)->id
-                    : null;
-            } while ($startingAfter);
-        } catch (\Throwable $e) {
-            Log::warning('Failed to compute Stripe revenue for dashboard', [
-                'error' => $e->getMessage(),
-            ]);
-        }
+        $totalRevenue = (float) Payment::query()->where('status', 'paid')->sum('amount');
+        $monthlyRevenue = (float) Payment::query()
+            ->where('status', 'paid')
+            ->where('paid_at', '>=', now()->startOfMonth())
+            ->sum('amount');
 
         $stats = [
-            'total_active'    => Subscription::query()->active()->count(),
-            'total_expired'   => Subscription::query()->whereNotNull('ends_at')->where('ends_at', '<', now())->count(), // fix
+            'total_active' => Subscription::query()->get()->filter->isAccessible()->count(),
+            'total_expired' => Subscription::query()
+                ->where(function ($q) {
+                    $q->whereNotNull('ends_at')->where('ends_at', '<', now());
+                })
+                ->orWhere(function ($q) {
+                    $q->where('billing_cycle', 'trial')
+                        ->whereNotNull('trial_ends_at')
+                        ->where('trial_ends_at', '<', now());
+                })
+                ->count(),
             'total_cancelled' => Subscription::query()->canceled()->count(),
-            'total_revenue'   => $totalRevenue,
+            'total_revenue' => $totalRevenue,
             'monthly_revenue' => $monthlyRevenue,
-            'expiring_soon'   => Subscription::query()->whereNotNull('ends_at')->whereBetween('ends_at', [now(), now()->addDays(7)])->count(),
-            'new_this_month'  => Subscription::whereMonth('created_at', now()->month)->count(),
+            'expiring_soon' => Subscription::query()
+                ->whereNotNull('ends_at')
+                ->whereBetween('ends_at', [now(), now()->addDays(7)])
+                ->count(),
+            'new_this_month' => Subscription::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count(),
         ];
 
         $recentSubscriptions = Subscription::with(['user', 'plan'])
@@ -98,177 +54,143 @@ class SubscriptionAdminController extends Controller
             ->get();
 
         $plans = Plan::withCount(['subscriptions' => function ($q) {
-            $q->where('stripe_status', 'active');
-        }])->get();
+            $q->whereIn('stripe_status', ['active', 'trialing']);
+        }])->ordered()->get();
 
         return view('admin.subscriptions.dashboard', compact('stats', 'recentSubscriptions', 'plans'));
     }
-
-    // ─── All Subscriptions ────────────────────────────────────────────────────
 
     public function index(Request $request): View
     {
         $query = Subscription::with(['user', 'plan']);
 
         if ($request->filled('status')) {
-            // map old status logic to stripe_status
             $query->where('stripe_status', $request->status);
         }
 
         if ($request->filled('plan_id')) {
-            $plan = Plan::find($request->plan_id);
-            if ($plan) {
-                $query->where('stripe_price', $plan->stripe_price_id);
-            }
+            $query->where('plan_id', $request->plan_id);
         }
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('user', fn($q) => $q->where('name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%"));
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
         }
 
-        $subscriptions = $query->latest()->paginate(20);
-        $plans = Plan::active()->get();
+        $subscriptions = $query->latest()->paginate(20)->withQueryString();
+        $plans = Plan::ordered()->get();
 
         return view('admin.subscriptions.index', compact('subscriptions', 'plans'));
     }
 
-    /**
-     * Show subscription details for a user.
-     */
-    public function show(User $user): View
+    public function payments(Request $request): View
     {
-        $subscriptions = $user->subscriptions()->with('plan')->latest()->get();
+        $query = Payment::with(['user', 'plan', 'subscription'])->latest('paid_at');
 
-        try {
-            $invoices = $user->hasStripeId() ? $user->invoices() : [];
-        } catch (\Exception $e) {
-            $invoices = [];
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
 
-        // Fetch expanded Stripe subscription objects for rich display/logging in admin UI.
-        // This avoids depending on sparse webhook payloads.
-        $stripeSubscriptions = [];
-        if ($user->hasStripeId()) {
-            $stripe = $user->stripe();
+        $payments = $query->paginate(25)->withQueryString();
+        $totalPaid = (float) Payment::where('status', 'paid')->sum('amount');
 
-            foreach ($subscriptions as $sub) {
-                if (empty($sub->stripe_id)) {
-                    continue;
-                }
-
-                try {
-                    $stripeSubscriptions[$sub->stripe_id] = $stripe->subscriptions->retrieve($sub->stripe_id, [
-                        'expand' => [
-                            'customer',
-                            'default_payment_method',
-                            'items.data.price',
-                            'items.data.price.product',
-                            'latest_invoice',
-                            'latest_invoice.payment_intent',
-                            'pending_setup_intent',
-                            'schedule',
-                        ],
-                    ]);
-                } catch (\Throwable $e) {
-                    Log::warning('Failed to retrieve Stripe subscription for admin display', [
-                        'user_id' => $user->id,
-                        'stripe_subscription_id' => $sub->stripe_id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-        }
-
-        $plans = Plan::active()->get();
-
-        return view('admin.subscriptions.show', [
-            'user' => $user,
-            'subscriptions' => $subscriptions,
-            'payments' => [], // Removed local payments array, we now rely on $invoices or you can map $invoices
-            'invoices' => $invoices,
-            'plans' => $plans,
-            'stripeSubscriptions' => $stripeSubscriptions,
-        ]);
+        return view('admin.subscriptions.payments', compact('payments', 'totalPaid'));
     }
 
-    /**
-     * Grant a subscription manually.
-     */
+    public function show(User $user): View
+    {
+        $subscriptions = $user->subscriptions()->with('plan')->get();
+        $payments = $user->payments()->with('plan')->limit(50)->get();
+        $plans = Plan::active()->ordered()->get();
+        $current = $user->activeSubscription();
+
+        return view('admin.subscriptions.show', compact('user', 'subscriptions', 'payments', 'plans', 'current'));
+    }
+
     public function grant(Request $request, User $user): RedirectResponse
     {
         $request->validate([
-            'plan_id'         => 'required|exists:plans,id',
-            'notes'           => 'nullable|string|max:500',
+            'plan_id' => 'required|exists:plans,id',
+            'notes' => 'nullable|string|max:500',
             'custom_end_date' => 'nullable|date|after:today',
         ]);
 
         $plan = Plan::findOrFail($request->plan_id);
 
-        if (!$user->hasStripeId()) {
-            $user->createAsStripeCustomer();
+        if ($user->hasActiveSubscription()) {
+            return redirect()->route('admin.subscriptions.show', $user)
+                ->with('error', 'User already has an active subscription. Expire it first.');
         }
 
-        // Cashier allows manual subscription creation
-        $builder = $user->newSubscription('default', $plan->stripe_price_id);
+        $endsAt = $request->filled('custom_end_date')
+            ? Carbon::parse($request->custom_end_date)->endOfDay()
+            : now()->addDays((int) ($plan->duration_days ?: 30));
 
-        if ($request->filled('custom_end_date')) {
-            $builder->trialUntil(Carbon::parse($request->custom_end_date));
-        }
-
-        $builder->create();
+        Subscription::create([
+            'user_id' => $user->id,
+            'plan_id' => $plan->id,
+            'stripe_subscription_id' => null,
+            'stripe_status' => $plan->isTrial() ? 'trialing' : 'active',
+            'billing_cycle' => $plan->billing_cycle,
+            'amount' => $plan->price,
+            'currency' => strtoupper($plan->currency ?: 'USD'),
+            'trial_ends_at' => $plan->isTrial() ? $endsAt : null,
+            'current_period_start' => now(),
+            'current_period_end' => $endsAt,
+            'cancel_at_period_end' => true,
+            'ends_at' => $endsAt,
+            'source' => 'admin',
+        ]);
 
         return redirect()->route('admin.subscriptions.show', $user)
-            ->with('success', "Subscription granted to {$user->name}.");
+            ->with('success', "Complimentary subscription granted to {$user->name}.");
     }
 
-    /**
-     * Manually expire a subscription immediately.
-     */
-    public function expire(Subscription $subscription): RedirectResponse
+    public function expire(Subscription $subscription, SubscriptionService $subscriptions): RedirectResponse
     {
-        if ($subscription->active()) {
-            $subscription->cancelNow();
+        try {
+            $subscriptions->cancelNow($subscription);
             toastr()->success('Subscription cancelled and expired immediately!');
-        } else {
-            toastr()->warning('Subscription is not active.');
+        } catch (\Throwable $e) {
+            Log::warning('Admin expire failed', ['error' => $e->getMessage()]);
+            toastr()->error('Unable to expire subscription.');
         }
 
         return back();
     }
 
-    /**
-     * Suspend / Cancel a subscription (at period end).
-     */
-    public function suspend(Subscription $subscription): RedirectResponse
+    public function suspend(Subscription $subscription, SubscriptionService $subscriptions): RedirectResponse
     {
-        if ($subscription->active()) {
-            $subscription->cancel();
-            toastr()->success('Subscription cancelled at period end!');
+        try {
+            $subscriptions->cancelAtPeriodEnd($subscription);
+            toastr()->success('Subscription will end at period end.');
+        } catch (\Throwable $e) {
+            Log::warning('Admin suspend failed', ['error' => $e->getMessage()]);
+            toastr()->error('Unable to suspend subscription.');
         }
+
         return back();
     }
 
-    /**
-     * Reactivate a cancelled subscription.
-     */
-    public function reactivate(Subscription $subscription): RedirectResponse
+    public function reactivate(Subscription $subscription, SubscriptionService $subscriptions): RedirectResponse
     {
-        if ($subscription->canceled() && $subscription->onGracePeriod()) {
-            $subscription->resume();
+        try {
+            $subscriptions->resume($subscription);
             toastr()->success('Subscription resumed successfully!');
-        } else {
-            toastr()->error('Cannot resume an expired subscription.');
+        } catch (\Throwable $e) {
+            toastr()->error($e->getMessage() ?: 'Cannot resume this subscription.');
         }
+
         return back();
     }
-
-    // ─── Plan Management ──────────────────────────────────────────────────────
 
     public function plansIndex(): View
     {
         $plans = Plan::withCount('subscriptions')->ordered()->get();
+
         return view('admin.subscriptions.plans', compact('plans'));
     }
 
@@ -279,25 +201,10 @@ class SubscriptionAdminController extends Controller
 
     public function storePlan(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name'          => 'required|string|max:100',
-            'slug'          => 'required|string|max:100|unique:plans',
-            'description'   => 'nullable|string',
-            'price'         => 'required|numeric|min:0',
-            'currency'      => 'required|string|size:3',
-            'billing_cycle' => 'required|in:monthly,yearly,lifetime,trial',
-            'duration_days' => 'required|integer|min:1',
-            'trial_days'    => 'nullable|integer|min:0',
-            'max_users'     => 'nullable|integer|min:1',
-            'features'      => 'nullable|array',
-            'is_active'     => 'boolean',
-            'is_featured'   => 'boolean',
-            'sort_order'    => 'integer|min:0',
-        ]);
-
+        $validated = $this->validatePlan($request);
         Plan::create($validated);
-
         toastr()->success('Plan created successfully!');
+
         return redirect()->route('admin.plans.index');
     }
 
@@ -308,22 +215,84 @@ class SubscriptionAdminController extends Controller
 
     public function updatePlan(Request $request, Plan $plan): RedirectResponse
     {
+        $validated = $this->validatePlan($request, $plan);
+        $plan->update($validated);
+        toastr()->success('Plan updated successfully!');
+
+        return redirect()->route('admin.plans.index');
+    }
+
+    public function deletePlan(Plan $plan): RedirectResponse
+    {
+        if ($plan->subscriptions()->exists()) {
+            toastr()->error('Cannot delete a plan that has subscriptions. Deactivate it instead.');
+
+            return back();
+        }
+
+        $plan->delete();
+        toastr()->success('Plan deleted.');
+
+        return redirect()->route('admin.plans.index');
+    }
+
+    public function togglePlan(Plan $plan): RedirectResponse
+    {
+        $plan->update(['is_active' => ! $plan->is_active]);
+        toastr()->success($plan->is_active ? 'Plan activated.' : 'Plan deactivated.');
+
+        return back();
+    }
+
+    private function validatePlan(Request $request, ?Plan $plan = null): array
+    {
         $validated = $request->validate([
-            'name'          => 'required|string|max:100',
-            'description'   => 'nullable|string',
-            'price'         => 'required|numeric|min:0',
-            'billing_cycle' => 'required|in:monthly,yearly,lifetime,trial',
+            'name' => 'required|string|max:100',
+            'slug' => [
+                'required',
+                'string',
+                'max:100',
+                \Illuminate\Validation\Rule::unique('plans', 'slug')->ignore($plan?->id),
+            ],
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'currency' => 'required|string|size:3',
+            'billing_cycle' => 'required|in:monthly,yearly,trial',
             'duration_days' => 'required|integer|min:1',
-            'max_users'     => 'nullable|integer|min:1',
-            'features'      => 'nullable|array',
-            'is_active'     => 'boolean',
-            'is_featured'   => 'boolean',
-            'sort_order'    => 'integer|min:0',
+            'trial_days' => 'nullable|integer|min:0',
+            'features' => 'nullable|array',
+            'is_active' => 'sometimes|boolean',
+            'is_featured' => 'sometimes|boolean',
+            'sort_order' => 'nullable|integer|min:0',
         ]);
 
-        $plan->update($validated);
+        $validated['is_active'] = $request->boolean('is_active', true);
+        $validated['is_featured'] = $request->boolean('is_featured', false);
+        $validated['trial_days'] = (int) ($validated['trial_days'] ?? 0);
+        $validated['sort_order'] = (int) ($validated['sort_order'] ?? 0);
+        $validated['currency'] = strtoupper($validated['currency']);
 
-        toastr()->success('Plan updated successfully!');
-        return redirect()->route('admin.plans.index');
+        if ($plan) {
+            $validated['stripe_plan_id'] = $plan->stripe_plan_id;
+            $validated['stripe_price_id'] = $plan->stripe_price_id;
+        } else {
+            $validated['stripe_plan_id'] = null;
+            $validated['stripe_price_id'] = null;
+        }
+
+        if ($validated['billing_cycle'] === 'trial') {
+            if ((float) $validated['price'] > 0) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'price' => 'Trial plans must have price 0.',
+                ]);
+            }
+            if ($validated['trial_days'] < 1) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'trial_days' => 'Trial plans require trial_days of at least 1.',
+                ]);
+            }
+        }
+
+        return $validated;
     }
 }

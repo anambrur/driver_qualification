@@ -81,8 +81,7 @@
                             class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="monthly" {{ old('billing_cycle') === 'monthly' ? 'selected' : '' }}>Monthly</option>
                         <option value="yearly" {{ old('billing_cycle') === 'yearly' ? 'selected' : '' }}>Yearly</option>
-                        <option value="lifetime" {{ old('billing_cycle') === 'lifetime' ? 'selected' : '' }}>Lifetime</option>
-                        <option value="trial" {{ old('billing_cycle') === 'trial' ? 'selected' : '' }}>Trial Only</option>
+                        <option value="trial" {{ old('billing_cycle') === 'trial' ? 'selected' : '' }}>Trial (no card)</option>
                     </select>
                 </div>
 

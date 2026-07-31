@@ -11,17 +11,25 @@
             </div>
 
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                Payment Successful!
+                @if (($subscription?->billing_cycle ?? null) === 'trial' || ($plan?->billing_cycle ?? null) === 'trial')
+                    Trial Activated!
+                @else
+                    Payment Successful!
+                @endif
             </h1>
             <p class="text-gray-600 dark:text-gray-400 mb-1">
                 @if ($plan)
-                    You're now subscribed to the <strong class="text-gray-900 dark:text-white">{{ $plan->name }}</strong> plan.
+                    You're now on the <strong class="text-gray-900 dark:text-white">{{ $plan->name }}</strong> plan.
                 @else
-                    Your subscription has been activated successfully.
+                    Your subscription has been activated successfully. If you just paid, it may take a moment to sync.
                 @endif
             </p>
             <p class="text-sm text-gray-500 dark:text-gray-500 mb-8">
-                A confirmation email has been sent to your inbox.
+                @if (($plan?->billing_cycle ?? null) === 'trial')
+                    No credit card was required. Enjoy your trial!
+                @else
+                    A confirmation email may be sent by Stripe.
+                @endif
             </p>
 
             {{-- Actions --}}

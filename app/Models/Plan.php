@@ -4,18 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Plan extends Model
 {
-    public function scopeActive(Builder $query): Builder
-    {
-        return $query->where('is_active', true);
-    }
-
-    public function scopeOrdered(Builder $query): Builder
-    {
-        return $query->orderBy('sort_order')->orderBy('id');
-    }
+    public const CYCLES = ['monthly', 'yearly', 'trial'];
 
     protected $fillable = [
         'name',
@@ -41,9 +34,24 @@ class Plan extends Model
         'price' => 'decimal:2',
     ];
 
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeOrdered(Builder $query): Builder
+    {
+        return $query->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
     public function isFree(): bool
     {
-        return $this->price <= 0;
+        return (float) $this->price <= 0;
     }
 
     public function isTrial(): bool
@@ -51,12 +59,27 @@ class Plan extends Model
         return $this->billing_cycle === 'trial';
     }
 
-    public function isLifetime(): bool
+    public function isMonthly(): bool
     {
-        return $this->billing_cycle === 'lifetime';
+        return $this->billing_cycle === 'monthly';
     }
-    public function subscriptions()
+
+    public function isYearly(): bool
     {
-        return $this->hasMany(Subscription::class, 'stripe_price', 'stripe_price_id');
+        return $this->billing_cycle === 'yearly';
+    }
+
+    public function stripeInterval(): ?string
+    {
+        return match ($this->billing_cycle) {
+            'monthly' => 'month',
+            'yearly' => 'year',
+            default => null,
+        };
+    }
+
+    public function amountInCents(): int
+    {
+        return (int) round(((float) $this->price) * 100);
     }
 }

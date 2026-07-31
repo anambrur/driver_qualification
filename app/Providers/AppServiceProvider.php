@@ -2,9 +2,7 @@
 
 namespace App\Providers;
 
-use App\Models\Subscription;
 use Illuminate\Support\ServiceProvider;
-use Laravel\Cashier\Cashier;
 use Vonage\Client;
 use Vonage\Client\Credentials\Basic;
 
@@ -28,8 +26,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Tell Cashier to use our custom Subscription model
-        // so that the plan() relationship is available everywhere.
-        Cashier::useSubscriptionModel(Subscription::class);
+        //
     }
 }

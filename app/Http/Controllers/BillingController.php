@@ -2,85 +2,76 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Plan;
+use App\Services\Stripe\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class BillingController extends Controller
 {
-    /**
-     * My Subscription / Billing dashboard.
-     */
     public function index(Request $request): View|RedirectResponse
     {
         $user = $request->user();
-        $cashierSubscription = $user->subscription('default');
-        $plan = null;
+        $subscription = $user->activeSubscription() ?? $user->subscriptions()->with('plan')->first();
+        $plan = $subscription?->plan;
+        $payments = $user->payments()->with('plan')->limit(25)->get();
 
-        if ($cashierSubscription) {
-            $plan = Plan::where('stripe_price_id', $cashierSubscription->stripe_price)->first();
+        return view('billing.index', compact('subscription', 'plan', 'payments'));
+    }
+
+    public function portal(Request $request, SubscriptionService $subscriptions): RedirectResponse
+    {
+        try {
+            $session = $subscriptions->createBillingPortalSession(
+                $request->user(),
+                route('billing.index')
+            );
+
+            return redirect()->away($session->url);
+        } catch (\Throwable $e) {
+            Log::warning('Billing portal failed', ['error' => $e->getMessage()]);
+            toastr()->error('Unable to open the billing portal right now.');
+
+            return redirect()->route('billing.index');
         }
-
-        $invoices = $user->invoices();
-
-        return view('billing.index', [
-            'subscription' => $cashierSubscription,
-            'plan' => $plan,
-            'invoices' => $invoices,
-        ]);
     }
 
-    /**
-     * Redirect to Stripe Billing Portal (manage payment method, cancel, invoices).
-     */
-    public function portal(Request $request): RedirectResponse
+    public function cancel(Request $request, SubscriptionService $subscriptions): RedirectResponse
     {
-        return $request->user()->redirectToBillingPortal(route('billing.index'));
-    }
+        $subscription = $request->user()->activeSubscription();
 
-    /**
-     * Download a specific invoice.
-     */
-    public function downloadInvoice(Request $request, string $id): mixed
-    {
-        return $request->user()->downloadInvoice($id, [
-            'vendor' => config('app.name'),
-            'product' => 'Subscription',
-        ]);
-    }
-
-    /**
-     * Cancel subscription at period end.
-     */
-    public function cancel(Request $request): RedirectResponse
-    {
-        $user = $request->user();
-
-        if (!$user->subscribed('default')) {
+        if (! $subscription) {
             return redirect()->route('billing.index')->with('error', 'No active subscription to cancel.');
         }
 
-        $user->subscription('default')->cancel();
+        try {
+            $subscriptions->cancelAtPeriodEnd($subscription);
+            toastr()->success('Your subscription will end at the end of the current billing period.');
+        } catch (\Throwable $e) {
+            Log::warning('Cancel failed', ['error' => $e->getMessage()]);
+            toastr()->error('Unable to cancel subscription.');
+        }
 
-        toastr()->success('Your subscription will be cancelled at the end of the current billing period.');
         return redirect()->route('billing.index');
     }
 
-    /**
-     * Resume a cancelled subscription.
-     */
-    public function resume(Request $request): RedirectResponse
+    public function resume(Request $request, SubscriptionService $subscriptions): RedirectResponse
     {
-        $user = $request->user();
+        $subscription = $request->user()->subscriptions()->latest()->first();
 
-        if (!$user->subscription('default')->onGracePeriod()) {
+        if (! $subscription || ! $subscription->onGracePeriod()) {
             return redirect()->route('billing.index')->with('error', 'Subscription cannot be resumed.');
         }
 
-        $user->subscription('default')->resume();
+        try {
+            $subscriptions->resume($subscription);
+            toastr()->success('Your subscription has been resumed.');
+        } catch (\Throwable $e) {
+            Log::warning('Resume failed', ['error' => $e->getMessage()]);
+            toastr()->error($e->getMessage() ?: 'Unable to resume subscription.');
+        }
 
-        toastr()->success('Your subscription has been resumed.');
         return redirect()->route('billing.index');
     }
 }

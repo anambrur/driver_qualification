@@ -8,11 +8,14 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class SubscriptionExpiredNotification extends Notification implements ShouldQueue
+class SubscriptionExpiringSoonNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public Subscription $subscription) {}
+    public function __construct(
+        public Subscription $subscription,
+        public int $daysRemaining
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -22,23 +25,24 @@ class SubscriptionExpiredNotification extends Notification implements ShouldQueu
     public function toMail(object $notifiable): MailMessage
     {
         $planName = $this->subscription->plan?->name ?? 'your plan';
+        $dayLabel = $this->daysRemaining === 1 ? '1 day' : "{$this->daysRemaining} days";
 
         return (new MailMessage)
-            ->subject('Your Subscription Has Expired')
+            ->subject("Your subscription expires in {$dayLabel}")
             ->greeting("Hello {$notifiable->name},")
-            ->line("Your {$planName} subscription has expired.")
-            ->line('You no longer have access to the system.')
-            ->action('Renew Your Subscription', route('pricing.plans'))
-            ->line('If you have any questions, please contact our support team.')
+            ->line("Your {$planName} subscription will end in {$dayLabel}.")
+            ->line('Renew now to keep uninterrupted access.')
+            ->action('Choose a Plan', route('pricing.plans'))
             ->salutation('Best regards, '.config('app.name'));
     }
 
     public function toArray(object $notifiable): array
     {
         return [
-            'type' => 'subscription_expired',
+            'type' => 'subscription_expiring_soon',
             'plan' => $this->subscription->plan?->name,
-            'message' => 'Your subscription has expired.',
+            'days_remaining' => $this->daysRemaining,
+            'message' => "Your subscription expires in {$this->daysRemaining} day(s).",
             'action' => route('pricing.plans'),
         ];
     }

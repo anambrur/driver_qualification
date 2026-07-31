@@ -2,21 +2,19 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Cashier\Billable;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasRoles, HasFactory, Notifiable, Billable;
+    use HasRoles, HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
-     *
      * @var list<string>
      */
     protected $fillable = [
@@ -24,11 +22,10 @@ class User extends Authenticatable
         'email',
         'password',
         'status',
+        'stripe_id',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
      * @var list<string>
      */
     protected $hidden = [
@@ -37,8 +34,6 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
      * @return array<string, string>
      */
     protected function casts(): array
@@ -49,18 +44,48 @@ class User extends Authenticatable
         ];
     }
 
-    public function company()
+    public function company(): HasOne
     {
         return $this->hasOne(Company::class);
     }
 
-    /**
-     * Override Cashier's subscriptions() to use our custom Subscription model
-     * so that the plan() relationship is always available.
-     */
-    public function subscriptions()
+    public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class, 'user_id')
-            ->orderBy('created_at', 'desc');
+            ->orderByDesc('created_at');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class)->orderByDesc('paid_at');
+    }
+
+    public function activeSubscription(): ?Subscription
+    {
+        return $this->subscriptions()
+            ->get()
+            ->first(fn (Subscription $subscription) => $subscription->isAccessible());
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        return $this->activeSubscription() !== null;
+    }
+
+    public function hasUsedTrial(): bool
+    {
+        return $this->subscriptions()
+            ->where(function ($query) {
+                $query->where('source', 'trial')
+                    ->orWhere('billing_cycle', 'trial');
+            })
+            ->exists();
+    }
+
+    public function notificationPhone(): ?string
+    {
+        $phone = $this->company?->phone;
+
+        return $phone ? preg_replace('/\s+/', '', $phone) : null;
     }
 }

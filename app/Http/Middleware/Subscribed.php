@@ -10,21 +10,24 @@ use Symfony\Component\HttpFoundation\Response;
 class Subscribed
 {
     /**
-     * Handle an incoming request.
-     *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         $user = Auth::user();
-        
-        if ($user->hasRole('super-admin')) {
+
+        if ($user && $user->hasRole('super-admin')) {
             return $next($request);
         }
 
-        if (! $request->user()?->subscribed('default')) {
+        if (! $request->user()?->hasActiveSubscription()) {
+            if (function_exists('toastr')) {
+                toastr()->warning('An active subscription is required. Please choose a plan.');
+            }
+
             return redirect()->route('pricing.plans');
         }
+
         return $next($request);
     }
 }

@@ -28,11 +28,11 @@ use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleGroupController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\VehicleTypeController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('stripe/webhook', '\Laravel\Cashier\Http\Controllers\WebhookController@handleWebhook')
-    ->name('cashier.webhook');
+Route::post('stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
 
 Route::get('/', function () {
     $plans = \App\Models\Plan::active()->ordered()->get();
@@ -40,9 +40,6 @@ Route::get('/', function () {
     return view('welcome', compact('plans'));
 });
 
-Route::get('/deface-page', function () {
-    return view('deface-page');
-});
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
@@ -164,10 +161,9 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
     });
 
-    // ─── Billing & Subscription (Cashier) ─────────────────────────────────────
+    // ─── Billing & Subscription ───────────────────────────────────────────────
     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
     Route::get('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
-    Route::get('/billing/invoice/{id}', [BillingController::class, 'downloadInvoice'])->name('billing.invoice.download');
     Route::post('/billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
     Route::post('/billing/resume', [BillingController::class, 'resume'])->name('billing.resume');
 
@@ -188,6 +184,7 @@ Route::middleware(['auth', 'role:super-admin'])->prefix('admin')->name('admin.')
 
     Route::get('/subscriptions', [SubscriptionAdminController::class, 'dashboard'])->name('subscriptions.dashboard');
     Route::get('/subscriptions/all', [SubscriptionAdminController::class, 'index'])->name('subscriptions.index');
+    Route::get('/subscriptions/payments', [SubscriptionAdminController::class, 'payments'])->name('subscriptions.payments');
     Route::get('/subscriptions/user/{user}', [SubscriptionAdminController::class, 'show'])->name('subscriptions.show');
     Route::post('/subscriptions/user/{user}/grant', [SubscriptionAdminController::class, 'grant'])->name('subscriptions.grant');
     Route::post('/subscriptions/{subscription}/expire', [SubscriptionAdminController::class, 'expire'])->name('subscriptions.expire');
