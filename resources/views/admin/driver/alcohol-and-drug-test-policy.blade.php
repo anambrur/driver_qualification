@@ -285,7 +285,7 @@
                                 Back to Driver Edit
                             </a>
                         @else
-                            <a href="{{ route('admin.driver.fmcsa.consent', ['driver_id' => $driver_id]) }}"
+                            <a href="{{ route('admin.driver.psp', ['driver_id' => $driver_id]) }}"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
                                 <i class="fas fa-arrow-left mr-2"></i>
                                 Back to Step 8
@@ -416,7 +416,9 @@
             // Form validation
             const form = document.querySelector('form');
             if (form) {
-                form.addEventListener('submit', function(e) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
                     // Only validate required fields in create mode
                     if (!isEditMode) {
                         const signature = document.getElementById('employee_signature');
@@ -424,28 +426,26 @@
 
                         // Validate signature
                         if (!signature.value.trim()) {
-                            e.preventDefault();
-                            alert('Please provide your signature to acknowledge the policy.');
+                            showAppAlert('Please provide your signature to acknowledge the policy.');
                             signature.focus();
-                            return false;
+                            return;
                         }
 
                         // Validate date
                         if (!dateSigned.value) {
-                            e.preventDefault();
-                            alert('Please select the date signed.');
+                            showAppAlert('Please select the date signed.');
                             dateSigned.focus();
-                            return false;
+                            return;
                         }
 
                         // Check if PDF is available (only warn in create mode)
                         if (!hasPolicyPDF) {
-                            const continueWithoutPDF = confirm(
-                                'The Alcohol & Drug Testing Policy PDF is not available. You may still proceed, but you should request a copy from your administrator. Do you wish to continue?'
+                            const continueWithoutPDF = await showAppConfirm(
+                                'The Alcohol & Drug Testing Policy PDF is not available. You may still proceed, but you should request a copy from your administrator. Do you wish to continue?',
+                                { icon: 'warning', title: 'Policy PDF Unavailable' }
                             );
-                            if (!continueWithoutPDF) {
-                                e.preventDefault();
-                                return false;
+                            if (!continueWithoutPDF.isConfirmed) {
+                                return;
                             }
                         }
                     }
@@ -460,10 +460,9 @@
                             `You are acknowledging that you have read and understood the Alcohol & Drug Testing Policy for ${employerName}. Do you wish to proceed?`;
                     }
 
-                    const confirmation = confirm(confirmationMessage);
-                    if (!confirmation) {
-                        e.preventDefault();
-                        return false;
+                    const confirmation = await showAppConfirm(confirmationMessage);
+                    if (confirmation.isConfirmed) {
+                        form.submit();
                     }
                 });
             }

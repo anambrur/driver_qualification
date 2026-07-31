@@ -510,7 +510,7 @@
                 // Validate radio selection
                 if (!noViolationsRadio.checked && !hasViolationsRadio.checked) {
                     e.preventDefault();
-                    alert('Please select whether you have had violations or not.');
+                    showAppAlert('Please select whether you have had violations or not.');
                     return false;
                 }
 
@@ -527,7 +527,7 @@
 
                     if (!hasValidViolation) {
                         e.preventDefault();
-                        alert(
+                        showAppAlert(
                             'Please add at least one violation with a date, or select "I have had no violations".');
                         return false;
                     }
@@ -536,7 +536,7 @@
                 // Validate signature
                 if (!signature.value.trim()) {
                     e.preventDefault();
-                    alert('Please provide your signature.');
+                    showAppAlert('Please provide your signature.');
                     signature.focus();
                     return false;
                 }
@@ -544,7 +544,7 @@
                 // Validate date
                 if (!dateSigned.value) {
                     e.preventDefault();
-                    alert('Please select the date signed.');
+                    showAppAlert('Please select the date signed.');
                     dateSigned.focus();
                     return false;
                 }

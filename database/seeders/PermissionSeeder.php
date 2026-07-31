@@ -104,6 +104,9 @@ class PermissionSeeder extends Seeder
             })->get()
         );
 
+        // Allow company users to edit their own company profile (My Account)
+        $roleCompany->givePermissionTo('companies.edit');
+
         // Create demo users
         $superAdmin = User::factory()->create([
             'name' => 'Super-Admin',

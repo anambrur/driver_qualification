@@ -419,14 +419,14 @@
 
                 if (medicalCard.files[0] && medicalCard.files[0].size > maxSize) {
                     e.preventDefault();
-                    alert('Medical card file is too large. Maximum size is 5MB.');
+                    showAppAlert('Medical card file is too large. Maximum size is 5MB.');
                     return false;
                 }
             } else {
                 // In create mode, file is required
                 if (!medicalCard.files[0]) {
                     e.preventDefault();
-                    alert('Please upload a medical card file.');
+                    showAppAlert('Please upload a medical card file.');
                     return false;
                 }
 
@@ -436,7 +436,7 @@
 
                 if (file.size > maxSize) {
                     e.preventDefault();
-                    alert(`File ${file.name} is too large. Maximum size is 5MB.`);
+                    showAppAlert(`File ${file.name} is too large. Maximum size is 5MB.`);
                     return false;
                 }
             }

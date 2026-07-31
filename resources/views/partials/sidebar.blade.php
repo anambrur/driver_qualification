@@ -524,23 +524,25 @@
                     <span class="menu-group-title" :class="sidebarToggle ? 'lg:hidden' : ''">ACCOUNT</span>
                 </h3>
                 <ul class="flex flex-col gap-2 mb-6">
-                    <!-- Account -->
-
-                    @php
-                        $userID = Auth::user()->id;
-                    @endphp
-                    <li>
-                        <a href="{{ route('admin.settings.company.edit', $userID) }}"
-                            @click="selected = (selected === 'Account' ? '':'Account')"
-                            class="menu-item group"
-                            :class="(selected === 'Account') || isCurrentPath('admin/settings/company/{{ $userID }}') ?
-                                'menu-item-active' : 'menu-item-inactive'">
-                            <i class="fa-solid fa-user"
-                                :class="(selected === 'Account') || isCurrentPath('admin/settings/company/{{ $userID }}') ?
-                                    'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
-                            <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">My Account</span>
-                        </a>
-                    </li>
+                    @can('companies.edit')
+                        @php
+                            $companyId = Auth::user()->company?->id;
+                        @endphp
+                        @if ($companyId)
+                            <li>
+                                <a href="{{ route('admin.settings.company.edit', $companyId) }}"
+                                    @click="selected = (selected === 'Account' ? '':'Account')"
+                                    class="menu-item group"
+                                    :class="(selected === 'Account') || isCurrentPath('admin/settings/company/{{ $companyId }}') ?
+                                        'menu-item-active' : 'menu-item-inactive'">
+                                    <i class="fa-solid fa-user"
+                                        :class="(selected === 'Account') || isCurrentPath('admin/settings/company/{{ $companyId }}') ?
+                                            'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
+                                    <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">My Account</span>
+                                </a>
+                            </li>
+                        @endif
+                    @endcan
                 </ul>
             </div>
 

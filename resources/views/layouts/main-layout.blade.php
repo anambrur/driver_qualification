@@ -122,6 +122,37 @@ $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(valu
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
 
+    <script>
+        window.showAppAlert = function(message, icon = 'warning', title = null) {
+            const titles = {
+                warning: 'Attention',
+                error: 'Error',
+                success: 'Success',
+                info: 'Notice',
+                question: 'Please Confirm'
+            };
+            return Swal.fire({
+                icon: icon,
+                title: title || titles[icon] || 'Attention',
+                text: message,
+                confirmButtonColor: '#2563eb'
+            });
+        };
+
+        window.showAppConfirm = function(message, options = {}) {
+            return Swal.fire({
+                title: options.title || 'Please Confirm',
+                text: message,
+                icon: options.icon || 'question',
+                showCancelButton: true,
+                confirmButtonColor: options.confirmButtonColor || '#2563eb',
+                cancelButtonColor: options.cancelButtonColor || '#6b7280',
+                confirmButtonText: options.confirmButtonText || 'Yes, continue',
+                cancelButtonText: options.cancelButtonText || 'Cancel'
+            });
+        };
+    </script>
+
     @stack('scripts')
 </body>
 

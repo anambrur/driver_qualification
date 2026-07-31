@@ -258,7 +258,7 @@
                             </button>
 
                             @if ($isEditMode)
-                                <a href="{{ route('admin.driver.psp', ['driver_id' => $driver_id, 'edit' => '1']) }}"
+                                <a href="{{ route('admin.driver.fmcsa.consent', ['driver_id' => $driver_id, 'edit' => '1']) }}"
                                     class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
                                     Skip to Next Step
                                 </a>
@@ -347,7 +347,9 @@
             // Form validation
             const form = document.querySelector('form');
             if (form) {
-                form.addEventListener('submit', function(e) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
                     const isEditMode = {{ $isEditMode ? 'true' : 'false' }};
                     const hasExistingData =
                         {{ $driver_document && ($driver_document->drug_test_question_1 || $driver_document->drug_test_question_2) ? 'true' : 'false' }};
@@ -363,32 +365,28 @@
 
                         // Validate Question 1
                         if (!question1) {
-                            e.preventDefault();
-                            alert('Please answer Question 1.');
-                            return false;
+                            showAppAlert('Please answer Question 1.');
+                            return;
                         }
 
                         // Validate Question 2
                         if (!question2) {
-                            e.preventDefault();
-                            alert('Please answer Question 2.');
-                            return false;
+                            showAppAlert('Please answer Question 2.');
+                            return;
                         }
 
                         // Validate signature
                         if (!signature.value.trim()) {
-                            e.preventDefault();
-                            alert('Please provide your signature.');
+                            showAppAlert('Please provide your signature.');
                             signature.focus();
-                            return false;
+                            return;
                         }
 
                         // Validate date
                         if (!dateSigned.value) {
-                            e.preventDefault();
-                            alert('Please select the date signed.');
+                            showAppAlert('Please select the date signed.');
                             dateSigned.focus();
-                            return false;
+                            return;
                         }
                     }
 
@@ -396,17 +394,18 @@
                     const question1 = document.querySelector('input[name="drug_test_question_1"]:checked');
                     const question2 = document.querySelector('input[name="drug_test_question_2"]:checked');
 
-                    if (question1 && question1.value === 'yes' || (question2 && question2.value ===
-                        'yes')) {
-                        const confirmation = confirm(
-                            'You have indicated a positive test result or refusal to test. According to 49 CFR regulations, you may need to provide documentation of successful completion of the return-to-duty process. Do you have this documentation ready?'
+                    if ((question1 && question1.value === 'yes') || (question2 && question2.value === 'yes')) {
+                        const confirmation = await showAppConfirm(
+                            'You have indicated a positive test result or refusal to test. According to 49 CFR regulations, you may need to provide documentation of successful completion of the return-to-duty process. Do you have this documentation ready?',
+                            { icon: 'warning', title: 'Documentation Required' }
                         );
-                        if (!confirmation) {
-                            e.preventDefault();
-                            alert('Please ensure you have the required documentation before proceeding.');
-                            return false;
+                        if (!confirmation.isConfirmed) {
+                            showAppAlert('Please ensure you have the required documentation before proceeding.');
+                            return;
                         }
                     }
+
+                    form.submit();
                 });
             }
 
@@ -435,7 +434,7 @@
                     const radioButtons = document.querySelectorAll(
                         'input[type="radio"][name^="drug_test_question"]');
                     radioButtons.forEach(radio => {
-                        radio.addEventListener('change', function() {
+                        radio.addEventListener('change', async function() {
                             const questionNumber = this.name === 'drug_test_question_1' ?
                                 1 : 2;
                             const currentValue = questionNumber === 1 ? currentQ1 :
@@ -443,11 +442,11 @@
 
                             // If changing from 'yes' to something else, show warning
                             if (currentValue === 'yes' && this.value !== 'yes') {
-                                const warning = confirm(
-                                    'Warning: You are changing a previously recorded positive test response. ' +
-                                    'Make sure you have proper documentation for this change.'
+                                const warning = await showAppConfirm(
+                                    'Warning: You are changing a previously recorded positive test response. Make sure you have proper documentation for this change.',
+                                    { icon: 'warning', title: 'Warning' }
                                 );
-                                if (!warning) {
+                                if (!warning.isConfirmed) {
                                     // Revert to original value
                                     const originalRadio = document.querySelector(
                                         `input[name="${this.name}"][value="${currentValue}"]`

@@ -415,7 +415,9 @@
             // Form validation
             const form = document.querySelector('form');
             if (form) {
-                form.addEventListener('submit', function(e) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
                     // Only validate required fields in create mode
                     if (!isEditMode) {
                         const signature = document.getElementById('employee_signature');
@@ -423,28 +425,26 @@
 
                         // Validate signature
                         if (!signature.value.trim()) {
-                            e.preventDefault();
-                            alert('Please provide your signature to acknowledge the policy.');
+                            showAppAlert('Please provide your signature to acknowledge the policy.');
                             signature.focus();
-                            return false;
+                            return;
                         }
 
                         // Validate date
                         if (!dateSigned.value) {
-                            e.preventDefault();
-                            alert('Please select the date signed.');
+                            showAppAlert('Please select the date signed.');
                             dateSigned.focus();
-                            return false;
+                            return;
                         }
 
                         // Check if PDF is available (only warn in create mode)
                         if (!hasPolicyPDF) {
-                            const continueWithoutPDF = confirm(
-                                'The Company\'s General Work Policy PDF is not available. You may still proceed, but you should request a copy from your administrator. Do you wish to continue?'
+                            const continueWithoutPDF = await showAppConfirm(
+                                'The Company\'s General Work Policy PDF is not available. You may still proceed, but you should request a copy from your administrator. Do you wish to continue?',
+                                { icon: 'warning', title: 'Policy PDF Unavailable' }
                             );
-                            if (!continueWithoutPDF) {
-                                e.preventDefault();
-                                return false;
+                            if (!continueWithoutPDF.isConfirmed) {
+                                return;
                             }
                         }
                     }
@@ -459,10 +459,9 @@
                             `You are acknowledging that you have read and understood the Company's General Work Policy for ${employerName}. Do you wish to proceed?`;
                     }
 
-                    const confirmation = confirm(confirmationMessage);
-                    if (!confirmation) {
-                        e.preventDefault();
-                        return false;
+                    const confirmation = await showAppConfirm(confirmationMessage);
+                    if (confirmation.isConfirmed) {
+                        form.submit();
                     }
                 });
             }

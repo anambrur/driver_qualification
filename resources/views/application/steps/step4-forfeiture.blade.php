@@ -420,14 +420,14 @@
 
                 if (forfeitureDocument.files[0] && forfeitureDocument.files[0].size > maxSize) {
                     e.preventDefault();
-                    alert('Forfeiture document is too large. Maximum size is 5MB.');
+                    showAppAlert('Forfeiture document is too large. Maximum size is 5MB.');
                     return false;
                 }
             } else {
                 // In create mode, file is required
                 if (!forfeitureDocument.files[0]) {
                     e.preventDefault();
-                    alert('Please upload a forfeiture document.');
+                    showAppAlert('Please upload a forfeiture document.');
                     return false;
                 }
 
@@ -437,7 +437,7 @@
 
                 if (file.size > maxSize) {
                     e.preventDefault();
-                    alert(`File ${file.name} is too large. Maximum size is 5MB.`);
+                    showAppAlert(`File ${file.name} is too large. Maximum size is 5MB.`);
                     return false;
                 }
             }

@@ -443,7 +443,7 @@
                                     <a href="{{ route('public.application.step7', ['driver_id' => $driver->id, 'slug' => $company->slug]) }}"
                                         class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
                                         <i class="fas fa-arrow-left mr-2"></i>
-                                        Back to Step 6
+                                        Back to Step 7
                                     </a>
                                 @endif
 
@@ -451,11 +451,11 @@
                                     <button type="submit" name="action" value="save"
                                         class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
                                         <i class="fas fa-save mr-2"></i>
-                                        {{ $isEditMode ? 'Update & Continue to Step 9' : 'Save & Continue to Step 8' }}
+                                        {{ $isEditMode ? 'Update & Continue to Step 9' : 'Save & Continue to Step 9' }}
                                     </button>
 
                                     @if ($isEditMode)
-                                        <a href="{{ route('admin.driver.fmcsa.consent', ['driver_id' => $driver_id, 'edit' => '1']) }}"
+                                        <a href="{{ route('admin.driver.alcohol.and.drug.test.policy', ['driver_id' => $driver_id, 'edit' => '1']) }}"
                                             class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
                                             Skip to Next Step
                                         </a>
@@ -576,7 +576,9 @@
             // Form validation
             const form = document.querySelector('form');
             if (form) {
-                form.addEventListener('submit', function(e) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
                     // Only validate required fields in create mode
                     if (!isEditMode) {
                         const agreement = document.querySelector('input[name="authorization_agreement"]');
@@ -585,26 +587,23 @@
 
                         // Validate agreement checkbox
                         if (!agreement.checked) {
-                            e.preventDefault();
-                            alert('You must agree to the authorization terms by checking the box.');
+                            showAppAlert('You must agree to the authorization terms by checking the box.');
                             agreement.focus();
-                            return false;
+                            return;
                         }
 
                         // Validate signature
                         if (!signature.value.trim()) {
-                            e.preventDefault();
-                            alert('Please provide your signature.');
+                            showAppAlert('Please provide your signature.');
                             signature.focus();
-                            return false;
+                            return;
                         }
 
                         // Validate date
                         if (!dateSigned.value) {
-                            e.preventDefault();
-                            alert('Please select the date signed.');
+                            showAppAlert('Please select the date signed.');
                             dateSigned.focus();
-                            return false;
+                            return;
                         }
                     }
 
@@ -618,10 +617,9 @@
                             `By submitting this form, you authorize ${employerName} to access your PSP report from FMCSA. Do you wish to proceed?`;
                     }
 
-                    const confirmation = confirm(confirmationMessage);
-                    if (!confirmation) {
-                        e.preventDefault();
-                        return false;
+                    const confirmation = await showAppConfirm(confirmationMessage);
+                    if (confirmation.isConfirmed) {
+                        form.submit();
                     }
                 });
             }

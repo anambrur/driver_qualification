@@ -412,7 +412,7 @@
                                         Back to Driver Edit
                                     </a>
                                 @else
-                                    <a href="{{ route('admin.driver.forfeiture', ['driver_id' => $driver->id]) }}"
+                                    <a href="{{ route('public.application.step4', ['driver_id' => $driver->id, 'slug' => $company->slug]) }}"
                                         class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
                                         <i class="fas fa-arrow-left mr-2"></i>
                                         Back to Step 4
@@ -549,7 +549,7 @@
                 // Validate radio selection
                 if (!noViolationsRadio.checked && !hasViolationsRadio.checked) {
                     e.preventDefault();
-                    alert('Please select whether you have had violations or not.');
+                    showAppAlert('Please select whether you have had violations or not.');
                     return false;
                 }
 
@@ -566,7 +566,7 @@
 
                     if (!hasValidViolation) {
                         e.preventDefault();
-                        alert(
+                        showAppAlert(
                             'Please add at least one violation with a date, or select "I have had no violations".'
                             );
                         return false;
@@ -576,7 +576,7 @@
                 // Validate signature
                 if (!signature.value.trim()) {
                     e.preventDefault();
-                    alert('Please provide your signature.');
+                    showAppAlert('Please provide your signature.');
                     signature.focus();
                     return false;
                 }
@@ -584,7 +584,7 @@
                 // Validate date
                 if (!dateSigned.value) {
                     e.preventDefault();
-                    alert('Please select the date signed.');
+                    showAppAlert('Please select the date signed.');
                     dateSigned.focus();
                     return false;
                 }

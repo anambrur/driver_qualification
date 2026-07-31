@@ -210,12 +210,15 @@ class CompanyController extends Controller
     public function edit($id)
     {
         $company = Company::with('user')->findOrFail($id);
+        $this->ensureCanManageCompany($company);
+
         return view('admin.settings.company.edit', compact('company'));
     }
 
     public function update(Request $request, $id)
     {
         $company = Company::with('user')->findOrFail($id);
+        $this->ensureCanManageCompany($company);
 
         // Form validation
         $validator = Validator::make($request->all(), [
@@ -300,6 +303,11 @@ class CompanyController extends Controller
             DB::commit();
 
             toastr()->success('Company updated successfully!');
+
+            if (auth()->user()->hasRole('company')) {
+                return redirect()->route('admin.settings.company.edit', $company->id);
+            }
+
             return redirect()->route('admin.settings.company');
         } catch (Exception $e) {
             // Rollback transaction on error
@@ -483,5 +491,23 @@ class CompanyController extends Controller
             toastr()->error('An error occurred while uploading the PDF files. Please try again.');
             return back()->withInput()->withErrors(['system_error' => 'Upload failed: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Company-role users may only manage their own company profile.
+     */
+    private function ensureCanManageCompany(Company $company): void
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole('super-admin')) {
+            return;
+        }
+
+        if ($user->hasRole('company') && (int) $user->company?->id === (int) $company->id) {
+            return;
+        }
+
+        abort(403, 'You can only manage your own company account.');
     }
 }

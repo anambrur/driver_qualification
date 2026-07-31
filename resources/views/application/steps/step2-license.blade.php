@@ -429,20 +429,20 @@
 
                     if (licenseFront.files[0] && licenseFront.files[0].size > maxSize) {
                         e.preventDefault();
-                        alert('License front image is too large. Maximum size is 5MB.');
+                        showAppAlert('License front image is too large. Maximum size is 5MB.');
                         return false;
                     }
 
                     if (licenseBack.files[0] && licenseBack.files[0].size > maxSize) {
                         e.preventDefault();
-                        alert('License back image is too large. Maximum size is 5MB.');
+                        showAppAlert('License back image is too large. Maximum size is 5MB.');
                         return false;
                     }
                 } else {
                     // In create mode, both files are required
                     if (!licenseFront.files[0] || !licenseBack.files[0]) {
                         e.preventDefault();
-                        alert('Please upload both front and back images of the license.');
+                        showAppAlert('Please upload both front and back images of the license.');
                         return false;
                     }
 
@@ -451,13 +451,13 @@
 
                     if (licenseFront.files[0].size > maxSize) {
                         e.preventDefault();
-                        alert('License front image is too large. Maximum size is 5MB.');
+                        showAppAlert('License front image is too large. Maximum size is 5MB.');
                         return false;
                     }
 
                     if (licenseBack.files[0].size > maxSize) {
                         e.preventDefault();
-                        alert('License back image is too large. Maximum size is 5MB.');
+                        showAppAlert('License back image is too large. Maximum size is 5MB.');
                         return false;
                     }
                 }
