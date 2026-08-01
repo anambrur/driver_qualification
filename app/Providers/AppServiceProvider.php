@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 use Vonage\Client;
 use Vonage\Client\Credentials\Basic;
@@ -26,6 +27,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        $replyTo = config('mail.reply_to.address');
+
+        if (is_string($replyTo) && $replyTo !== '') {
+            Mail::alwaysReplyTo(
+                $replyTo,
+                config('mail.reply_to.name') ?: null,
+            );
+        }
     }
 }

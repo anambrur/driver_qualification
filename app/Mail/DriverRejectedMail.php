@@ -36,6 +36,7 @@ class DriverRejectedMail extends Mailable implements ShouldQueue
     {
         return new Content(
             view: 'emails.driver.rejected',
+            text: 'emails.driver.rejected-text',
             with: [
                 'driver' => $this->driver,
                 'reasonLabel' => $this->reasonLabel,

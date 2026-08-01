@@ -29,7 +29,11 @@
                         <td style="padding:20px 32px;background-color:#fafafa;border-top:1px solid #e4e4e7;">
                             <p style="margin:0;font-size:12px;line-height:18px;color:#71717a;text-align:center;">
                                 This is an automated message from {{ config('app.name') }}.
-                                Please do not reply directly to this email.
+                                @if (config('mail.reply_to.address'))
+                                    You can reply to this email if you need assistance.
+                                @else
+                                    Please do not reply directly to this email.
+                                @endif
                             </p>
                         </td>
                     </tr>

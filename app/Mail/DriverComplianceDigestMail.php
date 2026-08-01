@@ -39,6 +39,7 @@ class DriverComplianceDigestMail extends Mailable implements ShouldQueue
     {
         return new Content(
             view: 'emails.compliance.driver-digest',
+            text: 'emails.compliance.driver-digest-text',
             with: [
                 'driver' => $this->driver,
                 'issues' => $this->issues,

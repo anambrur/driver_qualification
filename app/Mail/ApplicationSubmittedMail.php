@@ -35,6 +35,7 @@ class ApplicationSubmittedMail extends Mailable implements ShouldQueue
     {
         return new Content(
             view: 'emails.driver.application-submitted',
+            text: 'emails.driver.application-submitted-text',
             with: [
                 'driver' => $this->driver,
                 'companyName' => $this->companyName ?? $this->driver->company?->company_name,

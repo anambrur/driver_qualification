@@ -45,6 +45,7 @@ class VehicleComplianceStatusReminderMail extends Mailable implements ShouldQueu
     {
         return new Content(
             view: 'emails.compliance.vehicle-reminder',
+            text: 'emails.compliance.vehicle-reminder-text',
             with: [
                 'driver' => $this->driver,
                 'documentType' => $this->documentType,

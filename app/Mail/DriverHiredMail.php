@@ -35,6 +35,7 @@ class DriverHiredMail extends Mailable implements ShouldQueue
     {
         return new Content(
             view: 'emails.driver.hired',
+            text: 'emails.driver.hired-text',
             with: [
                 'driver' => $this->driver,
                 'companyName' => $this->companyName ?? $this->driver->company?->company_name,
