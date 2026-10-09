@@ -103,10 +103,10 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| SET-01 | P0 | CONFIRMED | Any subscribed tenant can `PUT /admin/settings/site`: changed the global site name, and `logo` has **no validation** (`'logo' => 'nullable'`). `shell.php` was stored as `settings/<hash>.php` on the public disk. The root `.htaccess` maps `.php` to the PHP handler, so `/storage/settings/<hash>.php` is likely **remote code execution**. |
-| SET-02 | P1 | SUSPECTED | Tenants can rewrite global meta tags, contact info and the Google Analytics ID shown on every page. |
-| SET-03 | P2 | SUSPECTED | Favicon allows SVG (stored XSS when opened directly from `/storage`). |
-| SET-04 | P3 | SUSPECTED | GA ID is HTML-escaped but placed in a JS string; enforce `^G-[A-Z0-9]+$`. Check Tawk ID extraction regex & encrypted cast round-trip. |
+| SET-01 | P0 | FIXED | Any subscribed tenant can `PUT /admin/settings/site`: changed the global site name, and `logo` has **no validation** (`'logo' => 'nullable'`). `shell.php` was stored as `settings/<hash>.php` on the public disk. The root `.htaccess` maps `.php` to the PHP handler, so `/storage/settings/<hash>.php` is likely **remote code execution**. |
+| SET-02 | P1 | FIXED | Tenants can rewrite global meta tags, contact info and the Google Analytics ID shown on every page. |
+| SET-03 | P2 | DISMISSED | Favicon allows SVG (stored XSS when opened directly from `/storage`). |
+| SET-04 | P3 | FIXED | GA ID is HTML-escaped but placed in a JS string; enforce `^G-[A-Z0-9]+$`. Check Tawk ID extraction regex & encrypted cast round-trip. |
 
 ## 5. `asset-groups`: Asset groups
 - **Scope**: `app/Http/Controllers/AssetGroupController.php`, `app/Models/AssetGroup.php`, views `admin/asset-group/**`

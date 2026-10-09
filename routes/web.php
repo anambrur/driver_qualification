@@ -405,8 +405,8 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
     // Settings
     Route::prefix('settings')->group(function () {
         // Site Settings
-        Route::get('/site', [SiteSettingController::class, 'index'])->name('admin.settings.site.index');
-        Route::put('/site', [SiteSettingController::class, 'update'])->name('admin.settings.site.update');
+        Route::get('/site', [SiteSettingController::class, 'index'])->name('admin.settings.site.index')->middleware('permission:settings.view');
+        Route::put('/site', [SiteSettingController::class, 'update'])->name('admin.settings.site.update')->middleware('permission:settings.edit');
 
         // Tawk.to Chat Settings
         Route::get('/tawk', [TawkToSettingController::class, 'index'])

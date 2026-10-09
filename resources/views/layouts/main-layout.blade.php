@@ -74,7 +74,7 @@
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '{{ $gaId }}');
+            gtag('config', @json($gaId));
         </script>
     @endif
 </head>

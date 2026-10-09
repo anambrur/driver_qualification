@@ -28,9 +28,9 @@ class SiteSettingController extends Controller
 
         $validated = $request->validate([
             'site_name' => 'required|string|max:255',
-            'logo' => 'nullable',
-            // 'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
-            'favicon' => 'nullable|image|mimes:ico,png,jpg,gif,svg,webp|max:1024',
+            // Raster images only: no svg/html/php on the public disk. mimes checks the file content.
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'favicon' => 'nullable|file|mimes:ico,png,jpg,jpeg,gif,webp|max:1024',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
             'address' => 'nullable|string|max:500',
@@ -40,7 +40,7 @@ class SiteSettingController extends Controller
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:1000',
             'meta_keywords' => 'nullable|string|max:500',
-            'google_analytics_id' => 'nullable|string|max:50',
+            'google_analytics_id' => ['nullable', 'string', 'max:50', 'regex:/^G-[A-Z0-9]+$/D'],
         ]);
 
         // Handle File Uploads
