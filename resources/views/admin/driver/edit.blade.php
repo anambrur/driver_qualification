@@ -347,7 +347,7 @@
                             </div>
 
                             <div id="section-photo" class="pt-4 border-t border-gray-100 dark:border-gray-800">
-                                <x-driver-photo-upload :existing-photo="$driver->photo ?? null" />
+                                <x-driver-photo-upload :existing-photo-url="$driver->photo ? route('admin.driver.file', [$driver->id, 'photo']) : null" />
                             </div>
                         </div>
                     </div>

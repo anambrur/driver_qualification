@@ -13,7 +13,8 @@ use Tests\Support\Actors;
 function flashedMessages(): array
 {
     return collect(session('flasher::envelopes', []))
-        ->map(fn ($envelope) => $envelope->getMessage())
+        // php-flasher >= 2.6 stores each envelope serialized
+        ->map(fn ($envelope) => (is_string($envelope) ? unserialize($envelope) : $envelope)->getMessage())
         ->all();
 }
 

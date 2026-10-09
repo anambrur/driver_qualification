@@ -34,11 +34,13 @@ class UpdateDriverRequest extends FormRequest
             $companyRule = ['required', Rule::in($companyId ? [$companyId] : [-1])];
         }
 
+        // No `status` rule: the edit form must not change the status. Hiring and rejecting go
+        // through admin.driver.hire-status, which checks, audits and emails (DRV-06).
         return array_merge(
             StoreDriverRequest::step1FieldRules(requireMedicalFuture: false, requireLicense: false),
             [
                 'company_id' => $companyRule,
-                'status' => 'required|in:draft,pending,active,inactive,submitted,under_review,approved,rejected',
+                'email' => StoreDriverRequest::emailRule($this->input('company_id'), $this->route('id')),
                 'state' => 'required|string|max:255',
                 'country' => 'required|string|max:255',
                 'twic_card' => 'boolean',
@@ -54,6 +56,7 @@ class UpdateDriverRequest extends FormRequest
             'repeat_license_number.same' => 'License numbers do not match.',
             'license_expires.after' => 'License expiration date must be after the issued date.',
             'company_id.in' => 'You can only update drivers for your own company.',
+            'email.unique' => 'This email is already used by another driver at this company, including deleted drivers.',
         ];
     }
 }

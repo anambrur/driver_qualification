@@ -35,11 +35,24 @@ class StoreDriverRequest extends FormRequest
         }
 
         return array_merge(
+            self::step1FieldRules(requireMedicalFuture: true, requireLicense: true),
             [
                 'company_id' => $companyRule,
-            ],
-            self::step1FieldRules(requireMedicalFuture: true, requireLicense: true)
+                'email' => self::emailRule($this->input('company_id')),
+            ]
         );
+    }
+
+    /**
+     * drivers.email is unique per company, and deleted (soft-deleted) drivers keep theirs, so
+     * say so instead of failing on insert.
+     */
+    public static function emailRule($companyId, $ignoreDriverId = null): array
+    {
+        return [
+            'required', 'email', 'max:255',
+            Rule::unique('drivers', 'email')->where('company_id', $companyId ?? 0)->ignore($ignoreDriverId),
+        ];
     }
 
     /**
@@ -200,6 +213,7 @@ class StoreDriverRequest extends FormRequest
             'repeat_license_number.same' => 'License numbers do not match.',
             'license_expires.after' => 'License expiration date must be after the issued date.',
             'company_id.in' => 'You can only create drivers for your own company.',
+            'email.unique' => 'This email is already used by another driver at this company, including deleted drivers.',
         ];
     }
 }

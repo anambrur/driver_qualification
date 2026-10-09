@@ -11,7 +11,6 @@ use App\Models\TrailerDocument;
 use App\Models\Vehicle;
 use App\Models\VehicleDocument;
 use App\Traits\CompanyFilterTrait;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -135,10 +134,5 @@ class DashboardController extends Controller
             ],
             'companyStats'          => $companyStats,
         ]);
-    }
-
-    public function profit(Request $request)
-    {
-        return view('admin.profit');
     }
 }

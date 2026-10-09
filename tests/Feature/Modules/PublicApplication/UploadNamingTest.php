@@ -15,6 +15,7 @@ use Tests\Feature\Modules\PublicApplication\Applicant;
 
 beforeEach(function () {
     Storage::fake('public');
+    Storage::fake('local'); // DRV-03: driver files live on the private disk
     Applicant::fakeOtp();
 });
 
@@ -46,7 +47,7 @@ describe('APP-10: public uploads are stored under a server-chosen name', functio
         expect($doc->license_front)->toEndWith('.png')
             ->and($doc->license_back)->toEndWith('.png')
             ->and($doc->license_front)->not->toContain('evil');
-        Storage::disk('public')->assertExists($doc->license_front);
+        Storage::disk('local')->assertExists($doc->license_front);
     })->with('dangerous client names');
 
     it('stores the medical card and forfeiture document with the extension of their content', function () {
@@ -74,7 +75,7 @@ describe('APP-10: public uploads are stored under a server-chosen name', functio
             ->assertSessionHasNoErrors();
 
         expect($me->fresh()->photo)->toStartWith('images/drivers/')->toEndWith('.png');
-        Storage::disk('public')->assertExists($me->fresh()->photo);
+        Storage::disk('local')->assertExists($me->fresh()->photo);
     });
 
     it('gives two uploads in the same second different names', function () {

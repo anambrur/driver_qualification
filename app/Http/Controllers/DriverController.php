@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Driver\StoreDriverRequest;
 use App\Http\Requests\Driver\UpdateDriverRequest;
+use App\Models\AssetGroup;
 use App\Models\Country;
 use App\Models\Driver;
 use App\Models\DriverDocument;
@@ -17,6 +18,7 @@ use App\Traits\CompanyFilterTrait;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
@@ -28,25 +30,6 @@ class DriverController extends Controller
 
     public function index(Request $request)
     {
-        // Get base query with company filtering
-        $baseQuery = Driver::query();
-        $baseQuery = $this->applyCompanyFilter($baseQuery);
-
-        // Exclude draft drivers for non-super-admin users
-        if (!Auth::user()->hasRole('super-admin')) {
-            $baseQuery->where('status', '!=', 'draft');
-        }
-
-        // Calculate status counts
-        $statusCounts = [
-            'all' => (clone $baseQuery)->count(),
-            'draft' => (clone $baseQuery)->where('status', 'draft')->count(),
-            'pending' => (clone $baseQuery)->where('status', 'pending')->count(),
-            'active' => (clone $baseQuery)->where('status', 'active')->count(),
-            'inactive' => (clone $baseQuery)->where('status', 'inactive')->count(),
-            'rejected' => (clone $baseQuery)->where('status', 'rejected')->count(),
-        ];
-
         // Check if it's an AJAX request for DataTables
         if ($request->ajax()) {
             $drivers = Driver::with(['company', 'licenses' => function ($query) {
@@ -72,7 +55,7 @@ class DriverController extends Controller
                     $initials = strtoupper(substr($driver->first_name ?? 'D', 0, 1) . substr($driver->last_name ?? 'R', 0, 1));
 
                     if ($driver->photo) {
-                        $photoUrl = e(asset('storage/' . $driver->photo));
+                        $photoUrl = e(route('admin.driver.file', [$driver->id, 'photo']));
 
                         return '<img src="' . $photoUrl . '" alt="' . e($driver->first_name) . '" class="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-sm" />';
                     }
@@ -161,8 +144,8 @@ class DriverController extends Controller
                    title="Edit">
                     <i class="fas fa-edit text-xs"></i>
                 </a>
-                <button type="button" 
-                        onclick="deleteDriver(' . $driver->id . ', \'' . addslashes($driver->first_name . ' ' . $driver->last_name) . '\')" 
+                <button type="button"
+                        data-action="delete-driver" data-driver-id="' . $driver->id . '" data-driver-name="' . e($driver->first_name . ' ' . $driver->last_name) . '"
                         class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-red-50 hover:text-red-600 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400" 
                         title="Delete">
                     <i class="fas fa-trash text-xs"></i>
@@ -190,8 +173,9 @@ class DriverController extends Controller
                 })
                 ->order(function ($query) use ($request) {
                     if ($request->has('order') && isset($request->order[0])) {
-                        $columnIndex = $request->order[0]['column'];
-                        $direction = $request->order[0]['dir'];
+                        $columnIndex = (int) ($request->order[0]['column'] ?? 0);
+                        // Whitelist: any other value makes orderBy() throw (DRV-07).
+                        $direction = strtolower((string) ($request->order[0]['dir'] ?? '')) === 'desc' ? 'desc' : 'asc';
 
                         // Map DataTables columns to database columns
                         // 0: photo, 1: full_name, 2: email, 3: status, 4: state,
@@ -224,6 +208,26 @@ class DriverController extends Controller
                     }
                 })
                 ->make(true);
+        }
+
+        // Get base query with company filtering
+        $baseQuery = Driver::query();
+        $baseQuery = $this->applyCompanyFilter($baseQuery);
+
+        // Exclude draft drivers for non-super-admin users
+        if (!Auth::user()->hasRole('super-admin')) {
+            $baseQuery->where('status', '!=', 'draft');
+        }
+
+        // Calculate status counts in one grouped query
+        $byStatus = $baseQuery->toBase()
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $statusCounts = ['all' => (int) $byStatus->sum()];
+        foreach (['draft', 'pending', 'active', 'inactive', 'rejected'] as $status) {
+            $statusCounts[$status] = (int) ($byStatus[$status] ?? 0);
         }
 
         // Get companies for dropdown (filtered by user role)
@@ -416,50 +420,24 @@ class DriverController extends Controller
 
     public function destroy($id)
     {
+        $driver = Driver::findOrFail($id);
+        $this->authorizeCompanyAccess($driver, 'You do not have permission to delete this driver.');
+
         try {
-            $driver = Driver::findOrFail($id);
-            $this->authorizeCompanyAccess($driver, 'You do not have permission to delete this driver.');
-            $driver->delete();
+            DB::transaction(function () use ($driver) {
+                // A hard delete used to cascade to the driver's asset groups; hide them the same way.
+                AssetGroup::where('driver_id', $driver->id)->delete();
+                $driver->delete();
+            });
 
             return response()->json(['success' => true, 'message' => 'Driver deleted successfully']);
         } catch (Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error deleting driver: ' . $e->getMessage()], 500);
-        }
-    }
-
-    public function updateStatus(Request $request, $id)
-    {
-        $driver = Driver::findOrFail($id);
-        $this->authorizeCompanyAccess($driver);
-
-        $validator = Validator::make($request->all(), [
-            'status' => 'required|in:draft,submitted,under_review,approved,rejected',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first(),
-            ], 422);
-        }
-
-        try {
-            $driver->update(['status' => $request->status]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Driver status updated successfully!',
-            ]);
-        } catch (Exception $e) {
-            Log::error('Driver status update failed: ' . $e->getMessage(), [
+            Log::error('Driver delete failed: ' . $e->getMessage(), [
                 'exception' => $e,
-                'driver_id' => $id,
+                'driver_id' => $driver->id,
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update driver status. Please try again.',
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to delete driver. Please try again.'], 500);
         }
     }
 
@@ -476,6 +454,14 @@ class DriverController extends Controller
                 'email' => $driver->email,
             ],
         ]);
+    }
+
+    public function file($id, string $field, DriverDocumentWizardService $documents)
+    {
+        $driver = Driver::findOrFail($id);
+        $this->authorizeCompanyAccess($driver, 'You do not have permission to view this driver.');
+
+        return $documents->fileResponse($driver, $field);
     }
 
     public function license($driver_id, Request $request)
@@ -1012,9 +998,15 @@ class DriverController extends Controller
         return redirect()->route($routeName, $params);
     }
 
-    private function loadWizardDriver(int $driverId): Driver
+    /**
+     * @param  int|string  $driverId  the {driver_id} route segment or the posted driver_id
+     */
+    private function loadWizardDriver($driverId): Driver
     {
-        $driver = Driver::findOrFail($driverId);
+        // Route segments are strings; a non-numeric id is a 404, not a TypeError (DRV-09).
+        abort_unless(ctype_digit((string) $driverId), 404);
+
+        $driver = Driver::findOrFail((int) $driverId);
         $this->authorizeCompanyAccess($driver, 'Unauthorized action.');
 
         return $driver;

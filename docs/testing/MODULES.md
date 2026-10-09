@@ -127,15 +127,15 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| ACL-01 | P1 | SUSPECTED | Admin routes with no `permission:` middleware: vehicle-type, vehicle-group, fuel-type, equipment-type, maintenance-category, asset-group, service-log, maintenance-schedule, settings/site, settings/document-types, plus `/users` with no role at all. Self-registration + free trial = anyone can reach them. |
-| ACL-02 | P1 | SUSPECTED | `composer audit`: 49 advisories in 13 packages (incl. high: `laravel/framework`, `guzzlehttp/guzzle`, `symfony/http-kernel`, `symfony/mime`, `league/commonmark`). |
-| ACL-03 | P1 | SUSPECTED | No `throttle` on any public/OTP route (see APP-04). |
-| ACL-04 | P2 | CONFIRMED | `GET /profit` has no middleware (guest got 200). |
-| ACL-05 | P2 | SUSPECTED | `getAllUserCompanyId()` returns the super-admin's own company → records a super-admin creates for a tenant are attributed to the super-admin's company. |
-| ACL-06 | P2 | SUSPECTED | Root `.htaccess` redirects port-80 traffic to `http://127.0.0.1:8000` and has unreachable rules; `.env` has `APP_DEBUG=true`, `APP_ENV=local`. Check what production uses. |
-| ACL-07 | P3 | SUSPECTED | Dead/contradictory code: `BlockExpiredLogin` (unregistered, uses nonexistent `$user->subscription`), `HasSubscription` trait (unused, conflicts with `User::activeSubscription()`), `CheckApplicationSession` imported in `bootstrap/app.php` but missing. |
-| ACL-08 | P3 | SUSPECTED | `env()` in Blade (`main-layout`, `welcome`) returns null under `config:cache`. |
-| ACL-09 | P2 | SUSPECTED | Super-admin detection is by role *name* `'super-admin'` everywhere; renaming/deleting the role (USR-03) breaks access control. |
+| ACL-01 | P1 | FIXED | Admin routes with no `permission:` middleware: vehicle-type, vehicle-group, fuel-type, equipment-type, maintenance-category, asset-group, service-log, maintenance-schedule, settings/site, settings/document-types, plus `/users` with no role at all. Self-registration + free trial = anyone can reach them. |
+| ACL-02 | P1 | FIXED | `composer audit`: 49 advisories in 13 packages (incl. high: `laravel/framework`, `guzzlehttp/guzzle`, `symfony/http-kernel`, `symfony/mime`, `league/commonmark`). |
+| ACL-03 | P1 | FIXED | No `throttle` on any public/OTP route (see APP-04). |
+| ACL-04 | P2 | FIXED | `GET /profit` has no middleware (guest got 200). |
+| ACL-05 | P2 | FIXED | `getAllUserCompanyId()` returns the super-admin's own company → records a super-admin creates for a tenant are attributed to the super-admin's company. |
+| ACL-06 | P2 | FIXED | Root `.htaccess` redirects port-80 traffic to `http://127.0.0.1:8000` and has unreachable rules; `.env` has `APP_DEBUG=true`, `APP_ENV=local`. Check what production uses. |
+| ACL-07 | P3 | FIXED | Dead/contradictory code: `BlockExpiredLogin` (unregistered, uses nonexistent `$user->subscription`), `HasSubscription` trait (unused, conflicts with `User::activeSubscription()`), `CheckApplicationSession` imported in `bootstrap/app.php` but missing. |
+| ACL-08 | P3 | FIXED | `env()` in Blade (`main-layout`, `welcome`) returns null under `config:cache`. |
+| ACL-09 | P2 | DISMISSED | Super-admin detection is by role *name* `'super-admin'` everywhere; renaming/deleting the role (USR-03) breaks access control. |
 
 ## 7. `drivers`: Driver management (admin)
 - **Scope**: `app/Http/Controllers/DriverController.php` (all except `updateHireStatus`), `app/Services/Driver/{DriverCrudService,DriverDocumentWizardService}.php`, `app/Http/Requests/Driver/*`, models `Driver, DriverDocument, License, Experience, Accident, Violation, Forfeitures, EmploymentRecord, ResidenceAddress, Country, State`, views `admin/driver/**`
@@ -143,16 +143,16 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| DRV-01 | P1 | SUSPECTED | Stored XSS: driver name in `onclick="deleteDriver(id, '...')"` escaped with `addslashes` only (HTML attribute context). Public applicants control the name, so a script runs in the admin's session. |
-| DRV-02 | P1 | SUSPECTED | SSN stored in plaintext (`drivers.ssn` string, no `encrypted` cast). |
-| DRV-03 | P1 | SUSPECTED | Photos, license front/back, medical card, forfeiture docs on the **public** disk with predictable names (`driver_photo_<time>.<ext>`, `license_front_<time>_<uniqid>.<ext>`). Readable without auth at `/storage/...`. |
-| DRV-04 | P2 | SUSPECTED | Photo rule allows `svg`; stored name uses client extension → stored XSS via SVG. |
-| DRV-05 | P2 | SUSPECTED | `driver_photo_<time()>` collides for two uploads in the same second → one driver's photo replaces another's. |
-| DRV-06 | P2 | SUSPECTED | `UpdateDriverRequest` lets a tenant set any status (incl. `active`), bypassing the hire workflow, its emails and audit fields. `updateStatus` uses a different status set (`submitted/under_review/approved`). |
-| DRV-07 | P2 | SUSPECTED | DataTables `order[0][dir]` passed raw to `orderBy` → invalid value = 500. |
-| DRV-08 | P2 | SUSPECTED | `update()` deletes and re-inserts every child row (residences, experiences, accidents, violations, forfeitures, employment) on each save; `destroy` hard-deletes and orphans files; exception text returned to client. |
-| DRV-09 | P3 | SUSPECTED | `loadWizardDriver(int)` receives route strings → non-numeric id = TypeError 500, not 404. `edit()` crashes if no `US` country row. |
-| DRV-10 | P2 | SUSPECTED | Perf: `index` runs 6 COUNTs + DataTables + `whereHas(company)` search; add a query budget. |
+| DRV-01 | P1 | FIXED | Stored XSS: driver name in `onclick="deleteDriver(id, '...')"` escaped with `addslashes` only (HTML attribute context). Public applicants control the name, so a script runs in the admin's session. |
+| DRV-02 | P1 | FIXED | SSN stored in plaintext (`drivers.ssn` string, no `encrypted` cast). |
+| DRV-03 | P1 | FIXED | Photos, license front/back, medical card, forfeiture docs on the **public** disk with predictable names (`driver_photo_<time>.<ext>`, `license_front_<time>_<uniqid>.<ext>`). Readable without auth at `/storage/...`. |
+| DRV-04 | P2 | DISMISSED | Photo rule allows `svg`; stored name uses client extension → stored XSS via SVG. |
+| DRV-05 | P2 | DISMISSED | `driver_photo_<time()>` collides for two uploads in the same second → one driver's photo replaces another's. |
+| DRV-06 | P2 | FIXED | `UpdateDriverRequest` lets a tenant set any status (incl. `active`), bypassing the hire workflow, its emails and audit fields. `updateStatus` uses a different status set (`submitted/under_review/approved`). |
+| DRV-07 | P2 | FIXED | DataTables `order[0][dir]` passed raw to `orderBy` → invalid value = 500. |
+| DRV-08 | P2 | FIXED | `update()` deletes and re-inserts every child row (residences, experiences, accidents, violations, forfeitures, employment) on each save; `destroy` hard-deletes and orphans files; exception text returned to client. |
+| DRV-09 | P3 | FIXED | `loadWizardDriver(int)` receives route strings → non-numeric id = TypeError 500, not 404. `edit()` crashes if no `US` country row. |
+| DRV-10 | P2 | FIXED | Perf: `index` runs 6 COUNTs + DataTables + `whereHas(company)` search; add a query budget. |
 
 ## 8. `driver-compliance`: Driver compliance
 - **Scope**: `app/Http/Controllers/{DriverComplianceDashboardController,DriverDocumentUploadController}.php`, `app/Services/Compliance/DriverComplianceService.php`, `app/Models/DriverComplianceDocument.php`, views `admin/compliance/drivers*`

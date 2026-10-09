@@ -144,6 +144,9 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
     Route::post('/status/verify', [ApplicationFormController::class, 'verifyStatus'])->name('status.verify.submit')
         ->middleware('throttle:10,1,application-verify');
 
+    // The applicant's own uploaded files (stored on the private disk)
+    Route::get('/file/{driver_id}/{field}', [ApplicationFormController::class, 'file'])->name('file');
+
     // Delete/Withdraw Application
     Route::post('/withdraw/{driver_id}', [ApplicationFormController::class, 'withdraw'])
         ->name('withdraw');
@@ -206,8 +209,6 @@ Route::middleware(['auth', 'role:super-admin'])->prefix('admin')->name('admin.')
     Route::post('/plans/{plan}/toggle', [SubscriptionAdminController::class, 'togglePlan'])->name('plans.toggle');
 });
 
-Route::get('/profit', [DashboardController::class, 'profit'])->name('admin.profit');
-
 Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -261,9 +262,9 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::get('/{id}', [DriverController::class, 'show'])->name('admin.driver.show')->middleware('permission:drivers.view');
         Route::get('/{id}/edit', [DriverController::class, 'edit'])->name('admin.driver.edit')->middleware('permission:drivers.edit');
         Route::put('/{id}', [DriverController::class, 'update'])->name('admin.driver.update')->middleware('permission:drivers.edit');
-        Route::post('/{id}/status', [DriverController::class, 'updateStatus'])->name('admin.driver.update.status')->middleware('permission:drivers.edit');
         Route::delete('/{id}', [DriverController::class, 'destroy'])->name('admin.driver.destroy')->middleware('permission:drivers.delete');
         Route::get('/{id}/details', [DriverController::class, 'getDriverDetails'])->name('admin.drivers.get-driver-details')->middleware('permission:drivers.view');
+        Route::get('/{id}/file/{field}', [DriverController::class, 'file'])->name('admin.driver.file')->middleware('permission:drivers.view|drivers.create|drivers.edit');
     });
 
     // Vehicle types
@@ -375,31 +376,31 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
 
     // Service Logs
     Route::prefix('service-log')->group(function () {
-        Route::get('/', [ServiceLogController::class, 'index'])->name('admin.service-log.index');
-        Route::post('/', [ServiceLogController::class, 'store'])->name('admin.service-log.store');
-        Route::get('/dropdown-data', [ServiceLogController::class, 'getDropdownData'])->name('admin.service-log.dropdown-data');
-        Route::get('/{id}/edit', [ServiceLogController::class, 'edit'])->name('admin.service-log.edit');
-        Route::get('/{id}', [ServiceLogController::class, 'show'])->name('admin.service-log.show');
-        Route::put('/{id}', [ServiceLogController::class, 'update'])->name('admin.service-log.update');
-        Route::delete('/{id}', [ServiceLogController::class, 'destroy'])->name('admin.service-log.destroy');
+        Route::get('/', [ServiceLogController::class, 'index'])->name('admin.service-log.index')->middleware('permission:maintenance.view');
+        Route::post('/', [ServiceLogController::class, 'store'])->name('admin.service-log.store')->middleware('permission:maintenance.create');
+        Route::get('/dropdown-data', [ServiceLogController::class, 'getDropdownData'])->name('admin.service-log.dropdown-data')->middleware('permission:maintenance.view');
+        Route::get('/{id}/edit', [ServiceLogController::class, 'edit'])->name('admin.service-log.edit')->middleware('permission:maintenance.edit');
+        Route::get('/{id}', [ServiceLogController::class, 'show'])->name('admin.service-log.show')->middleware('permission:maintenance.view');
+        Route::put('/{id}', [ServiceLogController::class, 'update'])->name('admin.service-log.update')->middleware('permission:maintenance.edit');
+        Route::delete('/{id}', [ServiceLogController::class, 'destroy'])->name('admin.service-log.destroy')->middleware('permission:maintenance.delete');
 
-        Route::get('/vehicle/{id}/details', [ServiceLogController::class, 'getVehicleDetails'])->name('admin.service-log.get-vehicle-details');
-        Route::get('/document/{id}/download', [ServiceLogController::class, 'downloadDocument'])->name('admin.service-log.download-document');
-        Route::delete('/document/{id}', [ServiceLogController::class, 'deleteDocument'])->name('admin.service-log.delete-document');
+        Route::get('/vehicle/{id}/details', [ServiceLogController::class, 'getVehicleDetails'])->name('admin.service-log.get-vehicle-details')->middleware('permission:maintenance.view');
+        Route::get('/document/{id}/download', [ServiceLogController::class, 'downloadDocument'])->name('admin.service-log.download-document')->middleware('permission:maintenance.view');
+        Route::delete('/document/{id}', [ServiceLogController::class, 'deleteDocument'])->name('admin.service-log.delete-document')->middleware('permission:maintenance.edit');
     });
 
     // Maintenance Schedules
     Route::prefix('maintenance-schedule')->group(function () {
-        Route::get('/', [MaintenanceScheduleController::class, 'index'])->name('admin.maintenance-schedule.index');
-        Route::post('/', [MaintenanceScheduleController::class, 'store'])->name('admin.maintenance-schedule.store');
-        Route::get('/dropdown-data', [MaintenanceScheduleController::class, 'getDropdownData'])->name('admin.maintenance-schedule.dropdown-data');
-        Route::get('/{id}/edit', [MaintenanceScheduleController::class, 'edit'])->name('admin.maintenance-schedule.edit');
-        Route::get('/{id}', [MaintenanceScheduleController::class, 'show'])->name('admin.maintenance-schedule.show');
-        Route::put('/{id}', [MaintenanceScheduleController::class, 'update'])->name('admin.maintenance-schedule.update');
-        Route::delete('/{id}', [MaintenanceScheduleController::class, 'destroy'])->name('admin.maintenance-schedule.destroy');
+        Route::get('/', [MaintenanceScheduleController::class, 'index'])->name('admin.maintenance-schedule.index')->middleware('permission:scheduled.view');
+        Route::post('/', [MaintenanceScheduleController::class, 'store'])->name('admin.maintenance-schedule.store')->middleware('permission:scheduled.create');
+        Route::get('/dropdown-data', [MaintenanceScheduleController::class, 'getDropdownData'])->name('admin.maintenance-schedule.dropdown-data')->middleware('permission:scheduled.view');
+        Route::get('/{id}/edit', [MaintenanceScheduleController::class, 'edit'])->name('admin.maintenance-schedule.edit')->middleware('permission:scheduled.edit');
+        Route::get('/{id}', [MaintenanceScheduleController::class, 'show'])->name('admin.maintenance-schedule.show')->middleware('permission:scheduled.view');
+        Route::put('/{id}', [MaintenanceScheduleController::class, 'update'])->name('admin.maintenance-schedule.update')->middleware('permission:scheduled.edit');
+        Route::delete('/{id}', [MaintenanceScheduleController::class, 'destroy'])->name('admin.maintenance-schedule.destroy')->middleware('permission:scheduled.delete');
 
-        Route::get('/vehicle/{id}/details', [MaintenanceScheduleController::class, 'getVehicleDetails'])->name('admin.maintenance-schedule.get-vehicle-details');
-        Route::post('/{id}/mark-completed', [MaintenanceScheduleController::class, 'markAsCompleted'])->name('admin.maintenance-schedule.mark-completed');
+        Route::get('/vehicle/{id}/details', [MaintenanceScheduleController::class, 'getVehicleDetails'])->name('admin.maintenance-schedule.get-vehicle-details')->middleware('permission:scheduled.view');
+        Route::post('/{id}/mark-completed', [MaintenanceScheduleController::class, 'markAsCompleted'])->name('admin.maintenance-schedule.mark-completed')->middleware('permission:scheduled.edit');
     });
 
     // Settings

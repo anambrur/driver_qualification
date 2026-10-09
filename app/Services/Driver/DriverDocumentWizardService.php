@@ -8,9 +8,22 @@ use App\Models\Violation;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DriverDocumentWizardService
 {
+    /**
+     * Driver files (DRV-03) live on the private `local` disk and are served only through
+     * fileResponse(). Files uploaded before that are still on the `public` disk until the
+     * 2026_10_09_000700 migration moves them, so reads and deletes check both.
+     */
+    public const DISK = 'local';
+
+    private const LEGACY_DISK = 'public';
+
+    /** Servable files: the photo on `drivers`, the rest on `driver_documents`. */
+    public const FILE_FIELDS = ['photo', 'license_front', 'license_back', 'medical_card', 'forfeiture_document'];
+
     public function saveLicense(Driver $driver, ?UploadedFile $front, ?UploadedFile $back): DriverDocument
     {
         return DB::transaction(function () use ($driver, $front, $back) {
@@ -207,15 +220,50 @@ class DriverDocumentWizardService
         return DriverDocument::where('driver_id', $driverId)->first();
     }
 
+    /**
+     * Stream one of the driver's files. The caller must already have authorized access to $driver.
+     */
+    public function fileResponse(Driver $driver, string $field): StreamedResponse
+    {
+        abort_unless(in_array($field, self::FILE_FIELDS, true), 404);
+
+        $path = $field === 'photo'
+            ? $driver->photo
+            : DriverDocument::where('driver_id', $driver->id)->value($field);
+
+        foreach ([self::DISK, self::LEGACY_DISK] as $disk) {
+            if ($path && Storage::disk($disk)->exists($path)) {
+                return Storage::disk($disk)->response($path, null, [
+                    'X-Content-Type-Options' => 'nosniff',
+                    'Cache-Control' => 'private, no-store',
+                ]);
+            }
+        }
+
+        abort(404);
+    }
+
+    /**
+     * Delete a stored driver file from whichever disk holds it.
+     */
+    public static function deleteStoredFile(?string $path): void
+    {
+        if (! $path) {
+            return;
+        }
+
+        foreach ([self::DISK, self::LEGACY_DISK] as $disk) {
+            Storage::disk($disk)->delete($path);
+        }
+    }
+
     private function replaceFile(?string $oldPath, UploadedFile $file, string $prefix): string
     {
-        if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-            Storage::disk('public')->delete($oldPath);
-        }
+        self::deleteStoredFile($oldPath);
 
         // hashName(): random name, extension taken from the file's content, never the client's.
         $fileName = $prefix . '_' . $file->hashName();
 
-        return $file->storeAs('images/documents', $fileName, 'public');
+        return $file->storeAs('images/documents', $fileName, self::DISK);
     }
 }

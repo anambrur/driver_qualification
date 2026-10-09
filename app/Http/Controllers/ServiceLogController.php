@@ -248,6 +248,9 @@ class ServiceLogController extends Controller
             ], 422);
         }
 
+        // A super-admin's log belongs to the vehicle's company, not their own
+        $companyId = $this->getOwningCompanyId(Vehicle::withTrashed()->whereKey($request->vehicle_id)->value('company_id'));
+
         DB::beginTransaction();
 
         try {

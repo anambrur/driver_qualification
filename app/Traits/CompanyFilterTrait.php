@@ -66,6 +66,22 @@ trait CompanyFilterTrait
     }
 
     /**
+     * Company a new record belongs to. Tenants always get their own company; a super-admin
+     * acting on another company's resource (e.g. its vehicle) gets that resource's company,
+     * and falls back to their own company when there is none.
+     */
+    protected function getOwningCompanyId(?int $resourceCompanyId): ?int
+    {
+        $this->resolveCompanyContext();
+
+        if ($this->resolvedSuperAdmin) {
+            return $resourceCompanyId ?? $this->getAllUserCompanyId();
+        }
+
+        return $this->resolvedCompanyId;
+    }
+
+    /**
      * Apply company filter to a query.
      *
      * @template TModel of \Illuminate\Database\Eloquent\Model

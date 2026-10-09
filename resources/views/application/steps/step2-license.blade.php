@@ -104,12 +104,12 @@
                                                         Image:
                                                     </p>
                                                     <div class="relative group">
-                                                        <img src="{{ Storage::url($driver_document->license_front) }}"
+                                                        <img src="{{ route('public.application.file', [$company->slug, $driver->id, 'license_front']) }}"
                                                             alt="License Front"
                                                             class="h-48 w-full object-contain rounded-lg border border-gray-200 dark:border-gray-700">
                                                         <div
                                                             class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                                            <a href="{{ Storage::url($driver_document->license_front) }}"
+                                                            <a href="{{ route('public.application.file', [$company->slug, $driver->id, 'license_front']) }}"
                                                                 target="_blank"
                                                                 class="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-md text-sm">
                                                                 View Full Size
@@ -181,12 +181,12 @@
                                                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Current Back
                                                         Image:</p>
                                                     <div class="relative group">
-                                                        <img src="{{ Storage::url($driver_document->license_back) }}"
+                                                        <img src="{{ route('public.application.file', [$company->slug, $driver->id, 'license_back']) }}"
                                                             alt="License Back"
                                                             class="h-48 w-full object-contain rounded-lg border border-gray-200 dark:border-gray-700">
                                                         <div
                                                             class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                                            <a href="{{ Storage::url($driver_document->license_back) }}"
+                                                            <a href="{{ route('public.application.file', [$company->slug, $driver->id, 'license_back']) }}"
                                                                 target="_blank"
                                                                 class="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-md text-sm">
                                                                 View Full Size

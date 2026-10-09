@@ -102,12 +102,12 @@
                                                     Document:</p>
                                                 @if (Str::endsWith($driverDocument->forfeiture_document, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
                                                     <div class="relative group">
-                                                        <img src="{{ Storage::url($driverDocument->forfeiture_document) }}"
+                                                        <img src="{{ route('public.application.file', [$company->slug, $driver->id, 'forfeiture_document']) }}"
                                                             alt="Forfeiture Document"
                                                             class="h-48 w-full object-contain rounded-lg border border-gray-200 dark:border-gray-700">
                                                         <div
                                                             class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                                            <a href="{{ Storage::url($driverDocument->forfeiture_document) }}"
+                                                            <a href="{{ route('public.application.file', [$company->slug, $driver->id, 'forfeiture_document']) }}"
                                                                 target="_blank"
                                                                 class="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-md text-sm">
                                                                 View Full Size
@@ -130,7 +130,7 @@
                                                             </p>
                                                             <p class="text-xs text-gray-500 dark:text-gray-400">PDF Document
                                                             </p>
-                                                            <a href="{{ Storage::url($driverDocument->forfeiture_document) }}"
+                                                            <a href="{{ route('public.application.file', [$company->slug, $driver->id, 'forfeiture_document']) }}"
                                                                 target="_blank"
                                                                 class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm">
                                                                 View Document

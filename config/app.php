@@ -123,4 +123,15 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Google Analytics
+    |--------------------------------------------------------------------------
+    |
+    | GA4 measurement id used when none is saved in Site Settings.
+    |
+    */
+
+    'ga_measurement_id' => env('GA_MEASUREMENT_ID'),
+
 ];

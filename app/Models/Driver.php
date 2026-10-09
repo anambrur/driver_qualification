@@ -3,10 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Driver extends Model
 {
+    // Deleting hides the driver; the qualification file (child rows, documents, files) is kept.
+    use SoftDeletes;
+
     protected $guarded = ['id'];
+
+    protected function casts(): array
+    {
+        return [
+            'ssn' => 'encrypted',
+        ];
+    }
 
     public function user()
     {

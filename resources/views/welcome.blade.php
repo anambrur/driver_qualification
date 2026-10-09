@@ -27,7 +27,7 @@
 
     <!-- Google Analytics Integration -->
     @php
-        $gaId = settings('google_analytics_id', env('GA_MEASUREMENT_ID'));
+        $gaId = settings('google_analytics_id', config('app.ga_measurement_id'));
     @endphp
     @if(!empty($gaId))
         <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>

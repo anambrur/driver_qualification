@@ -165,6 +165,11 @@ class MaintenanceScheduleController extends Controller
             ], 422);
         }
 
+        // A super-admin's schedule belongs to the vehicle's company, not their own
+        $companyId = $this->getOwningCompanyId(
+            $request->vehicle_id ? Vehicle::withTrashed()->whereKey($request->vehicle_id)->value('company_id') : null
+        );
+
         DB::beginTransaction();
 
         try {

@@ -481,6 +481,16 @@ class ApplicationFormController extends Controller
     }
 
     /**
+     * The applicant's own licence, medical card, forfeiture or photo file (private disk).
+     */
+    public function file($slug, $driver_id, string $field, DriverDocumentWizardService $documents)
+    {
+        $driver = $this->applicationDriver($this->activeCompany($slug), $driver_id);
+
+        return $documents->fileResponse($driver, $field);
+    }
+
+    /**
      * STEP 2: Driver License Upload
      */
     public function step2($slug, $driver_id, Request $request)

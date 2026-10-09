@@ -39,7 +39,7 @@
             $driverInitials = strtoupper(
                 substr($driver->first_name ?? 'D', 0, 1) . substr($driver->last_name ?? 'R', 0, 1),
             );
-            $driverPhotoUrl = $driver->photo ? asset('storage/' . $driver->photo) : null;
+            $driverPhotoUrl = $driver->photo ? route('admin.driver.file', [$driver->id, 'photo']) : null;
         @endphp
 
         <!-- Driver Header Card -->

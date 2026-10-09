@@ -84,12 +84,12 @@
                                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Current Medical Card:</p>
                                         @if (Str::endsWith($driver_document->medical_card, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
                                             <div class="relative group">
-                                                <img src="{{ Storage::url($driver_document->medical_card) }}"
+                                                <img src="{{ route('admin.driver.file', [$driver->id, 'medical_card']) }}"
                                                     alt="Medical Card"
                                                     class="h-48 w-full object-contain rounded-lg border border-gray-200 dark:border-gray-700">
                                                 <div
                                                     class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                                    <a href="{{ Storage::url($driver_document->medical_card) }}"
+                                                    <a href="{{ route('admin.driver.file', [$driver->id, 'medical_card']) }}"
                                                         target="_blank"
                                                         class="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-md text-sm">
                                                         View Full Size
@@ -110,7 +110,7 @@
                                                         Medical Card Document
                                                     </p>
                                                     <p class="text-xs text-gray-500 dark:text-gray-400">PDF Document</p>
-                                                    <a href="{{ Storage::url($driver_document->medical_card) }}"
+                                                    <a href="{{ route('admin.driver.file', [$driver->id, 'medical_card']) }}"
                                                         target="_blank"
                                                         class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm">
                                                         View Document

@@ -7,7 +7,6 @@ use App\Models\Driver;
 use App\Models\State;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class DriverCrudService
 {
@@ -103,8 +102,14 @@ class DriverCrudService
             $driver->accidents()->delete();
             $this->syncAccidents($driver, $data);
 
+            // The rows are re-created below; keep the applicant's step-5 signature on them (DRV-08).
+            $signature = $driver->violations()
+                ->whereNotNull('violation_record_signature')
+                ->first(['violation_record_signature', 'violation_record_date_signed'])
+                ?->only(['violation_record_signature', 'violation_record_date_signed']) ?? [];
+
             $driver->violations()->delete();
-            $this->syncViolations($driver, $data);
+            $this->syncViolations($driver, $data, $signature);
 
             $driver->forfeitures()->delete();
             $this->syncForfeitures($driver, $data);
@@ -154,14 +159,12 @@ class DriverCrudService
             return $oldPath;
         }
 
-        if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-            Storage::disk('public')->delete($oldPath);
-        }
+        DriverDocumentWizardService::deleteStoredFile($oldPath);
 
         // hashName(): random name, extension taken from the file's content, never the client's.
         $fileName = 'driver_photo_' . $photo->hashName();
 
-        return $photo->storeAs('images/drivers', $fileName, 'public');
+        return $photo->storeAs('images/drivers', $fileName, DriverDocumentWizardService::DISK);
     }
 
     private function insertLicense(Driver $driver, array $data): void
@@ -326,7 +329,10 @@ class DriverCrudService
         ]);
     }
 
-    private function syncViolations(Driver $driver, array $data): void
+    /**
+     * @param  array<string, mixed>  $signature  violation_record_signature/_date_signed to keep on every row
+     */
+    private function syncViolations(Driver $driver, array $data, array $signature = []): void
     {
         if (($data['violation'] ?? null) === 'yes' && !empty($data['violation_date'])) {
             $violations = [];
@@ -344,7 +350,7 @@ class DriverCrudService
                     'vehicle_type' => $data['vehicle_type'][$index] ?? null,
                     'created_at' => now(),
                     'updated_at' => now(),
-                ];
+                ] + $signature;
             }
 
             if (!empty($violations)) {
@@ -359,7 +365,7 @@ class DriverCrudService
             'violation' => 'no',
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ] + $signature);
     }
 
     private function syncForfeitures(Driver $driver, array $data): void

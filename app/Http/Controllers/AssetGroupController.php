@@ -156,7 +156,7 @@ class AssetGroupController extends Controller
 
         $validator = Validator::make($request->all(), [
             'group_name' => ['required', 'string', 'max:100', $this->uniqueGroupNameRule($companyId)],
-            'driver_id' => ['required', Rule::exists('drivers', 'id')->where('company_id', $companyId)],
+            'driver_id' => ['required', Rule::exists('drivers', 'id')->where('company_id', $companyId)->withoutTrashed()],
             'primary_driver_phone' => 'nullable|string|max:20',
             'primary_driver_email' => 'nullable|email|max:100',
             'second_driver_name' => 'nullable|string|max:100',
@@ -229,7 +229,7 @@ class AssetGroupController extends Controller
 
         $validator = Validator::make($request->all(), [
             'group_name' => ['required', 'string', 'max:100', $this->uniqueGroupNameRule($companyId, $assetGroup->id)],
-            'driver_id' => ['required', Rule::exists('drivers', 'id')->where('company_id', $companyId)],
+            'driver_id' => ['required', Rule::exists('drivers', 'id')->where('company_id', $companyId)->withoutTrashed()],
             'primary_driver_phone' => 'nullable|string|max:20',
             'primary_driver_email' => 'nullable|email|max:100',
             'second_driver_name' => 'nullable|string|max:100',

@@ -1,5 +1,5 @@
 @php
-    $existingPhoto = $existingPhoto ?? null;
+    $existingPhotoUrl = $existingPhotoUrl ?? null;
     $photoValue = old('photo');
 @endphp
 
@@ -8,10 +8,10 @@
         Upload Driver Photo
     </label>
 
-    @if ($existingPhoto)
+    @if ($existingPhotoUrl)
         <div class="mb-3" id="photo_existing">
             <p class="mb-2 text-xs text-gray-500 dark:text-gray-400">Current photo</p>
-            <img src="{{ asset('storage/' . $existingPhoto) }}" alt="Driver photo"
+            <img src="{{ $existingPhotoUrl }}" alt="Driver photo"
                 class="h-32 w-32 rounded-lg object-cover border border-gray-200 dark:border-gray-700">
         </div>
     @endif

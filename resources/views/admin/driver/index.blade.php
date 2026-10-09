@@ -587,11 +587,20 @@
             }
         });
 
+        // Delete buttons carry the id and name in data-* attributes (never inline JS).
+        $(document).on('click', '[data-action="delete-driver"]', function() {
+            deleteDriver(this.dataset.driverId, this.dataset.driverName);
+        });
+
+        function escapeHtml(value) {
+            return $('<div>').text(value ?? '').html();
+        }
+
         // Enhanced delete driver function with SweetAlert
         function deleteDriver(id, name) {
             Swal.fire({
                 title: 'Delete Driver?',
-                html: `Are you sure you want to delete <strong>${name}</strong>?<br>This action cannot be undone.`,
+                html: `Are you sure you want to delete <strong>${escapeHtml(name)}</strong>?<br>This action cannot be undone.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444',
