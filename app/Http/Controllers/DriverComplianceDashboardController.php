@@ -17,32 +17,39 @@ class DriverComplianceDashboardController extends Controller
         private readonly DriverComplianceService $complianceService
     ) {}
 
+    /** Drivers per page on the dashboard (DCMP-05). */
+    private const PER_PAGE = 25;
+
     public function index()
     {
-        // Get drivers with company filtering and eager load documents
-        $driversQuery = Driver::with(['documents.documentType', 'company']);
-        $driversQuery = $this->applyCompanyFilter($driversQuery);
-        $drivers = $driversQuery->orderBy('first_name')->orderBy('last_name')->where('status', 'active')->get();
+        // Active drivers with company filtering
+        $driversQuery = $this->applyCompanyFilter(Driver::query())->where('status', 'active');
+
+        // Summary cards cover every driver, computed in SQL (DCMP-05)
+        $summary = $this->complianceService->summary($driversQuery);
+
+        // Only the current page is loaded with its documents
+        $page = $driversQuery->clone()
+            ->with(['documents.documentType', 'company'])
+            ->orderBy('first_name')->orderBy('last_name')->orderBy('id')
+            ->paginate(self::PER_PAGE);
 
         // Get driver document types (global settings)
         $driverDocumentTypes = DocumentType::where('module', 'driver')
             ->where('status', true)
             ->get();
-        $disabledTypeIds = DocumentType::disabledIdsByCompany($drivers->pluck('company_id')->unique()->values()->all());
+        $disabledTypeIds = DocumentType::disabledIdsByCompany($page->getCollection()->pluck('company_id')->unique()->values()->all());
 
         // Process drivers compliance
-        $processedDrivers = [];
-        $compliantDrivers = 0;
-        $warningDrivers = 0;
-        $criticalDrivers = 0;
-
-        foreach ($drivers as $driver) {
+        // Laravel's through() is typed with @phpstan-this-out static<…>, which PHPStan can't resolve.
+        // @phpstan-ignore argument.unresolvableType
+        $drivers = $page->through(function (Driver $driver) use ($driverDocumentTypes, $disabledTypeIds): array {
             $complianceData = $this->complianceService->calculateCompliance(
                 $driver,
                 $driverDocumentTypes->whereNotIn('id', $disabledTypeIds[$driver->company_id] ?? [])->values()
             );
 
-            $processedDrivers[] = [
+            return [
                 'id' => $driver->id,
                 'full_name' => $driver->first_name . ' ' . $driver->last_name,
                 'first_name' => $driver->first_name,
@@ -64,36 +71,25 @@ class DriverComplianceDashboardController extends Controller
                 'expiring_documents' => $complianceData['expiring_documents'],
                 'document_details' => $complianceData['document_details'],
             ];
-
-            if ($complianceData['status'] === 'compliant') {
-                $compliantDrivers++;
-            } elseif ($complianceData['status'] === 'warning') {
-                $warningDrivers++;
-            } elseif ($complianceData['status'] === 'danger') {
-                $criticalDrivers++;
-            }
-        }
+        });
 
         // Calculate overall metrics
-        $totalDrivers = count($processedDrivers);
-        $totalCompliant = $compliantDrivers;
-        $totalWarning = $warningDrivers;
-        $totalCritical = $criticalDrivers;
+        $totalDrivers = $summary['total'];
 
         $overallCompliance = $totalDrivers > 0
-            ? round((($compliantDrivers) / $totalDrivers) * 100, 1)
+            ? round(($summary['compliant'] / $totalDrivers) * 100, 1)
             : 0;
 
         // Get companies for filter (if super-admin)
         $companies = $this->getCompaniesForUser();
 
         return view('admin.compliance.drivers', [
-            'drivers' => $processedDrivers,
+            'drivers' => $drivers,
             'driverDocumentTypes' => $driverDocumentTypes,
             'totalDrivers' => $totalDrivers,
-            'totalCompliant' => $totalCompliant,
-            'totalWarning' => $totalWarning,
-            'totalCritical' => $totalCritical,
+            'totalCompliant' => $summary['compliant'],
+            'totalWarning' => $summary['warning'],
+            'totalCritical' => $summary['danger'],
             'overallCompliance' => $overallCompliance,
             'companies' => $companies,
             'isSuperAdmin' => Auth::user()->hasRole('super-admin'),

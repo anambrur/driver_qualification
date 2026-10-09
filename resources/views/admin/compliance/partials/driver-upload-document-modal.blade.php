@@ -35,6 +35,7 @@
                 <input type="hidden" id="upload_document_type_id" name="document_type_id">
                 <input type="hidden" id="upload_asset_type" name="asset_type" value="driver">
                 <input type="hidden" id="upload_asset_id" name="asset_id">
+                <input type="hidden" id="upload_company_id" name="company_id">
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <!-- Left column -->
@@ -56,10 +57,10 @@
 
                         <!-- Upload to All Checkbox -->
                         <label class="flex items-center gap-2 cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2">
-                            <input type="checkbox" id="upload_to_all" name="upload_to_all"
+                            <input type="checkbox" id="upload_to_all" name="upload_to_all" value="1"
                                 class="w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500 dark:bg-gray-700 dark:border-gray-600">
                             <span class="text-sm font-medium text-gray-700 dark:text-gray-300" id="upload-all-label">
-                                Upload to All Drivers
+                                Upload to All Active Drivers
                             </span>
                         </label>
 
@@ -195,7 +196,8 @@
 
     // Load drivers for the dropdown
     function loadDriversForUpload(documentTypeId) {
-        const endpoint = `/admin/compliance/drivers/list?document_type_id=${documentTypeId}`;
+        const endpoint = `/admin/compliance/drivers/list?document_type_id=${encodeURIComponent(documentTypeId)}` +
+            `&driver_id=${encodeURIComponent(uploadModalData.driverId ?? '')}`;
 
         fetch(endpoint)
             .then(response => response.json())
@@ -208,22 +210,31 @@
 
                 // Update labels
                 label.textContent = 'Select Drivers';
-                uploadAllLabel.textContent = 'Upload to All Drivers';
+                uploadAllLabel.textContent = 'Upload to All Active Drivers';
 
                 if (data.success) {
                     const documentTypeName = data.document_type_name || 'Document';
                     uploadModalData.documentTypeName = documentTypeName;
 
                     subtitle.textContent = `${documentTypeName} for Driver`;
+
+                    // "Upload to all" covers the active drivers of one company
+                    const uploadAll = document.getElementById('upload_to_all');
+                    document.getElementById('upload_company_id').value = data.company ? data.company.id : '';
+                    uploadAll.disabled = !data.company;
+                    if (data.company) {
+                        uploadAllLabel.textContent = 'Upload to All Active Drivers of ' + data.company.name;
+                    }
                     infoText.textContent =
                         `Upload ${documentTypeName}. Select a driver or apply to all.`;
 
-                    // Populate dropdown
-                    select.innerHTML = data.assets.map(asset =>
-                        `<option value="${asset.id}" ${asset.id == uploadModalData.driverId ? 'selected' : ''}>
-                        ${asset.full_name}${asset.has_document ? ' (Has Document)' : ' (Missing)'}
-                    </option>`
-                    ).join('');
+                    // Populate dropdown (as text: driver names come from public applicants)
+                    select.replaceChildren(...data.assets.map(asset => new Option(
+                        asset.full_name + (asset.has_document ? ' (Has Document)' : ' (Missing)'),
+                        asset.id,
+                        false,
+                        asset.id == uploadModalData.driverId
+                    )));
                 } else {
                     showUploadError('Failed to load drivers');
                 }

@@ -274,6 +274,12 @@
                             </div>
                         @endforelse
                     </div>
+
+                    @if ($drivers->hasPages())
+                        <div class="mt-6">
+                            {{ $drivers->links() }}
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -503,7 +509,7 @@
                                     `Expires in ${doc.days_until_expiry} days` :
                                     'Valid';
 
-                                const fileUrl = `/storage/${doc.file_path}`;
+                                const fileUrl = `/admin/compliance/driver-documents/${doc.id}/view`;
                                 const fileExtension = doc.file_path ? doc.file_path.split('.').pop()
                                     .toLowerCase() : '';
                                 const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension);
@@ -513,7 +519,7 @@
                                         <div class="flex items-start justify-between">
                                             <div class="flex-1">
                                                 <div class="flex items-center mb-2">
-                                                    <h4 class="font-medium text-gray-900 dark:text-white">${doc.type_name}</h4>
+                                                    <h4 class="font-medium text-gray-900 dark:text-white">${escapeHtml(doc.type_name)}</h4>
                                                     <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${statusClass}">
                                                         ${statusText}
                                                     </span>
@@ -534,7 +540,7 @@
                                                     ${doc.description ? `
                                                             <div class="col-span-2">
                                                                 <p class="text-gray-600 dark:text-gray-400">Description:</p>
-                                                                <p class="font-medium text-gray-900 dark:text-white">${doc.description}</p>
+                                                                <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(doc.description)}</p>
                                                             </div>
                                                         ` : ''}
                                                 </div>
@@ -542,7 +548,7 @@
                                             ${doc.file_path ? `
                                                     <div class="ml-4 flex space-x-2">
                                                         ${isImage ? `
-                                                        <button type="button" onclick="previewImage('${fileUrl}', '${doc.type_name}')" 
+                                                        <button type="button" data-action="preview-document" data-url="${escapeHtml(fileUrl)}" data-title="${escapeHtml(doc.type_name)}" 
                                                             class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="Preview">
                                                             <i class="fas fa-eye"></i>
                                                         </button>
@@ -573,7 +579,7 @@
                                     ${driver.missing_documents.map(doc => `
                                             <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
                                                 <i class="mr-3 text-red-500 fas fa-exclamation-circle"></i>
-                                                <span class="text-sm text-gray-700 dark:text-gray-300">${doc}</span>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(doc)}</span>
                                             </div>
                                         `).join('')}
                                 </div>
@@ -587,7 +593,7 @@
                                     ${driver.expiring_documents.map(doc => `
                                             <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
                                                 <i class="mr-3 text-amber-500 fas fa-exclamation-triangle"></i>
-                                                <span class="text-sm text-gray-700 dark:text-gray-300">${doc}</span>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(doc)}</span>
                                             </div>
                                         `).join('')}
                                 </div>
@@ -600,19 +606,19 @@
                                 <div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
                                     <div>
                                         <p class="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                                        <p class="font-medium text-gray-900 dark:text-white">${driver.email || 'N/A'}</p>
+                                        <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(driver.email || 'N/A')}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600 dark:text-gray-400">Phone</p>
-                                        <p class="font-medium text-gray-900 dark:text-white">${driver.phone || 'N/A'}</p>
+                                        <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(driver.phone || 'N/A')}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600 dark:text-gray-400">License Number</p>
-                                        <p class="font-medium text-gray-900 dark:text-white">${driver.license_number || 'N/A'}</p>
+                                        <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(driver.license_number || 'N/A')}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600 dark:text-gray-400">License State</p>
-                                        <p class="font-medium text-gray-900 dark:text-white">${driver.license_state || 'N/A'}</p>
+                                        <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(driver.license_state || 'N/A')}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600 dark:text-gray-400">Hire Date</p>
@@ -620,7 +626,7 @@
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600 dark:text-gray-400">Status</p>
-                                        <p class="font-medium text-gray-900 dark:text-white capitalize">${driver.status || 'N/A'}</p>
+                                        <p class="font-medium text-gray-900 dark:text-white capitalize">${escapeHtml(driver.status || 'N/A')}</p>
                                     </div>
                                 </div>
                                 
@@ -681,6 +687,23 @@
             document.body.classList.add('overflow-hidden');
         }
 
+        // Driver data comes from public applicants and tenant users: never put it in HTML unescaped.
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        document.addEventListener('click', function(e) {
+            const button = e.target.closest('[data-action="preview-document"]');
+            if (button) {
+                previewImage(button.dataset.url, button.dataset.title);
+            }
+        });
+
         // Image preview function
         function previewImage(fileUrl, title) {
             const modalHtml = `
@@ -689,16 +712,16 @@
                     <div class="relative z-50 max-w-4xl max-h-full">
                         <div class="bg-white rounded-lg shadow-xl dark:bg-gray-800">
                             <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">${title}</h3>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">${escapeHtml(title)}</h3>
                                 <button type="button" onclick="closeImagePreview()" class="text-gray-400 hover:text-gray-500">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
                             <div class="p-4">
-                                <img src="${fileUrl}" alt="${title}" class="max-w-full max-h-[70vh] object-contain">
+                                <img src="${escapeHtml(fileUrl)}" alt="${escapeHtml(title)}" class="max-w-full max-h-[70vh] object-contain">
                             </div>
                             <div class="flex justify-end p-4 border-t dark:border-gray-700">
-                                <a href="${fileUrl}" download class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700">
+                                <a href="${escapeHtml(fileUrl)}" download class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700">
                                     <i class="fas fa-download mr-2"></i>Download
                                 </a>
                             </div>

@@ -5,10 +5,16 @@ namespace App\Services\Compliance;
 use App\Models\DocumentType;
 use App\Models\Driver;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class DriverComplianceService
 {
+    /** A document expiring within this many days is "expiring", not "valid". */
+    private const EXPIRING_WITHIN_DAYS = 30;
+
     /**
      * Calculate compliance for a driver using active driver document types.
      */
@@ -39,8 +45,11 @@ class DriverComplianceService
         $expiringDocs = [];
         $documentDetails = [];
 
+        // The oldest document of each type counts, as in withComplianceCounts().
+        $documents = $driver->documents->sortBy('id');
+
         foreach ($documentTypes as $docType) {
-            $document = $driver->documents->firstWhere('document_type_id', $docType->id);
+            $document = $documents->firstWhere('document_type_id', $docType->id);
 
             $docStatus = [
                 'type_id' => $docType->id,
@@ -97,8 +106,10 @@ class DriverComplianceService
 
         $percentage = $totalDocs > 0 ? round(($compliantDocs / $totalDocs) * 100, 1) : 0;
 
+        // Missing/expired = danger; only expiring soon = warning; all valid = compliant.
+        // The percentage counts only fully valid docs, so it can't decide the status.
         $status = 'compliant';
-        if (count($missingDocs) > 0 || $percentage < 100) {
+        if (count($missingDocs) > 0) {
             $status = 'danger';
         } elseif (count($expiringDocs) > 0) {
             $status = 'warning';
@@ -113,5 +124,84 @@ class DriverComplianceService
             'document_details' => $documentDetails,
             'status' => $status,
         ];
+    }
+
+    /**
+     * Add total_docs, valid_docs and expiring_docs to a driver query, computed in SQL with the
+     * same rules as calculateCompliance(): required = active driver types the driver's company
+     * hasn't switched off; expired = expiry today or earlier; expiring = within 30 days.
+     *
+     * @param  Builder<Driver>  $drivers
+     * @return Builder<Driver>
+     */
+    public function withComplianceCounts(Builder $drivers): Builder
+    {
+        // Dates are compared as Y-m-d strings with < / >=, which works for both a MySQL DATE
+        // and the "Y-m-d 00:00:00" text SQLite stores.
+        $tomorrow = Carbon::today()->addDay()->toDateString();
+        $validFrom = Carbon::today()->addDays(self::EXPIRING_WITHIN_DAYS + 1)->toDateString();
+
+        return $drivers->addSelect([
+            'total_docs' => $this->requiredTypes()->selectRaw('count(*)'),
+            'valid_docs' => $this->requiredTypesWithDocument()->selectRaw('count(*)')
+                ->where(fn ($q) => $q->whereNull('dcd.expiry_date')->orWhere('dcd.expiry_date', '>=', $validFrom)),
+            'expiring_docs' => $this->requiredTypesWithDocument()->selectRaw('count(*)')
+                ->where('dcd.expiry_date', '>=', $tomorrow)
+                ->where('dcd.expiry_date', '<', $validFrom),
+        ]);
+    }
+
+    /**
+     * Number of drivers per compliance status, computed in SQL over the whole query.
+     *
+     * @param  Builder<Driver>  $drivers
+     * @return array{total: int, compliant: int, warning: int, danger: int}
+     */
+    public function summary(Builder $drivers): array
+    {
+        $counts = $this->withComplianceCounts($drivers->clone()->reorder()->select('drivers.id'));
+
+        $byStatus = DB::query()
+            ->fromSub($counts, 'c')
+            ->selectRaw(
+                "case when c.total_docs - c.valid_docs - c.expiring_docs > 0 then 'danger' "
+                ."when c.expiring_docs > 0 then 'warning' else 'compliant' end as compliance_status, count(*) as drivers"
+            )
+            ->groupBy('compliance_status')
+            ->pluck('drivers', 'compliance_status');
+
+        $summary = ['compliant' => 0, 'warning' => 0, 'danger' => 0];
+        foreach ($byStatus as $status => $count) {
+            $summary[$status] = (int) $count;
+        }
+
+        return ['total' => array_sum($summary)] + $summary;
+    }
+
+    /**
+     * Required driver document types, correlated to the outer `drivers` row.
+     */
+    private function requiredTypes(): QueryBuilder
+    {
+        return DB::table('document_types')
+            ->where('document_types.module', 'driver')
+            ->where('document_types.status', true)
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')
+                ->from('company_document_type')
+                ->whereColumn('company_document_type.document_type_id', 'document_types.id')
+                ->whereColumn('company_document_type.company_id', 'drivers.company_id'));
+    }
+
+    /**
+     * Required types joined to the driver's (oldest) document of that type.
+     */
+    private function requiredTypesWithDocument(): QueryBuilder
+    {
+        return $this->requiredTypes()
+            ->join('driver_compliance_documents as dcd', function ($join) {
+                $join->on('dcd.document_type_id', '=', 'document_types.id')
+                    ->on('dcd.driver_id', '=', 'drivers.id')
+                    ->whereRaw('dcd.id = (select min(d2.id) from driver_compliance_documents as d2 where d2.driver_id = drivers.id and d2.document_type_id = document_types.id)');
+            });
     }
 }

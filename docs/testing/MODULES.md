@@ -160,12 +160,14 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| DCMP-01 | P1 | SUSPECTED | Documents stored on the public disk as `documents/drivers/<time>_<original name>`: guessable, so the authorized view/download routes are bypassable. |
-| DCMP-02 | P1 | SUSPECTED | `upload_to_all` stores ONE file shared by every driver; replacing/deleting one driver's document deletes the file for all. |
-| DCMP-03 | P2 | SUSPECTED | `DriverComplianceService`: expiring docs aren't counted compliant, so percentage < 100 and status is always `danger`. The `warning` branch is unreachable. |
-| DCMP-04 | P2 | SUSPECTED | Stored filename keeps the client name/extension (`x.html` with PDF bytes passes `mimes:pdf`) → stored XSS from `/storage`. |
-| DCMP-05 | P2 | SUSPECTED | Perf: dashboard loads all active drivers + all docs unpaginated; driver docs allow past `expiry_date` while fleet docs require `after_or_equal:today`. |
-| DCMP-06 | P3 | SUSPECTED | Exception messages returned in JSON. |
+| DCMP-01 | P1 | FIXED | Documents stored on the public disk as `documents/drivers/<time>_<original name>`: guessable, so the authorized view/download routes are bypassable. |
+| DCMP-02 | P1 | FIXED | `upload_to_all` stores ONE file shared by every driver; replacing/deleting one driver's document deletes the file for all. |
+| DCMP-03 | P2 | FIXED | `DriverComplianceService`: expiring docs aren't counted compliant, so percentage < 100 and status is always `danger`. The `warning` branch is unreachable. |
+| DCMP-04 | P2 | FIXED | Stored filename keeps the client name/extension (`x.html` with PDF bytes passes `mimes:pdf`) → stored XSS from `/storage`. |
+| DCMP-05 | P2 | FIXED | Perf: dashboard loads all active drivers + all docs unpaginated; driver docs allow past `expiry_date` while fleet docs require `after_or_equal:today`. (2026-10-10: statuses computed in SQL, list paginated, see report.) |
+| DCMP-06 | P3 | FIXED | Exception messages returned in JSON. |
+| DCMP-07 | P1 | FIXED | (Found 2026-10-09) view/download/delete skipped the tenant check when the driver was soft-deleted (`$document->driver` is null), so any tenant could read or delete those documents by id. |
+| DCMP-08 | P1 | FIXED | (Found 2026-10-09) Stored XSS: the details modal and the upload dropdown put applicant-controlled driver fields into `innerHTML` unescaped. |
 
 ## 9. `fleet-compliance`: Vehicle/trailer compliance
 - **Scope**: `app/Http/Controllers/{ComplianceDashboardController,DocumentUploadController}.php`, `app/Models/{VehicleDocument,TrailerDocument}.php`, views `admin/compliance/fleet*`

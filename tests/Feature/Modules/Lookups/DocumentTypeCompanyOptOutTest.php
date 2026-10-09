@@ -128,8 +128,8 @@ describe('compliance respects the company opt-out', function () {
         $this->actingAs(Actors::superAdmin())
             ->get(route('admin.compliance.drivers'))
             ->assertOk()
-            ->assertViewHas('drivers', function (array $drivers) use ($driverA, $driverB) {
-                $totals = collect($drivers)->pluck('total_docs', 'id');
+            ->assertViewHas('drivers', function ($drivers) use ($driverA, $driverB) {
+                $totals = collect($drivers->items())->pluck('total_docs', 'id');
 
                 return $totals[$driverA->id] === 1 && $totals[$driverB->id] === 2;
             });
