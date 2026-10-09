@@ -32,6 +32,7 @@ class SendComplianceDigestReminders extends Command
         }
 
         $sent = 0;
+        $disabledTypeIds = DocumentType::disabledIdsByCompany();
 
         Driver::query()
             ->with(['documents', 'company'])
@@ -39,9 +40,12 @@ class SendComplianceDigestReminders extends Command
             ->whereNotNull('email')
             ->where('email', '!=', '')
             ->orderBy('id')
-            ->chunkById(100, function ($drivers) use ($documentTypes, &$sent) {
+            ->chunkById(100, function ($drivers) use ($documentTypes, $disabledTypeIds, &$sent) {
                 foreach ($drivers as $driver) {
-                    $issues = $this->collectIssues($driver, $documentTypes);
+                    $issues = $this->collectIssues(
+                        $driver,
+                        $documentTypes->whereNotIn('id', $disabledTypeIds[$driver->company_id] ?? [])
+                    );
 
                     if ($issues === []) {
                         continue;

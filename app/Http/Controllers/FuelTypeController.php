@@ -24,7 +24,7 @@ class FuelTypeController extends Controller
                                 class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors">
                             <i class="fas fa-edit mr-1"></i> Edit
                         </button>
-                        <button onclick="deleteFuelType(' . $row->id . ', \'' . addslashes($row->name) . '\')" 
+                        <button data-action="delete" data-id="' . $row->id . '" data-name="' . e($row->name) . '" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
                             <i class="fas fa-trash mr-1"></i> Delete
                         </button>
@@ -129,6 +129,13 @@ class FuelTypeController extends Controller
     public function destroy($id)
     {
         $fuelType = FuelType::findOrFail($id);
+
+        if ($fuelType->vehicles()->withTrashed()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete fuel type because it is assigned to vehicles.'
+            ], 400);
+        }
 
         DB::beginTransaction();
 

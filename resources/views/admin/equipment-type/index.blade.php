@@ -464,6 +464,11 @@
             });
         }
 
+        // Delete buttons carry the id and name as data attributes (never inline in onclick)
+        $(document).on('click', '[data-action="delete"]', function () {
+            deleteEquipmentType(this.dataset.id, this.dataset.name);
+        });
+
         // Delete equipment type
         function deleteEquipmentType(id, name) {
             Swal.fire({

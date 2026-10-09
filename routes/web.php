@@ -263,47 +263,47 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
     // Vehicle types
     Route::prefix('vehicle-type')->group(function () {
         Route::get('/', [VehicleTypeController::class, 'index'])->name('admin.vehicle.type.index');
-        Route::get('/create', [VehicleTypeController::class, 'create'])->name('admin.vehicle.type.create');
-        Route::post('/', [VehicleTypeController::class, 'store'])->name('admin.vehicle.type.store');
-        Route::get('/{id}/edit', [VehicleTypeController::class, 'edit'])->name('admin.vehicle.type.edit');
-        Route::put('/{id}', [VehicleTypeController::class, 'update'])->name('admin.vehicle.type.update');
-        Route::delete('/{id}', [VehicleTypeController::class, 'destroy'])->name('admin.vehicle.type.destroy');
+        Route::get('/create', [VehicleTypeController::class, 'create'])->name('admin.vehicle.type.create')->middleware('permission:vehicle-types.create');
+        Route::post('/', [VehicleTypeController::class, 'store'])->name('admin.vehicle.type.store')->middleware('permission:vehicle-types.create');
+        Route::get('/{id}/edit', [VehicleTypeController::class, 'edit'])->name('admin.vehicle.type.edit')->middleware('permission:vehicle-types.edit');
+        Route::put('/{id}', [VehicleTypeController::class, 'update'])->name('admin.vehicle.type.update')->middleware('permission:vehicle-types.edit');
+        Route::delete('/{id}', [VehicleTypeController::class, 'destroy'])->name('admin.vehicle.type.destroy')->middleware('permission:vehicle-types.delete');
     });
 
     // Vehicle groups
     Route::prefix('vehicle-group')->group(function () {
         Route::get('/', [VehicleGroupController::class, 'index'])->name('admin.vehicle.group.index');
-        Route::post('/', [VehicleGroupController::class, 'store'])->name('admin.vehicle.group.store');
-        Route::get('/{id}/edit', [VehicleGroupController::class, 'edit'])->name('admin.vehicle.group.edit');
-        Route::put('/{id}', [VehicleGroupController::class, 'update'])->name('admin.vehicle.group.update');
-        Route::delete('/{id}', [VehicleGroupController::class, 'destroy'])->name('admin.vehicle.group.destroy');
+        Route::post('/', [VehicleGroupController::class, 'store'])->name('admin.vehicle.group.store')->middleware('permission:vehicle-groups.create');
+        Route::get('/{id}/edit', [VehicleGroupController::class, 'edit'])->name('admin.vehicle.group.edit')->middleware('permission:vehicle-groups.edit');
+        Route::put('/{id}', [VehicleGroupController::class, 'update'])->name('admin.vehicle.group.update')->middleware('permission:vehicle-groups.edit');
+        Route::delete('/{id}', [VehicleGroupController::class, 'destroy'])->name('admin.vehicle.group.destroy')->middleware('permission:vehicle-groups.delete');
     });
 
     // Fuel types
     Route::prefix('fuel-type')->group(function () {
         Route::get('/', [FuelTypeController::class, 'index'])->name('admin.fuel.type.index');
-        Route::post('/', [FuelTypeController::class, 'store'])->name('admin.fuel.type.store');
-        Route::get('/{id}/edit', [FuelTypeController::class, 'edit'])->name('admin.fuel.type.edit');
-        Route::put('/{id}', [FuelTypeController::class, 'update'])->name('admin.fuel.type.update');
-        Route::delete('/{id}', [FuelTypeController::class, 'destroy'])->name('admin.fuel.type.destroy');
+        Route::post('/', [FuelTypeController::class, 'store'])->name('admin.fuel.type.store')->middleware('permission:fuel-types.create');
+        Route::get('/{id}/edit', [FuelTypeController::class, 'edit'])->name('admin.fuel.type.edit')->middleware('permission:fuel-types.edit');
+        Route::put('/{id}', [FuelTypeController::class, 'update'])->name('admin.fuel.type.update')->middleware('permission:fuel-types.edit');
+        Route::delete('/{id}', [FuelTypeController::class, 'destroy'])->name('admin.fuel.type.destroy')->middleware('permission:fuel-types.delete');
     });
 
     // Equipment types
     Route::prefix('equipment-type')->group(function () {
         Route::get('/', [EquipmentTypeController::class, 'index'])->name('admin.equipment.type.index');
-        Route::post('/', [EquipmentTypeController::class, 'store'])->name('admin.equipment.type.store');
-        Route::get('/{id}/edit', [EquipmentTypeController::class, 'edit'])->name('admin.equipment.type.edit');
-        Route::put('/{id}', [EquipmentTypeController::class, 'update'])->name('admin.equipment.type.update');
-        Route::delete('/{id}', [EquipmentTypeController::class, 'destroy'])->name('admin.equipment.type.destroy');
+        Route::post('/', [EquipmentTypeController::class, 'store'])->name('admin.equipment.type.store')->middleware('permission:equipment-types.create');
+        Route::get('/{id}/edit', [EquipmentTypeController::class, 'edit'])->name('admin.equipment.type.edit')->middleware('permission:equipment-types.edit');
+        Route::put('/{id}', [EquipmentTypeController::class, 'update'])->name('admin.equipment.type.update')->middleware('permission:equipment-types.edit');
+        Route::delete('/{id}', [EquipmentTypeController::class, 'destroy'])->name('admin.equipment.type.destroy')->middleware('permission:equipment-types.delete');
     });
 
     // Maintenance Categories
     Route::prefix('maintenance-category')->group(function () {
         Route::get('/', [MaintenanceCategoryController::class, 'index'])->name('admin.maintenance.category.index');
-        Route::post('/', [MaintenanceCategoryController::class, 'store'])->name('admin.maintenance.category.store');
-        Route::get('/{id}/edit', [MaintenanceCategoryController::class, 'edit'])->name('admin.maintenance.category.edit');
-        Route::put('/{id}', [MaintenanceCategoryController::class, 'update'])->name('admin.maintenance.category.update');
-        Route::delete('/{id}', [MaintenanceCategoryController::class, 'destroy'])->name('admin.maintenance.category.destroy');
+        Route::post('/', [MaintenanceCategoryController::class, 'store'])->name('admin.maintenance.category.store')->middleware('permission:maintenance-categories.create');
+        Route::get('/{id}/edit', [MaintenanceCategoryController::class, 'edit'])->name('admin.maintenance.category.edit')->middleware('permission:maintenance-categories.edit');
+        Route::put('/{id}', [MaintenanceCategoryController::class, 'update'])->name('admin.maintenance.category.update')->middleware('permission:maintenance-categories.edit');
+        Route::delete('/{id}', [MaintenanceCategoryController::class, 'destroy'])->name('admin.maintenance.category.destroy')->middleware('permission:maintenance-categories.delete');
     });
 
     // Vehicles
@@ -440,11 +440,12 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         // Document Types
         Route::prefix('document-types')->group(function () {
             Route::get('/', [DocumentTypeController::class, 'index'])->name('admin.settings.document-types.index');
-            Route::post('/', [DocumentTypeController::class, 'store'])->name('admin.settings.document-types.store');
+            Route::post('/', [DocumentTypeController::class, 'store'])->name('admin.settings.document-types.store')->middleware('permission:document-types.create');
             Route::get('/{id}', [DocumentTypeController::class, 'show'])->name('admin.settings.document-types.show');
-            Route::put('/{id}', [DocumentTypeController::class, 'update'])->name('admin.settings.document-types.update');
-            Route::delete('/{id}', [DocumentTypeController::class, 'destroy'])->name('admin.settings.document-types.destroy');
-            Route::post('/{id}/toggle-status', [DocumentTypeController::class, 'toggleStatus'])->name('admin.settings.document-types.toggle-status');
+            Route::put('/{id}', [DocumentTypeController::class, 'update'])->name('admin.settings.document-types.update')->middleware('permission:document-types.edit');
+            Route::delete('/{id}', [DocumentTypeController::class, 'destroy'])->name('admin.settings.document-types.destroy')->middleware('permission:document-types.delete');
+            Route::post('/{id}/toggle-status', [DocumentTypeController::class, 'toggleStatus'])->name('admin.settings.document-types.toggle-status')->middleware('permission:document-types.edit');
+            Route::post('/{id}/company-toggle', [DocumentTypeController::class, 'toggleForCompany'])->name('admin.settings.document-types.company-toggle')->middleware('permission:companies.edit');
             Route::get('/by-module', [DocumentTypeController::class, 'getByModule'])->name('admin.settings.document-types.by-module');
         });
     });

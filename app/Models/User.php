@@ -44,6 +44,9 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * @return HasOne<Company, $this>
+     */
     public function company(): HasOne
     {
         return $this->hasOne(Company::class);

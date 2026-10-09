@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class DocumentType extends Model
 {
@@ -43,6 +44,52 @@ class DocumentType extends Model
     public function trailerDocuments()
     {
         return $this->hasMany(TrailerDocument::class);
+    }
+
+    /**
+     * Get driver compliance documents of this type
+     */
+    public function driverComplianceDocuments()
+    {
+        return $this->hasMany(DriverComplianceDocument::class);
+    }
+
+    /**
+     * Companies that have switched this type off for themselves
+     */
+    public function disabledByCompanies()
+    {
+        return $this->belongsToMany(Company::class, 'company_document_type')->withTimestamps();
+    }
+
+    /**
+     * Ids of the types each company has switched off, keyed by company id.
+     *
+     * @param  list<int>|null  $companyIds  limit to these companies (null = all)
+     * @return array<int, list<int>>
+     */
+    public static function disabledIdsByCompany(?array $companyIds = null): array
+    {
+        return DB::table('company_document_type')
+            ->when($companyIds !== null, fn ($query) => $query->whereIn('company_id', $companyIds))
+            ->get(['company_id', 'document_type_id'])
+            ->groupBy('company_id')
+            ->map(fn ($rows) => $rows->pluck('document_type_id')->map(fn ($id) => (int) $id)->all())
+            ->all();
+    }
+
+    /**
+     * Scope to the types a company must comply with: active globally and not switched off by it.
+     */
+    public function scopeEnabledForCompany($query, ?int $companyId)
+    {
+        $query->where('status', true);
+
+        if ($companyId) {
+            $query->whereDoesntHave('disabledByCompanies', fn ($q) => $q->where('companies.id', $companyId));
+        }
+
+        return $query;
     }
 
     /**

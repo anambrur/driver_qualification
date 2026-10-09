@@ -21,6 +21,11 @@ class MaintenanceCategory extends Model
         return $this->belongsToMany(ServiceLog::class, 'service_log_category');
     }
 
+    public function maintenanceSchedules()
+    {
+        return $this->hasMany(MaintenanceSchedule::class);
+    }
+
     // Scope for ordering
     public function scopeOrdered($query)
     {

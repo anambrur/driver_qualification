@@ -9,14 +9,22 @@
             <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-white/90">Document Types</h2>
-                    <p class="text-gray-600 dark:text-gray-400 mt-2">Manage document types for different modules</p>
+                    <p class="text-gray-600 dark:text-gray-400 mt-2">
+                        @if ($showCompanyColumn)
+                            Switch off the document types your company doesn't use. They stop counting towards your compliance.
+                        @else
+                            Manage document types for different modules
+                        @endif
+                    </p>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <button type="button" onclick="openCreateModal()"
-                        class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2">
-                        <i class="fas fa-plus mr-2"></i>Add Document Type
-                    </button>
-                </div>
+                @can('document-types.create')
+                    <div class="flex items-center space-x-2">
+                        <button type="button" onclick="openCreateModal()"
+                            class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2">
+                            <i class="fas fa-plus mr-2"></i>Add Document Type
+                        </button>
+                    </div>
+                @endcan
             </div>
         </div>
 
@@ -70,6 +78,12 @@
                                         class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                         Created At
                                     </th>
+                                    @if ($showCompanyColumn)
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                            My Company
+                                        </th>
+                                    @endif
                                     <th
                                         class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                         Actions
@@ -299,6 +313,16 @@
                         searchable: false,
                         orderable: true
                     },
+                    @if ($showCompanyColumn)
+                        // Per-company opt-out
+                        {
+                            data: 'company_enabled',
+                            name: 'company_enabled',
+                            searchable: false,
+                            orderable: false,
+                            className: 'text-center'
+                        },
+                    @endif
                     // Column 5: Actions
                     {
                         data: 'action',
@@ -587,6 +611,24 @@
                 }
             });
         }
+
+        // Switch a type off/on for the current company only
+        $(document).on('click', '[data-action="company-toggle"]', function () {
+            $.ajax({
+                url: '{{ url('admin/settings/document-types') }}/' + this.dataset.id + '/company-toggle',
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    $('#documentTypesTable').DataTable().ajax.reload(null, false);
+                    showToast(response.message, 'success');
+                },
+                error: function(xhr) {
+                    showToast(xhr.responseJSON?.message || 'Update failed', 'error');
+                }
+            });
+        });
 
         // Toggle Status
         function toggleStatus(id, currentStatus) {

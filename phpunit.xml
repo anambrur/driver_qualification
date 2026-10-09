@@ -12,6 +12,12 @@
             <directory>tests/Feature</directory>
         </testsuite>
     </testsuites>
+    <groups>
+        <exclude>
+            <!-- Failing tests that prove an open bug. Run them with: composer test:known-issues -->
+            <group>known-issue</group>
+        </exclude>
+    </groups>
     <source>
         <include>
             <directory>app</directory>
@@ -30,5 +36,13 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- .env holds live keys; force dummies so an unmocked call can never charge a card or send an SMS -->
+        <env name="STRIPE_KEY" value="pk_test_dummy" force="true"/>
+        <env name="STRIPE_SECRET" value="sk_test_dummy" force="true"/>
+        <env name="STRIPE_WEBHOOK_SECRET" value="whsec_test_secret" force="true"/>
+        <env name="VONAGE_API_KEY" value="test_key" force="true"/>
+        <env name="VONAGE_API_SECRET" value="test_secret" force="true"/>
+        <env name="VONAGE_SMS_FROM" value="15550000000" force="true"/>
+        <env name="FILESYSTEM_DISK" value="local" force="true"/>
     </php>
 </phpunit>

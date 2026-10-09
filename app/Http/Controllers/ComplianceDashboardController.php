@@ -34,13 +34,22 @@ class ComplianceDashboardController extends Controller
             ->where('status', true)
             ->get();
 
+        // Each company may have switched some global types off for itself
+        $disabledTypeIds = DocumentType::disabledIdsByCompany(
+            $vehicles->pluck('company_id')->merge($trailers->pluck('company_id'))->unique()->values()->all()
+        );
+
         // Process vehicles compliance
         $processedVehicles = [];
         $compliantVehicles = 0;
         $warningVehicles = 0;
 
         foreach ($vehicles as $vehicle) {
-            $complianceData = $this->calculateCompliance($vehicle, $vehicleDocumentTypes, 'vehicle');
+            $complianceData = $this->calculateCompliance(
+                $vehicle,
+                $vehicleDocumentTypes->whereNotIn('id', $disabledTypeIds[$vehicle->company_id] ?? [])->values(),
+                'vehicle'
+            );
 
             $processedVehicles[] = [
                 'id' => $vehicle->id,
@@ -72,7 +81,11 @@ class ComplianceDashboardController extends Controller
         $warningTrailers = 0;
 
         foreach ($trailers as $trailer) {
-            $complianceData = $this->calculateCompliance($trailer, $trailersDocumentTypes, 'trailer');
+            $complianceData = $this->calculateCompliance(
+                $trailer,
+                $trailersDocumentTypes->whereNotIn('id', $disabledTypeIds[$trailer->company_id] ?? [])->values(),
+                'trailer'
+            );
 
             $processedTrailers[] = [
                 'id' => $trailer->id,
@@ -239,7 +252,7 @@ class ComplianceDashboardController extends Controller
             $this->authorizeCompanyAccess($vehicle, 'You do not have permission to view this vehicle.');
 
             $vehicleDocumentTypes = DocumentType::where('module', 'vehicle')
-                ->where('status', true)
+                ->enabledForCompany($vehicle->company_id)
                 ->get();
 
             $complianceData = $this->calculateCompliance($vehicle, $vehicleDocumentTypes, 'vehicle');
@@ -300,7 +313,7 @@ class ComplianceDashboardController extends Controller
             $this->authorizeCompanyAccess($trailer, 'You do not have permission to view this trailer.');
 
             $trailerDocumentTypes = DocumentType::where('module', 'trailer')
-                ->where('status', true)
+                ->enabledForCompany($trailer->company_id)
                 ->get();
 
             $complianceData = $this->calculateCompliance($trailer, $trailerDocumentTypes, 'trailer');

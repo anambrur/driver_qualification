@@ -13,6 +13,64 @@ use Spatie\Permission\PermissionRegistrar;
 
 class PermissionSeeder extends Seeder
 {
+    // Shared with the test suite (tests/Support/Actors.php) so tests use the real permission map.
+    public const MODULES = [
+        'roles',
+        'users',
+        'permission',
+        'settings',
+        'companies',
+        'drivers',
+        'policy-pdf',
+        'fleets',
+        'vehicle-types',
+        'vehicle-groups',
+        'vehicles',
+        'fuel-types',
+        'equipment-types',
+        'trailers',
+        'asset-groups',
+        'asset-histories',
+        'document-types',
+        'maintenance-categories',
+        'maintenance',
+        'scheduled',
+        'subscription',
+    ];
+
+    public const BASIC_ACTIONS = ['create', 'view', 'edit', 'delete'];
+
+    public const SPECIAL_ACTIONS = [
+        'drivers' => ['hire', 'dashboard'],
+        'fleets' => ['dashboard'],
+    ];
+
+    public const COMPANY_MODULES = ['drivers', 'fleets', 'vehicles', 'trailers', 'maintenance', 'scheduled'];
+
+    public const COMPANY_EXTRA_PERMISSIONS = ['companies.edit'];
+
+    /**
+     * All permission names, e.g. "drivers.create", "drivers.hire".
+     *
+     * @return list<string>
+     */
+    public static function permissionNames(): array
+    {
+        $names = [];
+
+        foreach (self::MODULES as $module) {
+            foreach (self::BASIC_ACTIONS as $action) {
+                $names[] = "$module.$action";
+            }
+
+            foreach (self::SPECIAL_ACTIONS[$module] ?? [] as $action) {
+                $names[] = "$module.$action";
+            }
+        }
+
+        return $names;
+    }
+
     /**
      * Run the database seeds.
      */
@@ -34,54 +92,9 @@ class PermissionSeeder extends Seeder
         Company::truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
-        // Define the modules
-        $modules = [
-            'roles',
-            'users',
-            'permission',
-            'settings',
-            'companies',
-            'drivers',
-            'policy-pdf',
-            'fleets',
-            'vehicle-types',
-            'vehicle-groups',
-            'vehicles',
-            'fuel-types',
-            'equipment-types',
-            'trailers',
-            'asset-groups',
-            'asset-histories',
-            'document-types',
-            'maintenance-categories',
-            'maintenance',
-            'scheduled',
-            'subscription',
-        ];
-
-        // Define basic actions
-        $basicActions = ['create', 'view', 'edit', 'delete'];
-
-        // Define special actions for specific modules
-        $specialActions = [
-            'drivers' => ['hire', 'dashboard'],
-            'fleets' => ['dashboard'],
-
-        ];
-
         // Create permissions dynamically
-        foreach ($modules as $module) {
-            // Create basic permissions
-            foreach ($basicActions as $action) {
-                Permission::create(['name' => "$module.$action", 'guard_name' => 'web']);
-            }
-
-            // Create special permissions if defined for this module
-            if (isset($specialActions[$module])) {
-                foreach ($specialActions[$module] as $action) {
-                    Permission::create(['name' => "$module.$action", 'guard_name' => 'web']);
-                }
-            }
+        foreach (self::permissionNames() as $name) {
+            Permission::create(['name' => $name, 'guard_name' => 'web']);
         }
 
         // Create roles
@@ -95,17 +108,16 @@ class PermissionSeeder extends Seeder
         $roleSuperAdmin->givePermissionTo(Permission::all());
 
         $roleCompany = Role::where('name', 'company')->first();
-        $companyModules = ['drivers', 'fleets', 'vehicles', 'trailers', 'maintenance', 'scheduled'];
         $roleCompany->givePermissionTo(
-            Permission::where(function ($query) use ($companyModules) {
-                foreach ($companyModules as $module) {
+            Permission::where(function ($query) {
+                foreach (self::COMPANY_MODULES as $module) {
                     $query->orWhere('name', 'like', $module . '.%');
                 }
             })->get()
         );
 
         // Allow company users to edit their own company profile (My Account)
-        $roleCompany->givePermissionTo('companies.edit');
+        $roleCompany->givePermissionTo(self::COMPANY_EXTRA_PERMISSIONS);
 
         // Create demo users
         $superAdmin = User::factory()->create([

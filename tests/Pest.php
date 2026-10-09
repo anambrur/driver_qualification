@@ -13,7 +13,15 @@
 
 pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature');
+    ->in('Feature', 'Unit/Modules');
+
+/*
+| Module test suites live in tests/Feature/Modules/<Module> and tests/Unit/Modules/<Module>.
+| Shared fixtures: Tests\Support\Actors (users/roles/tenants/subscriptions),
+| Tests\Support\Perf (query budgets), Tests\Support\StripeFake (webhook signing, client mock).
+| Tests proving an open bug are tagged ->group('known-issue') and excluded from the default run
+| (see phpunit.xml); run them with: php artisan test --group=known-issue
+*/
 
 /*
 |--------------------------------------------------------------------------

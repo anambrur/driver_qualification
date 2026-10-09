@@ -460,6 +460,11 @@
             });
         }
 
+        // Delete buttons carry the id and name as data attributes (never inline in onclick)
+        $(document).on('click', '[data-action="delete"]', function () {
+            deleteFuelType(this.dataset.id, this.dataset.name);
+        });
+
         // Delete fuel type
         function deleteFuelType(id, name) {
             Swal.fire({

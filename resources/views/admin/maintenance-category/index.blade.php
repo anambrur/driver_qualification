@@ -433,6 +433,11 @@
             });
         }
 
+        // Delete buttons carry the id and name as data attributes (never inline in onclick)
+        $(document).on('click', '[data-action="delete"]', function () {
+            deleteMaintenanceCategory(this.dataset.id, this.dataset.name);
+        });
+
         // Delete maintenance category
         function deleteMaintenanceCategory(id, name) {
             Swal.fire({

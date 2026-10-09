@@ -68,9 +68,11 @@ trait CompanyFilterTrait
     /**
      * Apply company filter to a query.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<TModel>  $query
      * @param  string  $companyColumn
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \Illuminate\Database\Eloquent\Builder<TModel>
      */
     protected function applyCompanyFilter($query, string $companyColumn = 'company_id')
     {

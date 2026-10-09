@@ -28,6 +28,7 @@ class DriverComplianceDashboardController extends Controller
         $driverDocumentTypes = DocumentType::where('module', 'driver')
             ->where('status', true)
             ->get();
+        $disabledTypeIds = DocumentType::disabledIdsByCompany($drivers->pluck('company_id')->unique()->values()->all());
 
         // Process drivers compliance
         $processedDrivers = [];
@@ -36,7 +37,10 @@ class DriverComplianceDashboardController extends Controller
         $criticalDrivers = 0;
 
         foreach ($drivers as $driver) {
-            $complianceData = $this->complianceService->calculateCompliance($driver, $driverDocumentTypes);
+            $complianceData = $this->complianceService->calculateCompliance(
+                $driver,
+                $driverDocumentTypes->whereNotIn('id', $disabledTypeIds[$driver->company_id] ?? [])->values()
+            );
 
             $processedDrivers[] = [
                 'id' => $driver->id,

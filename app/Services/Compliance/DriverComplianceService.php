@@ -19,7 +19,7 @@ class DriverComplianceService
         }
 
         $documentTypes = DocumentType::where('module', 'driver')
-            ->where('status', true)
+            ->enabledForCompany($driver->company_id)
             ->orderBy('name')
             ->get();
 

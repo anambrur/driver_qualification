@@ -22,4 +22,12 @@ class Company extends Model
     {
         return $this->hasMany(Vehicle::class);
     }
+
+    /**
+     * Global document types this company has switched off for itself.
+     */
+    public function disabledDocumentTypes()
+    {
+        return $this->belongsToMany(DocumentType::class, 'company_document_type')->withTimestamps();
+    }
 }

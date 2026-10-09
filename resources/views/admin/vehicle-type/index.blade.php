@@ -432,6 +432,11 @@
             });
         });
 
+        // Delete buttons carry the id and name as data attributes (never inline in onclick)
+        $(document).on('click', '[data-action="delete"]', function () {
+            deleteVehicleType(this.dataset.id, this.dataset.name);
+        });
+
         // Delete vehicle type
         function deleteVehicleType(id, name) {
             Swal.fire({

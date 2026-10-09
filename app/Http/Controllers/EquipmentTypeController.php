@@ -24,7 +24,7 @@ class EquipmentTypeController extends Controller
                                 class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors">
                             <i class="fas fa-edit mr-1"></i> Edit
                         </button>
-                        <button onclick="deleteEquipmentType(' . $row->id . ', \'' . addslashes($row->name) . '\')" 
+                        <button data-action="delete" data-id="' . $row->id . '" data-name="' . e($row->name) . '" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
                             <i class="fas fa-trash mr-1"></i> Delete
                         </button>
@@ -138,17 +138,16 @@ class EquipmentTypeController extends Controller
     {
         $equipmentType = EquipmentType::findOrFail($id);
 
+        if ($equipmentType->trailers()->withTrashed()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete equipment type because it is assigned to trailers.'
+            ], 400);
+        }
+
         DB::beginTransaction();
 
         try {
-            // Check if equipment type has related equipment
-            // if ($equipmentType->equipment()->count() > 0) {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'Cannot delete equipment type because it has associated equipment.'
-            //     ], 400);
-            // }
-
             $equipmentType->delete();
             DB::commit();
 

@@ -92,7 +92,7 @@ class Trailer extends Model
     public function getCompliancePercentageAttribute()
     {
         $totalDocs = DocumentType::where('module', 'trailer')
-            ->where('status', true)
+            ->enabledForCompany($this->company_id)
             ->count();
 
         if ($totalDocs === 0) {
@@ -101,7 +101,7 @@ class Trailer extends Model
 
         $validDocs = $this->documents()
             ->whereHas('documentType', function ($query) {
-                $query->where('status', true);
+                $query->enabledForCompany($this->company_id);
             })
             ->where(function ($query) {
                 $query->whereNull('expiry_date')
@@ -126,7 +126,7 @@ class Trailer extends Model
     public function getMissingDocumentsAttribute()
     {
         $requiredDocs = DocumentType::where('module', 'trailer')
-            ->where('status', true)
+            ->enabledForCompany($this->company_id)
             ->get();
 
         $missing = [];
