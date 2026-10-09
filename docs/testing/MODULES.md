@@ -175,11 +175,13 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| FCMP-01 | P1 | SUSPECTED | Same shared-file bug as DCMP-02 for `upload_to_all`. |
-| FCMP-02 | P1 | SUSPECTED | Same public-disk / guessable filename issue as DCMP-01. |
-| FCMP-03 | P2 | SUSPECTED | N+1: `getVehiclesList`/`getTrailersList` run one `exists` query per asset; `fleet()` loads every asset + docs unpaginated. |
-| FCMP-04 | P2 | SUSPECTED | Controller re-implements compliance math; check it for the same `warning`-unreachable bug as DCMP-03. Any `assetType` other than `vehicle` falls into the trailer branch. |
-| FCMP-05 | P3 | SUSPECTED | Exception messages returned in JSON. |
+| FCMP-01 | P1 | FIXED | Same shared-file bug as DCMP-02 for `upload_to_all`. |
+| FCMP-02 | P1 | FIXED | Same public-disk / guessable filename issue as DCMP-01. |
+| FCMP-03 | P2 | FIXED | N+1: `getVehiclesList`/`getTrailersList` run one `exists` query per asset; `fleet()` loads every asset + docs unpaginated. (2026-10-10: list N+1 fixed; dashboard query count was already constant; pagination DEFERRED, see report.) |
+| FCMP-04 | P2 | FIXED | Controller re-implements compliance math; check it for the same `warning`-unreachable bug as DCMP-03. Any `assetType` other than `vehicle` falls into the trailer branch. (2026-10-10: `warning` reachable, dismissed; unknown `assetType` now 404.) |
+| FCMP-05 | P3 | FIXED | Exception messages returned in JSON. |
+| FCMP-06 | P1 | FIXED | (Found 2026-10-10) Stored XSS: the details modal and the upload dropdown put tenant-controlled vehicle/trailer fields (make, model, VIN, unit no, description) into `innerHTML` unescaped. |
+| FCMP-07 | P1 | FIXED | (Found 2026-10-10) view/download/delete skipped the tenant check when the vehicle/trailer was soft-deleted (`$document->vehicle` is null), so any tenant could read or delete those documents by id. |
 
 ## 10. `maintenance`: Service logs & schedules
 - **Scope**: `app/Http/Controllers/{ServiceLogController,MaintenanceScheduleController}.php`, `app/Models/{ServiceLog,ServiceDocument,MaintenanceSchedule}.php`, views `admin/{service-log,maintenance-schedule}/**`

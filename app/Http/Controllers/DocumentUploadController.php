@@ -10,12 +10,30 @@ use App\Models\VehicleDocument;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class DocumentUploadController extends Controller
 {
     use CompanyFilterTrait;
+
+    /**
+     * FCMP-02: vehicle and trailer documents live on the private `local` disk under a random name
+     * and are only served by viewDocument()/downloadDocument(). Files uploaded before that are still
+     * on the `public` disk until the 2026_10_10_000100 migration moves them, so reads and deletes
+     * check both.
+     */
+    private const DISK = 'local';
+
+    private const LEGACY_DISK = 'public';
+
+    private const FILE_HEADERS = [
+        'X-Content-Type-Options' => 'nosniff',
+        'Cache-Control' => 'private, no-store',
+    ];
+
+    private const ASSET_TYPES = ['vehicle', 'trailer'];
 
     /**
      * Get list of vehicles for upload dropdown (filtered by company)
@@ -27,19 +45,22 @@ class DocumentUploadController extends Controller
 
             $documentType = DocumentType::find($documentTypeId);
 
-            // Apply company filter to vehicles query
-            $vehiclesQuery = Vehicle::select('vehicles.id', 'vehicles.unit_no');
+            // Apply company filter and load has_document in one query (avoid N+1 exists)
+            $vehiclesQuery = Vehicle::select('vehicles.id', 'vehicles.unit_no')
+                ->withExists([
+                    'documents as has_document' => function ($query) use ($documentTypeId) {
+                        $query->where('document_type_id', $documentTypeId);
+                    },
+                ]);
             $vehiclesQuery = $this->applyCompanyFilter($vehiclesQuery);
 
             $vehicles = $vehiclesQuery->orderBy('vehicles.unit_no')
                 ->get()
-                ->map(function ($vehicle) use ($documentTypeId) {
+                ->map(function ($vehicle) {
                     return [
                         'id' => $vehicle->id,
                         'unit_no' => $vehicle->unit_no,
-                        'has_document' => VehicleDocument::where('vehicle_id', $vehicle->id)
-                            ->where('document_type_id', $documentTypeId)
-                            ->exists(),
+                        'has_document' => (bool) $vehicle->getAttribute('has_document'),
                     ];
                 });
 
@@ -60,9 +81,11 @@ class DocumentUploadController extends Controller
                 'total' => $vehicles->count(),
             ]);
         } catch (\Exception $e) {
+            Log::error('Failed to load vehicles for compliance upload', ['exception' => $e]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load vehicles: '.$e->getMessage(),
+                'message' => 'Failed to load vehicles.',
             ], 500);
         }
     }
@@ -77,19 +100,22 @@ class DocumentUploadController extends Controller
 
             $documentType = DocumentType::find($documentTypeId);
 
-            // Apply company filter to trailers query
-            $trailersQuery = Trailer::select('trailers.id', 'trailers.unit_no');
+            // Apply company filter and load has_document in one query (avoid N+1 exists)
+            $trailersQuery = Trailer::select('trailers.id', 'trailers.unit_no')
+                ->withExists([
+                    'documents as has_document' => function ($query) use ($documentTypeId) {
+                        $query->where('document_type_id', $documentTypeId);
+                    },
+                ]);
             $trailersQuery = $this->applyCompanyFilter($trailersQuery);
 
             $trailers = $trailersQuery->orderBy('trailers.unit_no')
                 ->get()
-                ->map(function ($trailer) use ($documentTypeId) {
+                ->map(function ($trailer) {
                     return [
                         'id' => $trailer->id,
                         'unit_no' => $trailer->unit_no,
-                        'has_document' => TrailerDocument::where('trailer_id', $trailer->id)
-                            ->where('document_type_id', $documentTypeId)
-                            ->exists(),
+                        'has_document' => (bool) $trailer->getAttribute('has_document'),
                     ];
                 });
 
@@ -110,9 +136,11 @@ class DocumentUploadController extends Controller
                 'total' => $trailers->count(),
             ]);
         } catch (\Exception $e) {
+            Log::error('Failed to load trailers for compliance upload', ['exception' => $e]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load trailers: '.$e->getMessage(),
+                'message' => 'Failed to load trailers.',
             ], 500);
         }
     }
@@ -140,200 +168,137 @@ class DocumentUploadController extends Controller
             ], 422);
         }
 
+        $assetType = $request->asset_type;
+        $assetModel = $assetType === 'vehicle' ? Vehicle::class : Trailer::class;
+
+        if ($request->boolean('upload_to_all')) {
+            // Upload to all assets (filtered by company)
+            $assets = $assetType === 'vehicle'
+                ? $this->applyCompanyFilter(Vehicle::query())->get()
+                : $this->applyCompanyFilter(Trailer::query())->get();
+        } else {
+            // Upload to selected asset (validate company access first): 404 if unknown, 403 if another company's
+            $asset = $assetModel::whereKey($request->selected_asset)->first();
+            abort_unless($asset !== null, 404, ucfirst($assetType).' not found.');
+            $this->authorizeCompanyAccess($asset, "You do not have permission to upload documents for this {$assetType}.");
+            $assets = collect([$asset]);
+        }
+
+        $filePath = null;
+        $replacedPaths = [];
+        $uploadedCount = 0;
+        $updatedCount = 0;
+
         try {
             DB::beginTransaction();
 
-            $documentTypeId = $request->document_type_id;
-            $assetType = $request->asset_type;
-            $expiryDate = $request->expiry_date;
-            $description = $request->description;
-            $uploadToAll = $request->boolean('upload_to_all');
+            // Random name with the extension of the content (FCMP-02). One file is shared by
+            // every asset of an "upload to all" (FCMP-01: see deleteFileIfUnused()).
+            $filePath = $request->file('file')->store('documents/'.$assetType.'s', self::DISK);
+            if (! $filePath) {
+                throw new \RuntimeException('Could not store the uploaded file.');
+            }
 
-            // Handle file upload
-            $file = $request->file('file');
-            $fileName = time().'_'.str_replace(' ', '_', $file->getClientOriginalName());
-            $filePath = $file->storeAs('documents/'.$assetType.'s', $fileName, 'public');
-
-            $uploadedCount = 0;
-            $updatedCount = 0;
-
-            if ($uploadToAll) {
-                // Upload to all assets (filtered by company)
-                if ($assetType === 'vehicle') {
-                    $vehiclesQuery = Vehicle::query();
-                    $vehiclesQuery = $this->applyCompanyFilter($vehiclesQuery);
-                    $assets = $vehiclesQuery->get();
-
-                    foreach ($assets as $asset) {
-                        $result = $this->createOrUpdateDocumentWithValidation(
-                            'vehicle',
-                            $asset->id,
-                            $documentTypeId,
-                            $expiryDate,
-                            $description,
-                            $filePath
-                        );
-
-                        if ($result['created']) {
-                            $uploadedCount++;
-                        } else {
-                            $updatedCount++;
-                        }
-                    }
-                } else {
-                    $trailersQuery = Trailer::query();
-                    $trailersQuery = $this->applyCompanyFilter($trailersQuery);
-                    $assets = $trailersQuery->get();
-
-                    foreach ($assets as $asset) {
-                        $result = $this->createOrUpdateDocumentWithValidation(
-                            'trailer',
-                            $asset->id,
-                            $documentTypeId,
-                            $expiryDate,
-                            $description,
-                            $filePath
-                        );
-
-                        if ($result['created']) {
-                            $uploadedCount++;
-                        } else {
-                            $updatedCount++;
-                        }
-                    }
-                }
-            } else {
-                // Upload to selected asset (validate company access first)
-                $selectedAssetId = $request->selected_asset;
-
-                // Validate that the user has access to this asset
-                if ($assetType === 'vehicle') {
-                    $asset = Vehicle::findOrFail($selectedAssetId);
-                    $this->authorizeCompanyAccess($asset, 'You do not have permission to upload documents for this vehicle.');
-                } else {
-                    $asset = Trailer::findOrFail($selectedAssetId);
-                    $this->authorizeCompanyAccess($asset, 'You do not have permission to upload documents for this trailer.');
-                }
-
+            foreach ($assets as $asset) {
                 $result = $this->createOrUpdateDocumentWithValidation(
                     $assetType,
-                    $selectedAssetId,
-                    $documentTypeId,
-                    $expiryDate,
-                    $description,
+                    $asset,
+                    $request->document_type_id,
+                    $request->expiry_date,
+                    $request->description,
                     $filePath
                 );
 
                 if ($result['created']) {
-                    $uploadedCount = 1;
+                    $uploadedCount++;
                 } else {
-                    $updatedCount = 1;
+                    $updatedCount++;
+                }
+
+                if ($result['replaced_path']) {
+                    $replacedPaths[] = $result['replaced_path'];
                 }
             }
 
             DB::commit();
-
-            $message = $this->generateSuccessMessage($uploadedCount, $updatedCount, $assetType);
-
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'uploaded_count' => $uploadedCount,
-                'updated_count' => $updatedCount,
-            ]);
         } catch (\Exception $e) {
             DB::rollBack();
 
             // Delete uploaded file if transaction fails
-            if (isset($filePath) && Storage::disk('public')->exists($filePath)) {
-                Storage::disk('public')->delete($filePath);
+            if ($filePath) {
+                Storage::disk(self::DISK)->delete($filePath);
             }
+
+            Log::error('Failed to upload fleet compliance document', ['exception' => $e]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to upload document: '.$e->getMessage(),
+                'message' => 'Failed to upload document.',
             ], 500);
         }
+
+        // Old files are only removed once the new rows are committed, and only if no other
+        // asset's document still points at them.
+        foreach (array_unique($replacedPaths) as $path) {
+            $this->deleteFileIfUnused($assetType, $path);
+        }
+
+        $message = $this->generateSuccessMessage($uploadedCount, $updatedCount, $assetType);
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'uploaded_count' => $uploadedCount,
+            'updated_count' => $updatedCount,
+        ]);
     }
 
     /**
      * Create or update document for an asset with validation
+     *
+     * @return array{created: bool, replaced_path: ?string}
      */
-    private function createOrUpdateDocumentWithValidation($assetType, $assetId, $documentTypeId, $expiryDate, $description, $filePath)
+    private function createOrUpdateDocumentWithValidation(string $assetType, Vehicle|Trailer $asset, $documentTypeId, $expiryDate, $description, string $filePath): array
     {
         $created = false;
+        $replacedPath = null;
 
-        if ($assetType === 'vehicle') {
-            // Double-check vehicle belongs to user's company
-            $vehicle = Vehicle::findOrFail($assetId);
-            if (! $this->userHasAccess($vehicle)) {
-                throw new \Exception('Unauthorized access to vehicle');
-            }
-
-            $existingDocument = VehicleDocument::where('vehicle_id', $assetId)
-                ->where('document_type_id', $documentTypeId)
-                ->first();
-
-            if ($existingDocument) {
-                // Delete old file
-                if ($existingDocument->file_path && Storage::disk('public')->exists($existingDocument->file_path)) {
-                    Storage::disk('public')->delete($existingDocument->file_path);
-                }
-
-                // Update existing document
-                $existingDocument->update([
-                    'expiry_date' => $expiryDate,
-                    'description' => $description,
-                    'file_path' => $filePath,
-                ]);
-            } else {
-                // Create new document
-                VehicleDocument::create([
-                    'vehicle_id' => $assetId,
-                    'document_type_id' => $documentTypeId,
-                    'expiry_date' => $expiryDate,
-                    'description' => $description,
-                    'file_path' => $filePath,
-                ]);
-                $created = true;
-            }
-        } else {
-            // Double-check trailer belongs to user's company
-            $trailer = Trailer::findOrFail($assetId);
-            if (! $this->userHasAccess($trailer)) {
-                throw new \Exception('Unauthorized access to trailer');
-            }
-
-            $existingDocument = TrailerDocument::where('trailer_id', $assetId)
-                ->where('document_type_id', $documentTypeId)
-                ->first();
-
-            if ($existingDocument) {
-                // Delete old file
-                if ($existingDocument->file_path && Storage::disk('public')->exists($existingDocument->file_path)) {
-                    Storage::disk('public')->delete($existingDocument->file_path);
-                }
-
-                // Update existing document
-                $existingDocument->update([
-                    'expiry_date' => $expiryDate,
-                    'description' => $description,
-                    'file_path' => $filePath,
-                ]);
-            } else {
-                // Create new document
-                TrailerDocument::create([
-                    'trailer_id' => $assetId,
-                    'document_type_id' => $documentTypeId,
-                    'expiry_date' => $expiryDate,
-                    'description' => $description,
-                    'file_path' => $filePath,
-                ]);
-                $created = true;
-            }
+        // Double-check the asset belongs to user's company
+        if (! $this->userHasAccess($asset)) {
+            throw new \Exception("Unauthorized access to {$assetType}");
         }
 
-        return ['created' => $created];
+        $documentModel = $this->documentModel($assetType);
+
+        $existingDocument = $documentModel::where($assetType.'_id', $asset->id)
+            ->where('document_type_id', $documentTypeId)
+            ->first();
+
+        if ($existingDocument) {
+            // The old file is deleted by the caller after commit, if no other document uses it
+            if ($existingDocument->file_path && $existingDocument->file_path !== $filePath) {
+                $replacedPath = $existingDocument->file_path;
+            }
+
+            // Update existing document
+            $existingDocument->update([
+                'expiry_date' => $expiryDate,
+                'description' => $description,
+                'file_path' => $filePath,
+            ]);
+        } else {
+            // Create new document
+            $documentModel::create([
+                $assetType.'_id' => $asset->id,
+                'document_type_id' => $documentTypeId,
+                'expiry_date' => $expiryDate,
+                'description' => $description,
+                'file_path' => $filePath,
+            ]);
+            $created = true;
+        }
+
+        return ['created' => $created, 'replaced_path' => $replacedPath];
     }
 
     /**
@@ -353,39 +318,30 @@ class DocumentUploadController extends Controller
             ], 422);
         }
 
+        $assetType = $request->asset_type;
+        $document = $this->findAuthorizedDocument($assetType, $request->document_id, "You do not have permission to delete documents for this {$assetType}.");
+
         try {
-            if ($request->asset_type === 'vehicle') {
-                $document = VehicleDocument::with('vehicle')->findOrFail($request->document_id);
-
-                // Validate user has access to the parent vehicle
-                if ($document->vehicle) {
-                    $this->authorizeCompanyAccess($document->vehicle, 'You do not have permission to delete documents for this vehicle.');
-                }
-            } else {
-                $document = TrailerDocument::with('trailer')->findOrFail($request->document_id);
-
-                // Validate user has access to the parent trailer
-                if ($document->trailer) {
-                    $this->authorizeCompanyAccess($document->trailer, 'You do not have permission to delete documents for this trailer.');
-                }
-            }
-
-            // Delete file from storage
-            if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
-                Storage::disk('public')->delete($document->file_path);
-            }
+            $filePath = $document->file_path;
 
             // Delete document record
             $document->delete();
+
+            // Delete file from storage, unless another asset's document shares it (FCMP-01)
+            if ($filePath) {
+                $this->deleteFileIfUnused($assetType, $filePath);
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Document deleted successfully',
             ]);
         } catch (\Exception $e) {
+            Log::error('Failed to delete fleet compliance document', ['exception' => $e, 'document_id' => $document->id, 'asset_type' => $assetType]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete document: '.$e->getMessage(),
+                'message' => 'Failed to delete document.',
             ], 500);
         }
     }
@@ -395,37 +351,12 @@ class DocumentUploadController extends Controller
      */
     public function downloadDocument(Request $request, $documentId, $assetType)
     {
-        try {
-            if ($assetType === 'vehicle') {
-                $document = VehicleDocument::with(['documentType', 'vehicle'])->findOrFail($documentId);
+        $document = $this->findAuthorizedDocument($assetType, $documentId, "You do not have permission to download documents for this {$assetType}.");
+        $disk = $this->diskHolding($document->file_path);
 
-                // Validate user has access to the parent vehicle
-                if ($document->vehicle) {
-                    $this->authorizeCompanyAccess($document->vehicle, 'You do not have permission to download documents for this vehicle.');
-                }
-            } else {
-                $document = TrailerDocument::with(['documentType', 'trailer'])->findOrFail($documentId);
+        $fileName = $document->documentType->name.'_'.basename($document->file_path);
 
-                // Validate user has access to the parent trailer
-                if ($document->trailer) {
-                    $this->authorizeCompanyAccess($document->trailer, 'You do not have permission to download documents for this trailer.');
-                }
-            }
-
-            if (! $document->file_path || ! Storage::disk('public')->exists($document->file_path)) {
-                abort(404, 'File not found');
-            }
-
-            $filePath = Storage::disk('public')->path($document->file_path);
-            $fileName = $document->documentType->name.'_'.basename($document->file_path);
-
-            return response()->download($filePath, $fileName);
-        } catch (\Exception $e) {
-            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
-                throw $e;
-            }
-            abort(404, 'Document not found');
-        }
+        return Storage::disk($disk)->download($document->file_path, $fileName, self::FILE_HEADERS);
     }
 
     /**
@@ -433,38 +364,64 @@ class DocumentUploadController extends Controller
      */
     public function viewDocument($documentId, $assetType)
     {
-        try {
-            if ($assetType === 'vehicle') {
-                $document = VehicleDocument::with('vehicle')->findOrFail($documentId);
+        $document = $this->findAuthorizedDocument($assetType, $documentId, "You do not have permission to view documents for this {$assetType}.");
+        $disk = $this->diskHolding($document->file_path);
 
-                // Validate user has access to the parent vehicle
-                if ($document->vehicle) {
-                    $this->authorizeCompanyAccess($document->vehicle, 'You do not have permission to view documents for this vehicle.');
-                }
-            } else {
-                $document = TrailerDocument::with('trailer')->findOrFail($documentId);
+        return Storage::disk($disk)->response($document->file_path, null, self::FILE_HEADERS);
+    }
 
-                // Validate user has access to the parent trailer
-                if ($document->trailer) {
-                    $this->authorizeCompanyAccess($document->trailer, 'You do not have permission to view documents for this trailer.');
-                }
+    /**
+     * @return class-string<VehicleDocument>|class-string<TrailerDocument>
+     */
+    private function documentModel(string $assetType): string
+    {
+        return $assetType === 'vehicle' ? VehicleDocument::class : TrailerDocument::class;
+    }
+
+    /**
+     * Load a document the user may act on: 404 for an unknown asset type (FCMP-04), or if the
+     * document or its vehicle/trailer is gone (a soft-deleted asset loads as null, FCMP-07),
+     * 403 if the asset belongs to another company.
+     */
+    private function findAuthorizedDocument($assetType, $documentId, string $message): VehicleDocument|TrailerDocument
+    {
+        abort_unless(in_array($assetType, self::ASSET_TYPES, true), 404, 'Document not found');
+
+        $document = $this->documentModel($assetType)::with(['documentType', $assetType])->whereKey($documentId)->first();
+        $asset = $document?->getRelationValue($assetType);
+        abort_unless($asset !== null, 404, 'Document not found');
+
+        $this->authorizeCompanyAccess($asset, $message);
+
+        return $document;
+    }
+
+    /**
+     * The disk the file is on: the private disk, or the public one for files not yet moved.
+     */
+    private function diskHolding(?string $filePath): string
+    {
+        foreach ([self::DISK, self::LEGACY_DISK] as $disk) {
+            if ($filePath && Storage::disk($disk)->exists($filePath)) {
+                return $disk;
             }
+        }
 
-            if (! $document->file_path || ! Storage::disk('public')->exists($document->file_path)) {
-                abort(404, 'File not found');
-            }
+        abort(404, 'File not found');
+    }
 
-            $filePath = Storage::disk('public')->path($document->file_path);
-            $mimeType = Storage::disk('public')->mimeType($document->file_path);
+    /**
+     * Delete a file from both disks once no document points at it any more. "Upload to all"
+     * gives every vehicle (or trailer) the same file (FCMP-01).
+     */
+    private function deleteFileIfUnused(string $assetType, string $filePath): void
+    {
+        if ($this->documentModel($assetType)::where('file_path', $filePath)->exists()) {
+            return;
+        }
 
-            return response()->file($filePath, [
-                'Content-Type' => $mimeType,
-            ]);
-        } catch (\Exception $e) {
-            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
-                throw $e;
-            }
-            abort(404, 'Document not found');
+        foreach ([self::DISK, self::LEGACY_DISK] as $disk) {
+            Storage::disk($disk)->delete($filePath);
         }
     }
 

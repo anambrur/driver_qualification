@@ -608,6 +608,7 @@
                         // Build documents HTML
                         let documentsHtml = '';
                         if (vehicle.documents && vehicle.documents.length > 0) {
+                            const assetType = 'vehicle';
                             documentsHtml = vehicle.documents.map(doc => {
                                 const statusClass = doc.status === 'expired' ?
                                     'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
@@ -619,7 +620,7 @@
                                     doc.status === 'expiring' ? `Expires in ${doc.days_until_expiry} days` :
                                     'Valid';
 
-                                const fileUrl = `/storage/${doc.file_path}`;
+                                const fileUrl = `/admin/compliance/documents/${doc.id}/${assetType}/view`;
                                 const fileExtension = doc.file_path ? doc.file_path.split('.').pop()
                                     .toLowerCase() : '';
                                 const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension);
@@ -629,7 +630,7 @@
                                 <div class="flex items-start justify-between">
                                     <div class="flex-1">
                                         <div class="flex items-center mb-2">
-                                            <h4 class="font-medium text-gray-900 dark:text-white">${doc.type_name}</h4>
+                                            <h4 class="font-medium text-gray-900 dark:text-white">${escapeHtml(doc.type_name)}</h4>
                                             <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${statusClass}">
                                                 ${statusText}
                                             </span>
@@ -642,7 +643,7 @@
                                             ${doc.description ? `
                                                         <div>
                                                             <p class="text-gray-600 dark:text-gray-400">Description:</p>
-                                                            <p class="font-medium text-gray-900 dark:text-white">${doc.description}</p>
+                                                            <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(doc.description)}</p>
                                                         </div>
                                                         ` : ''}
                                         </div>
@@ -650,7 +651,7 @@
                                     ${doc.file_path ? `
                                                 <div class="ml-4 flex space-x-2">
                                                     ${isImage ? `
-                                        <button type="button" onclick="previewImage('${fileUrl}', '${doc.type_name}')" 
+                                        <button type="button" data-action="preview-document" data-url="${escapeHtml(fileUrl)}" data-title="${escapeHtml(doc.type_name)}" 
                                             class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="Preview">
                                             <i class="fas fa-eye"></i>
                                         </button>
@@ -659,7 +660,7 @@
                                                         class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="Download">
                                                         <i class="fas fa-download"></i>
                                                     </a>
-                                                    <button type="button" onclick="viewDocument('${doc.id}', 'vehicle')" 
+                                                    <button type="button" onclick="viewDocument(${Number(doc.id)}, 'vehicle')" 
                                                         class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="View">
                                                         <i class="fas fa-file-pdf"></i>
                                                     </button>
@@ -681,7 +682,7 @@
                             ${vehicle.missing_documents.map(doc => `
                                             <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
                                                 <i class="mr-3 text-amber-500 fas fa-exclamation-circle"></i>
-                                                <span class="text-sm text-gray-700 dark:text-gray-300">${doc}</span>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(doc)}</span>
                                             </div>
                                         `).join('')}
                         </div>
@@ -694,15 +695,15 @@
                         <div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
                             <div>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">Make/Model</p>
-                                <p class="font-medium text-gray-900 dark:text-white">${vehicle.make} ${vehicle.model}</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(vehicle.make)} ${escapeHtml(vehicle.model)}</p>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">Year</p>
-                                <p class="font-medium text-gray-900 dark:text-white">${vehicle.year}</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(vehicle.year)}</p>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">VIN</p>
-                                <p class="font-medium text-gray-900 dark:text-white">${vehicle.vin}</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(vehicle.vin)}</p>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">Odometer</p>
@@ -715,7 +716,7 @@
                             <h4 class="mb-2 font-medium text-gray-900 dark:text-white">Compliance Status</h4>
                             <div class="flex items-center justify-between p-3 rounded-lg ${vehicle.compliance_status === 'warning' ? 'bg-amber-50 dark:bg-amber-900/10' : vehicle.compliance_status === 'danger' ? 'bg-red-50 dark:bg-red-900/10' : 'bg-emerald-50 dark:bg-emerald-900/10'}">
                                 <div>
-                                    <p class="text-sm font-medium text-gray-900 dark:text-white">${vehicle.compliance_percentage} Compliance</p>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(vehicle.compliance_percentage)} Compliance</p>
                                     <p class="text-sm text-gray-600 dark:text-gray-400">${vehicle.compliant_docs} of ${vehicle.total_docs} documents</p>
                                 </div>
                                 <span class="px-3 py-1 text-sm font-medium rounded-full ${vehicle.compliance_status === 'warning' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : vehicle.compliance_status === 'danger' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'}">
@@ -788,6 +789,7 @@
                         // Build documents HTML (similar to vehicle)
                         let documentsHtml = '';
                         if (trailer.documents && trailer.documents.length > 0) {
+                            const assetType = 'trailer';
                             documentsHtml = trailer.documents.map(doc => {
                                 const statusClass = doc.status === 'expired' ?
                                     'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
@@ -799,7 +801,7 @@
                                     doc.status === 'expiring' ? `Expires in ${doc.days_until_expiry} days` :
                                     'Valid';
 
-                                const fileUrl = `/storage/${doc.file_path}`;
+                                const fileUrl = `/admin/compliance/documents/${doc.id}/${assetType}/view`;
                                 const fileExtension = doc.file_path ? doc.file_path.split('.').pop()
                                     .toLowerCase() : '';
                                 const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension);
@@ -809,7 +811,7 @@
                                 <div class="flex items-start justify-between">
                                     <div class="flex-1">
                                         <div class="flex items-center mb-2">
-                                            <h4 class="font-medium text-gray-900 dark:text-white">${doc.type_name}</h4>
+                                            <h4 class="font-medium text-gray-900 dark:text-white">${escapeHtml(doc.type_name)}</h4>
                                             <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${statusClass}">
                                                 ${statusText}
                                             </span>
@@ -822,7 +824,7 @@
                                             ${doc.description ? `
                                                         <div>
                                                             <p class="text-gray-600 dark:text-gray-400">Description:</p>
-                                                            <p class="font-medium text-gray-900 dark:text-white">${doc.description}</p>
+                                                            <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(doc.description)}</p>
                                                         </div>
                                                         ` : ''}
                                         </div>
@@ -830,7 +832,7 @@
                                     ${doc.file_path ? `
                                                 <div class="ml-4 flex space-x-2">
                                                     ${isImage ? `
-                                        <button type="button" onclick="previewImage('${fileUrl}', '${doc.type_name}')" 
+                                        <button type="button" data-action="preview-document" data-url="${escapeHtml(fileUrl)}" data-title="${escapeHtml(doc.type_name)}" 
                                             class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="Preview">
                                             <i class="fas fa-eye"></i>
                                         </button>
@@ -839,7 +841,7 @@
                                                         class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="Download">
                                                         <i class="fas fa-download"></i>
                                                     </a>
-                                                    <button type="button" onclick="viewDocument('${doc.id}', 'trailer')" 
+                                                    <button type="button" onclick="viewDocument(${Number(doc.id)}, 'trailer')" 
                                                         class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="View">
                                                         <i class="fas fa-file-pdf"></i>
                                                     </button>
@@ -861,7 +863,7 @@
                             ${trailer.missing_documents.map(doc => `
                                             <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
                                                 <i class="mr-3 text-amber-500 fas fa-exclamation-circle"></i>
-                                                <span class="text-sm text-gray-700 dark:text-gray-300">${doc}</span>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(doc)}</span>
                                             </div>
                                         `).join('')}
                         </div>
@@ -874,15 +876,15 @@
                         <div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
                             <div>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">Make/Model</p>
-                                <p class="font-medium text-gray-900 dark:text-white">${trailer.make} ${trailer.model}</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(trailer.make)} ${escapeHtml(trailer.model)}</p>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">Year</p>
-                                <p class="font-medium text-gray-900 dark:text-white">${trailer.year}</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(trailer.year)}</p>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">VIN</p>
-                                <p class="font-medium text-gray-900 dark:text-white">${trailer.vin}</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(trailer.vin)}</p>
                             </div>
                         </div>
                         
@@ -891,7 +893,7 @@
                             <h4 class="mb-2 font-medium text-gray-900 dark:text-white">Compliance Status</h4>
                             <div class="flex items-center justify-between p-3 rounded-lg ${trailer.compliance_status === 'warning' ? 'bg-amber-50 dark:bg-amber-900/10' : trailer.compliance_status === 'danger' ? 'bg-red-50 dark:bg-red-900/10' : 'bg-emerald-50 dark:bg-emerald-900/10'}">
                                 <div>
-                                    <p class="text-sm font-medium text-gray-900 dark:text-white">${trailer.compliance_percentage} Compliance</p>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(trailer.compliance_percentage)} Compliance</p>
                                     <p class="text-sm text-gray-600 dark:text-gray-400">${trailer.compliant_docs} of ${trailer.total_docs} documents</p>
                                 </div>
                                 <span class="px-3 py-1 text-sm font-medium rounded-full ${trailer.compliance_status === 'warning' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : trailer.compliance_status === 'danger' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'}">
@@ -942,6 +944,23 @@
             document.body.classList.add('overflow-hidden');
         }
 
+        // Vehicle/trailer data comes from tenant users: never put it in HTML unescaped.
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        document.addEventListener('click', function(e) {
+            const button = e.target.closest('[data-action="preview-document"]');
+            if (button) {
+                previewImage(button.dataset.url, button.dataset.title);
+            }
+        });
+
         // Add these new functions for document handling
         function previewImage(fileUrl, title) {
             // Create a modal for image preview
@@ -951,16 +970,16 @@
             <div class="relative z-50 max-w-4xl max-h-full">
                 <div class="bg-white rounded-lg shadow-xl dark:bg-gray-800">
                     <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">${title}</h3>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">${escapeHtml(title)}</h3>
                         <button type="button" onclick="closeImagePreview()" class="text-gray-400 hover:text-gray-500">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
                     <div class="p-4">
-                        <img src="${fileUrl}" alt="${title}" class="max-w-full max-h-[70vh] object-contain">
+                        <img src="${escapeHtml(fileUrl)}" alt="${escapeHtml(title)}" class="max-w-full max-h-[70vh] object-contain">
                     </div>
                     <div class="flex justify-end p-4 border-t dark:border-gray-700">
-                        <a href="${fileUrl}" download class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700">
+                        <a href="${escapeHtml(fileUrl)}" download class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700">
                             <i class="fas fa-download mr-2"></i>Download
                         </a>
                     </div>

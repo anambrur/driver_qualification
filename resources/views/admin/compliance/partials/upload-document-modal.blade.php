@@ -230,12 +230,13 @@
                     infoText.textContent =
                         `Upload documents for ${documentTypeName}. You can select multiple ${assetLabelPlural.toLowerCase()} or upload to all ${assetLabelPlural.toLowerCase()} at once.`;
 
-                    // Populate dropdown
-                    select.innerHTML = data.assets.map(asset =>
-                        `<option value="${asset.id}" ${asset.id == selectedAssetId ? 'selected' : ''}>
-                        ${assetLabel} #${asset.unit_no}${asset.has_document ? ' (Has Document)' : ' (Missing)'}
-                    </option>`
-                    ).join('');
+                    // Populate dropdown (as text: unit numbers come from tenant users)
+                    select.replaceChildren(...data.assets.map(asset => new Option(
+                        assetLabel + ' #' + asset.unit_no + (asset.has_document ? ' (Has Document)' : ' (Missing)'),
+                        asset.id,
+                        false,
+                        asset.id == selectedAssetId
+                    )));
                 } else {
                     showUploadError('Failed to load assets');
                 }
