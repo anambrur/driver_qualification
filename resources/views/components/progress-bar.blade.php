@@ -5,7 +5,8 @@
     $isEditMode = $isEditMode ?? false;
     $driverId = $driver_id ?? ($driverId ?? null);
 
-    // Function to get edit step URL
+    // Function to get edit step URL (guarded: the partial can render more than once per process)
+    if (! function_exists('getEditStepUrl')) {
     function getEditStepUrl($step, $driverId)
     {
         $routes = [
@@ -22,6 +23,7 @@
         ];
 
         return $routes[$step] ?? '#';
+    }
     }
 @endphp
 

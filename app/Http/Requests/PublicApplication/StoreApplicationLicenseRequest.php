@@ -7,6 +7,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreApplicationLicenseRequest extends FormRequest
 {
+    use ValidatesApplicationDriver;
+
     public function authorize(): bool
     {
         return true;
@@ -14,12 +16,13 @@ class StoreApplicationLicenseRequest extends FormRequest
 
     public function rules(): array
     {
-        $existing = DriverDocument::where('driver_id', $this->input('driver_id'))->first();
+        // Only the applicant's own (session) record decides whether re-uploading is optional.
+        $existing = DriverDocument::where('driver_id', $this->session()->get('application_driver_id'))->first();
         $frontRule = ($existing && $existing->license_front) ? 'nullable' : 'required';
         $backRule = ($existing && $existing->license_back) ? 'nullable' : 'required';
 
         return [
-            'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => $this->applicationDriverRules(),
             'license_front' => $frontRule.'|image|mimes:jpg,jpeg,png,webp|max:5120',
             'license_back' => $backRule.'|image|mimes:jpg,jpeg,png,webp|max:5120',
         ];

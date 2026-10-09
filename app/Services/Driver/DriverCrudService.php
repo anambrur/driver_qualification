@@ -158,8 +158,8 @@ class DriverCrudService
             Storage::disk('public')->delete($oldPath);
         }
 
-        $extension = $photo->getClientOriginalExtension();
-        $fileName = 'driver_photo_' . time() . '.' . $extension;
+        // hashName(): random name, extension taken from the file's content, never the client's.
+        $fileName = 'driver_photo_' . $photo->hashName();
 
         return $photo->storeAs('images/drivers', $fileName, 'public');
     }

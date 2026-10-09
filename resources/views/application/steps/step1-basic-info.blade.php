@@ -1378,6 +1378,8 @@
                         </select>
                     </div>
                     @include('components.progress-bar', ['currentStep' => $currentStep])
+
+                    @include('application.partials.withdraw-application', ['company' => $company, 'driver' => $driver])
                 </div>
             </div>
         </div>

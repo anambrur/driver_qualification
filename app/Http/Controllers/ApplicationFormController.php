@@ -25,6 +25,7 @@ use App\Services\Driver\DriverCrudService;
 use App\Services\Driver\DriverDocumentWizardService;
 use App\Services\OTPService;
 use App\Services\PhoneNumberService;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -74,7 +75,7 @@ class ApplicationFormController extends Controller
      */
     public function sendOtp(Request $request, $slug)
     {
-        $company = Company::where('slug', $slug)->firstOrFail();
+        $company = $this->activeCompany($slug);
 
         $validator = Validator::make($request->all(), [
             'phone' => [
@@ -180,7 +181,7 @@ class ApplicationFormController extends Controller
      */
     public function showVerifyOtp($slug)
     {
-        $company = Company::where('slug', $slug)->firstOrFail();
+        $company = $this->activeCompany($slug);
         $phone = Session::get('otp_verification_phone');
         $method = Session::get('otp_method', 'direct_sms');
 
@@ -200,7 +201,7 @@ class ApplicationFormController extends Controller
      */
     public function verifyOtp(Request $request, $slug)
     {
-        $company = Company::where('slug', $slug)->firstOrFail();
+        $company = $this->activeCompany($slug);
         $phone = Session::get('otp_verification_phone');
 
         if (! $phone) {
@@ -236,6 +237,19 @@ class ApplicationFormController extends Controller
                 ->where('source', 'public_application')
                 ->first();
 
+            // A withdrawn applicant applying again continues on their old record
+            // (drivers.email is unique per company, so a second record would clash).
+            if (! $driver) {
+                $driver = Driver::where('company_id', $company->id)
+                    ->where('main_phone', $phone)
+                    ->where('status', 'withdrawn')
+                    ->where('source', 'public_application')
+                    ->latest('withdrawn_at')
+                    ->first();
+
+                $driver?->update(['status' => 'draft', 'withdrawn_at' => null]);
+            }
+
             if (! $driver) {
                 // Create new driver record
                 $driver = Driver::create([
@@ -247,6 +261,9 @@ class ApplicationFormController extends Controller
                 ]);
             }
 
+            // New session id for the now-verified applicant (no session fixation).
+            Session::regenerate();
+
             // Store session data
             Session::put([
                 'verified_phone' => $phone,
@@ -256,7 +273,6 @@ class ApplicationFormController extends Controller
                 'application_started' => true,
                 'application_driver_id' => $driver->id,
                 'current_step' => 1,
-                'application_session_token' => md5($phone.$company->id.time()),
             ]);
 
             toastr()->success('Phone number verified successfully!');
@@ -271,62 +287,20 @@ class ApplicationFormController extends Controller
 
     /**
      * Resume application
+     *
+     * Resuming requires the SMS code, so both /resume routes hand over to the
+     * OTP-verified "Return to Application" flow on the landing page.
      */
     public function resume($slug)
     {
-        $company = Company::where('slug', $slug)->firstOrFail();
-
-        return view('application.resume', compact('company'));
+        return redirect()->route('application.form', $slug);
     }
 
     public function verifyResume(Request $request, $slug)
     {
-        $validator = Validator::make($request->all(), [
-            'phone' => 'required',
-            'date_of_birth' => 'required|date',
-        ]);
+        toastr()->info('Use "Return to Application" to resume with a code sent to your phone.');
 
-        if ($validator->fails()) {
-            foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
-            }
-
-            return back()->withInput();
-        }
-
-        $phone = $this->formatPhoneNumber($request->phone);
-        $company = Company::where('slug', $slug)->firstOrFail();
-
-        // Find driver
-        $driver = Driver::where('company_id', $company->id)
-            ->where('main_phone', $phone)
-            ->where('date_of_birth', $request->date_of_birth)
-            ->where('source', 'public_application')
-            ->whereIn('status', ['draft', 'pending'])
-            ->first();
-
-        if ($driver) {
-            Session::put([
-                'verified_phone' => $phone,
-                'verified_company_slug' => $slug,
-                'verified_company_id' => $company->id,
-                'application_started' => true,
-                'application_driver_id' => $driver->id,
-                'current_step' => $this->calculateCurrentStep($driver),
-                'application_session_token' => md5($phone.$company->id.time()),
-            ]);
-
-            toastr()->success('Application found! Redirecting to where you left off...');
-
-            return redirect()->route('public.application.step'.$this->calculateCurrentStep($driver), [
-                'slug' => $slug,
-                'driver_id' => $driver->id,
-            ]);
-        } else {
-            toastr()->error('No application found with those details.');
-
-            return back()->withInput();
-        }
+        return redirect()->route('application.form', $slug);
     }
 
     /**
@@ -346,7 +320,7 @@ class ApplicationFormController extends Controller
         }
 
         $phone = $this->formatPhoneNumber($request->phone);
-        $company = Company::where('slug', $slug)->first();
+        $company = Company::where('slug', $slug)->where('status', 'active')->first();
 
         if (! $company) {
             return response()->json([
@@ -362,35 +336,25 @@ class ApplicationFormController extends Controller
             ->whereIn('status', ['draft', 'pending'])
             ->first();
 
+        // Same answer whether or not this phone has an application, so the endpoint
+        // can't be used to look up who applied. Only real applicants get a code.
         if ($driver) {
             try {
-                // Send OTP
                 $result = $this->otpService->sendOTP($phone);
 
-                if ($result['success']) {
-                    return response()->json([
-                        'success' => true,
-                        'requires_otp' => true,
-                        'phone' => $phone,
-                    ]);
-                } else {
-                    return response()->json([
-                        'success' => false,
-                        'message' => $result['message'],
-                    ]);
+                if (! $result['success']) {
+                    Log::warning('Resume OTP not sent.', ['driver_id' => $driver->id, 'reason' => $result['message'] ?? null]);
                 }
             } catch (\Exception $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'An error occurred while sending OTP.',
-                ]);
+                Log::error('Resume OTP Send Error: '.$e->getMessage());
             }
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'No application found with this phone number.',
-            ]);
         }
+
+        return response()->json([
+            'success' => true,
+            'requires_otp' => true,
+            'phone' => $phone,
+        ]);
     }
 
     /**
@@ -411,7 +375,7 @@ class ApplicationFormController extends Controller
         }
 
         $phone = $this->formatPhoneNumber($request->phone);
-        $company = Company::where('slug', $slug)->first();
+        $company = Company::where('slug', $slug)->where('status', 'active')->first();
 
         if (! $company) {
             return response()->json(['success' => false, 'message' => 'Invalid company.']);
@@ -429,6 +393,9 @@ class ApplicationFormController extends Controller
                 ->first();
 
             if ($driver) {
+                // New session id for the now-verified applicant (no session fixation).
+                Session::regenerate();
+
                 // Restore Session properly for seamless resume logic
                 Session::put([
                     'verified_phone' => $phone,
@@ -437,7 +404,6 @@ class ApplicationFormController extends Controller
                     'application_started' => true,
                     'application_driver_id' => $driver->id,
                     'current_step' => $this->calculateCurrentStep($driver),
-                    'application_session_token' => md5($phone.$company->id.time()),
                 ]);
 
                 // Formulate redirect to the specific step
@@ -469,11 +435,8 @@ class ApplicationFormController extends Controller
      */
     public function step1($slug)
     {
-        $this->checkApplicationSession($slug);
-
-        $company = Company::where('slug', $slug)->firstOrFail();
-        $driverId = Session::get('application_driver_id');
-        $driver = Driver::findOrFail($driverId);
+        $company = $this->activeCompany($slug);
+        $driver = $this->applicationDriver($company);
         $countries = Country::orderBy('name')->get();
         $defaultCountry = Country::where('iso_code', 'US')->first();
         $states = $defaultCountry ? $defaultCountry->states()->orderBy('name')->get() : collect();
@@ -491,12 +454,9 @@ class ApplicationFormController extends Controller
 
     public function storeStep1(StoreApplicationStep1Request $request, $slug, DriverCrudService $crud)
     {
-        $this->checkApplicationSession($slug);
+        $driver = $this->applicationDriver($this->activeCompany($slug));
 
         try {
-            $driverId = Session::get('application_driver_id');
-            $driver = Driver::findOrFail($driverId);
-
             $data = array_merge($request->validated(), [
                 'company_id' => $driver->company_id,
                 'status' => $driver->status,
@@ -525,12 +485,10 @@ class ApplicationFormController extends Controller
      */
     public function step2($slug, $driver_id, Request $request)
     {
-        $this->checkApplicationSession($slug, $driver_id);
-
-        $company = Company::where('slug', $slug)->firstOrFail();
-        $driver = Driver::findOrFail($driver_id);
+        $company = $this->activeCompany($slug);
+        $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 2;
-        $driver_document = DriverDocument::where('driver_id', $driver_id)->first();
+        $driver_document = DriverDocument::where('driver_id', $driver->id)->first();
 
         // Check if we're in edit mode
         $isEditMode = $request->has('edit') && $request->edit == '1';
@@ -546,10 +504,9 @@ class ApplicationFormController extends Controller
 
     public function storeStep2(StoreApplicationLicenseRequest $request, $slug, DriverDocumentWizardService $documents)
     {
-        $this->checkApplicationSession($slug, $request->driver_id);
+        $driver = $this->applicationDriver($this->activeCompany($slug), $request->driver_id);
 
         try {
-            $driver = Driver::findOrFail($request->driver_id);
             $documents->saveLicense($driver, $request->file('license_front'), $request->file('license_back'));
 
             Session::put('current_step', 3);
@@ -573,12 +530,10 @@ class ApplicationFormController extends Controller
      */
     public function step3($slug, $driver_id, Request $request)
     {
-        $this->checkApplicationSession($slug, $driver_id);
-
-        $company = Company::where('slug', $slug)->firstOrFail();
-        $driver = Driver::findOrFail($driver_id);
+        $company = $this->activeCompany($slug);
+        $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 3;
-        $driverDocument = DriverDocument::where('driver_id', $driver_id)->first();
+        $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
 
         // Check if we're in edit mode
         $isEditMode = $request->has('edit') && $request->edit == '1';
@@ -594,10 +549,9 @@ class ApplicationFormController extends Controller
 
     public function storeStep3(StoreApplicationMedicalCardRequest $request, $slug, DriverDocumentWizardService $documents)
     {
-        $this->checkApplicationSession($slug, $request->driver_id);
+        $driver = $this->applicationDriver($this->activeCompany($slug), $request->driver_id);
 
         try {
-            $driver = Driver::findOrFail($request->driver_id);
             $documents->saveMedicalCard($driver, $request->file('medical_card'));
 
             Session::put('current_step', 4);
@@ -621,12 +575,10 @@ class ApplicationFormController extends Controller
      */
     public function step4($slug, $driver_id, Request $request)
     {
-        $this->checkApplicationSession($slug, $driver_id);
-
-        $company = Company::where('slug', $slug)->firstOrFail();
-        $driver = Driver::findOrFail($driver_id);
+        $company = $this->activeCompany($slug);
+        $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 4;
-        $driverDocument = DriverDocument::where('driver_id', $driver_id)->first();
+        $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
 
         // Check if we're in edit mode
         $isEditMode = $request->has('edit') && $request->edit == '1';
@@ -642,10 +594,9 @@ class ApplicationFormController extends Controller
 
     public function storeStep4(StoreApplicationForfeitureRequest $request, $slug, DriverDocumentWizardService $documents)
     {
-        $this->checkApplicationSession($slug, $request->driver_id);
+        $driver = $this->applicationDriver($this->activeCompany($slug), $request->driver_id);
 
         try {
-            $driver = Driver::findOrFail($request->driver_id);
             $documents->saveForfeiture($driver, $request->file('forfeiture_document'));
 
             Session::put('current_step', 5);
@@ -669,13 +620,11 @@ class ApplicationFormController extends Controller
      */
     public function step5($slug, $driver_id, Request $request)
     {
-        $this->checkApplicationSession($slug, $driver_id);
-
-        $company = Company::where('slug', $slug)->firstOrFail();
-        $driver = Driver::findOrFail($driver_id);
+        $company = $this->activeCompany($slug);
+        $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 5;
-        $driverDocument = DriverDocument::where('driver_id', $driver_id)->first();
-        $violations = Violation::where('driver_id', $driver_id)->get();
+        $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
+        $violations = Violation::where('driver_id', $driver->id)->get();
 
         // Check if we're in edit mode
         $isEditMode = $request->has('edit') && $request->edit == '1';
@@ -692,10 +641,9 @@ class ApplicationFormController extends Controller
 
     public function storeStep5(StoreApplicationViolationRequest $request, $slug, DriverDocumentWizardService $documents)
     {
-        $this->checkApplicationSession($slug, $request->driver_id);
+        $driver = $this->applicationDriver($this->activeCompany($slug), $request->driver_id);
 
         try {
-            $driver = Driver::findOrFail($request->driver_id);
             $documents->saveViolationRecord($driver, $request->validated());
 
             Session::put('current_step', 6);
@@ -719,12 +667,10 @@ class ApplicationFormController extends Controller
      */
     public function step6($slug, $driver_id, Request $request)
     {
-        $this->checkApplicationSession($slug, $driver_id);
-
-        $company = Company::where('slug', $slug)->firstOrFail();
-        $driver = Driver::findOrFail($driver_id);
+        $company = $this->activeCompany($slug);
+        $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 6;
-        $driverDocument = DriverDocument::where('driver_id', $driver_id)->first();
+        $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
 
         // Check if we're in edit mode
         $isEditMode = $request->has('edit') && $request->edit == '1';
@@ -740,10 +686,9 @@ class ApplicationFormController extends Controller
 
     public function storeStep6(StoreApplicationDrugTestRequest $request, $slug, DriverDocumentWizardService $documents)
     {
-        $this->checkApplicationSession($slug, $request->driver_id);
+        $driver = $this->applicationDriver($this->activeCompany($slug), $request->driver_id);
 
         try {
-            $driver = Driver::findOrFail($request->driver_id);
             $documents->saveAlcoholAndDrugTest($driver, $request->validated());
 
             Session::put('current_step', 7);
@@ -767,12 +712,10 @@ class ApplicationFormController extends Controller
      */
     public function step7($slug, $driver_id, Request $request)
     {
-        $this->checkApplicationSession($slug, $driver_id);
-
-        $company = Company::where('slug', $slug)->firstOrFail();
-        $driver = Driver::findOrFail($driver_id);
+        $company = $this->activeCompany($slug);
+        $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 7;
-        $driverDocument = DriverDocument::where('driver_id', $driver_id)->first();
+        $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
 
         // Check if we're in edit mode
         $isEditMode = $request->has('edit') && $request->edit == '1';
@@ -788,10 +731,9 @@ class ApplicationFormController extends Controller
 
     public function storeStep7(StoreApplicationFmcsaConsentRequest $request, $slug, DriverDocumentWizardService $documents)
     {
-        $this->checkApplicationSession($slug, $request->driver_id);
+        $driver = $this->applicationDriver($this->activeCompany($slug), $request->driver_id);
 
         try {
-            $driver = Driver::findOrFail($request->driver_id);
             $documents->saveFmcsaConsent($driver, $request->validated());
 
             Session::put('current_step', 8);
@@ -815,12 +757,10 @@ class ApplicationFormController extends Controller
      */
     public function step8($slug, $driver_id, Request $request)
     {
-        $this->checkApplicationSession($slug, $driver_id);
-
-        $company = Company::where('slug', $slug)->firstOrFail();
-        $driver = Driver::findOrFail($driver_id);
+        $company = $this->activeCompany($slug);
+        $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 8;
-        $driverDocument = DriverDocument::where('driver_id', $driver_id)->first();
+        $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
 
         // Check if we're in edit mode
         $isEditMode = $request->has('edit') && $request->edit == '1';
@@ -836,10 +776,9 @@ class ApplicationFormController extends Controller
 
     public function storeStep8(StoreApplicationPspRequest $request, $slug, DriverDocumentWizardService $documents)
     {
-        $this->checkApplicationSession($slug, $request->driver_id);
+        $driver = $this->applicationDriver($this->activeCompany($slug), $request->driver_id);
 
         try {
-            $driver = Driver::findOrFail($request->driver_id);
             $documents->savePspAuthorization($driver, $request->validated());
 
             Session::put('current_step', 9);
@@ -863,12 +802,10 @@ class ApplicationFormController extends Controller
      */
     public function step9($slug, $driver_id, Request $request)
     {
-        $this->checkApplicationSession($slug, $driver_id);
-
-        $company = Company::where('slug', $slug)->firstOrFail();
-        $driver = Driver::findOrFail($driver_id);
+        $company = $this->activeCompany($slug);
+        $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 9;
-        $driverDocument = DriverDocument::where('driver_id', $driver_id)->first();
+        $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
         $policyPdf = PolicyPdf::first();
 
         // Check if we're in edit mode
@@ -886,10 +823,9 @@ class ApplicationFormController extends Controller
 
     public function storeStep9(StoreApplicationDrugPolicyRequest $request, $slug, DriverDocumentWizardService $documents)
     {
-        $this->checkApplicationSession($slug, $request->driver_id);
+        $driver = $this->applicationDriver($this->activeCompany($slug), $request->driver_id);
 
         try {
-            $driver = Driver::findOrFail($request->driver_id);
             $documents->saveAlcoholAndDrugTestPolicy($driver, $request->validated());
 
             Session::put('current_step', 10);
@@ -913,12 +849,10 @@ class ApplicationFormController extends Controller
      */
     public function step10($slug, $driver_id, Request $request)
     {
-        $this->checkApplicationSession($slug, $driver_id);
-
-        $company = Company::where('slug', $slug)->firstOrFail();
-        $driver = Driver::with(['driver_documents', 'licenses'])->findOrFail($driver_id);
+        $company = $this->activeCompany($slug);
+        $driver = $this->applicationDriver($company, $driver_id)->load(['driver_documents', 'licenses']);
         $currentStep = 10;
-        $driverDocument = DriverDocument::where('driver_id', $driver_id)->first();
+        $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
         $policyPdf = PolicyPdf::first();
 
         // Check if we're in edit mode
@@ -936,10 +870,9 @@ class ApplicationFormController extends Controller
 
     public function storeStep10(StoreApplicationWorkPolicyRequest $request, $slug, DriverDocumentWizardService $documents)
     {
-        $this->checkApplicationSession($slug, $request->driver_id);
+        $driver = $this->applicationDriver($this->activeCompany($slug), $request->driver_id);
 
         try {
-            $driver = Driver::findOrFail($request->driver_id);
             $documents->saveGeneralWorkPolicy($driver, $request->validated(), finalizeToPending: true);
 
             $driver->refresh();
@@ -964,7 +897,6 @@ class ApplicationFormController extends Controller
                 'application_started',
                 'application_driver_id',
                 'current_step',
-                'application_session_token',
                 'verified_company_slug',
                 'verified_company_id',
                 'phone_verified_at',
@@ -988,7 +920,7 @@ class ApplicationFormController extends Controller
      */
     public function complete($slug)
     {
-        $company = Company::where('slug', $slug)->firstOrFail();
+        $company = $this->activeCompany($slug);
         $phone = Session::get('last_application_phone');
 
         if ($phone) {
@@ -1009,11 +941,15 @@ class ApplicationFormController extends Controller
      */
     public function status($slug)
     {
-        $company = Company::where('slug', $slug)->firstOrFail();
+        $company = $this->activeCompany($slug);
 
         return view('application.status', compact('company'));
     }
 
+    /**
+     * Step 1 of the status check: phone + date of birth. Texts a code only when they match
+     * an application, but answers the same either way so nobody can look up applicants.
+     */
     public function checkStatus(Request $request, $slug)
     {
         $validator = Validator::make($request->all(), [
@@ -1030,39 +966,97 @@ class ApplicationFormController extends Controller
         }
 
         $phone = $this->formatPhoneNumber($request->phone);
-        $company = Company::where('slug', $slug)->firstOrFail();
+        $company = $this->activeCompany($slug);
 
-        $driver = Driver::where('company_id', $company->id)
-            ->where('main_phone', $phone)
-            ->where('date_of_birth', $request->date_of_birth)
-            ->where('source', 'public_application')
-            ->first();
+        if ($this->statusCheckDriver($company, $phone, $request->date_of_birth)) {
+            try {
+                $result = $this->otpService->sendOTP($phone);
 
-        if ($driver) {
-            $statusLabels = [
-                'draft' => 'In Progress',
-                'pending' => 'Under Review',
-                'active' => 'Approved',
-                'rejected' => 'Not Approved',
-                'inactive' => 'Inactive',
-            ];
-
-            $status = $statusLabels[$driver->status] ?? $driver->status;
-
-            return view('application.status-result', compact('company', 'driver', 'status'));
-        } else {
-            toastr()->error('No application found with those details.');
-
-            return back()->withInput();
+                if (! $result['success']) {
+                    Log::warning('Status check OTP not sent.', ['company_id' => $company->id, 'reason' => $result['message'] ?? null]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Status check OTP Send Error: '.$e->getMessage());
+            }
         }
+
+        Session::put([
+            'status_check_phone' => $phone,
+            'status_check_dob' => $request->date_of_birth,
+            'status_check_company_id' => $company->id,
+        ]);
+
+        toastr()->info('If an application matches those details, we have sent a code to that phone.');
+
+        return redirect()->route('public.application.status.verify', $slug);
     }
 
     /**
-     * Save Progress (AJAX)
+     * Step 2 of the status check: enter the SMS code.
      */
-    public function saveProgress(Request $request)
+    public function showStatusVerify($slug)
     {
-        // Implement AJAX auto-save if needed
+        $company = $this->activeCompany($slug);
+
+        if ((int) Session::get('status_check_company_id') !== (int) $company->id) {
+            return redirect()->route('public.application.status', $slug);
+        }
+
+        return view('application.status-verify', compact('company'));
+    }
+
+    public function verifyStatus(Request $request, $slug)
+    {
+        $company = $this->activeCompany($slug);
+        $phone = Session::get('status_check_phone');
+        $dob = Session::get('status_check_dob');
+
+        if (! $phone || ! $dob || (int) Session::get('status_check_company_id') !== (int) $company->id) {
+            toastr()->error('Please enter your phone number and date of birth first.');
+
+            return redirect()->route('public.application.status', $slug);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'otp' => 'required|digits:6',
+        ]);
+
+        if ($validator->fails()) {
+            toastr()->error('Please enter the 6-digit code sent to your phone.');
+
+            return back();
+        }
+
+        $result = $this->otpService->verifyOTP($phone, $request->otp);
+
+        if (! $result['success']) {
+            toastr()->error('Invalid or expired code.');
+
+            return back();
+        }
+
+        Session::forget(['status_check_phone', 'status_check_dob', 'status_check_company_id']);
+
+        $driver = $this->statusCheckDriver($company, $phone, $dob);
+
+        if (! $driver) {
+            toastr()->error('No application found with those details.');
+
+            return redirect()->route('public.application.status', $slug);
+        }
+
+        $statusLabels = [
+            'draft' => 'In Progress',
+            'pending' => 'Under Review',
+            'active' => 'Approved',
+            'rejected' => 'Not Approved',
+            'inactive' => 'Inactive',
+            'withdrawn' => 'Withdrawn',
+        ];
+
+        $status = $statusLabels[$driver->status] ?? $driver->status;
+
+        return view('application.status-result', compact('company', 'driver', 'status'));
     }
 
     /**
@@ -1070,11 +1064,10 @@ class ApplicationFormController extends Controller
      */
     public function withdraw(Request $request, $slug, $driver_id)
     {
-        $this->checkApplicationSession($slug, $driver_id);
+        $driver = $this->applicationDriver($this->activeCompany($slug), $driver_id);
 
         DB::beginTransaction();
         try {
-            $driver = Driver::findOrFail($driver_id);
             $driver->update([
                 'status' => 'withdrawn',
                 'withdrawn_at' => now(),
@@ -1085,7 +1078,10 @@ class ApplicationFormController extends Controller
                 'application_started',
                 'application_driver_id',
                 'current_step',
-                'application_session_token',
+                'verified_phone',
+                'verified_company_slug',
+                'verified_company_id',
+                'phone_verified_at',
             ]);
 
             DB::commit();
@@ -1107,7 +1103,11 @@ class ApplicationFormController extends Controller
      */
     public function resendOtp(Request $request, $slug)
     {
-        $phone = $request->phone ?? Session::get('otp_verification_phone');
+        $this->activeCompany($slug);
+
+        // Only the phone that started OTP verification in this session, never one from the
+        // request, so this endpoint can't be used to text arbitrary numbers.
+        $phone = Session::get('otp_verification_phone');
 
         if (! $phone) {
             return response()->json([
@@ -1134,24 +1134,57 @@ class ApplicationFormController extends Controller
     /**
      * Helper Methods
      */
-    private function checkApplicationSession($slug, $driver_id = null)
+    private function statusCheckDriver(Company $company, string $phone, string $dateOfBirth): ?Driver
     {
-        if (
-            ! Session::has('application_started') ||
-            ! Session::has('application_driver_id') ||
-            ! Session::has('verified_phone')
-        ) {
+        return Driver::where('company_id', $company->id)
+            ->where('main_phone', $phone)
+            ->where('date_of_birth', $dateOfBirth)
+            ->where('source', 'public_application')
+            ->latest()
+            ->first();
+    }
 
+    /**
+     * The {slug} company, if it is accepting applications (404 otherwise).
+     */
+    private function activeCompany(string $slug): Company
+    {
+        return Company::where('slug', $slug)
+            ->where('status', 'active')
+            ->firstOrFail();
+    }
+
+    /**
+     * The applicant's own driver record, bound to the {slug} company. Without a verified
+     * session for this company, or when $driverId is not the session's driver, the
+     * request is sent back to the start page.
+     */
+    private function applicationDriver(Company $company, $driverId = null): Driver
+    {
+        $sessionDriverId = Session::get('application_driver_id');
+
+        $valid = Session::get('application_started')
+            && $sessionDriverId
+            && Session::has('verified_phone')
+            && Session::get('verified_company_slug') === $company->slug
+            && (int) Session::get('verified_company_id') === (int) $company->id
+            && ($driverId === null || (string) $driverId === (string) $sessionDriverId);
+
+        $driver = $valid
+            ? Driver::where('id', $sessionDriverId)
+                ->where('company_id', $company->id)
+                ->where('source', 'public_application')
+                ->whereIn('status', ['draft', 'pending'])
+                ->first()
+            : null;
+
+        if (! $driver) {
             toastr()->error('Please start the application process first.');
 
-            return redirect()->route('public.application.start', $slug);
+            throw new HttpResponseException(redirect()->route('public.application.start', $company->slug));
         }
 
-        if ($driver_id && Session::get('application_driver_id') != $driver_id) {
-            toastr()->error('Unauthorized access.');
-
-            return redirect()->route('public.application.start', $slug);
-        }
+        return $driver;
     }
 
     private function calculateCurrentStep($driver)
@@ -1185,31 +1218,5 @@ class ApplicationFormController extends Controller
     protected function formatPhoneNumber(string $phone): string
     {
         return $this->phoneNumbers->normalize($phone);
-    }
-
-    protected function getOtpFromRequest(Request $request)
-    {
-        if ($request->filled('otp')) {
-            return $request->otp;
-        }
-
-        $digits = [
-            $request->digit1,
-            $request->digit2,
-            $request->digit3,
-            $request->digit4,
-            $request->digit5,
-            $request->digit6,
-        ];
-
-        $digits = array_filter($digits, function ($digit) {
-            return ! is_null($digit) && $digit !== '';
-        });
-
-        if (count($digits) === 6) {
-            return implode('', $digits);
-        }
-
-        return '';
     }
 }

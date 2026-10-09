@@ -105,13 +105,14 @@
                                                 </a>
                                             @endcan
 
-                                            @can('roles.delete')
-                                                <button
-                                                    onclick="deleteRole({{ $role->id }}, '{{ addslashes($role->name) }}')"
+                                            @if (auth()->user()->can('roles.delete') && !in_array($role->name, $systemRoles, true))
+                                                <button type="button" data-action="delete-role"
+                                                    data-url="{{ route('admin.roles.destroy', $role->id) }}"
+                                                    data-name="{{ $role->name }}"
                                                     class="inline-flex items-center rounded-lg border border-transparent bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 shadow-theme-xs hover:bg-red-100 focus:outline-hidden focus:ring-2 focus:ring-red-500/20 focus:ring-offset-2 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
                                                     <i class="fas fa-trash-alt mr-1.5"></i>Delete
                                                 </button>
-                                            @endcan
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
@@ -154,10 +155,17 @@
 
 @push('scripts')
     <script>
-        function deleteRole(id, name) {
+        document.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-action="delete-role"]');
+            if (button) {
+                deleteRole(button.dataset.url, button.dataset.name);
+            }
+        });
+
+        function deleteRole(url, name) {
             Swal.fire({
                 title: 'Delete Role?',
-                html: `Are you sure you want to delete <strong>"${name}"</strong>?<br>This action cannot be undone.`,
+                text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#dc2626',
@@ -173,7 +181,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     const form = document.getElementById('deleteRoleForm');
-                    form.action = `/admin/roles/${id}`;
+                    form.action = url;
                     form.submit();
                 }
             });

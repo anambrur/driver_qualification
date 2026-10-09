@@ -6,6 +6,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreApplicationViolationRequest extends FormRequest
 {
+    use ValidatesApplicationDriver;
+
     public function authorize(): bool
     {
         return true;
@@ -14,7 +16,7 @@ class StoreApplicationViolationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => $this->applicationDriverRules(),
             'violation' => 'required|in:no,yes',
             'violation_date' => 'sometimes|array',
             'violation_date.*' => 'nullable|date',

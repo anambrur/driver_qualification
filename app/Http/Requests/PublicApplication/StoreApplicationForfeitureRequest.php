@@ -6,6 +6,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreApplicationForfeitureRequest extends FormRequest
 {
+    use ValidatesApplicationDriver;
+
     public function authorize(): bool
     {
         return true;
@@ -14,7 +16,7 @@ class StoreApplicationForfeitureRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => $this->applicationDriverRules(),
             'forfeiture_document' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ];
     }

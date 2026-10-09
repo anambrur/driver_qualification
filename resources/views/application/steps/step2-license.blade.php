@@ -331,6 +331,8 @@
                             'isEditMode' => $isEditMode,
                         ])
 
+                        @include('application.partials.withdraw-application', ['company' => $company, 'driver' => $driver])
+
                         <!-- Driver Info Card -->
                         <div
                             class="mt-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-4">

@@ -60,6 +60,8 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorizeSuperAdminChanges(null, (array) $request->input('roles', []));
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
@@ -100,6 +102,7 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $this->authorizeSuperAdminChanges($user, (array) $request->input('roles', []));
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -109,6 +112,17 @@ class UserController extends Controller
             'roles.*' => ['exists:roles,id'],
             'status' => ['required', 'in:active,inactive'],
         ]);
+
+        if ($user->id === auth()->id() && $validated['status'] === 'inactive') {
+            toastr()->error('You cannot change your own status!');
+            return back()->withInput();
+        }
+
+        if ($user->id === auth()->id() && isset($validated['roles']) && $user->hasRole('super-admin')
+            && ! in_array((string) Role::where('name', 'super-admin')->value('id'), array_map('strval', $validated['roles']), true)) {
+            toastr()->error('You cannot remove your own super-admin role!');
+            return back()->withInput();
+        }
 
         $user->name = $validated['name'];
         $user->email = $validated['email'];
@@ -134,6 +148,7 @@ class UserController extends Controller
     public function destroy($id)
     {
         $user = User::findOrFail($id);
+        $this->authorizeSuperAdminChanges($user);
 
         // Prevent self-deletion
         if ($user->id === auth()->id()) {
@@ -145,5 +160,55 @@ class UserController extends Controller
 
         toastr()->success('User deleted successfully!');
         return redirect()->route('users.index');
+    }
+
+    /**
+     * Suspend the specified user (same `inactive` status the edit form sets).
+     */
+    public function suspend($id)
+    {
+        return $this->setStatus($id, 'inactive', 'User suspended successfully!');
+    }
+
+    /**
+     * Reactivate the specified user.
+     */
+    public function unsuspend($id)
+    {
+        return $this->setStatus($id, 'active', 'User reactivated successfully!');
+    }
+
+    private function setStatus($id, string $status, string $message)
+    {
+        $user = User::findOrFail($id);
+        $this->authorizeSuperAdminChanges($user);
+
+        if ($user->id === auth()->id()) {
+            toastr()->error('You cannot change your own status!');
+            return redirect()->route('users.index');
+        }
+
+        $user->status = $status;
+        $user->save();
+
+        toastr()->success($message);
+        return redirect()->route('users.index');
+    }
+
+    /**
+     * Only a super-admin may grant the super-admin role or change an existing super-admin.
+     */
+    private function authorizeSuperAdminChanges(?User $target, array $roleIds = []): void
+    {
+        if (auth()->user()->hasRole('super-admin')) {
+            return;
+        }
+
+        $superAdminRoleId = Role::where('name', 'super-admin')->value('id');
+
+        abort_if(
+            ($target && $target->hasRole('super-admin')) || in_array((string) $superAdminRoleId, array_map('strval', $roleIds), true),
+            403
+        );
     }
 }

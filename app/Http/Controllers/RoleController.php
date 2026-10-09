@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
@@ -13,12 +14,18 @@ use function Flasher\Toastr\Prime\toastr;
 class RoleController extends Controller
 {
     /**
+     * Roles the code checks by name (hasRole / role: middleware / registration). Renaming or
+     * deleting them locks users out.
+     */
+    public const SYSTEM_ROLES = ['super-admin', 'company'];
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
     {
         $roles = Role::with('permissions')->get();
-        return view('admin.roles.index', ['roles' => $roles]);
+        return view('admin.roles.index', ['roles' => $roles, 'systemRoles' => self::SYSTEM_ROLES]);
     }
 
     /**
@@ -66,7 +73,8 @@ class RoleController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            toastr()->error('Failed to create role: ' . $e->getMessage());
+            Log::error('Failed to create role', ['exception' => $e]);
+            toastr()->error('Failed to create role. Please try again.');
 
             return back()->withInput();
         }
@@ -79,7 +87,7 @@ class RoleController extends Controller
      */
     public function show(string $id)
     {
-        //
+        return redirect()->route('admin.roles.edit', $id);
     }
 
     /**
@@ -112,6 +120,7 @@ class RoleController extends Controller
                 'permissions' => $role->permissions->pluck('name'), // Just get permission names
             ],
             'permissions' => $permissions,
+            'permissionsLocked' => $role->name === 'super-admin',
         ]);
     }
 
@@ -127,18 +136,25 @@ class RoleController extends Controller
             'permissions.*' => 'exists:permissions,name'
         ]);
 
+        $role = Role::findOrFail($id);
+
+        if (in_array($role->name, self::SYSTEM_ROLES, true) && $validated['name'] !== $role->name) {
+            toastr()->error('System roles cannot be renamed.');
+            return back()->withInput();
+        }
+
         DB::beginTransaction();
 
         try {
-            // Find the role
-            $role = Role::findOrFail($id);
-
             // Update role name
             $role->name = $validated['name'];
             $role->save();
 
-            // Sync permissions (empty array will remove all permissions)
-            $permissions = Permission::whereIn('name', $validated['permissions'] ?? [])->pluck('id');
+            // Sync permissions (empty array will remove all permissions).
+            // super-admin always keeps every permission, otherwise admins can lock themselves out.
+            $permissions = $role->name === 'super-admin'
+                ? Permission::pluck('id')
+                : Permission::whereIn('name', $validated['permissions'] ?? [])->pluck('id');
             $role->syncPermissions($permissions);
 
             DB::commit();
@@ -149,7 +165,8 @@ class RoleController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            toastr()->error('Failed to update role: ' . $e->getMessage());
+            Log::error('Failed to update role', ['role_id' => $role->id, 'exception' => $e]);
+            toastr()->error('Failed to update role. Please try again.');
 
             return back()->withInput();
         }
@@ -161,6 +178,15 @@ class RoleController extends Controller
     public function destroy(string $id)
     {
         $role = Role::findOrFail($id);
+
+        if (in_array($role->name, self::SYSTEM_ROLES, true)) {
+            toastr()->error('System roles cannot be deleted.');
+            return redirect()->route('admin.roles.index');
+        }
+
         $role->delete();
+
+        toastr()->success('Role deleted successfully');
+        return redirect()->route('admin.roles.index');
     }
 }

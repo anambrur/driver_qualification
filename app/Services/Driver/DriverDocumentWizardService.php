@@ -213,7 +213,8 @@ class DriverDocumentWizardService
             Storage::disk('public')->delete($oldPath);
         }
 
-        $fileName = $prefix . '_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        // hashName(): random name, extension taken from the file's content, never the client's.
+        $fileName = $prefix . '_' . $file->hashName();
 
         return $file->storeAs('images/documents', $fileName, 'public');
     }

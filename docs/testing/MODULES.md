@@ -71,12 +71,12 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| USR-01 | P0 | CONFIRMED | `/users/*` has only `auth`. A company tenant `PUT /users/{own id}` with `roles=[super-admin id]` and **became super-admin**. Any logged-in user can also list all users and change any user's email/password/roles. |
-| USR-02 | P1 | SUSPECTED | Routes `users.2fa.reset`, `users.suspend`, `users.unsuspend` point at methods that don't exist → 500. |
-| USR-03 | P2 | SUSPECTED | `RoleController::destroy` returns an empty response and lets anyone with `roles.delete` delete `super-admin`/`company` roles (lockout); `show()` is empty. |
-| USR-04 | P1 | SUSPECTED | `PermissionSeeder` truncates `users` + `companies` and creates `superadmin@gmail.com` / `12345678`. Destructive, and leaves default credentials if ever run in production. |
-| USR-05 | P2 | SUSPECTED | Setting a user `inactive` doesn't end existing sessions (status only checked at login). |
-| USR-06 | P3 | SUSPECTED | Role/permission exception messages are echoed to the UI via toastr. |
+| USR-01 | P0 | FIXED | `/users/*` has only `auth`. A company tenant `PUT /users/{own id}` with `roles=[super-admin id]` and **became super-admin**. Any logged-in user can also list all users and change any user's email/password/roles. |
+| USR-02 | P1 | FIXED | Routes `users.2fa.reset`, `users.suspend`, `users.unsuspend` point at methods that don't exist → 500. |
+| USR-03 | P2 | FIXED | `RoleController::destroy` returns an empty response and lets anyone with `roles.delete` delete `super-admin`/`company` roles (lockout); `show()` is empty. |
+| USR-04 | P1 | FIXED | `PermissionSeeder` truncates `users` + `companies` and creates `superadmin@gmail.com` / `12345678`. Destructive, and leaves default credentials if ever run in production. |
+| USR-05 | P2 | FIXED | Setting a user `inactive` doesn't end existing sessions (status only checked at login). |
+| USR-06 | P3 | FIXED | Role/permission exception messages are echoed to the UI via toastr. |
 
 ## 3. `public-application`: Public driver application (no auth)
 - **Scope**: `app/Http/Controllers/ApplicationFormController.php`, `app/Http/Requests/PublicApplication/*`, `app/Services/Driver/{DriverCrudService,DriverDocumentWizardService}.php` (as used here), `app/Mail/ApplicationSubmittedMail.php`, views `application/**`
@@ -85,15 +85,16 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| APP-01 | P0 | CONFIRMED | `checkApplicationSession()` returns a redirect that **every caller ignores**. With no session, an anonymous POST to `store.step7` overwrote another applicant's FMCSA consent signature. All `step2..10` GET/POST and `withdraw/{driver_id}` are affected; GET pages render any driver's PII by id. |
-| APP-02 | P0 | SUSPECTED | Store requests validate `driver_id` with `exists:drivers,id` only, not bound to the session driver or the `{slug}` company. Cross-company writes remain possible after APP-01 is fixed unless both are enforced. |
-| APP-03 | P1 | SUSPECTED | `verifyResume` (POST `/resume`) grants a full application session with only phone + date of birth, **no OTP**. |
-| APP-04 | P1 | SUSPECTED | No rate limiting on `send-otp`, `resend-otp`, `check-resume`, `check-status`, `verify-otp`. `resendOtp` accepts any `phone` from the request → SMS pumping / toll fraud; phone+DOB enumeration. |
-| APP-05 | P1 | SUSPECTED | `checkResumePhone` / `checkStatus` reveal whether a phone (+DOB) has an application at a company. |
-| APP-06 | P2 | SUSPECTED | `withdraw` writes column `withdrawn_at` (doesn't exist) and status `withdrawn` (not in the enum) → always fails. |
-| APP-07 | P2 | SUSPECTED | `drivers.email` is globally unique → someone who applied to company A can't apply to company B. |
-| APP-08 | P2 | SUSPECTED | Only `show`/`start` check `company.status = active`; inactive companies still accept POSTs. |
-| APP-09 | P2 | SUSPECTED | `application_session_token` is generated but never verified; `saveProgress` returns an empty 200; `getOtpFromRequest` unused. |
+| APP-01 | P0 | FIXED | `checkApplicationSession()` returns a redirect that **every caller ignores**. With no session, an anonymous POST to `store.step7` overwrote another applicant's FMCSA consent signature. All `step2..10` GET/POST and `withdraw/{driver_id}` are affected; GET pages render any driver's PII by id. |
+| APP-02 | P0 | FIXED | Store requests validate `driver_id` with `exists:drivers,id` only, not bound to the session driver or the `{slug}` company. Cross-company writes remain possible after APP-01 is fixed unless both are enforced. |
+| APP-03 | P1 | FIXED | `verifyResume` (POST `/resume`) grants a full application session with only phone + date of birth, **no OTP**. |
+| APP-04 | P1 | FIXED | No rate limiting on `send-otp`, `resend-otp`, `check-resume`, `check-status`, `verify-otp`. `resendOtp` accepts any `phone` from the request → SMS pumping / toll fraud; phone+DOB enumeration. |
+| APP-05 | P1 | FIXED | `checkResumePhone` / `checkStatus` reveal whether a phone (+DOB) has an application at a company. |
+| APP-06 | P2 | FIXED | `withdraw` writes column `withdrawn_at` (doesn't exist) and status `withdrawn` (not in the enum) → always fails. |
+| APP-07 | P2 | FIXED | `drivers.email` is globally unique → someone who applied to company A can't apply to company B. |
+| APP-08 | P2 | FIXED | Only `show`/`start` check `company.status = active`; inactive companies still accept POSTs. |
+| APP-09 | P2 | FIXED | `application_session_token` is generated but never verified; `saveProgress` returns an empty 200; `getOtpFromRequest` unused. |
+| APP-10 | P1 | FIXED | Found during the module run: public uploads (licence, medical card, forfeiture, photo) were stored on the public disk under the **client's** file extension, so a valid PNG named `x.html`/`x.svg` was served as HTML (stored XSS). Photo names also collided within the same second. |
 
 ## 4. `settings`: Site settings & Tawk.to
 - **Scope**: `app/Http/Controllers/{SiteSettingController,TawkToSettingController}.php`, `app/Models/SiteSetting.php`, `app/Helpers/settings.php`, views `admin/settings/{site,tawk}/**`, `partials/tawk-widget.blade.php`, GA snippet in `layouts/main-layout.blade.php` + `welcome.blade.php`

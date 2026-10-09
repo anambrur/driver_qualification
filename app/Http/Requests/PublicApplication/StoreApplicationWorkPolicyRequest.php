@@ -6,6 +6,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreApplicationWorkPolicyRequest extends FormRequest
 {
+    use ValidatesApplicationDriver;
+
     public function authorize(): bool
     {
         return true;
@@ -14,7 +16,7 @@ class StoreApplicationWorkPolicyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => $this->applicationDriverRules(),
             'employee_signature' => 'required|string|max:255',
             'date_signed' => 'required|date',
         ];

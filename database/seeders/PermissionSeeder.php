@@ -2,12 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use App\Models\Company;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
-use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -72,43 +68,25 @@ class PermissionSeeder extends Seeder
     }
 
     /**
-     * Run the database seeds.
+     * Sync permissions and roles. Non-destructive and idempotent, so it is safe to run in
+     * production to add new permissions: it never deletes users, companies, roles or permissions.
+     * The demo super-admin login lives in DemoUserSeeder (local only).
+     *
+     * php artisan db:seed --class=PermissionSeeder
      */
     public function run(): void
     {
-
-        // php artisan db:seed --class=PermissionSeeder
-        // Reset cached roles and permissions
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Clear all permission-related data and demo users
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        DB::table('role_has_permissions')->truncate();
-        DB::table('model_has_roles')->truncate();
-        DB::table('model_has_permissions')->truncate();
-        Permission::truncate();
-        Role::truncate();
-        User::truncate();
-        Company::truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-        // Create permissions dynamically
         foreach (self::permissionNames() as $name) {
-            Permission::create(['name' => $name, 'guard_name' => 'web']);
+            Permission::findOrCreate($name, 'web');
         }
 
-        // Create roles
-        $roles = Role::insert([
-            ['name' => 'super-admin', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'company', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'user', 'guard_name' => 'web', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // super-admin always holds every permission (RoleController enforces the same rule).
+        Role::findOrCreate('super-admin', 'web')->syncPermissions(Permission::all());
 
-        $roleSuperAdmin = Role::where('name', 'super-admin')->first();
-        $roleSuperAdmin->givePermissionTo(Permission::all());
-
-        $roleCompany = Role::where('name', 'company')->first();
-        $roleCompany->givePermissionTo(
+        // Additive only: permissions an admin added to the company role in the Roles UI are kept.
+        Role::findOrCreate('company', 'web')->givePermissionTo(
             Permission::where(function ($query) {
                 foreach (self::COMPANY_MODULES as $module) {
                     $query->orWhere('name', 'like', $module . '.%');
@@ -117,33 +95,10 @@ class PermissionSeeder extends Seeder
         );
 
         // Allow company users to edit their own company profile (My Account)
-        $roleCompany->givePermissionTo(self::COMPANY_EXTRA_PERMISSIONS);
+        Role::findByName('company', 'web')->givePermissionTo(self::COMPANY_EXTRA_PERMISSIONS);
 
-        // Create demo users
-        $superAdmin = User::factory()->create([
-            'name' => 'Super-Admin',
-            'email' => 'superadmin@gmail.com',
-            'password' => Hash::make('12345678'),
-            'email_verified_at' => now(),
-            'status' => 'active',
-        ]);
-        $superAdmin->assignRole($roleSuperAdmin);
+        Role::findOrCreate('user', 'web');
 
-        // Create company with user_id
-        Company::create([
-            'user_id' => $superAdmin->id,
-            'company_name' => 'Super Admin Company',
-            'slug' => 'super-admin-company',
-            'email' => 'superadmin@gmail.com',
-            'address' => 'Test Address',
-            'city' => 'Test City',
-            'state' => 'Test State',
-            'zip' => '12345',
-            'description' => 'Test Description',
-            'phone' => '1234567890',
-            'fax' => '1234567890',
-            'logo' => '',
-            'status' => 'active',
-        ]);
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }

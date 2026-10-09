@@ -88,7 +88,13 @@
                             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
                                 <i class="fas fa-key mr-2"></i>Permissions
                             </h3>
-                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Select permissions for this role</p>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                @if ($permissionsLocked)
+                                    The super-admin role always has every permission.
+                                @else
+                                    Select permissions for this role
+                                @endif
+                            </p>
                         </div>
                         <div class="border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
                             @error('permissions.*')
@@ -107,7 +113,7 @@
                                             <div class="flex items-center">
                                                 <input type="checkbox" id="group-{{ Str::slug($group) }}"
                                                     class="group-toggle h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-brand-600"
-                                                    data-group="{{ Str::slug($group) }}">
+                                                    data-group="{{ Str::slug($group) }}" @disabled($permissionsLocked)>
                                                 <label for="group-{{ Str::slug($group) }}"
                                                     class="ml-3 block text-sm font-medium text-gray-700 capitalize dark:text-gray-300 cursor-pointer">
                                                     {{ $group }}
@@ -123,8 +129,8 @@
                                                         id="perm-{{ $permission['id'] }}"
                                                         value="{{ $permission['name'] }}"
                                                         class="permission-checkbox h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-brand-600"
-                                                        data-group="{{ Str::slug($group) }}"
-                                                        {{ in_array($permission['name'], old('permissions', $role['permissions']->toArray())) ? 'checked' : '' }}>
+                                                        data-group="{{ Str::slug($group) }}" @disabled($permissionsLocked)
+                                                        {{ $permissionsLocked || in_array($permission['name'], old('permissions', $role['permissions']->toArray())) ? 'checked' : '' }}>
                                                     <label for="perm-{{ $permission['id'] }}"
                                                         class="ml-3 text-sm text-gray-700 dark:text-gray-400 cursor-pointer truncate"
                                                         title="{{ $permission['name'] }}">

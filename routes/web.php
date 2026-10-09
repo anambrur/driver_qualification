@@ -56,10 +56,13 @@ Route::get('/{slug}/apply', [ApplicationFormController::class, 'show'])->name('a
 Route::prefix('{slug}/application')->name('public.application.')->group(function () {
     // Step 0: Start & OTP Verification
     Route::get('/start', [ApplicationFormController::class, 'start'])->name('start');
-    Route::post('/send-otp', [ApplicationFormController::class, 'sendOtp'])->name('send.otp');
+    Route::post('/send-otp', [ApplicationFormController::class, 'sendOtp'])->name('send.otp')
+        ->middleware('throttle:5,10,application-sms');
     Route::get('/verify-otp', [ApplicationFormController::class, 'showVerifyOtp'])->name('verify.otp');
-    Route::post('/verify-otp', [ApplicationFormController::class, 'verifyOtp'])->name('submit.otp');
-    Route::post('/resend-otp', [ApplicationFormController::class, 'resendOtp'])->name('resend.otp');
+    Route::post('/verify-otp', [ApplicationFormController::class, 'verifyOtp'])->name('submit.otp')
+        ->middleware('throttle:10,1,application-verify');
+    Route::post('/resend-otp', [ApplicationFormController::class, 'resendOtp'])->name('resend.otp')
+        ->middleware('throttle:5,10,application-sms');
 
     // Step 1: Basic Information (Personal Details)
     Route::get('/step-1', [ApplicationFormController::class, 'step1'])
@@ -126,16 +129,20 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
 
     // Resume Application (if user leaves and comes back)
     Route::get('/resume', [ApplicationFormController::class, 'resume'])->name('resume');
-    Route::post('/resume', [ApplicationFormController::class, 'verifyResume'])->name('verify.resume');
-    Route::post('/check-resume', [ApplicationFormController::class, 'checkResumePhone'])->name('check.resume');
-    Route::post('/check-resume-otp', [ApplicationFormController::class, 'verifyResumeOtpPhone'])->name('verify.resume.otp');
+    Route::post('/resume', [ApplicationFormController::class, 'verifyResume'])->name('verify.resume')
+        ->middleware('throttle:10,10,application-lookup');
+    Route::post('/check-resume', [ApplicationFormController::class, 'checkResumePhone'])->name('check.resume')
+        ->middleware('throttle:5,10,application-sms');
+    Route::post('/check-resume-otp', [ApplicationFormController::class, 'verifyResumeOtpPhone'])->name('verify.resume.otp')
+        ->middleware('throttle:10,1,application-verify');
 
     // Application Status Check
     Route::get('/status', [ApplicationFormController::class, 'status'])->name('status');
-    Route::post('/check-status', [ApplicationFormController::class, 'checkStatus'])->name('check.status');
-
-    // Save Progress (AJAX)
-    Route::post('/save-progress', [ApplicationFormController::class, 'saveProgress'])->name('save.progress');
+    Route::post('/check-status', [ApplicationFormController::class, 'checkStatus'])->name('check.status')
+        ->middleware('throttle:5,10,application-sms');
+    Route::get('/status/verify', [ApplicationFormController::class, 'showStatusVerify'])->name('status.verify');
+    Route::post('/status/verify', [ApplicationFormController::class, 'verifyStatus'])->name('status.verify.submit')
+        ->middleware('throttle:10,1,application-verify');
 
     // Delete/Withdraw Application
     Route::post('/withdraw/{driver_id}', [ApplicationFormController::class, 'withdraw'])
@@ -150,15 +157,14 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
 // ─── Subscription routes (auth required, no subscription check) ───────────────
 Route::middleware(['auth'])->group(function () {
     Route::prefix('users')->name('users.')->group(function () {
-        Route::get('/', [UserController::class, 'index'])->name('index');
-        Route::get('/create', [UserController::class, 'create'])->name('create');
-        Route::post('/', [UserController::class, 'store'])->name('store');
-        Route::get('/{id}/edit', [UserController::class, 'edit'])->name('edit');
-        Route::put('/{id}', [UserController::class, 'update'])->name('update');
-        Route::delete('/{id}/2fa', [UserController::class, 'reset2FA'])->name('2fa.reset');
-        Route::post('/{id}/suspend', [UserController::class, 'suspend'])->name('suspend');
-        Route::post('/{id}/unsuspend', [UserController::class, 'unsuspend'])->name('unsuspend');
-        Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
+        Route::get('/', [UserController::class, 'index'])->name('index')->middleware('permission:users.view');
+        Route::get('/create', [UserController::class, 'create'])->name('create')->middleware('permission:users.create');
+        Route::post('/', [UserController::class, 'store'])->name('store')->middleware('permission:users.create');
+        Route::get('/{id}/edit', [UserController::class, 'edit'])->name('edit')->middleware('permission:users.edit');
+        Route::put('/{id}', [UserController::class, 'update'])->name('update')->middleware('permission:users.edit');
+        Route::post('/{id}/suspend', [UserController::class, 'suspend'])->name('suspend')->middleware('permission:users.edit');
+        Route::post('/{id}/unsuspend', [UserController::class, 'unsuspend'])->name('unsuspend')->middleware('permission:users.edit');
+        Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy')->middleware('permission:users.delete');
     });
 
     // ─── Billing & Subscription ───────────────────────────────────────────────
