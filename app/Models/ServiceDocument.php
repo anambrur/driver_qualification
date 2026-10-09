@@ -5,6 +5,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ServiceDocument extends Model
 {
@@ -26,7 +27,10 @@ class ServiceDocument extends Model
     ];
 
     // Relationships
-    public function serviceLog()
+    /**
+     * @return BelongsTo<ServiceLog, $this>
+     */
+    public function serviceLog(): BelongsTo
     {
         return $this->belongsTo(ServiceLog::class);
     }
@@ -48,7 +52,8 @@ class ServiceDocument extends Model
 
     public function getFileUrlAttribute()
     {
-        return asset('storage/' . $this->file_path);
+        // Files are on the private disk; only the authorized download route serves them
+        return route('admin.service-log.download-document', $this->id);
     }
 
     public function getFileIconAttribute()

@@ -190,11 +190,14 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| MNT-01 | P1 | SUSPECTED | `store`/`update` validate `vehicle_id` with bare `exists:vehicles,id` → a tenant can attach logs/schedules to another company's vehicle. |
-| MNT-02 | P1 | SUSPECTED | Stored XSS through raw DataTables columns (vehicle info, notes, category names). |
-| MNT-03 | P2 | SUSPECTED | Super-admin-created logs/schedules are saved with the super-admin's own `company_id`, not the vehicle's. |
-| MNT-04 | P2 | SUSPECTED | `markAsCompleted` reads `$vehicle->engine_hours` (no such column) → always 0. Unit-test `MaintenanceSchedule::calculateNextDue()` (month ends, null intervals, each `schedule_type`). |
-| MNT-05 | P2 | SUSPECTED | Service documents on the public disk; client extension kept; `.doc/.docx` allowed. |
+| MNT-01 | P1 | FIXED | `store`/`update` validate `vehicle_id` with bare `exists:vehicles,id` → a tenant can attach logs/schedules to another company's vehicle. |
+| MNT-02 | P1 | FIXED | Stored XSS through raw DataTables columns (vehicle info, notes, category names). |
+| MNT-03 | P2 | FIXED | Super-admin-created logs/schedules are saved with the super-admin's own `company_id`, not the vehicle's. (2026-10-10: `store` already fixed by ACL-05; `update` fixed now.) |
+| MNT-04 | P2 | FIXED | `markAsCompleted` reads `$vehicle->engine_hours` (no such column) → always 0. Unit-test `MaintenanceSchedule::calculateNextDue()` (month ends, null intervals, each `schedule_type`). |
+| MNT-05 | P2 | FIXED | Service documents on the public disk; client extension kept; `.doc/.docx` allowed. (2026-10-10: private disk + `hashName()`; keeping `.doc/.docx` DEFERRED, see report.) |
+| MNT-06 | P1 | FIXED | (Found 2026-10-10) Both index pages built the vehicle filter dropdown from every company's vehicles, leaking other tenants' unit numbers, makes and models. |
+| MNT-07 | P2 | FIXED | (Found 2026-10-10) The service-log category filter queried a non-existent JSON column; the query failed and, with debug on, returned the SQL error text. |
+| MNT-08 | P3 | FIXED | (Found 2026-10-10) `edit()` didn't load the log's categories, so the edit form opened with none ticked and saving failed validation. |
 
 ## 11. `fleet-assets`: Vehicles & trailers
 - **Scope**: `app/Http/Controllers/{VehicleController,TrailerController}.php`, `app/Models/{Vehicle,Trailer}.php`, views `admin/{vehicle,trailer}/**`

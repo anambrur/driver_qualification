@@ -9,16 +9,30 @@ use App\Models\Vehicle;
 use App\Models\MaintenanceCategory;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 use Yajra\DataTables\Facades\DataTables;
 
 class ServiceLogController extends Controller
 {
     use CompanyFilterTrait;
+
+    // Service documents live on the private disk and are only served through downloadDocument()
+    private const DISK = 'local';
+
+    // Documents uploaded before 2026-10-10 were on the public disk until the migration moves them
+    private const LEGACY_DISK = 'public';
+
+    private const FILE_HEADERS = [
+        'X-Content-Type-Options' => 'nosniff',
+        'Cache-Control' => 'private, no-store',
+    ];
 
     /**
      * Display a listing of service logs.
@@ -50,7 +64,8 @@ class ServiceLogController extends Controller
             }
 
             if ($request->filled('category_id')) {
-                $query->whereJsonContains('maintenance_categories', (int)$request->category_id);
+                // Categories are a pivot table (service_log_category), not a JSON column
+                $query->withCategory((int) $request->category_id);
             }
 
             return DataTables::of($query)
@@ -73,11 +88,11 @@ class ServiceLogController extends Controller
                         </div>
                         <div class="ml-4">
                             <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center">
-                                ' . $vehicle->unit_no . ' - ' . $vehicle->year . ' ' . $vehicle->make . ' ' . $vehicle->model . '
+                                ' . e($vehicle->unit_no . ' - ' . $vehicle->year . ' ' . $vehicle->make . ' ' . $vehicle->model) . '
                                 ' . $documentIcon . '
                             </div>
                             <div class="text-sm text-gray-500 dark:text-gray-400">
-                                VIN: ' . $vehicle->vin . '
+                                VIN: ' . e($vehicle->vin) . '
                             </div>
                         </div>
                     </div>';
@@ -89,7 +104,7 @@ class ServiceLogController extends Controller
                     if ($categories->count() > 0) {
                         $categoriesHtml = '<div class="mt-1 flex flex-wrap gap-1">';
                         foreach ($categories->take(2) as $category) {
-                            $categoriesHtml .= '<span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">' . $category->name . '</span>';
+                            $categoriesHtml .= '<span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">' . e($category->name) . '</span>';
                         }
                         if ($categories->count() > 2) {
                             $categoriesHtml .= '<span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-800 rounded-full">+' . ($categories->count() - 2) . '</span>';
@@ -163,7 +178,7 @@ class ServiceLogController extends Controller
         }
 
         // Get dropdown data for filters
-        $vehicles = Vehicle::orderBy('unit_no')->get();
+        $vehicles = $this->applyCompanyFilter(Vehicle::orderBy('unit_no'))->get();
         $maintenanceCategories = MaintenanceCategory::orderBy('name')->get();
         $companies = $this->getCompaniesForUser();
 
@@ -175,7 +190,7 @@ class ServiceLogController extends Controller
      */
     public function edit($id)
     {
-        $serviceLog = ServiceLog::with(['vehicle', 'documents'])->findOrFail($id);
+        $serviceLog = ServiceLog::with(['vehicle', 'documents', 'maintenanceCategories'])->findOrFail($id);
 
         // Check if user has access to this service log
         $this->authorizeCompanyAccess($serviceLog, 'You do not have permission to edit this service log.');
@@ -222,7 +237,7 @@ class ServiceLogController extends Controller
 
 
         $validator = Validator::make($request->all(), [
-            'vehicle_id' => 'required|exists:vehicles,id',
+            'vehicle_id' => ['required', $this->vehicleRule()],
             'service_date' => 'required|date',
             'maintenance_categories' => 'required|array|min:1',
             'maintenance_categories.*' => 'exists:maintenance_categories,id',
@@ -251,6 +266,8 @@ class ServiceLogController extends Controller
         // A super-admin's log belongs to the vehicle's company, not their own
         $companyId = $this->getOwningCompanyId(Vehicle::withTrashed()->whereKey($request->vehicle_id)->value('company_id'));
 
+        $storedPaths = [];
+
         DB::beginTransaction();
 
         try {
@@ -274,18 +291,7 @@ class ServiceLogController extends Controller
             // Handle document uploads
             if ($request->hasFile('documents')) {
                 foreach ($request->file('documents') as $file) {
-                    $originalName = $file->getClientOriginalName();
-                    $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $filePath = $file->storeAs('service-documents/' . $serviceLog->id, $fileName, 'public');
-
-                    ServiceDocument::create([
-                        'service_log_id' => $serviceLog->id,
-                        'original_name' => $originalName,
-                        'file_name' => $fileName,
-                        'file_path' => $filePath,
-                        'mime_type' => $file->getMimeType(),
-                        'file_size' => $file->getSize()
-                    ]);
+                    $storedPaths[] = $this->storeDocument($serviceLog, $file);
                 }
             }
 
@@ -301,6 +307,7 @@ class ServiceLogController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            Storage::disk(self::DISK)->delete($storedPaths);
             Log::error('Service log store error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -325,7 +332,7 @@ class ServiceLogController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'vehicle_id' => 'required|exists:vehicles,id',
+            'vehicle_id' => ['required', $this->vehicleRule()],
             'service_date' => 'required|date',
             'maintenance_categories' => 'required|array|min:1',
             'maintenance_categories.*' => 'exists:maintenance_categories,id',
@@ -353,6 +360,9 @@ class ServiceLogController extends Controller
             ], 422);
         }
 
+        $storedPaths = [];
+        $deletedPaths = [];
+
         DB::beginTransaction();
 
         try {
@@ -363,7 +373,7 @@ class ServiceLogController extends Controller
                     ->get();
 
                 foreach ($documentsToDelete as $doc) {
-                    Storage::disk('public')->delete($doc->file_path);
+                    $deletedPaths[] = $doc->file_path;
                     $doc->delete();
                 }
             }
@@ -371,23 +381,13 @@ class ServiceLogController extends Controller
             // Upload new documents
             if ($request->hasFile('new_documents')) {
                 foreach ($request->file('new_documents') as $file) {
-                    $originalName = $file->getClientOriginalName();
-                    $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $filePath = $file->storeAs('service-documents/' . $serviceLog->id, $fileName, 'public');
-
-                    ServiceDocument::create([
-                        'service_log_id' => $serviceLog->id,
-                        'original_name' => $originalName,
-                        'file_name' => $fileName,
-                        'file_path' => $filePath,
-                        'mime_type' => $file->getMimeType(),
-                        'file_size' => $file->getSize()
-                    ]);
+                    $storedPaths[] = $this->storeDocument($serviceLog, $file);
                 }
             }
 
-            // Update service log
+            // Update service log; a super-admin moving it to another company's vehicle moves it to that company
             $serviceLog->update([
+                'company_id' => $this->getOwningCompanyId(Vehicle::whereKey($request->vehicle_id)->value('company_id')),
                 'vehicle_id' => $request->vehicle_id,
                 'service_date' => $request->service_date,
                 'maintenance_notes' => $request->maintenance_notes,
@@ -407,6 +407,9 @@ class ServiceLogController extends Controller
 
             DB::commit();
 
+            // Removed files go only once the change is committed
+            $this->deleteFiles($deletedPaths);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Service log updated successfully!',
@@ -414,6 +417,7 @@ class ServiceLogController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            Storage::disk(self::DISK)->delete($storedPaths);
             Log::error('Service log update error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -439,9 +443,7 @@ class ServiceLogController extends Controller
 
         try {
             // Delete associated documents from storage
-            foreach ($serviceLog->documents as $doc) {
-                Storage::disk('public')->delete($doc->file_path);
-            }
+            $this->deleteFiles($serviceLog->documents->pluck('file_path')->all());
 
             $serviceLog->delete();
 
@@ -466,20 +468,18 @@ class ServiceLogController extends Controller
      */
     public function downloadDocument($id)
     {
-        $document = ServiceDocument::findOrFail($id);
-        $serviceLog = $document->serviceLog;
+        $document = $this->findAuthorizedDocument($id, 'You do not have permission to download this document.');
 
-        // Check if user has access to this service log
-        $this->authorizeCompanyAccess($serviceLog, 'You do not have permission to download this document.');
-
-        if (!Storage::disk('public')->exists($document->file_path)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'File not found.'
-            ], 404);
+        foreach ([self::DISK, self::LEGACY_DISK] as $disk) {
+            if (Storage::disk($disk)->exists($document->file_path)) {
+                return Storage::disk($disk)->download($document->file_path, $document->original_name, self::FILE_HEADERS);
+            }
         }
 
-        return response()->download(Storage::disk('public')->path($document->file_path), $document->original_name);
+        return response()->json([
+            'success' => false,
+            'message' => 'File not found.'
+        ], 404);
     }
 
     /**
@@ -487,16 +487,12 @@ class ServiceLogController extends Controller
      */
     public function deleteDocument($id)
     {
-        $document = ServiceDocument::findOrFail($id);
-        $serviceLog = $document->serviceLog;
-
-        // Check if user has access to this service log
-        $this->authorizeCompanyAccess($serviceLog, 'You do not have permission to delete this document.');
+        $document = $this->findAuthorizedDocument($id, 'You do not have permission to delete this document.');
 
         DB::beginTransaction();
 
         try {
-            Storage::disk('public')->delete($document->file_path);
+            $this->deleteFiles([$document->file_path]);
             $document->delete();
 
             DB::commit();
@@ -567,5 +563,67 @@ class ServiceLogController extends Controller
                 'message' => 'Vehicle not found'
             ], 404);
         }
+    }
+
+    /**
+     * Store an uploaded document on the private disk under a random name with the extension of
+     * its content (hashName), never the client's.
+     */
+    private function storeDocument(ServiceLog $serviceLog, UploadedFile $file): string
+    {
+        $filePath = $file->store('service-documents/' . $serviceLog->id, self::DISK);
+
+        ServiceDocument::create([
+            'service_log_id' => $serviceLog->id,
+            'original_name' => $file->getClientOriginalName(),
+            'file_name' => basename($filePath),
+            'file_path' => $filePath,
+            'mime_type' => $file->getMimeType(),
+            'file_size' => $file->getSize()
+        ]);
+
+        return $filePath;
+    }
+
+    /**
+     * @param  array<int, string|null>  $paths
+     */
+    private function deleteFiles(array $paths): void
+    {
+        $paths = array_values(array_filter($paths));
+
+        Storage::disk(self::DISK)->delete($paths);
+        Storage::disk(self::LEGACY_DISK)->delete($paths);
+    }
+
+    /**
+     * A document whose service log the user may access: 404 when the document or its (soft-deleted)
+     * log is gone, 403 for another company's.
+     */
+    private function findAuthorizedDocument($id, string $message): ServiceDocument
+    {
+        $document = ServiceDocument::with('serviceLog')->findOrFail($id);
+
+        if (!$document->serviceLog) {
+            abort(404);
+        }
+
+        $this->authorizeCompanyAccess($document->serviceLog, $message);
+
+        return $document;
+    }
+
+    /**
+     * A vehicle the user may attach records to: not deleted, and in the tenant's own company.
+     */
+    private function vehicleRule(): Exists
+    {
+        $rule = Rule::exists('vehicles', 'id')->whereNull('deleted_at');
+
+        if (!Auth::user()->hasRole('super-admin')) {
+            $rule->where('company_id', $this->getUserCompanyId() ?? -1);
+        }
+
+        return $rule;
     }
 }

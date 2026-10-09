@@ -592,8 +592,8 @@
             var vehicleSelect = $('#vehicle_id');
             vehicleSelect.empty().append('<option value="">Select Vehicle</option>');
             response.vehicles.forEach(function(vehicle) {
-                vehicleSelect.append('<option value="' + vehicle.id + '">' + vehicle.unit_no + ' - ' +
-                    vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model + '</option>');
+                vehicleSelect.append(new Option(vehicle.unit_no + ' - ' + vehicle.year + ' ' + vehicle.make + ' ' +
+                    vehicle.model, vehicle.id));
             });
 
             // Populate categories
@@ -603,7 +603,7 @@
                 categoriesContainer.append(`
                 <div class="flex items-center">
                     <input type="checkbox" name="maintenance_categories[]" id="category_${category.id}" value="${category.id}" class="h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded">
-                    <label for="category_${category.id}" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">${category.name}</label>
+                    <label for="category_${category.id}" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">${escapeHtml(category.name)}</label>
                 </div>
             `);
             });
@@ -734,7 +734,7 @@
                             data.maintenance_categories.forEach(function(cat) {
                                 categoriesHtml +=
                                     '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs mr-1">' +
-                                    cat.name + '</span>';
+                                    escapeHtml(cat.name) + '</span>';
                             });
                         } else {
                             categoriesHtml = '<span class="text-gray-500">None selected</span>';
@@ -769,8 +769,8 @@
                                 'pending': '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Pending</span>',
                                 'cancelled': '<span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">Cancelled</span>'
                             } [data.status] ||
-                            '<span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">' + data
-                            .status + '</span>';
+                            '<span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">' + escapeHtml(data
+                            .status) + '</span>';
 
                         $('#view_status').html(statusBadge);
 
@@ -784,7 +784,7 @@
                                 docsHtml += `
                                 <div class="flex items-center p-2 border rounded">
                                     <i class="fas ${fileIcon} mr-2"></i>
-                                    <span class="text-sm truncate flex-1">${doc.original_name}</span>
+                                    <span class="text-sm truncate flex-1">${escapeHtml(doc.original_name)}</span>
                                     <a href="${downloadUrl}" class="text-blue-500 hover:text-blue-700 ml-2" target="_blank">
                                         <i class="fas fa-download"></i>
                                     </a>
@@ -898,7 +898,7 @@
                     <div class="flex items-center flex-1">
                         <i class="mr-3 text-2xl ${fileIcon}"></i>
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">${file.name}</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">${escapeHtml(file.name)}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">${fileSize}</p>
                         </div>
                     </div>
@@ -1099,7 +1099,7 @@
                         <div class="file-icon">
                             <i class="fas ${fileIcon} text-4xl"></i>
                         </div>
-                        <div class="text-xs mt-1 max-w-[100px] truncate">${doc.original_name}</div>
+                        <div class="text-xs mt-1 max-w-[100px] truncate">${escapeHtml(doc.original_name)}</div>
                         <div class="remove-doc" onclick="deleteDocument(${doc.id})">
                             <i class="fas fa-times"></i>
                         </div>
@@ -1164,6 +1164,16 @@
             $('.text-red-600').html('');
         }
 
+        // Vehicle names, category names and file names come from users: never put them in HTML unescaped.
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         // Toast notification function
         function showToast(message, type = 'success') {
             const types = {
@@ -1199,7 +1209,7 @@
             toast.innerHTML = `
             <i class="fas ${toastType.icon} text-xl"></i>
             <div>
-                <p class="font-medium">${message}</p>
+                <p class="font-medium">${escapeHtml(message)}</p>
             </div>
             <button onclick="document.getElementById('${toastId}').remove()" class="ml-4 text-white hover:text-gray-200">
                 <i class="fas fa-times"></i>

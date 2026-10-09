@@ -4,6 +4,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MaintenanceSchedule;
+use App\Models\ServiceLog;
 use App\Models\Vehicle;
 use App\Models\MaintenanceCategory;
 use App\Traits\CompanyFilterTrait;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 use Yajra\DataTables\Facades\DataTables;
 
 class MaintenanceScheduleController extends Controller
@@ -51,7 +54,7 @@ class MaintenanceScheduleController extends Controller
 
                     return '
                     <div class="text-sm">
-                        <div class="font-medium text-gray-900 dark:text-white">' . ($row->title ?: $category) . '</div>
+                        <div class="font-medium text-gray-900 dark:text-white">' . e($row->title ?: $category) . '</div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">' . $row->schedule_type_label . '</div>
                     </div>';
                 })
@@ -70,10 +73,10 @@ class MaintenanceScheduleController extends Controller
                         </div>
                         <div class="ml-3">
                             <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                ' . $vehicle->unit_no . '
+                                ' . e($vehicle->unit_no) . '
                             </div>
                             <div class="text-xs text-gray-500 dark:text-gray-400">
-                                ' . $vehicle->year . ' ' . $vehicle->make . ' ' . $vehicle->model . '
+                                ' . e($vehicle->year . ' ' . $vehicle->make . ' ' . $vehicle->model) . '
                             </div>
                         </div>
                     </div>';
@@ -126,7 +129,7 @@ class MaintenanceScheduleController extends Controller
         }
 
         // Get dropdown data for filters
-        $vehicles = Vehicle::orderBy('unit_no')->get();
+        $vehicles = $this->applyCompanyFilter(Vehicle::orderBy('unit_no'))->get();
         $maintenanceCategories = MaintenanceCategory::orderBy('name')->get();
         $companies = $this->getCompaniesForUser();
 
@@ -142,7 +145,7 @@ class MaintenanceScheduleController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'vehicle_id' => 'nullable|exists:vehicles,id',
+            'vehicle_id' => ['nullable', $this->vehicleRule()],
             'maintenance_category_id' => 'required|exists:maintenance_categories,id',
             'title' => 'nullable|string|max:255',
             'schedule_type' => 'required|in:date,mileage,engine_hours',
@@ -226,9 +229,13 @@ class MaintenanceScheduleController extends Controller
 
         $this->authorizeCompanyAccess($schedule, 'You do not have permission to view this schedule.');
 
+        // The details modal shows these computed values
+        $schedule->append(['schedule_type_label', 'interval_text', 'next_due_text', 'status_badge']);
+        $schedule->vehicle?->append('full_name');
+
         return response()->json([
             'success' => true,
-            'data' => $schedule
+            'data' => array_merge($schedule->toArray(), ['is_due' => $schedule->isDue()])
         ]);
     }
 
@@ -243,7 +250,7 @@ class MaintenanceScheduleController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'vehicle_id' => 'nullable|exists:vehicles,id',
+            'vehicle_id' => ['nullable', $this->vehicleRule()],
             'maintenance_category_id' => 'required|exists:maintenance_categories,id',
             'title' => 'nullable|string|max:255',
             'schedule_type' => 'required|in:date,mileage,engine_hours',
@@ -265,13 +272,28 @@ class MaintenanceScheduleController extends Controller
             ], 422);
         }
 
+        // Only the validated fields; company_id and next_due_* are never taken from the request.
+        // A schedule follows its vehicle's company, and keeps its company when it applies to all vehicles.
+        $data = $validator->validated();
+        $data['company_id'] = $request->vehicle_id
+            ? $this->getOwningCompanyId(Vehicle::whereKey($request->vehicle_id)->value('company_id'))
+            : $schedule->company_id;
+        $data['interval_days'] = $request->schedule_type === 'date' ? $request->interval_days : null;
+        $data['interval_miles'] = $request->schedule_type === 'mileage' ? $request->interval_miles : null;
+        $data['interval_hours'] = $request->schedule_type === 'engine_hours' ? $request->interval_hours : null;
+
         DB::beginTransaction();
 
         try {
-            $schedule->update($request->all());
+            $schedule->fill($data);
 
-            // Recalculate next due
-            $schedule->calculateNextDue()->save();
+            // Recalculate next due only when what it depends on changed, so editing the
+            // notes doesn't move the due date
+            if ($schedule->isDirty(['vehicle_id', 'schedule_type', 'interval_days', 'interval_miles', 'interval_hours', 'last_due_date', 'last_due_mileage', 'last_due_hours'])) {
+                $schedule->calculateNextDue();
+            }
+
+            $schedule->save();
 
             DB::commit();
 
@@ -358,7 +380,7 @@ class MaintenanceScheduleController extends Controller
                     'unit_no' => $vehicle->unit_no,
                     'full_name' => $vehicle->full_name,
                     'current_odometer' => $vehicle->odometer,
-                    'engine_hours' => $vehicle->engine_hours ?? 0,
+                    'engine_hours' => ServiceLog::currentEngineHoursFor($vehicle->id),
                     'vin' => $vehicle->vin,
                 ]
             ]);
@@ -392,7 +414,7 @@ class MaintenanceScheduleController extends Controller
                     break;
                 case 'engine_hours':
                     if ($schedule->vehicle) {
-                        $schedule->last_due_hours = $schedule->vehicle->engine_hours ?? 0;
+                        $schedule->last_due_hours = $schedule->currentEngineHours();
                     }
                     break;
             }
@@ -413,5 +435,19 @@ class MaintenanceScheduleController extends Controller
                 'message' => 'Failed to mark schedule as completed.'
             ], 500);
         }
+    }
+
+    /**
+     * A vehicle the user may attach records to: not deleted, and in the tenant's own company.
+     */
+    private function vehicleRule(): Exists
+    {
+        $rule = Rule::exists('vehicles', 'id')->whereNull('deleted_at');
+
+        if (!Auth::user()->hasRole('super-admin')) {
+            $rule->where('company_id', $this->getUserCompanyId() ?? -1);
+        }
+
+        return $rule;
     }
 }

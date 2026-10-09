@@ -5,6 +5,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ServiceLog extends Model
@@ -36,23 +39,35 @@ class ServiceLog extends Model
     ];
 
     // Relationships
-    public function company()
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
     }
 
-    public function vehicle()
+    /**
+     * @return BelongsTo<Vehicle, $this>
+     */
+    public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
     }
 
-    public function maintenanceCategories()
+    /**
+     * @return BelongsToMany<MaintenanceCategory, $this>
+     */
+    public function maintenanceCategories(): BelongsToMany
     {
         return $this->belongsToMany(MaintenanceCategory::class, 'service_log_category')
             ->withTimestamps();
     }
 
-    public function documents()
+    /**
+     * @return HasMany<ServiceDocument, $this>
+     */
+    public function documents(): HasMany
     {
         return $this->hasMany(ServiceDocument::class);
     }
@@ -90,7 +105,7 @@ class ServiceLog extends Model
     {
         $html = '';
         foreach ($this->maintenanceCategories as $category) {
-            $html .= '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs mr-1">' . $category->name . '</span>';
+            $html .= '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs mr-1">' . e($category->name) . '</span>';
         }
         return $html;
     }
@@ -116,6 +131,18 @@ class ServiceLog extends Model
         return $query->whereHas('maintenanceCategories', function ($q) use ($categoryId) {
             $q->where('maintenance_category_id', $categoryId);
         });
+    }
+
+    /**
+     * A vehicle's current engine hours: the highest current_engine_hours logged for it, or 0.
+     */
+    public static function currentEngineHoursFor(?int $vehicleId): int
+    {
+        if ($vehicleId === null) {
+            return 0;
+        }
+
+        return (int) static::where('vehicle_id', $vehicleId)->max('current_engine_hours');
     }
 
     /**

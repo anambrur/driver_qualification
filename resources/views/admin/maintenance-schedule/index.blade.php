@@ -345,15 +345,15 @@
             var vehicleSelect = $('#vehicle_id');
             vehicleSelect.empty().append('<option value="">All Vehicles (Global Schedule)</option>');
             response.vehicles.forEach(function(vehicle) {
-                vehicleSelect.append('<option value="' + vehicle.id + '">' + vehicle.unit_no + ' - ' +
-                    vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model + '</option>');
+                vehicleSelect.append(new Option(vehicle.unit_no + ' - ' + vehicle.year + ' ' + vehicle.make + ' ' +
+                    vehicle.model, vehicle.id));
             });
 
             // Populate categories
             var categorySelect = $('#maintenance_category_id');
             categorySelect.empty().append('<option value="">Select Category</option>');
             response.maintenanceCategories.forEach(function(category) {
-                categorySelect.append('<option value="' + category.id + '">' + category.name + '</option>');
+                categorySelect.append(new Option(category.name, category.id));
             });
         }
 
@@ -657,6 +657,16 @@
             $('.text-red-600').html('');
         }
 
+        // Server messages can echo user input: never put them in HTML unescaped.
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         // Toast notification function
         function showToast(message, type = 'success') {
             const types = {
@@ -687,7 +697,7 @@
                 `${toastType.bg} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 transform transition-all duration-300 translate-x-full`;
             toast.innerHTML = `
             <i class="fas ${toastType.icon} text-xl"></i>
-            <p class="font-medium">${message}</p>
+            <p class="font-medium">${escapeHtml(message)}</p>
             <button onclick="document.getElementById('${toastId}').remove()" class="ml-4 text-white hover:text-gray-200">
                 <i class="fas fa-times"></i>
             </button>

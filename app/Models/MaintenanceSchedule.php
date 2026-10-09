@@ -5,6 +5,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MaintenanceSchedule extends Model
@@ -46,22 +48,34 @@ class MaintenanceSchedule extends Model
     ];
 
     // Relationships
-    public function company()
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
     }
 
-    public function vehicle()
+    /**
+     * @return BelongsTo<Vehicle, $this>
+     */
+    public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
     }
 
-    public function maintenanceCategory()
+    /**
+     * @return BelongsTo<MaintenanceCategory, $this>
+     */
+    public function maintenanceCategory(): BelongsTo
     {
         return $this->belongsTo(MaintenanceCategory::class);
     }
 
-    public function serviceLogs()
+    /**
+     * @return HasMany<ServiceLog, $this>
+     */
+    public function serviceLogs(): HasMany
     {
         return $this->hasMany(ServiceLog::class, 'maintenance_schedule_id');
     }
@@ -117,7 +131,7 @@ class MaintenanceSchedule extends Model
         ];
 
         $class = $badges[$this->status] ?? 'bg-gray-100 text-gray-800';
-        $text = ucfirst($this->status);
+        $text = e(ucfirst((string) $this->status));
 
         return "<span class='px-2 py-1 rounded-full text-xs font-medium {$class}'>{$text}</span>";
     }
@@ -128,13 +142,20 @@ class MaintenanceSchedule extends Model
             return '<span class="text-gray-400">All Vehicles</span>';
         }
 
-        return $this->vehicle->unit_no . ' - ' . $this->vehicle->year . ' ' . $this->vehicle->make . ' ' . $this->vehicle->model;
+        return e($this->vehicle->unit_no . ' - ' . $this->vehicle->year . ' ' . $this->vehicle->make . ' ' . $this->vehicle->model);
     }
 
     // Methods
     public function calculateNextDue()
     {
         $vehicle = $this->vehicle;
+
+        // Only the current type's due value applies; drop any left over from a previous type
+        foreach (['date' => 'next_due_date', 'mileage' => 'next_due_mileage', 'engine_hours' => 'next_due_hours'] as $type => $column) {
+            if ($this->schedule_type !== $type) {
+                $this->{$column} = null;
+            }
+        }
 
         switch ($this->schedule_type) {
             case 'date':
@@ -158,8 +179,7 @@ class MaintenanceSchedule extends Model
 
             case 'engine_hours':
                 if ($vehicle && $this->interval_hours) {
-                    // Assuming vehicle has engine_hours field
-                    $currentHours = $vehicle->engine_hours ?? 0;
+                    $currentHours = $this->currentEngineHours();
                     if ($this->last_due_hours) {
                         $this->next_due_hours = $this->last_due_hours + $this->interval_hours;
                     } else {
@@ -170,6 +190,15 @@ class MaintenanceSchedule extends Model
         }
 
         return $this;
+    }
+
+    /**
+     * The vehicle's engine hours. Vehicles have no engine hours column; the app records them
+     * on service logs (current_engine_hours), so the highest logged value is the current one.
+     */
+    public function currentEngineHours(): int
+    {
+        return ServiceLog::currentEngineHoursFor($this->vehicle_id);
     }
 
     public function isDue()
@@ -184,8 +213,7 @@ class MaintenanceSchedule extends Model
                 return $vehicle && $this->next_due_mileage && $vehicle->odometer >= $this->next_due_mileage;
 
             case 'engine_hours':
-                $currentHours = $vehicle->engine_hours ?? 0;
-                return $this->next_due_hours && $currentHours >= $this->next_due_hours;
+                return $vehicle && $this->next_due_hours && $this->currentEngineHours() >= $this->next_due_hours;
 
             default:
                 return false;
