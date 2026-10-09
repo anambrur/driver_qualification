@@ -115,11 +115,11 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| AGR-01 | P0 | CONFIRMED | No tenant scoping at all. Tenant A `GET edit/{id}` of tenant B's group → 200; `index`, `update`, `destroy`, `restore` are likewise unscoped. |
-| AGR-02 | P0 | SUSPECTED | `index` and `getDropdownData` expose every company's vehicles, trailers and active drivers (the company-filtered `$drivers` is overwritten by `Driver::where('status','active')->get()`). |
-| AGR-03 | P1 | SUSPECTED | `store`/`update` accept another tenant's `driver_id`/`vehicle_id`/`trailer_id` (`exists:` only). |
-| AGR-04 | P1 | SUSPECTED | Stored XSS: `group_name` in raw DataTables columns and `addslashes` `onclick`. |
-| AGR-05 | P2 | SUSPECTED | `group_name` globally unique (cross-tenant collision & existence leak). |
+| AGR-01 | P0 | FIXED | No tenant scoping at all. Tenant A `GET edit/{id}` of tenant B's group → 200; `index`, `update`, `destroy`, `restore` are likewise unscoped. |
+| AGR-02 | P0 | FIXED | `index` and `getDropdownData` expose every company's vehicles, trailers and active drivers (the company-filtered `$drivers` is overwritten by `Driver::where('status','active')->get()`). |
+| AGR-03 | P1 | FIXED | `store`/`update` accept another tenant's `driver_id`/`vehicle_id`/`trailer_id` (`exists:` only). |
+| AGR-04 | P1 | FIXED | Stored XSS: `group_name` in raw DataTables columns and `addslashes` `onclick`. |
+| AGR-05 | P2 | FIXED | `group_name` globally unique (cross-tenant collision & existence leak). |
 
 ## 6. `access-control`: Cross-cutting
 - **Scope**: `routes/web.php`, `routes/auth.php`, `routes/console.php`, `bootstrap/app.php`, `app/Http/Middleware/*`, `app/Traits/{CompanyFilterTrait,HasSubscription}.php`, `config/{permission,session,app}.php`, `.htaccess`, `.env.example`, `composer.json/lock`

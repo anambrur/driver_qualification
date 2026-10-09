@@ -194,15 +194,13 @@
                                                 </h4>
 
                                                 <div class="space-y-4">
-                                                    <!-- Primary Driver -->
-
-                                                    <input type="hidden" name="driver_id" id="driver_id">
+                                                    <!-- Primary Driver (the server stores the driver's name from this id) -->
                                                     <div>
-                                                        <label for="primary_driver_name"
+                                                        <label for="driver_id"
                                                             class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                             Primary Driver <span class="text-red-500">*</span>
                                                         </label>
-                                                        <select name="primary_driver_name" id="primary_driver_name"
+                                                        <select name="driver_id" id="driver_id"
                                                             required
                                                             class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                             <option value="">Select Driver</option>
@@ -212,7 +210,7 @@
                                                                 </option>
                                                             @endforeach
                                                         </select>
-                                                        <div id="primary_driver_name_error"
+                                                        <div id="driver_id_error"
                                                             class="mt-1 text-sm text-red-600">
                                                         </div>
                                                     </div>
@@ -513,8 +511,9 @@
             $('#primary_driver_email').val('');
             // Clear the group name
             $('#group_name').val('');
-            // Clear driver_id
+            // Clear driver_id and any inactive driver added while editing
             $('#driver_id').val('');
+            $('#driver_id option[data-inactive]').remove();
         }
 
         function showToast(message, type = 'success') {
@@ -577,6 +576,19 @@
                 }, 300);
             }, 3000);
         }
+
+        // Vehicle/trailer fields are tenant input; escape them before building HTML
+        function escapeHtml(value) {
+            return $('<div>').text(value == null ? '' : String(value)).html().replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // Delete/restore buttons carry the id and name as data attributes (never inline in onclick)
+        $(document).on('click', '[data-action="delete"]', function() {
+            deleteAssetGroup(this.dataset.id, this.dataset.name);
+        });
+        $(document).on('click', '[data-action="restore"]', function() {
+            restoreAssetGroup(this.dataset.id, this.dataset.name);
+        });
 
         // Functions that need to be accessible from HTML onclick attributes
         window.showCreateModal = function() {
@@ -829,7 +841,7 @@
             loadAssetData();
 
             // Driver selection change handler
-            $('#primary_driver_name').on('change', function() {
+            $('#driver_id').on('change', function() {
                 const driverId = $(this).val();
 
                 if (!driverId) {
@@ -849,7 +861,6 @@
                             $('#primary_driver_phone').val(response.data.main_phone || response
                                 .data.alt_phone || '');
                             $('#primary_driver_email').val(response.data.email || '');
-                            $('#driver_id').val(driverId);
                         }
                     },
                     error: function(xhr) {
@@ -928,17 +939,17 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="flex items-center space-x-2">
-                            <span class="text-lg font-semibold text-gray-800 dark:text-white">${vehicle.unit_no || vehicle.id}</span>
+                            <span class="text-lg font-semibold text-gray-800 dark:text-white">${escapeHtml(vehicle.unit_no || vehicle.id)}</span>
                             <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full dark:bg-blue-900 dark:text-blue-300">Power Unit</span>
                         </div>
                         <div class="mt-1 space-y-1">
                             <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                 <i class="fas fa-car mr-2"></i>
-                                <span>${vehicle.year || ''} ${vehicle.make || ''} ${vehicle.model || ''}</span>
+                                <span>${escapeHtml(vehicle.year)} ${escapeHtml(vehicle.make)} ${escapeHtml(vehicle.model)}</span>
                             </div>
                             <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                 <i class="fas fa-tag mr-2"></i>
-                                <span>License Plate: ${vehicle.license_plate || 'License plate number'}</span>
+                                <span>License Plate: ${escapeHtml(vehicle.license_plate || 'License plate number')}</span>
                             </div>
                         </div>
                     </div>
@@ -974,17 +985,17 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="flex items-center space-x-2">
-                            <span class="text-lg font-semibold text-gray-800 dark:text-white">${trailer.unit_no || trailer.id}</span>
+                            <span class="text-lg font-semibold text-gray-800 dark:text-white">${escapeHtml(trailer.unit_no || trailer.id)}</span>
                             <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full dark:bg-green-900 dark:text-green-300">Trailer</span>
                         </div>
                         <div class="mt-1 space-y-1">
                             <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                 <i class="fas fa-trailer mr-2"></i>
-                                <span>Trailer Type: ${trailerType}</span>
+                                <span>Trailer Type: ${escapeHtml(trailerType)}</span>
                             </div>
                             <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                 <i class="fas fa-tag mr-2"></i>
-                                <span>License Plate: ${trailer.license_plate || 'License plate number'}</span>
+                                <span>License Plate: ${escapeHtml(trailer.license_plate || 'License plate number')}</span>
                             </div>
                         </div>
                     </div>
@@ -1073,7 +1084,14 @@
                         $('#submitText').text('Update');
                         $('#asset_group_id').val(id);
 
-                        // Fill form fields
+                        // The select only lists active drivers; keep the group's driver selectable if inactive
+                        var driver = response.data.driver;
+                        if (driver && !$('#driver_id option[value="' + driver.id + '"]').length) {
+                            $('#driver_id').append($(new Option(driver.first_name + ' ' + driver.last_name + ' (inactive)', driver.id))
+                                .attr('data-inactive', '1'));
+                        }
+
+                        // Fill form fields (selecting the driver keeps the saved phone/email; picking another driver refills them)
                         $.each(response.data, function(key, value) {
                             if ($('#' + key).length) {
                                 if ($('#' + key).is('select')) {
@@ -1088,11 +1106,6 @@
                                     if (key === 'trailer_id' && value) {
                                         setTimeout(() => {
                                             $('#trailer_id').trigger('change');
-                                        }, 100);
-                                    }
-                                    if (key === 'primary_driver_name' && value) {
-                                        setTimeout(() => {
-                                            $('#primary_driver_name').trigger('change');
                                         }, 100);
                                     }
                                 } else {

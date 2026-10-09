@@ -338,14 +338,14 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
 
     // Asset Groups
     Route::prefix('asset-group')->group(function () {
-        Route::get('/', [AssetGroupController::class, 'index'])->name('admin.asset-group.index');
-        Route::post('/', [AssetGroupController::class, 'store'])->name('admin.asset-group.store');
-        Route::get('asset-group/get-dropdown-data', [AssetGroupController::class, 'getDropdownData'])->name('admin.asset-group.get-dropdown-data');
-        Route::get('/{id}/edit', [AssetGroupController::class, 'edit'])->name('admin.asset-group.edit');
-        Route::put('/{id}', [AssetGroupController::class, 'update'])->name('admin.asset-group.update');
-        Route::delete('/{id}', [AssetGroupController::class, 'destroy'])->name('admin.asset-group.destroy');
-        Route::post('/{id}/restore', [AssetGroupController::class, 'restore'])->name('admin.asset-group.restore');
-        Route::get('/dropdown-data', [AssetGroupController::class, 'getDropdownData'])->name('admin.asset-group.dropdown.data');
+        Route::get('/', [AssetGroupController::class, 'index'])->name('admin.asset-group.index')->middleware('permission:asset-groups.view');
+        Route::post('/', [AssetGroupController::class, 'store'])->name('admin.asset-group.store')->middleware('permission:asset-groups.create');
+        Route::get('asset-group/get-dropdown-data', [AssetGroupController::class, 'getDropdownData'])->name('admin.asset-group.get-dropdown-data')->middleware('permission:asset-groups.view');
+        Route::get('/{id}/edit', [AssetGroupController::class, 'edit'])->name('admin.asset-group.edit')->middleware('permission:asset-groups.edit');
+        Route::put('/{id}', [AssetGroupController::class, 'update'])->name('admin.asset-group.update')->middleware('permission:asset-groups.edit');
+        Route::delete('/{id}', [AssetGroupController::class, 'destroy'])->name('admin.asset-group.destroy')->middleware('permission:asset-groups.delete');
+        Route::post('/{id}/restore', [AssetGroupController::class, 'restore'])->name('admin.asset-group.restore')->middleware('permission:asset-groups.edit');
+        Route::get('/dropdown-data', [AssetGroupController::class, 'getDropdownData'])->name('admin.asset-group.dropdown.data')->middleware('permission:asset-groups.view');
     });
 
     Route::prefix('compliance')->group(function () {

@@ -41,7 +41,7 @@ class PermissionSeeder extends Seeder
         'fleets' => ['dashboard'],
     ];
 
-    public const COMPANY_MODULES = ['drivers', 'fleets', 'vehicles', 'trailers', 'maintenance', 'scheduled'];
+    public const COMPANY_MODULES = ['drivers', 'fleets', 'vehicles', 'trailers', 'asset-groups', 'maintenance', 'scheduled'];
 
     public const COMPANY_EXTRA_PERMISSIONS = ['companies.edit'];
 

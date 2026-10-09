@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AssetGroup extends Model
@@ -11,6 +12,7 @@ class AssetGroup extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'company_id',
         'group_name',
         'driver_id',
         'primary_driver_name',
@@ -28,18 +30,37 @@ class AssetGroup extends Model
         'status' => 'string'
     ];
 
+    protected static function booted(): void
+    {
+        // A group without an explicit company belongs to its vehicle's company
+        static::creating(function (AssetGroup $group) {
+            if ($group->company_id === null && $group->vehicle_id !== null) {
+                $group->company_id = Vehicle::withTrashed()->whereKey($group->vehicle_id)->value('company_id');
+            }
+        });
+    }
+
     // Relationships
-    public function vehicle()
+    /** @return BelongsTo<Company, $this> */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    /** @return BelongsTo<Vehicle, $this> */
+    public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
     }
 
-    public function trailer()
+    /** @return BelongsTo<Trailer, $this> */
+    public function trailer(): BelongsTo
     {
         return $this->belongsTo(Trailer::class);
     }
 
-    public function driver()
+    /** @return BelongsTo<Driver, $this> */
+    public function driver(): BelongsTo
     {
         return $this->belongsTo(Driver::class);
     }
