@@ -308,9 +308,9 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| DSH-01 | P2 | CONFIRMED | `/profit` is public. Check what the view exposes. |
-| DSH-02 | P2 | SUSPECTED | About 20 COUNT queries per load, plus `whereHas` on doc tables without an `expiry_date` index. Add a query budget test with realistic data. |
-| DSH-03 | P3 | SUSPECTED | Draft drivers are counted on the dashboard but hidden from tenants' driver list (numbers don't match). |
+| DSH-01 | P2 | FIXED | `/profit` is public. Check what the view exposes. (Removed by ACL-04; regression test added.) |
+| DSH-02 | P2 | FIXED | About 20 COUNT queries per load, plus `whereHas` on doc tables without an `expiry_date` index. Add a query budget test with realistic data. |
+| DSH-03 | P3 | FIXED | Draft drivers are counted on the dashboard but hidden from tenants' driver list (numbers don't match). |
 
 ## 21. `mail-delivery`: Mail infrastructure
 - **Scope**: `app/Console/Commands/CheckMailDeliverability.php`, `config/mail.php`, `AppServiceProvider::boot` (reply-to), all `app/Mail/*` envelopes/content, views `emails/**`

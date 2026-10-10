@@ -29,14 +29,25 @@ class DashboardController extends Controller
         $driversQuery = Driver::query();
         $driversQuery = $this->applyCompanyFilter($driversQuery);
 
-        $totalDrivers        = (clone $driversQuery)->count();
-        $activeDrivers       = (clone $driversQuery)->where('status', 'active')->count();
-        $pendingDrivers      = (clone $driversQuery)->whereIn('status', ['pending', 'submitted', 'under_review'])->count();
-        $inactiveDrivers     = (clone $driversQuery)->whereIn('status', ['inactive', 'rejected'])->count();
-        $newApplicants7Days  = (clone $driversQuery)
-            ->where('source', 'public_application')
-            ->where('created_at', '>=', now()->subDays(7))
-            ->count();
+        // Drafts are hidden from tenants' driver list, so keep the numbers consistent
+        if (! $isSuperAdmin) {
+            $driversQuery->where('status', '!=', 'draft');
+        }
+
+        // One query per table: conditional aggregates instead of a COUNT per stat
+        $driverCounts = $driversQuery->toBase()
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw("SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active")
+            ->selectRaw("SUM(CASE WHEN status IN ('pending', 'submitted', 'under_review') THEN 1 ELSE 0 END) as pending")
+            ->selectRaw("SUM(CASE WHEN status IN ('inactive', 'rejected') THEN 1 ELSE 0 END) as inactive")
+            ->selectRaw("SUM(CASE WHEN source = 'public_application' AND created_at >= ? THEN 1 ELSE 0 END) as new_applicants", [now()->subDays(7)])
+            ->first();
+
+        $totalDrivers        = (int) $driverCounts->total;
+        $activeDrivers       = (int) $driverCounts->active;
+        $pendingDrivers      = (int) $driverCounts->pending;
+        $inactiveDrivers     = (int) $driverCounts->inactive;
+        $newApplicants7Days  = (int) $driverCounts->new_applicants;
 
         // Fleet (vehicles & trailers)
         $vehiclesQuery = Vehicle::query();
@@ -45,8 +56,8 @@ class DashboardController extends Controller
         $trailersQuery = Trailer::query();
         $trailersQuery = $this->applyCompanyFilter($trailersQuery);
 
-        $totalVehicles = (clone $vehiclesQuery)->count();
-        $totalTrailers = (clone $trailersQuery)->count();
+        $totalVehicles = $vehiclesQuery->count();
+        $totalTrailers = $trailersQuery->count();
         $totalUnits    = $totalVehicles + $totalTrailers;
 
         // Compliance snapshots (overdue / due soon documents)
@@ -64,23 +75,9 @@ class DashboardController extends Controller
 
         $now = now();
 
-        $driverOverdue   = (clone $driverDocsQuery)->whereNotNull('expiry_date')->where('expiry_date', '<', $now)->count();
-        $driverDueSoon   = (clone $driverDocsQuery)
-            ->whereNotNull('expiry_date')
-            ->whereBetween('expiry_date', [$now, $now->copy()->addDays(30)])
-            ->count();
-
-        $vehicleOverdue  = (clone $vehicleDocsQuery)->whereNotNull('expiry_date')->where('expiry_date', '<', $now)->count();
-        $vehicleDueSoon  = (clone $vehicleDocsQuery)
-            ->whereNotNull('expiry_date')
-            ->whereBetween('expiry_date', [$now, $now->copy()->addDays(30)])
-            ->count();
-
-        $trailerOverdue  = (clone $trailerDocsQuery)->whereNotNull('expiry_date')->where('expiry_date', '<', $now)->count();
-        $trailerDueSoon  = (clone $trailerDocsQuery)
-            ->whereNotNull('expiry_date')
-            ->whereBetween('expiry_date', [$now, $now->copy()->addDays(30)])
-            ->count();
+        [$driverOverdue, $driverDueSoon]   = $this->expiryCounts($driverDocsQuery, $now);
+        [$vehicleOverdue, $vehicleDueSoon] = $this->expiryCounts($vehicleDocsQuery, $now);
+        [$trailerOverdue, $trailerDueSoon] = $this->expiryCounts($trailerDocsQuery, $now);
 
         $fleetOverdue = $vehicleOverdue + $trailerOverdue;
         $fleetDueSoon = $vehicleDueSoon + $trailerDueSoon;
@@ -89,14 +86,24 @@ class DashboardController extends Controller
         $serviceLogsQuery = ServiceLog::query();
         $serviceLogsQuery = $this->applyCompanyFilter($serviceLogsQuery);
 
-        $totalServices      = (clone $serviceLogsQuery)->count();
-        $recentServices30   = (clone $serviceLogsQuery)->where('service_date', '>=', now()->subDays(30))->count();
+        $serviceCounts = $serviceLogsQuery->toBase()
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN service_date >= ? THEN 1 ELSE 0 END) as recent', [now()->subDays(30)])
+            ->first();
+
+        $totalServices      = (int) $serviceCounts->total;
+        $recentServices30   = (int) $serviceCounts->recent;
 
         // Company-wide metrics (admin only)
         $companyStats = null;
         if ($isSuperAdmin) {
-            $totalCompanies  = Company::count();
-            $activeCompanies = Company::where('status', 'active')->count();
+            $companyCounts = Company::query()->toBase()
+                ->selectRaw('COUNT(*) as total')
+                ->selectRaw("SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active")
+                ->first();
+
+            $totalCompanies  = (int) $companyCounts->total;
+            $activeCompanies = (int) $companyCounts->active;
 
             $companyStats = [
                 'total_companies'  => $totalCompanies,
@@ -134,5 +141,22 @@ class DashboardController extends Controller
             ],
             'companyStats'          => $companyStats,
         ]);
+    }
+
+    /**
+     * Overdue and due-within-30-days document counts in a single query.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<*>  $docsQuery
+     * @return array{0: int, 1: int}
+     */
+    private function expiryCounts($docsQuery, \Illuminate\Support\Carbon $now): array
+    {
+        $counts = $docsQuery->toBase()
+            ->whereNotNull('expiry_date')
+            ->selectRaw('SUM(CASE WHEN expiry_date < ? THEN 1 ELSE 0 END) as overdue', [$now])
+            ->selectRaw('SUM(CASE WHEN expiry_date BETWEEN ? AND ? THEN 1 ELSE 0 END) as due_soon', [$now, $now->copy()->addDays(30)])
+            ->first();
+
+        return [(int) $counts->overdue, (int) $counts->due_soon];
     }
 }
