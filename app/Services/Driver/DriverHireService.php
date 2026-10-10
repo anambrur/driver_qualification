@@ -15,11 +15,9 @@ class DriverHireService
 {
     public function hire(Driver $driver, array $data, int $actorId): Driver
     {
-        if ($driver->status !== 'pending') {
-            throw new InvalidArgumentException('This driver is not in pending status.');
-        }
-
         $driver = DB::transaction(function () use ($driver, $data, $actorId) {
+            $driver = $this->lockPendingDriver($driver);
+
             $driver->update([
                 'status' => 'active',
                 'hire_date' => $data['hire_date'],
@@ -43,11 +41,9 @@ class DriverHireService
 
     public function reject(Driver $driver, array $data, int $actorId): Driver
     {
-        if ($driver->status !== 'pending') {
-            throw new InvalidArgumentException('This driver is not in pending status.');
-        }
-
         $driver = DB::transaction(function () use ($driver, $data, $actorId) {
+            $driver = $this->lockPendingDriver($driver);
+
             $driver->update([
                 'status' => 'rejected',
                 'rejection_reason' => $data['rejection_reason'],
@@ -102,6 +98,21 @@ class DriverHireService
         ];
 
         return $labels[$status] ?? ucfirst($status);
+    }
+
+    /**
+     * Re-read the driver under a row lock so the pending check and the status change are
+     * atomic: a double-submit (or a stale model) cannot hire/reject twice or send two emails.
+     */
+    private function lockPendingDriver(Driver $driver): Driver
+    {
+        $locked = Driver::query()->whereKey($driver->getKey())->lockForUpdate()->first();
+
+        if ($locked === null || $locked->status !== 'pending') {
+            throw new InvalidArgumentException('This driver is not in pending status.');
+        }
+
+        return $locked;
     }
 
     private function queueHireEmail(Driver $driver): void

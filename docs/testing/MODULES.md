@@ -276,9 +276,9 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| HIRE-01 | P2 | SUSPECTED | Status check happens outside the transaction with no row lock → double-submit sends two emails / flips state. |
-| HIRE-02 | P2 | SUSPECTED | Validator reasons vs the `drivers.rejection_reason` DB enum must match exactly. |
-| HIRE-03 | P1 | SUSPECTED | Cross-tenant hire/reject must be 403 (route-model binding + `authorizeCompanyAccess`). |
+| HIRE-01 | P2 | FIXED | Status check happens outside the transaction with no row lock → double-submit sends two emails / flips state. |
+| HIRE-02 | P2 | DISMISSED | Validator reasons vs the `drivers.rejection_reason` DB enum must match exactly. |
+| HIRE-03 | P1 | DISMISSED | Cross-tenant hire/reject must be 403 (route-model binding + `authorizeCompanyAccess`). |
 
 ## 18. `compliance-reminders`: Reminders & digest
 - **Scope**: `app/Http/Controllers/ComplianceReminderController.php`, `app/Services/ComplianceReminderService.php`, `app/Console/Commands/SendComplianceDigestReminders.php`, `app/Mail/{DriverComplianceReminderMail,VehicleComplianceStatusReminderMail,DriverComplianceDigestMail}.php`
