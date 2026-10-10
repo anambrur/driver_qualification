@@ -66,6 +66,15 @@ RESUME_MESSAGE="You were interrupted by a usage limit. Continue the same module 
 # How long to wait before retrying after a usage limit (seconds).
 LIMIT_WAIT="${LIMIT_WAIT:-900}"
 
+# Optional overrides, e.g. MODEL=sonnet EFFORT=medium scripts/fix-modules.sh
+# Empty means the defaults from ~/.claude/settings.json.
+MODEL_ARGS=()
+[ -n "${MODEL:-}" ] && MODEL_ARGS+=(--model "$MODEL")
+[ -n "${EFFORT:-}" ] && MODEL_ARGS+=(--effort "$EFFORT")
+
+# One Ctrl+C stops the whole script, not just the current module.
+trap 'echo; echo "Stopped by user."; exit 130' INT
+
 started=0
 for entry in "${MODULES[@]}"; do
   num="${entry%% *}"
@@ -94,7 +103,8 @@ for entry in "${MODULES[@]}"; do
         session_args=(--resume "$session_id")
         message="$RESUME_MESSAGE"
       fi
-      claude -p "$message" "${session_args[@]}" \
+      claude -p "$message" "${session_args[@]}" ${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"} \
+        --strict-mcp-config \
         --permission-mode auto \
         --append-system-prompt "$UNATTENDED_NOTE" \
         --disallowedTools \
