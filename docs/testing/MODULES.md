@@ -243,11 +243,11 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| BIL-01 | P2 | SUSPECTED | No webhook event-id idempotency. Concurrent `checkout.session.completed` + `customer.subscription.created` can create two Subscription rows (no unique constraint) and two "activated" emails. |
-| BIL-02 | P2 | SUSPECTED | `Subscription::isAccessible()` and `scopeAccessible()` disagree (e.g. `past_due`). Write parity tests. |
-| BIL-03 | P2 | SUSPECTED | Trial abuse: `checkout` needs only `auth` (not `verified`), and trial use is per user, so a new account means a new trial. |
-| BIL-04 | P2 | SUSPECTED | `CheckoutController::success` with another user's `session_id` must not sync. Verify the metadata ownership check. |
-| BIL-05 | P3 | SUSPECTED | `User::activeSubscription()` loads all subscriptions on every call (the `Subscribed` middleware calls it per request). `StripeClientFactory` keeps a static client. |
+| BIL-01 | P2 | DISMISSED | No webhook event-id idempotency. Concurrent `checkout.session.completed` + `customer.subscription.created` can create two Subscription rows (no unique constraint) and two "activated" emails. |
+| BIL-02 | P2 | FIXED | `Subscription::isAccessible()` and `scopeAccessible()` disagree (e.g. `past_due`). Write parity tests. |
+| BIL-03 | P2 | FIXED / DEFERRED | Trial abuse: `checkout` needs only `auth` (not `verified`), and trial use is per user, so a new account means a new trial. (2026-10-10: a synced paid subscription no longer overwrites the trial row; per-account rule DEFERRED, see report.) |
+| BIL-04 | P2 | FIXED | `CheckoutController::success` with another user's `session_id` must not sync. Verify the metadata ownership check. |
+| BIL-05 | P3 | FIXED | `User::activeSubscription()` loads all subscriptions on every call (the `Subscribed` middleware calls it per request). `StripeClientFactory` keeps a static client. |
 
 ## 15. `subscription-lifecycle`: Access gate, reminders & notifications
 - **Scope**: `app/Http/Middleware/Subscribed.php`, `app/Console/Commands/SendSubscriptionExpiryReminders.php`, `app/Services/Billing/SubscriptionNotificationService.php`, `app/Notifications/*`, `app/Events/*`, `app/Models/SubscriptionNotificationLog.php`, schedule in `routes/console.php`

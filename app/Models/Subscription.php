@@ -188,25 +188,42 @@ class Subscription extends Model
         return $query->where('stripe_status', 'canceled');
     }
 
+    /**
+     * SQL mirror of isAccessible(); keep the two in sync.
+     */
     public function scopeAccessible(Builder $query): Builder
     {
-        return $query->where(function (Builder $q) {
-            $q->whereIn('stripe_status', ['active', 'trialing'])
-                ->where(function (Builder $inner) {
-                    $inner->where('cancel_at_period_end', false)
-                        ->orWhereNull('ends_at')
-                        ->orWhere('ends_at', '>', now())
-                        ->orWhere('current_period_end', '>', now())
-                        ->orWhere('trial_ends_at', '>', now());
-                });
-        })->orWhere(function (Builder $q) {
-            $q->where(function (Builder $inner) {
-                $inner->where('stripe_status', 'canceled')
-                    ->orWhere('cancel_at_period_end', true);
-            })->where(function (Builder $inner) {
-                $inner->where('ends_at', '>', now())
-                    ->orWhere('current_period_end', '>', now())
-                    ->orWhere('trial_ends_at', '>', now());
+        // Same fallback order as accessEndsAt().
+        $endsAt = 'COALESCE(ends_at, trial_ends_at, current_period_end)';
+        $now = now();
+
+        return $query->where(function (Builder $q) use ($endsAt, $now) {
+            $q->where(function (Builder $q) use ($endsAt, $now) {
+                $q->whereIn('stripe_status', ['active', 'trialing'])
+                    ->where(function (Builder $inner) use ($endsAt, $now) {
+                        $inner->where('cancel_at_period_end', false)
+                            ->orWhereRaw("{$endsAt} IS NULL")
+                            ->orWhereRaw("{$endsAt} >= ?", [$now]);
+                    })
+                    ->where(function (Builder $inner) use ($endsAt, $now) {
+                        $inner->where('billing_cycle', '!=', 'trial')
+                            ->orWhereRaw("{$endsAt} IS NULL")
+                            ->orWhereRaw("{$endsAt} >= ?", [$now]);
+                    });
+            })->orWhere(function (Builder $q) use ($endsAt, $now) {
+                $q->whereNotIn('stripe_status', ['active', 'trialing', 'incomplete', 'incomplete_expired', 'unpaid'])
+                    ->where(function (Builder $inner) {
+                        $inner->where('stripe_status', 'canceled')
+                            ->orWhere('cancel_at_period_end', true);
+                    })
+                    ->whereRaw("{$endsAt} > ?", [$now]);
+            })->orWhere(function (Builder $q) use ($endsAt, $now) {
+                $q->where('stripe_status', 'past_due')
+                    ->where('cancel_at_period_end', false)
+                    ->where(function (Builder $inner) use ($endsAt, $now) {
+                        $inner->whereRaw("{$endsAt} IS NULL")
+                            ->orWhereRaw("{$endsAt} > ?", [$now]);
+                    });
             });
         });
     }

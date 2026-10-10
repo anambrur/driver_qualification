@@ -77,8 +77,14 @@ class CheckoutController extends Controller
                 $session = $stripe->make()->checkout->sessions->retrieve($sessionId, [
                     'expand' => ['invoice', 'subscription'],
                 ]);
-                $belongsToUser = ((string) ($session->metadata->user_id ?? '') === (string) $user->id)
-                    || ((string) ($session->client_reference_id ?? '') === (string) $user->id);
+                // Every owner id the session carries must be this user; syncCheckoutSession()
+                // prefers metadata.user_id, so matching only client_reference_id is not enough.
+                $ownerIds = array_filter([
+                    (string) ($session->metadata->user_id ?? ''),
+                    (string) ($session->client_reference_id ?? ''),
+                ], fn (string $id) => $id !== '');
+                $belongsToUser = $ownerIds !== []
+                    && array_diff($ownerIds, [(string) $user->id]) === [];
 
                 if ($belongsToUser) {
                     // Dual-write: subscription + payment (works without webhook on localhost).

@@ -334,6 +334,9 @@ class WebhookProcessor
                 $subscription = Subscription::where('user_id', $user->id)
                     ->whereIn('stripe_status', ['active', 'trialing', 'past_due', 'incomplete'])
                     ->whereNull('stripe_subscription_id')
+                    // Never overwrite a trial row: it is the record that the free trial was used.
+                    ->where('source', '!=', 'trial')
+                    ->where('billing_cycle', '!=', 'trial')
                     ->latest()
                     ->first();
             }

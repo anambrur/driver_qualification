@@ -69,7 +69,7 @@ class BillingController extends Controller
             toastr()->success('Your subscription has been resumed.');
         } catch (\Throwable $e) {
             Log::warning('Resume failed', ['error' => $e->getMessage()]);
-            toastr()->error($e->getMessage() ?: 'Unable to resume subscription.');
+            toastr()->error('Unable to resume subscription.');
         }
 
         return redirect()->route('billing.index');

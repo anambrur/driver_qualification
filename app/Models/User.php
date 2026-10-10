@@ -52,6 +52,9 @@ class User extends Authenticatable
         return $this->hasOne(Company::class);
     }
 
+    /**
+     * @return HasMany<Subscription, $this>
+     */
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class, 'user_id')
@@ -66,6 +69,7 @@ class User extends Authenticatable
     public function activeSubscription(): ?Subscription
     {
         return $this->subscriptions()
+            ->accessible()
             ->get()
             ->first(fn (Subscription $subscription) => $subscription->isAccessible());
     }
