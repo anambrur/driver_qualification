@@ -29,7 +29,7 @@ class SendSmsJob implements ShouldQueue
             $smsService->send($this->to, $this->message, $this->from);
         } catch (SmsException $e) {
             Log::error('Queued SMS delivery failed', [
-                'to' => $this->to,
+                'to' => $smsService->maskPhoneNumber($this->to),
                 'provider_code' => $e->providerCode,
                 'error' => $e->getMessage(),
             ]);

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\OtpVerification;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -17,3 +18,7 @@ Schedule::command('compliance:send-digest-reminders')
     ->dailyAt('09:30')
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command('model:prune', ['--model' => [OtpVerification::class]])
+    ->daily()
+    ->withoutOverlapping();

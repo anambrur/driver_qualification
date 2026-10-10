@@ -17,6 +17,10 @@ class OTPService
 
     protected int $resendTimeout = 60;
 
+    protected int $maxVerifyAttempts = 3;
+
+    protected int $defaultGlobalHourlyLimit = 200;
+
     public function __construct(
         private readonly Client $vonage,
         private readonly PhoneNumberService $phoneNumbers,
@@ -50,7 +54,17 @@ class OTPService
             ];
         }
 
+        if ($this->exceedsGlobalHourlyLimit()) {
+            Log::warning('OTP global hourly limit reached', ['phone' => $phoneNumber]);
+
+            return [
+                'success' => false,
+                'message' => 'Verification is temporarily unavailable. Please try again later.',
+            ];
+        }
+
         $this->invalidateExistingOTPs($phoneNumber);
+        Cache::forget("otp_attempts:{$phoneNumber}");
 
         $appName = config('app.name', 'Driver Qualification');
         $brandName = substr($appName, 0, 15);
@@ -163,6 +177,15 @@ class OTPService
             ];
         }
 
+        if ((int) Cache::get("otp_attempts:{$phoneNumber}", 0) >= $this->maxVerifyAttempts) {
+            $otpRecord->update(['is_used' => true]);
+
+            return [
+                'success' => false,
+                'message' => 'Too many incorrect attempts. Please request a new verification code.',
+            ];
+        }
+
         if ($otpRecord->method === 'vonage_verify') {
             try {
                 $this->vonage->verify()->check($otpRecord->verification_sid, $otpCode);
@@ -173,6 +196,8 @@ class OTPService
                     'error' => $e->getMessage(),
                 ]);
 
+                $this->recordFailedAttempt($phoneNumber, $otpRecord);
+
                 return [
                     'success' => false,
                     'message' => 'Invalid or expired verification code.',
@@ -181,6 +206,8 @@ class OTPService
         } else {
             // Fallback for legacy OTP if any exist in the database
             if (! Hash::check($otpCode, $otpRecord->otp)) {
+                $this->recordFailedAttempt($phoneNumber, $otpRecord);
+
                 return [
                     'success' => false,
                     'message' => 'Invalid OTP code',
@@ -287,9 +314,28 @@ class OTPService
         return $deleted;
     }
 
-    protected function generateOtpCode(): string
+    /**
+     * Count a wrong code; the record is invalidated once the limit is reached.
+     */
+    protected function recordFailedAttempt(string $phoneNumber, OtpVerification $otpRecord): void
     {
-        return (string) random_int(100000, 999999);
+        $key = "otp_attempts:{$phoneNumber}";
+
+        Cache::add($key, 0, now()->addMinutes($this->otpExpiryMinutes));
+        $attempts = (int) Cache::increment($key);
+
+        if ($attempts >= $this->maxVerifyAttempts) {
+            $otpRecord->update(['is_used' => true]);
+        }
+    }
+
+    protected function exceedsGlobalHourlyLimit(): bool
+    {
+        $limit = (int) config('services.vonage.otp_global_hourly_limit', $this->defaultGlobalHourlyLimit);
+
+        return OtpVerification::query()
+            ->where('created_at', '>', now()->subHour())
+            ->count() >= $limit;
     }
 
     protected function hasRecentOTP(string $phoneNumber): bool
@@ -309,7 +355,7 @@ class OTPService
             return $this->resendTimeout + 1;
         }
 
-        return now()->diffInSeconds($lastOTP->created_at);
+        return (int) $lastOTP->created_at->diffInSeconds(now());
     }
 
     protected function exceedsMaxAttempts(string $phoneNumber): bool

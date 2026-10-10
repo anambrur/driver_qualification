@@ -218,11 +218,11 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| OTP-01 | P1 | SUSPECTED | `PhoneNumberService::isValid()` accepts any `+<country>` E.164 number, including premium-rate destinations. Combined with APP-04 that means toll fraud. |
-| OTP-02 | P2 | SUSPECTED | Limits are per phone only (3/hour, 60 s resend); there's no per-IP or global cap. |
-| OTP-03 | P2 | SUSPECTED | The legacy hashed-OTP path has no attempt counter (6-digit brute force); a failed Vonage check doesn't invalidate the record. |
-| OTP-04 | P3 | SUSPECTED | `otp_attempts:*` cache key is never written; `generateOtpCode` unused; `OtpVerification::prunable()` without the `Prunable` trait never runs. |
-| OTP-05 | P3 | SUSPECTED | `SendSmsJob` logs the full phone number while `SmsService` masks it. |
+| OTP-01 | P1 | FIXED | `PhoneNumberService::isValid()` accepts any `+<country>` E.164 number, including premium-rate destinations. Combined with APP-04 that means toll fraud. (2026-10-10: limited to +1/+880/+91 minus NANP 900/976; final country list DEFERRED, see report.) |
+| OTP-02 | P2 | FIXED | Limits are per phone only (3/hour, 60 s resend); there's no per-IP or global cap. (2026-10-10: per-IP already covered by route throttles; global hourly cap added, value DEFERRED, see report.) |
+| OTP-03 | P2 | FIXED | The legacy hashed-OTP path has no attempt counter (6-digit brute force); a failed Vonage check doesn't invalidate the record. |
+| OTP-04 | P3 | FIXED | `otp_attempts:*` cache key is never written; `generateOtpCode` unused; `OtpVerification::prunable()` without the `Prunable` trait never runs. |
+| OTP-05 | P3 | FIXED | `SendSmsJob` logs the full phone number while `SmsService` masks it. |
 
 ## 13. `companies`: Company accounts & policy PDFs
 - **Scope**: `app/Http/Controllers/CompanyController.php`, `app/Models/{Company,PolicyPdf}.php`, views `admin/settings/company/**`

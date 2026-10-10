@@ -52,11 +52,13 @@ class PhoneNumberService
 
         if (! $hasExplicitCountryPrefix) {
             if (strlen($cleaned) === 10) {
-                return $this->isValidNanpNationalNumber($cleaned);
+                return $this->isValidNanpNationalNumber($cleaned)
+                    && ! $this->isNanpPremiumRate($cleaned);
             }
 
             if (strlen($cleaned) === 11 && str_starts_with($cleaned, '1')) {
-                return $this->isValidNanpNationalNumber(substr($cleaned, 1));
+                return $this->isValidNanpNationalNumber(substr($cleaned, 1))
+                    && ! $this->isNanpPremiumRate(substr($cleaned, 1));
             }
 
             if (
@@ -84,7 +86,8 @@ class PhoneNumberService
 
         if (str_starts_with($digits, '1')) {
             return strlen($digits) === 11
-                && $this->isValidNanpNationalNumber(substr($digits, 1));
+                && $this->isValidNanpNationalNumber(substr($digits, 1))
+                && ! $this->isNanpPremiumRate(substr($digits, 1));
         }
 
         if (str_starts_with($digits, '880')) {
@@ -95,7 +98,13 @@ class PhoneNumberService
             return (bool) preg_match('/^91[6-9]\d{9}$/', $digits);
         }
 
-        return true;
+        // Any other destination is refused: SMS to unvalidated countries enables toll fraud.
+        return false;
+    }
+
+    private function isNanpPremiumRate(string $digits): bool
+    {
+        return in_array(substr($digits, 0, 3), ['900', '976'], true);
     }
 
     private function isDuplicateUsCountryCode(string $digits): bool

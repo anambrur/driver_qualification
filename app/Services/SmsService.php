@@ -118,7 +118,7 @@ class SmsService
         }
     }
 
-    private function maskPhoneNumber(string $phoneNumber): string
+    public function maskPhoneNumber(string $phoneNumber): string
     {
         $digits = preg_replace('/\D/', '', $phoneNumber) ?? '';
 
