@@ -230,11 +230,11 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| CMP-01 | P1 | SUSPECTED | Stored XSS: `company_name` in the logo `alt` attribute (raw column), slug inside `onclick`. |
-| CMP-02 | P2 | SUSPECTED | A company owner can change their own `status` and email through `update`. |
-| CMP-03 | P2 | SUSPECTED | `destroy` hard-deletes the company and its owner user → FK cascade wipes all drivers/vehicles; files left on disk. |
-| CMP-04 | P2 | SUSPECTED | Logo allows SVG; `companies.slug` isn't unique, so duplicate slugs route `/{slug}/apply` to the wrong company. |
-| CMP-05 | P3 | SUSPECTED | `PolicyPdf` is global (`PolicyPdf::first()`), not per company. Confirm against requirements. Raw exception shown on upload failure. |
+| CMP-01 | P1 | FIXED | Stored XSS: `company_name` in the logo `alt` attribute (raw column), slug inside `onclick`. |
+| CMP-02 | P2 | FIXED | A company owner can change their own `status` and email through `update`. |
+| CMP-03 | P2 | DEFERRED | `destroy` hard-deletes the company and its owner user → FK cascade wipes all drivers/vehicles; files left on disk. |
+| CMP-04 | P2 | FIXED | Logo allows SVG; `companies.slug` isn't unique, so duplicate slugs route `/{slug}/apply` to the wrong company. |
+| CMP-05 | P3 | FIXED / DEFERRED | `PolicyPdf` is global (`PolicyPdf::first()`), not per company. Confirm against requirements. Raw exception shown on upload failure. |
 
 ## 14. `billing`: Plans, checkout, portal, webhooks
 - **Scope**: `app/Http/Controllers/{PlanController,CheckoutController,BillingController,StripeWebhookController}.php`, `app/Services/Stripe/*`, `app/Services/Billing/TrialActivationService.php`, `app/Models/{Plan,Payment,Subscription}.php`, `app/Console/Commands/SyncPaymentsFromStripe.php`, views `billing/**`, plans on `welcome.blade.php`

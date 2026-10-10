@@ -12,8 +12,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class CompanyController extends Controller
 {
@@ -26,7 +28,7 @@ class CompanyController extends Controller
                 ->addIndexColumn()
                 ->addColumn('logo', function ($company) {
                     if ($company->logo) {
-                        return '<img src="' . asset('storage/' . $company->logo) . '" alt="' . $company->company_name . '" class="w-10 h-10 rounded-full object-cover">';
+                        return '<img src="' . e(asset('storage/' . $company->logo)) . '" alt="' . e($company->company_name) . '" class="w-10 h-10 rounded-full object-cover">';
                     }
                     return '<div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                             <i class="fas fa-building text-gray-500 dark:text-gray-400"></i>
@@ -45,7 +47,7 @@ class CompanyController extends Controller
                     // Check if slug exists
                     if ($company->slug) {
                         // Create the URL
-                        $applyUrl = url('/') . '/' . $company->slug . '/apply';
+                        $applyUrl = e(url('/') . '/' . $company->slug . '/apply');
 
                         // Return with copy button
                         return '<div class="flex items-center space-x-2">
@@ -57,7 +59,7 @@ class CompanyController extends Controller
                                     Link
                                 </a>
                                 <button type="button" 
-                                        onclick="copyApplyUrl(\'' . $applyUrl . '\')" 
+                                        data-url="' . $applyUrl . '"
                                         class="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400 copy-url-btn"
                                         title="Copy URL">
                                     <i class="fas fa-copy text-xs"></i>
@@ -98,7 +100,7 @@ class CompanyController extends Controller
         // Form validation
         $validator = Validator::make($request->all(), [
             'company_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:companies,email',
+            'email' => 'required|email|unique:companies,email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'address' => 'required|string|max:255',
             'city' => 'required|string|max:255',
@@ -107,7 +109,7 @@ class CompanyController extends Controller
             'description' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
             'fax' => 'nullable|string|max:20',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'status' => 'required|in:active,inactive',
         ]);
 
@@ -116,7 +118,7 @@ class CompanyController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
-            return back()->withInput();
+            return back()->withInput()->withErrors($validator);
         }
 
         DB::beginTransaction();
@@ -138,7 +140,6 @@ class CompanyController extends Controller
             $logoPath = null;
             if ($request->hasFile('logo')) {
                 $logoFile = $request->file('logo');
-                $logoName = time() . '_' . Str::slug($request->company_name) . '.' . $logoFile->getClientOriginalExtension();
 
                 // Define storage path
                 $storagePath = 'images/companies/logos';
@@ -149,7 +150,7 @@ class CompanyController extends Controller
                     File::makeDirectory($fullPath, 0755, true, true);
                 }
 
-                $logoPath = $logoFile->storeAs($storagePath, $logoName, 'public');
+                $logoPath = $logoFile->storeAs($storagePath, $logoFile->hashName(), 'public');
             }
 
             // Generate slug for company
@@ -220,10 +221,18 @@ class CompanyController extends Controller
         $company = Company::with('user')->findOrFail($id);
         $this->ensureCanManageCompany($company);
 
+        // Status and login email are super-admin fields; owners change their email via Profile
+        $isSuperAdmin = auth()->user()->hasRole('super-admin');
+
         // Form validation
         $validator = Validator::make($request->all(), [
             'company_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:companies,email,' . $id,
+            'email' => [
+                Rule::requiredIf($isSuperAdmin),
+                'email',
+                Rule::unique('companies', 'email')->ignore($company->id),
+                Rule::unique('users', 'email')->ignore($company->user_id),
+            ],
             'password' => 'nullable|string|min:8|confirmed',
             'address' => 'required|string|max:255',
             'city' => 'required|string|max:255',
@@ -232,8 +241,8 @@ class CompanyController extends Controller
             'description' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
             'fax' => 'nullable|string|max:20',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'status' => 'required|in:active,inactive',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'status' => [Rule::requiredIf($isSuperAdmin), 'in:active,inactive'],
         ]);
 
         // Any error checking
@@ -241,18 +250,19 @@ class CompanyController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
-            return back()->withInput();
+            return back()->withInput()->withErrors($validator);
         }
 
         DB::beginTransaction();
 
         try {
             // Update user
-            $userData = [
-                'name' => $request->company_name,
-                'email' => $request->email,
-                'status' => $request->status === 'active' ? 'active' : 'inactive',
-            ];
+            $userData = ['name' => $request->company_name];
+
+            if ($isSuperAdmin) {
+                $userData['email'] = $request->email;
+                $userData['status'] = $request->status === 'active' ? 'active' : 'inactive';
+            }
 
             // Update password only if provided
             if ($request->filled('password')) {
@@ -265,8 +275,7 @@ class CompanyController extends Controller
             $logoPath = $company->logo;
             if ($request->hasFile('logo')) {
                 $logoFile = $request->file('logo');
-                $logoName = time() . '_' . Str::slug($request->company_name) . '.' . $logoFile->getClientOriginalExtension();
-                $logoPath = $logoFile->storeAs('companies/logos', $logoName, 'public');
+                $logoPath = $logoFile->storeAs('companies/logos', $logoFile->hashName(), 'public');
             }
 
             // Generate new slug if company name changed
@@ -287,7 +296,7 @@ class CompanyController extends Controller
             $company->update([
                 'company_name' => $request->company_name,
                 'slug' => $slug,
-                'email' => $request->email,
+                'email' => $isSuperAdmin ? $request->email : $company->email,
                 'address' => $request->address,
                 'city' => $request->city,
                 'state' => $request->state,
@@ -296,7 +305,7 @@ class CompanyController extends Controller
                 'phone' => $request->phone,
                 'fax' => $request->fax,
                 'logo' => $logoPath,
-                'status' => $request->status,
+                'status' => $isSuperAdmin ? $request->status : $company->status,
             ]);
 
             // Commit transaction
@@ -410,27 +419,13 @@ class CompanyController extends Controller
             // Handle Alcohol & Drug Test Policy PDF
             if ($request->hasFile('alcohol_drug_test_policy_pdf')) {
                 $alcoholPdfFile = $request->file('alcohol_drug_test_policy_pdf');
-
-                // Generate a safe filename
-                $originalName = pathinfo($alcoholPdfFile->getClientOriginalName(), PATHINFO_FILENAME);
-                $safeName = Str::slug($originalName);
-                $alcoholPdfName = time() . '_alcohol_drug_policy_' . $safeName . '.' . $alcoholPdfFile->getClientOriginalExtension();
-
-                // Store file
-                $alcoholPdfPath = $alcoholPdfFile->storeAs($storagePath, $alcoholPdfName, 'public');
+                $alcoholPdfPath = $alcoholPdfFile->storeAs($storagePath, $alcoholPdfFile->hashName(), 'public');
             }
 
             // Handle General Work Policy PDF
             if ($request->hasFile('general_work_policy_pdf')) {
                 $generalPdfFile = $request->file('general_work_policy_pdf');
-
-                // Generate a safe filename
-                $originalName = pathinfo($generalPdfFile->getClientOriginalName(), PATHINFO_FILENAME);
-                $safeName = Str::slug($originalName);
-                $generalPdfName = time() . '_general_work_policy_' . $safeName . '.' . $generalPdfFile->getClientOriginalExtension();
-
-                // Store file
-                $generalPdfPath = $generalPdfFile->storeAs($storagePath, $generalPdfName, 'public');
+                $generalPdfPath = $generalPdfFile->storeAs($storagePath, $generalPdfFile->hashName(), 'public');
             }
 
             // Create or update policy PDF record
@@ -445,17 +440,11 @@ class CompanyController extends Controller
             } else {
                 // Delete old files before updating database
                 if ($request->hasFile('alcohol_drug_test_policy_pdf') && $policyPdf->alcohol_drug_test_policy_pdf) {
-                    $oldPath = storage_path('app/public/' . $policyPdf->alcohol_drug_test_policy_pdf);
-                    if (File::exists($oldPath)) {
-                        File::delete($oldPath);
-                    }
+                    Storage::disk('public')->delete($policyPdf->alcohol_drug_test_policy_pdf);
                 }
 
                 if ($request->hasFile('general_work_policy_pdf') && $policyPdf->general_work_policy_pdf) {
-                    $oldPath = storage_path('app/public/' . $policyPdf->general_work_policy_pdf);
-                    if (File::exists($oldPath)) {
-                        File::delete($oldPath);
-                    }
+                    Storage::disk('public')->delete($policyPdf->general_work_policy_pdf);
                 }
 
                 // Update only the fields that have new files
@@ -489,7 +478,7 @@ class CompanyController extends Controller
             ]);
 
             toastr()->error('An error occurred while uploading the PDF files. Please try again.');
-            return back()->withInput()->withErrors(['system_error' => 'Upload failed: ' . $e->getMessage()]);
+            return back()->withInput()->withErrors(['system_error' => 'Upload failed. Please try again.']);
         }
     }
 

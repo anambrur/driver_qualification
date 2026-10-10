@@ -395,7 +395,7 @@
                 if (successful) {
                     // Find and update the copy button
                     $('button.copy-url-btn').each(function() {
-                        if ($(this).attr('onclick') && $(this).attr('onclick').includes(url)) {
+                        if ($(this).data('url') === url) {
                             const icon = $(this).find('i');
                             icon.removeClass('fa-copy').addClass('fa-check copy-success');
 
@@ -633,6 +633,11 @@
                 }
             }
         }
+
+        // Copy buttons carry the URL in data-url (no inline handlers with interpolated values)
+        $(document).on('click', 'button.copy-url-btn', function() {
+            copyApplyUrl($(this).data('url'));
+        });
 
         // Make functions available globally
         window.copyApplyUrl = copyApplyUrl;
