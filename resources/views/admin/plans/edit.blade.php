@@ -163,7 +163,7 @@
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('featuresManager', () => ({
-            features: {!! json_encode(old('features', $plan->features ?? [''])) !!},
+            features: @js(old('features', $plan->features ?? [''])),
             init() {
                 if (this.features.length === 0) {
                     this.features.push('');

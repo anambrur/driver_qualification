@@ -64,10 +64,14 @@ class SubscriptionService
                 throw new InvalidArgumentException('This subscription cannot be resumed.');
             }
 
+            $isTrial = $subscription->billing_cycle === 'trial';
+
+            // Local non-trial subscriptions (admin grants) never renew: keep their end date,
+            // otherwise an active row with no end date grants access forever.
             $subscription->update([
-                'cancel_at_period_end' => false,
-                'stripe_status' => $subscription->billing_cycle === 'trial' ? 'trialing' : 'active',
-                'ends_at' => null,
+                'cancel_at_period_end' => ! $isTrial,
+                'stripe_status' => $isTrial ? 'trialing' : 'active',
+                'ends_at' => $isTrial ? null : $subscription->accessEndsAt(),
             ]);
 
             return $subscription->fresh();

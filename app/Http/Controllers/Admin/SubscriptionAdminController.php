@@ -184,7 +184,8 @@ class SubscriptionAdminController extends Controller
             $subscriptions->resume($subscription);
             toastr()->success('Subscription resumed successfully!');
         } catch (\Throwable $e) {
-            toastr()->error($e->getMessage() ?: 'Cannot resume this subscription.');
+            Log::warning('Admin reactivate failed', ['error' => $e->getMessage()]);
+            toastr()->error('Cannot resume this subscription.');
         }
 
         return back();

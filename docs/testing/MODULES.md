@@ -266,9 +266,9 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| SADM-01 | P1 | SUSPECTED | Verify every route returns 403 for a tenant and a plain user (role middleware). |
-| SADM-02 | P2 | SUSPECTED | `admin/plans/{create,edit}.blade.php` print `{!! json_encode(...) !!}` inside `<script>`; a feature containing `</script>` breaks out. |
-| SADM-03 | P2 | SUSPECTED | `expire`/`suspend`/`reactivate` on admin/trial subscriptions (no Stripe id) must not call Stripe; `grant` while a sub is active. |
+| SADM-01 | P1 | DISMISSED | Verify every route returns 403 for a tenant and a plain user (role middleware). |
+| SADM-02 | P2 | FIXED | `admin/plans/{create,edit}.blade.php` print `{!! json_encode(...) !!}` inside `<script>`; a feature containing `</script>` breaks out. |
+| SADM-03 | P2 | FIXED | `expire`/`suspend`/`reactivate` on admin/trial subscriptions (no Stripe id) must not call Stripe; `grant` while a sub is active. |
 
 ## 17. `driver-hiring`: Hire / not-hire
 - **Scope**: `DriverController::updateHireStatus`, `app/Services/Driver/DriverHireService.php`, `app/Mail/{DriverHiredMail,DriverRejectedMail}.php`, views `emails/*hired*`, `emails/*rejected*`
