@@ -9,6 +9,7 @@
 #   scripts/fix-modules.sh billing billing  # run only one module (start = stop)
 #
 # Resumable: a module whose report already exists in docs/testing/reports/ is skipped.
+# On a usage limit it sleeps LIMIT_WAIT seconds (default 900) and resumes the same session.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
@@ -57,7 +58,13 @@ fi
 
 UNATTENDED_NOTE="You are running unattended: nobody will answer questions. Never ask the user anything. \
 Anything that needs a product decision or a human must be marked DEFERRED in the report with the exact question, then move on. \
-Never run git commit, git push, git checkout or git reset; the wrapper script commits for you."
+Never run git commit, git push, git checkout, git reset or git stash; the wrapper script commits for you."
+
+RESUME_MESSAGE="You were interrupted by a usage limit. Continue the same module from where you stopped \
+(check git status and the tests you already wrote), and finish every step of the original instructions, including the report."
+
+# How long to wait before retrying after a usage limit (seconds).
+LIMIT_WAIT="${LIMIT_WAIT:-900}"
 
 started=0
 for entry in "${MODULES[@]}"; do
@@ -73,17 +80,39 @@ for entry in "${MODULES[@]}"; do
     echo "[$num $slug] starting $(date '+%H:%M:%S')"
     prompt="$(printf '%s\n' "$BASE_PROMPT" | sed "s/^MODULE: .*/MODULE: $slug/")"
 
-    claude -p "$prompt" \
-      --name "$num-$slug" \
-      --permission-mode auto \
-      --append-system-prompt "$UNATTENDED_NOTE" \
-      --disallowedTools \
-        "Bash(git commit:*)" "Bash(git push:*)" "Bash(git checkout:*)" "Bash(git reset:*)" \
-        "Bash(php artisan migrate:fresh:*)" "Bash(php artisan db:seed:*)" "Bash(php artisan migrate:*)" \
-        "Bash(composer update:*)" "Bash(composer require:*)" \
-      > "$LOG_DIR/$num-$slug.log" 2>&1
-    status=$?
-    echo "[$num $slug] claude exited with $status (log: $LOG_DIR/$num-$slug.log)"
+    log="$LOG_DIR/$num-$slug.log"
+    session_id="$(uuidgen | tr '[:upper:]' '[:lower:]')"
+    : > "$log"
+
+    # First attempt starts a new session; after a usage limit, wait and resume the same one.
+    attempt=0
+    while :; do
+      if [ "$attempt" -eq 0 ]; then
+        session_args=(--session-id "$session_id" --name "$num-$slug")
+        message="$prompt"
+      else
+        session_args=(--resume "$session_id")
+        message="$RESUME_MESSAGE"
+      fi
+      claude -p "$message" "${session_args[@]}" \
+        --permission-mode auto \
+        --append-system-prompt "$UNATTENDED_NOTE" \
+        --disallowedTools \
+          "Bash(git commit:*)" "Bash(git push:*)" "Bash(git checkout:*)" "Bash(git reset:*)" "Bash(git stash:*)" \
+          "Bash(php artisan migrate:fresh:*)" "Bash(php artisan db:seed:*)" "Bash(php artisan migrate:*)" \
+          "Bash(composer update:*)" "Bash(composer require:*)" \
+        >> "$log" 2>&1
+      status=$?
+      attempt=$((attempt + 1))
+
+      if tail -n 3 "$log" | grep -qiE "hit your (session|usage) limit|usage limit reached"; then
+        echo "[$num $slug] usage limit hit $(date '+%H:%M:%S'), retrying in $((LIMIT_WAIT / 60)) min"
+        sleep "$LIMIT_WAIT"
+        continue
+      fi
+      break
+    done
+    echo "[$num $slug] claude exited with $status (log: $log)"
 
     git add -A
     if git diff --cached --quiet; then
