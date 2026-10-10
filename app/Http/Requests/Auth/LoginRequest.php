@@ -54,22 +54,27 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        // Check if user exists and is active before attempting authentication
-        $user = User::where('email', $this->input('email'))->first();
-        
-        if ($user && $user->status === 'inactive') {
-            RateLimiter::hit($this->throttleKey());
-            
-            throw ValidationException::withMessages([
-                'email' => 'Your account is inactive. Please contact administrator.',
-            ]);
-        }
+        // Only reveal the inactive status once the password has been verified,
+        // so the login form can't be used to discover which emails exist.
+        $inactive = false;
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $authenticated = Auth::attemptWhen(
+            $this->only('email', 'password'),
+            function (User $user) use (&$inactive) {
+                $inactive = $user->status === 'inactive';
+
+                return ! $inactive;
+            },
+            $this->boolean('remember')
+        );
+
+        if (! $authenticated) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => $inactive
+                    ? 'Your account is inactive. Please contact administrator.'
+                    : trans('auth.failed'),
             ]);
         }
 

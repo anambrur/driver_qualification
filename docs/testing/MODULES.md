@@ -296,11 +296,11 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| AUTH-01 | P2 | CONFIRMED | 6 existing tests fail against current code. |
-| AUTH-02 | P2 | SUSPECTED | Login reveals "account is inactive" for existing emails (user enumeration). |
-| AUTH-03 | P2 | SUSPECTED | Registration swallows every exception into a generic toast; a missing role silently rolls back the signup. |
-| AUTH-04 | P2 | SUSPECTED | Deleting your profile cascades through Company → drivers/vehicles (FK cascade); confirm intended. |
-| AUTH-05 | P3 | SUSPECTED | Company slug is derived from the person's name plus 4 random chars, not unique in the DB. |
+| AUTH-01 | P2 | FIXED | 6 existing tests fail against current code. |
+| AUTH-02 | P2 | FIXED | Login reveals "account is inactive" for existing emails (user enumeration). |
+| AUTH-03 | P2 | FIXED | Registration swallows every exception into a generic toast; a missing role silently rolls back the signup. (2026-10-10: password no longer flashed to the session on failure; rollback + generic toast dismissed as correct.) |
+| AUTH-04 | P2 | DEFERRED | Deleting your profile cascades through Company → drivers/vehicles (FK cascade); confirm intended. |
+| AUTH-05 | P3 | FIXED | Company slug is derived from the person's name plus 4 random chars, not unique in the DB. |
 
 ## 20. `dashboard`: Dashboards
 - **Scope**: `app/Http/Controllers/DashboardController.php`, views `dashboard.blade.php`, `admin/profit.blade.php`

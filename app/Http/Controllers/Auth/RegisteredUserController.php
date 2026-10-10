@@ -59,7 +59,7 @@ class RegisteredUserController extends Controller
                 'password' => Hash::make($request->password),
             ]);
 
-            $slug = Str::slug($request->name) . '-' . Str::random(4);
+            $slug = $this->uniqueCompanySlug($request->name);
 
             Company::create([
                 'user_id' => $user->id,
@@ -80,7 +80,21 @@ class RegisteredUserController extends Controller
             Log::error('Registration Failed: ' . $e->getMessage());
 
             toastr()->error('An error occurred during registration. Please try again.');
-            return back()->withInput();
+            return back()->withInput($request->except('password', 'password_confirmation'));
         }
+    }
+
+    /**
+     * companies.slug is unique; retry the random suffix until it is free.
+     */
+    private function uniqueCompanySlug(string $name): string
+    {
+        $base = Str::slug($name) ?: 'company';
+
+        do {
+            $slug = $base . '-' . Str::lower(Str::random(4));
+        } while (Company::where('slug', $slug)->exists());
+
+        return $slug;
     }
 }
