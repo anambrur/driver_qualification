@@ -255,10 +255,10 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| SUB-01 | P2 | SUSPECTED | The log row is written before `notify()`; if sending throws, the reminder is never retried. |
-| SUB-02 | P2 | SUSPECTED | Reminders fire only on an exact day match (`$days === $window`); a missed scheduler day skips that reminder forever. |
-| SUB-03 | P2 | SUSPECTED | Expiry SMS goes to `company.phone` (free text, unvalidated); check failure handling. |
-| SUB-04 | P2 | SUSPECTED | `/dashboard` (auth+verified) shows tenant data without `Subscribed`; `/admin/dashboard` requires it. |
+| SUB-01 | P2 | FIXED | The log row is written before `notify()`; if sending throws, the reminder is never retried. |
+| SUB-02 | P2 | FIXED | Reminders fire only on an exact day match (`$days === $window`); a missed scheduler day skips that reminder forever. |
+| SUB-03 | P2 | FIXED | Expiry SMS goes to `company.phone` (free text, unvalidated); check failure handling. |
+| SUB-04 | P2 | DEFERRED | `/dashboard` (auth+verified) shows tenant data without `Subscribed`; `/admin/dashboard` requires it. |
 
 ## 16. `subscription-admin`: Super-admin billing tools
 - **Scope**: `app/Http/Controllers/Admin/SubscriptionAdminController.php`, views `admin/subscriptions/**`, `admin/plans/**`

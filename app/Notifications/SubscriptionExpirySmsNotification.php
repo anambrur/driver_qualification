@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Subscription;
+use App\Services\PhoneNumberService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -57,6 +58,15 @@ class SubscriptionExpirySmsNotification extends Notification implements ShouldQu
 
             return false;
         }
+
+        // company.phone is free text: only send to a valid, supported number.
+        $phoneNumbers = app(PhoneNumberService::class);
+        if (! $phoneNumbers->isValid($to)) {
+            Log::info('Vonage SMS skipped: invalid recipient number');
+
+            return false;
+        }
+        $to = ltrim($phoneNumbers->normalize($to), '+');
 
         try {
             $vonage->sms()->send(new SMS($to, $from, $text));

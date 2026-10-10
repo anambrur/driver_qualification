@@ -6,6 +6,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionNotificationLog;
 use App\Notifications\PaymentFailedNotification;
 use App\Notifications\SubscriptionActivatedNotification;
+use Illuminate\Notifications\Notification;
 use Throwable;
 
 class SubscriptionNotificationService
@@ -26,7 +27,7 @@ class SubscriptionNotificationService
         $dbOk = $this->markSent($subscription, $user->id, 'activated', 'database', 0);
 
         if ($mailOk || $dbOk) {
-            $user->notify(new SubscriptionActivatedNotification($subscription));
+            $this->notifyOrForget($subscription, $user, new SubscriptionActivatedNotification($subscription), 'activated');
 
             return true;
         }
@@ -51,12 +52,31 @@ class SubscriptionNotificationService
         $dbOk = $this->markSent($subscription, $user->id, $type, 'database', 0);
 
         if ($mailOk || $dbOk) {
-            $user->notify(new PaymentFailedNotification($subscription, $hostedInvoiceUrl));
+            $this->notifyOrForget($subscription, $user, new PaymentFailedNotification($subscription, $hostedInvoiceUrl), $type);
 
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * Notify, or remove the log rows and rethrow so a retry (e.g. Stripe webhook redelivery) resends.
+     */
+    private function notifyOrForget(Subscription $subscription, $user, Notification $notification, string $type): void
+    {
+        try {
+            $user->notify($notification);
+        } catch (Throwable $e) {
+            SubscriptionNotificationLog::query()
+                ->where('subscription_id', $subscription->id)
+                ->where('type', $type)
+                ->whereIn('channel', ['mail', 'database'])
+                ->where('days_before', 0)
+                ->delete();
+
+            throw $e;
+        }
     }
 
     private function alreadySent(int $subscriptionId, string $type, string $channel, int $daysBefore): bool
