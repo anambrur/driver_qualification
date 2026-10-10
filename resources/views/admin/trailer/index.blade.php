@@ -690,6 +690,24 @@
                 submitTrailerForm();
             });
 
+            // Row action buttons (rendered by the server with data-* attributes, no inline JS)
+            $('#trailers-table').on('click', '.js-trailer-action', function() {
+                var id = $(this).attr('data-id');
+                var unitNo = $(this).attr('data-unit-no');
+
+                switch ($(this).attr('data-action')) {
+                    case 'edit':
+                        editTrailer(id);
+                        break;
+                    case 'delete':
+                        deleteTrailer(id, unitNo);
+                        break;
+                    case 'restore':
+                        restoreTrailer(id, unitNo);
+                        break;
+                }
+            });
+
             // Apply filters
             window.applyFilters = function() {
                 table.ajax.reload();
@@ -802,7 +820,7 @@
                     if (xhr.status === 422) {
                         var errors = xhr.responseJSON.errors;
                         $.each(errors, function(key, value) {
-                            $('#' + key + '_error').html(value[0]);
+                            $('#' + key + '_error').text(value[0]);
                         });
                         // Focus on first error field
                         var firstError = Object.keys(errors)[0];
@@ -960,6 +978,15 @@
             $('.text-red-600').html('');
         }
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         // Toast notification function
         function showToast(message, type = 'success') {
             const types = {
@@ -995,7 +1022,7 @@
             toast.innerHTML = `
             <i class="fas ${toastType.icon} text-xl"></i>
             <div>
-                <p class="font-medium">${message}</p>
+                <p class="font-medium">${escapeHtml(message)}</p>
             </div>
             <button onclick="document.getElementById('${toastId}').remove()" class="ml-4 text-white hover:text-gray-200">
                 <i class="fas fa-times"></i>

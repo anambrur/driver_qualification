@@ -22,7 +22,7 @@ class VehicleFactory extends Factory
         return [
             'company_id' => CompanyFactory::new(),
             'unit_no' => 'TRK-'.fake()->unique()->numerify('#####'),
-            'vin' => Str::upper(fake()->unique()->bothify('1HG??#########??')),
+            'vin' => Str::upper(fake()->unique()->bothify('1HG??##########??')),
             'year' => (int) fake()->numberBetween(2005, (int) date('Y')),
             'make' => fake()->randomElement(['Freightliner', 'Peterbilt', 'Kenworth', 'Volvo']),
             'model' => fake()->bothify('Model-##'),

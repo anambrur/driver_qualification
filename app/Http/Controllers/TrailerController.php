@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AssetGroup;
 use App\Models\EquipmentType;
 use App\Models\Trailer;
 use App\Models\VehicleGroup;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
 use Yajra\DataTables\Facades\DataTables;
 
 class TrailerController extends Controller
@@ -25,6 +28,20 @@ class TrailerController extends Controller
 
             // Apply company filter
             $query = $this->applyCompanyFilter($query);
+
+            // Deleted trailers are listed (with Restore) only under the "Deleted" status filter
+            if ($request->input('status') === 'deleted') {
+                $query->onlyTrashed();
+            }
+
+            if ($request->filled('equipment_types_id')) {
+                $query->where('equipment_types_id', $request->input('equipment_types_id'));
+            }
+
+            $searchText = $request->input('search_text');
+            if (is_string($searchText) && trim($searchText) !== '') {
+                $query->search(trim($searchText));
+            }
 
             return DataTables::of($query)
                 ->addIndexColumn()
@@ -42,18 +59,18 @@ class TrailerController extends Controller
                         </div>
                         <div class="ml-4">
                             <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center">
-                                ' . $row->unit_no . ' - ' . $row->year . ' ' . $row->make . ' ' . $row->model . '
+                                ' . e($row->unit_no) . ' - ' . e($row->year) . ' ' . e($row->make) . ' ' . e($row->model) . '
                                 ' . $notesIcon . '
                             </div>
                             <div class="text-sm text-gray-500 dark:text-gray-400">
-                                VIN: ' . $row->vin . '
+                                VIN: ' . e($row->vin) . '
                             </div>
                         </div>
                     </div>';
                 })
                 ->addColumn('equipment_group', function ($row) {
-                    $equipment = $row->equipmentType ? $row->equipmentType->name : '<span class="text-gray-400">N/A</span>';
-                    $group = $row->vehicleGroup ? $row->vehicleGroup->name : '<span class="text-gray-400">N/A</span>';
+                    $equipment = $row->equipmentType ? e($row->equipmentType->name) : '<span class="text-gray-400">N/A</span>';
+                    $group = $row->vehicleGroup ? e($row->vehicleGroup->name) : '<span class="text-gray-400">N/A</span>';
                     return '
                     <div class="text-sm">
                         <div><span class="font-medium">Equipment:</span> ' . $equipment . '</div>
@@ -76,22 +93,26 @@ class TrailerController extends Controller
                     </span>';
                 })
                 ->addColumn('action', function ($row) {
-                    $editBtn = '<button onclick="editTrailer(' . $row->id . ')" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors mr-2">
+                    // The page binds these with a delegated listener on .js-trailer-action
+                    $data = 'data-id="' . (int) $row->id . '" data-unit-no="' . e($row->unit_no) . '"';
+
+                    if ($row->deleted_at) {
+                        // A deleted trailer can't be edited (edit() 404s), only restored
+                        return '<div class="flex justify-center space-x-1"><button type="button" data-action="restore" ' . $data . '
+                                    class="js-trailer-action inline-flex items-center px-3 py-1 text-sm text-green-600 bg-green-100 rounded-md hover:bg-green-200 transition-colors">
+                                    <i class="fas fa-trash-restore mr-1"></i> Restore
+                                </button></div>';
+                    }
+
+                    $editBtn = '<button type="button" data-action="edit" ' . $data . '
+                                class="js-trailer-action inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors mr-2">
                                 <i class="fas fa-edit mr-1"></i> Edit
                             </button>';
 
-                    if ($row->deleted_at) {
-                        $deleteBtn = '<button onclick="restoreTrailer(' . $row->id . ', \'' . addslashes($row->unit_no) . '\')" 
-                                    class="inline-flex items-center px-3 py-1 text-sm text-green-600 bg-green-100 rounded-md hover:bg-green-200 transition-colors">
-                                    <i class="fas fa-trash-restore mr-1"></i> Restore
-                                </button>';
-                    } else {
-                        $deleteBtn = '<button onclick="deleteTrailer(' . $row->id . ', \'' . addslashes($row->unit_no) . '\')" 
-                                    class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
-                                    <i class="fas fa-trash mr-1"></i> Delete
-                                </button>';
-                    }
+                    $deleteBtn = '<button type="button" data-action="delete" ' . $data . '
+                                class="js-trailer-action inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
+                                <i class="fas fa-trash mr-1"></i> Delete
+                            </button>';
 
                     return '<div class="flex justify-center space-x-1">' . $editBtn . $deleteBtn . '</div>';
                 })
@@ -119,8 +140,8 @@ class TrailerController extends Controller
 
         $validator = Validator::make($request->all(), [
             'company_id' => 'required|exists:companies,id',
-            'unit_no' => 'required|string|max:50|unique:trailers,unit_no',
-            'vin' => 'required|string|size:17|unique:trailers,vin',
+            'unit_no' => ['required', 'string', 'max:50', $this->uniqueInCompany('unit_no', $request->input('company_id'))],
+            'vin' => ['required', 'string', 'size:17', $this->uniqueInCompany('vin', $request->input('company_id'))],
             'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
@@ -144,7 +165,7 @@ class TrailerController extends Controller
         DB::beginTransaction();
 
         try {
-            $trailer = Trailer::create($request->all());
+            $trailer = Trailer::create($validator->validated());
 
             DB::commit();
 
@@ -189,9 +210,17 @@ class TrailerController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'company_id' => 'required|exists:companies,id',
-            'unit_no' => 'required|string|max:50|unique:trailers,unit_no,' . $id,
-            'vin' => 'required|string|size:17|unique:trailers,vin,' . $id,
+            'company_id' => [
+                'required',
+                'exists:companies,id',
+                function ($attribute, $value, $fail) use ($trailer) {
+                    if ((int) $value !== (int) $trailer->company_id && AssetGroup::withTrashed()->where('trailer_id', $trailer->id)->exists()) {
+                        $fail('This trailer is in an asset group of its current company, so it cannot be moved to another company.');
+                    }
+                },
+            ],
+            'unit_no' => ['required', 'string', 'max:50', $this->uniqueInCompany('unit_no', $request->input('company_id'), $trailer->id)],
+            'vin' => ['required', 'string', 'size:17', $this->uniqueInCompany('vin', $request->input('company_id'), $trailer->id)],
             'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
@@ -215,7 +244,7 @@ class TrailerController extends Controller
         DB::beginTransaction();
 
         try {
-            $trailer->update($request->all());
+            $trailer->update($validator->validated());
 
             DB::commit();
 
@@ -327,5 +356,15 @@ class TrailerController extends Controller
                 'message' => 'Trailer not found'
             ], 404);
         }
+    }
+
+    /**
+     * Unit no and VIN are unique within a company (deleted trailers included, as in the DB index).
+     */
+    private function uniqueInCompany(string $column, mixed $companyId, ?int $ignoreId = null): Unique
+    {
+        return Rule::unique('trailers', $column)
+            ->where('company_id', is_scalar($companyId) ? $companyId : null)
+            ->ignore($ignoreId);
     }
 }

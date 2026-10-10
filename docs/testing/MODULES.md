@@ -205,10 +205,11 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| FLT-01 | P1 | SUSPECTED | Stored XSS: `unit_no`, `make`, `model`, `vin`, type/group names concatenated into raw DataTables columns. A tenant can target the super-admin, who sees every tenant's rows. |
-| FLT-02 | P2 | SUSPECTED | `unit_no` and `vin` unique across all tenants → tenant B blocked by tenant A's data; the error leaks existence. |
-| FLT-03 | P2 | SUSPECTED | `update($request->all())`: verify `$fillable` blocks everything sensitive; super-admin can move assets between companies without moving docs/groups. |
-| FLT-04 | P3 | SUSPECTED | Index query lacks `withTrashed()`, so the restore button never renders. |
+| FLT-01 | P1 | FIXED | Stored XSS: `unit_no`, `make`, `model`, `vin`, type/group names concatenated into raw DataTables columns. A tenant can target the super-admin, who sees every tenant's rows. |
+| FLT-02 | P2 | FIXED | `unit_no` and `vin` unique across all tenants → tenant B blocked by tenant A's data; the error leaks existence. (2026-10-10: unique per company, new migration; whether VIN should stay global is DEFERRED, see report.) |
+| FLT-03 | P2 | FIXED | `update($request->all())`: verify `$fillable` blocks everything sensitive; super-admin can move assets between companies without moving docs/groups. (2026-10-10: `$fillable` part not real; a move is now refused while the asset has groups/logs/schedules; what a move should do is DEFERRED, see report.) |
+| FLT-04 | P3 | FIXED | Index query lacks `withTrashed()`, so the restore button never renders. |
+| FLT-05 | P3 | FIXED | (Found 2026-10-10) The quick search and the vehicle/equipment type filters were sent by the pages but ignored by the controllers. |
 
 ## 12. `otp-sms`: OTP, SMS & phone numbers
 - **Scope**: `app/Services/{OTPService,SmsService,PhoneNumberService}.php`, `app/Jobs/SendSmsJob.php`, `app/Models/OtpVerification.php`, `app/Exceptions/Sms/SmsException.php`, Vonage binding in `app/Providers/AppServiceProvider.php`

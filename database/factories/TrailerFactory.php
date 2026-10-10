@@ -23,7 +23,7 @@ class TrailerFactory extends Factory
         return [
             'company_id' => CompanyFactory::new(),
             'unit_no' => 'TRL-'.fake()->unique()->numerify('#####'),
-            'vin' => Str::upper(fake()->unique()->bothify('1JJ??#########??')),
+            'vin' => Str::upper(fake()->unique()->bothify('1JJ??##########??')),
             'year' => (int) fake()->numberBetween(2005, (int) date('Y')),
             'make' => fake()->randomElement(['Utility', 'Wabash', 'Great Dane']),
             'model' => fake()->bothify('Van-##'),
