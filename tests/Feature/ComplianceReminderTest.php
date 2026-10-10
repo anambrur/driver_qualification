@@ -10,30 +10,16 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\ComplianceReminderService;
 use Illuminate\Support\Facades\Mail;
-use Spatie\Permission\Models\Role;
+use Tests\Support\Actors;
 
 function createSuperAdminUser(): User
 {
-    Role::create(['name' => 'super-admin', 'guard_name' => 'web']);
-
-    $user = User::factory()->create([
-        'status' => 'active',
-    ]);
-
-    $user->assignRole('super-admin');
-
-    return $user;
+    return Actors::superAdmin();
 }
 
 function createCompanyForUser(User $user): Company
 {
-    return Company::create([
-        'user_id' => $user->id,
-        'company_name' => 'Test Transport LLC',
-        'slug' => 'test-transport',
-        'email' => 'fleet@test.com',
-        'status' => 'active',
-    ]);
+    return Actors::companyOf($user);
 }
 
 function createDriverForCompany(Company $company, array $overrides = []): Driver

@@ -10,6 +10,7 @@ use App\Services\ComplianceReminderService;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -62,9 +63,15 @@ class ComplianceReminderController extends Controller
                 throw $e;
             }
 
+            Log::error('Failed to send driver compliance reminder.', [
+                'driver_id' => $request->input('driver_id'),
+                'document_type_id' => $request->input('document_type_id'),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send reminder: '.$e->getMessage(),
+                'message' => 'Failed to send reminder. Please try again later.',
             ], 500);
         }
     }
@@ -128,9 +135,16 @@ class ComplianceReminderController extends Controller
                 throw $e;
             }
 
+            Log::error('Failed to send vehicle compliance reminder.', [
+                'asset_type' => $request->input('asset_type'),
+                'asset_id' => $request->input('asset_id'),
+                'document_type_id' => $request->input('document_type_id'),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send reminder: '.$e->getMessage(),
+                'message' => 'Failed to send reminder. Please try again later.',
             ], 500);
         }
     }

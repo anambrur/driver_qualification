@@ -359,7 +359,7 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::delete('documents/delete', [DocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.documents.delete')->middleware('permission:fleets.edit');
         Route::get('documents/{documentId}/{assetType}/download', [DocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.documents.download')->middleware('permission:fleets.dashboard');
         Route::get('documents/{documentId}/{assetType}/view', [DocumentUploadController::class, 'viewDocument'])->name('admin.compliance.documents.view')->middleware('permission:fleets.dashboard');
-        Route::post('documents/send-reminder', [ComplianceReminderController::class, 'sendVehicleReminder'])->name('admin.compliance.documents.send-reminder')->middleware('permission:fleets.edit');
+        Route::post('documents/send-reminder', [ComplianceReminderController::class, 'sendVehicleReminder'])->name('admin.compliance.documents.send-reminder')->middleware(['permission:fleets.edit', 'throttle:10,1,compliance-reminder']);
 
         // Driver compliance routes
         Route::get('/drivers', [DriverComplianceDashboardController::class, 'index'])->name('admin.compliance.drivers')->middleware('permission:drivers.dashboard');
@@ -371,7 +371,7 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::delete('driver-documents/delete', [DriverDocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.driver.documents.delete')->middleware('permission:drivers.edit');
         Route::get('driver-documents/{documentId}/download', [DriverDocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.driver.documents.download')->middleware('permission:drivers.dashboard');
         Route::get('driver-documents/{documentId}/view', [DriverDocumentUploadController::class, 'viewDocument'])->name('admin.compliance.driver.documents.view')->middleware('permission:drivers.dashboard');
-        Route::post('driver-documents/send-reminder', [ComplianceReminderController::class, 'sendDriverReminder'])->name('admin.compliance.driver.documents.send-reminder')->middleware('permission:drivers.edit');
+        Route::post('driver-documents/send-reminder', [ComplianceReminderController::class, 'sendDriverReminder'])->name('admin.compliance.driver.documents.send-reminder')->middleware(['permission:drivers.edit', 'throttle:10,1,compliance-reminder']);
     });
 
     // Service Logs

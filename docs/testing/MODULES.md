@@ -286,9 +286,9 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| REM-01 | P2 | CONFIRMED | 4 existing tests fail against current routing. |
-| REM-02 | P2 | SUSPECTED | No throttle on the send-reminder endpoints → inbox spamming. |
-| REM-03 | P3 | SUSPECTED | Exception messages in JSON; digest de-dupe relies on `Cache::add` (fine on the database store, fragile on file/array). |
+| REM-01 | P2 | FIXED | 4 existing tests fail against current routing. |
+| REM-02 | P2 | FIXED | No throttle on the send-reminder endpoints → inbox spamming. |
+| REM-03 | P3 | FIXED | Exception messages in JSON; digest de-dupe relies on `Cache::add` (fine on the database store, fragile on file/array). (2026-10-10: messages now generic + logged; de-dupe dismissed, works on the configured `database` store.) |
 
 ## 19. `auth`: Authentication, registration & profile
 - **Scope**: `routes/auth.php`, `app/Http/Controllers/Auth/*`, `app/Http/Requests/Auth/LoginRequest.php`, `app/Http/Controllers/ProfileController.php`, `app/Http/Requests/ProfileUpdateRequest.php`, views `auth/**`, `profile/**`
