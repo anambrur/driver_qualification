@@ -318,5 +318,5 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| MAIL-01 | P2 | SUSPECTED | Mail bodies include tenant/applicant-controlled strings (names, company names); verify escaping in every template. |
-| MAIL-02 | P3 | SUSPECTED | All mailables implement `ShouldQueue` (verified); check `tries`/`backoff` and the failure path, since a failed queued mail is silent. |
+| MAIL-01 | P2 | DISMISSED | Mail bodies include tenant/applicant-controlled strings (names, company names); verify escaping in every template. (All templates use `{{ }}`; Subject CRLF is encoded by Symfony. Regression tests added.) |
+| MAIL-02 | P3 | FIXED | All mailables implement `ShouldQueue` (verified); check `tries`/`backoff` and the failure path, since a failed queued mail is silent. (`RetriesQueuedDelivery` trait: tries=3, backoff 60/300s, `failed()` logs mailable + driver/company ids.) |
