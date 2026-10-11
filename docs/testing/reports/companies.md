@@ -61,3 +61,31 @@ The shared fixtures are in `tests/Feature/Modules/Companies/Companies.php`. The 
 
 - Run `php artisan migrate` to apply `2026_10_10_000400_make_company_slug_unique`. Before that, check production for duplicate slugs: `SELECT slug, COUNT(*) FROM companies WHERE slug IS NOT NULL GROUP BY slug HAVING COUNT(*) > 1;`. If the migration finds any, it aborts and lists them; rename them by hand, then rerun.
 - No config changes.
+
+## Decision follow-up: PO-13
+
+Decided 2026-10-11: option A, and Q2 = yes.
+
+- `CompanyController::destroy()` sets the company and its owner `inactive` (login and `EnsureUserIsActive` refuse inactive users). Nothing is deleted. A super-admin's own company returns 422. A missing company is now 404 (it was 500).
+- List: the button is "Deactivate" (ban icon). It is not shown for the admin's own company or for inactive companies. A super-admin reactivates a company from Edit. The JS confirm/result texts were updated.
+- Tests: `CompanyDestroyTest.php`. The pinning test became `deactivates the company and its owner and keeps every record (decided PO-13, 2026-10-11)`; added "locks the deactivated owner out", "refuses … own company", and "offers Deactivate …".
+
+## Decision follow-up: PO-14
+
+Decided 2026-10-11: option A.
+
+- New migration `2026_10_11_000200_add_company_id_to_policy_pdfs.php`: nullable `company_id` FK (cascade), unique. Existing rows keep `null` and are the platform set. Re-runnable, with a `down()`.
+- `PolicyPdf::resolveFor($companyId)`: each policy is the company's own file, or the platform file. It is used in `ApplicationFormController` (steps 9/10, the application's company) and `DriverController` (the driver's company).
+- Who edits: a super-admin edits the platform set. A non-super-admin with a company (company owners, via the existing `companies.edit` permission) edits their own set. A user with `policy-pdf.edit` and no company edits the platform set, as before. Routes: `permission:policy-pdf.view|companies.edit` and `permission:policy-pdf.edit|companies.edit`. No new permission was added and `PermissionSeeder` was not changed.
+- Files stay on the public disk under `policy_pdfs/{company_id}/<hashName>`, because job applicants (guests) open them on the public form. The settings page now lists the user's existing PDFs (`$existingPolicies` was never passed before). Owners get a "Policy PDFs" link under ACCOUNT in the sidebar.
+- Tests: `PolicyPdfTest.php` ("does not let a company owner upload global policy PDFs" now asserts that the upload goes to the owner's own row) and `CompanyDecisionsTest.php` → `PO-14: …`.
+- Out-of-scope: `routes/web.php`, `ApplicationFormController.php`, `DriverController.php`, `resources/views/partials/sidebar.blade.php`.
+
+## Decision follow-up: PO-22 (companies items)
+
+- `update()` honours "Remove current logo", and deletes the old logo file after commit when it is replaced or removed.
+- `ProfileController::update()` copies a changed login email to `companies.email` for the user's company. `ProfileUpdateRequest` checks `companies.email` uniqueness, ignoring the user's own company.
+- Tests: `CompanyDecisionsTest.php` → `PO-22: …`.
+- Also fixed a flaky assertion in `CompanyLogoAndSlugTest.php`: a random 40-character name could contain "my". It now checks "my logo".
+
+Manual steps: run migration `2026_10_11_000200` (staging first).

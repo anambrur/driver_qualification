@@ -60,3 +60,15 @@ The test fixtures are in `tests/Feature/Modules/OtpSms/OtpSms.php`. The module s
 - Make sure the scheduler (`php artisan schedule:run` every minute) runs in production. Pruning depends on it.
 - Optional: set `services.vonage.otp_global_hourly_limit` (the code default is 200). To make it settable from the environment, add `'otp_global_hourly_limit' => env('VONAGE_OTP_GLOBAL_HOURLY_LIMIT', 200)` to `config/services.php`. I didn't change that file.
 - Confirm that `CACHE_STORE` in production is a persistent shared store.
+
+## Decision follow-up: PO-11
+
+Decided 2026-10-11: option A. +880/+91 are for internal testing only.
+
+- `PhoneNumberService`: `BLOCKED_NANP_AREA_CODES` (US premium 900/976 plus the non-US/Canada NANP countries: Bahamas, Barbados, Anguilla, Antigua, BVI, Cayman, Bermuda, Grenada, Turks and Caicos, Jamaica 658/876, Montserrat, Sint Maarten, St Lucia, Dominica, St Vincent, Dominican Republic 809/829/849, Trinidad and Tobago, St Kitts). US territories (Puerto Rico, USVI, Guam, …) stay allowed as US numbers. +880/+91 validate only when `app()->environment('local', 'testing')`.
+- Tests: `OtpSmsPhoneValidationTest.php` (US/Canada accepted; Caribbean rejected; BD/IN rejected in production and accepted on local/testing; `sendOTP` never calls Vonage for +1 876). `SubscriptionLifecycle` is green.
+- Note: production must not run with `APP_ENV=local`, or +880/+91 are accepted.
+
+## Decision follow-up: PO-12
+
+Decided 2026-10-11: option A. 200 OTP sends/hour kept. DISMISSED, no code change.

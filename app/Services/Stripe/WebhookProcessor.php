@@ -19,7 +19,18 @@ class WebhookProcessor
         private readonly StripeClientFactory $stripe,
         private readonly SubscriptionService $subscriptions,
         private readonly SubscriptionNotificationService $subscriptionNotifications,
+        private readonly CheckoutService $checkout,
     ) {}
+
+    /** Events about subscriptions and payments, which another app on the same Stripe account also gets. */
+    private const BILLING_EVENTS = [
+        'checkout.session.completed',
+        'customer.subscription.created',
+        'customer.subscription.updated',
+        'customer.subscription.deleted',
+        'invoice.paid',
+        'invoice.payment_failed',
+    ];
 
     public function constructEvent(string $payload, string $signature): Event
     {
@@ -36,6 +47,16 @@ class WebhookProcessor
     {
         Log::info('Stripe webhook received', ['type' => $event->type, 'id' => $event->id]);
 
+        // The Stripe account is shared with other apps (PO-18): an object tagged with another
+        // app's host belongs to that app, whose user ids are not ours. Objects with no app_host
+        // (created before tagging) are processed as before.
+        $appHost = $this->appHostOf($event->data->toArray()['object'] ?? []);
+        if (in_array($event->type, self::BILLING_EVENTS, true) && $appHost !== null && $appHost !== $this->checkout->appHost()) {
+            Log::info('Stripe webhook for another app ignored', ['type' => $event->type, 'id' => $event->id, 'app_host' => $appHost]);
+
+            return;
+        }
+
         match ($event->type) {
             'checkout.session.completed' => $this->syncCheckoutSession($event->data->object),
             'customer.subscription.created',
@@ -45,6 +66,27 @@ class WebhookProcessor
             'invoice.payment_failed' => $this->handleInvoicePaymentFailed($event->data->object),
             default => Log::debug('Unhandled Stripe webhook event', ['type' => $event->type]),
         };
+    }
+
+    /**
+     * The app_host CheckoutService tagged the object with: on the object itself (checkout
+     * session, subscription) or, for an invoice, on its subscription's metadata.
+     */
+    private function appHostOf(mixed $object): ?string
+    {
+        $candidates = [
+            data_get($object, 'metadata.app_host'),
+            data_get($object, 'subscription_details.metadata.app_host'),
+            data_get($object, 'parent.subscription_details.metadata.app_host'),
+        ];
+
+        foreach ($candidates as $host) {
+            if (is_string($host) && $host !== '') {
+                return $host;
+            }
+        }
+
+        return null;
     }
 
     /**

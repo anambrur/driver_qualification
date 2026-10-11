@@ -14,6 +14,11 @@ Schedule::command('subscriptions:send-expiry-reminders')
     ->withoutOverlapping()
     ->runInBackground();
 
+// After the expiry reminders, which still send a trial's "expired" notice (PO-22)
+Schedule::command('subscriptions:close-expired-trials')
+    ->dailyAt('10:00')
+    ->withoutOverlapping();
+
 Schedule::command('compliance:send-digest-reminders')
     ->dailyAt('09:30')
     ->withoutOverlapping()

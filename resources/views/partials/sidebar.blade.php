@@ -510,6 +510,17 @@
                                         Account</span>
                                 </a>
                             </li>
+                            @unlessrole('super-admin')
+                                <!-- The company's own policy PDFs (PO-14) -->
+                                <li>
+                                    <a href="{{ route('admin.settings.policy.pdf') }}" class="menu-item group"
+                                        :class="isCurrentPath('admin/settings/policy-pdf') ? 'menu-item-active' : 'menu-item-inactive'">
+                                        <i class="fa-solid fa-file-pdf"
+                                            :class="isCurrentPath('admin/settings/policy-pdf') ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
+                                        <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Policy PDFs</span>
+                                    </a>
+                                </li>
+                            @endunlessrole
                         @endif
                     @endcan
 

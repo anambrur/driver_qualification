@@ -7,8 +7,9 @@ use Tests\Feature\Modules\Companies\Companies;
 use Tests\Support\Actors;
 
 /*
-| CMP-05: the upload error path returned the raw exception message to the browser. Whether
-| PolicyPdf should be per company instead of global (PolicyPdf::first()) is DEFERRED.
+| CMP-05: the upload error path returned the raw exception message to the browser.
+| Decided PO-14 (2026-10-11): each company may upload its own policy PDFs; the platform set
+| (company_id null, super-admin only) is the fallback.
 */
 
 beforeEach(function () {
@@ -52,7 +53,19 @@ it('rejects a non-PDF policy upload', function () {
 });
 
 it('does not let a company owner upload global policy PDFs', function () {
-    $this->actingAs(Actors::companyOwner())
+    $owner = Actors::companyOwner();
+
+    // An owner's upload goes to their own company's set (PO-14), never the platform one
+    $this->actingAs($owner)
+        ->post(route('admin.settings.policy.pdf.store'), ['general_work_policy_pdf' => Companies::pdf()])
+        ->assertRedirect(route('admin.settings.policy.pdf'));
+
+    expect(PolicyPdf::whereNull('company_id')->count())->toBe(0)
+        ->and(PolicyPdf::sole()->company_id)->toBe(Actors::companyOf($owner)->id);
+});
+
+it('does not let a plain user without a company upload global policy PDFs', function () {
+    $this->actingAs(Actors::plainUser(['policy-pdf.view']))
         ->post(route('admin.settings.policy.pdf.store'), ['general_work_policy_pdf' => Companies::pdf()])
         ->assertForbidden();
 

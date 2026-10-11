@@ -41,8 +41,9 @@ Route::get('/', function () {
 });
 
 
+// New and lapsed accounts are sent to pricing (PO-16); super-admins pass `Subscribed`
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'Subscribed'])
     ->name('dashboard');
 
 // =====================================================================
@@ -177,8 +178,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/billing/resume', [BillingController::class, 'resume'])->name('billing.resume');
 
     Route::get('/pricing/plans', [PlanController::class, 'plans'])->name('pricing.plans');
-    Route::get('/checkout-success', [CheckoutController::class, 'success'])->name('checkout.success');
-    Route::get('/checkout/{name}', [CheckoutController::class, 'checkout'])->name('checkout');
+    // A trial or a checkout needs a verified email: one free trial per verified email (PO-15)
+    Route::get('/checkout-success', [CheckoutController::class, 'success'])->name('checkout.success')->middleware('verified');
+    Route::get('/checkout/{name}', [CheckoutController::class, 'checkout'])->name('checkout')->middleware('verified');
 
     // Legacy subscription routes (redirect to new billing flow)
     Route::get('/subscription/plans', fn () => redirect()->route('pricing.plans'));
@@ -425,8 +427,9 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         Route::patch('/company/{id}', [CompanyController::class, 'update'])->name('admin.settings.company.update')->middleware('permission:companies.edit');
         Route::delete('/company/{id}', [CompanyController::class, 'destroy'])->name('admin.settings.company.destroy')->middleware('permission:companies.delete');
 
-        Route::get('/policy-pdf', [CompanyController::class, 'policyPDF'])->name('admin.settings.policy.pdf')->middleware('permission:policy-pdf.view');
-        Route::post('/policy-pdf', [CompanyController::class, 'policyPDFStore'])->name('admin.settings.policy.pdf.store')->middleware('permission:policy-pdf.edit');
+        // Company owners (companies.edit) manage their own company's policy PDFs (PO-14)
+        Route::get('/policy-pdf', [CompanyController::class, 'policyPDF'])->name('admin.settings.policy.pdf')->middleware('permission:policy-pdf.view|companies.edit');
+        Route::post('/policy-pdf', [CompanyController::class, 'policyPDFStore'])->name('admin.settings.policy.pdf.store')->middleware('permission:policy-pdf.edit|companies.edit');
 
         // roles routes
         Route::get('/roles', [RoleController::class, 'index'])->name('admin.roles.index')

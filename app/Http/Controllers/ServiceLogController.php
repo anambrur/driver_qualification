@@ -385,6 +385,10 @@ class ServiceLogController extends Controller
                 }
             }
 
+            // The values the vehicle may have taken from this log, to correct it downwards (PO-22)
+            $previousOdometer = $serviceLog->current_odometer;
+            $previousEngineHours = $serviceLog->current_engine_hours;
+
             // Update service log; a super-admin moving it to another company's vehicle moves it to that company
             $serviceLog->update([
                 'company_id' => $this->getOwningCompanyId(Vehicle::whereKey($request->vehicle_id)->value('company_id')),
@@ -403,7 +407,7 @@ class ServiceLogController extends Controller
             $serviceLog->maintenanceCategories()->sync($request->maintenance_categories);
 
             // Update vehicle metrics
-            $serviceLog->updateVehicleMetrics();
+            $serviceLog->updateVehicleMetrics($previousOdometer, $previousEngineHours);
 
             DB::commit();
 
@@ -442,12 +446,15 @@ class ServiceLogController extends Controller
         DB::beginTransaction();
 
         try {
-            // Delete associated documents from storage
-            $this->deleteFiles($serviceLog->documents->pluck('file_path')->all());
+            // The log's documents go with it: rows now, files once committed (PO-22)
+            $filePaths = $serviceLog->documents->pluck('file_path')->all();
+            $serviceLog->documents()->delete();
 
             $serviceLog->delete();
 
             DB::commit();
+
+            $this->deleteFiles($filePaths);
 
             return response()->json([
                 'success' => true,

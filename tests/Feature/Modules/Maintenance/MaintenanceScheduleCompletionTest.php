@@ -1,7 +1,6 @@
 <?php
 
 use Database\Factories\MaintenanceScheduleFactory;
-use Database\Factories\ServiceLogFactory;
 use Illuminate\Support\Carbon;
 use Tests\Feature\Modules\Maintenance\Maintenance;
 
@@ -20,7 +19,8 @@ afterEach(function () {
 describe('MNT-04: completing a schedule', function () {
     it('records the logged engine hours and schedules the next service from them', function () {
         [$owner, $vehicle] = Maintenance::tenantWithVehicle();
-        ServiceLogFactory::new()->forVehicle($vehicle)->create(['current_engine_hours' => 1200]);
+        // A service log raises the vehicle's engine hours (PO-05)
+        $this->actingAs($owner)->postJson(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle, ['engine_hours_at_service' => 1200, 'current_engine_hours' => 1200]))->assertOk();
         $schedule = MaintenanceScheduleFactory::new()->forVehicle($vehicle)->engineHours(250)->create(['next_due_hours' => 1100]);
 
         $this->actingAs($owner)->postJson(route('admin.maintenance-schedule.mark-completed', $schedule->id))->assertOk();
@@ -61,7 +61,7 @@ describe('MNT-04: completing a schedule', function () {
 
     it('reports the logged engine hours in the vehicle details', function () {
         [$owner, $vehicle] = Maintenance::tenantWithVehicle();
-        ServiceLogFactory::new()->forVehicle($vehicle)->create(['current_engine_hours' => 777]);
+        $this->actingAs($owner)->postJson(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle, ['engine_hours_at_service' => 777, 'current_engine_hours' => 777]))->assertOk();
 
         $this->actingAs($owner)->getJson(route('admin.maintenance-schedule.get-vehicle-details', $vehicle->id))
             ->assertOk()

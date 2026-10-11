@@ -15,7 +15,7 @@ dataset('fleet assets', [
 ]);
 
 describe('FLT-02: unit no and VIN are unique per company', function () {
-    it('lets another tenant use the same unit no and VIN', function (string $kind) {
+    it('lets another tenant use the same unit no and VIN (VIN per company, decided PO-10, 2026-10-11)', function (string $kind) {
         $existing = FleetAssets::assetOf(Actors::companyOwner(), $kind, ['unit_no' => '101', 'vin' => '1HGCM82633A004352']);
         $other = Actors::companyOwner();
 

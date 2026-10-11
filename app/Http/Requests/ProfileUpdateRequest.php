@@ -24,6 +24,8 @@ class ProfileUpdateRequest extends FormRequest
                 'email',
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
+                // An owner's login email is also their company's email (PO-22)
+                Rule::unique('companies', 'email')->ignore($this->user()->id, 'user_id'),
             ],
         ];
     }

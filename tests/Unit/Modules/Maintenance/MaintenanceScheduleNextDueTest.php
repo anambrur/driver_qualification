@@ -2,7 +2,6 @@
 
 use App\Models\MaintenanceSchedule;
 use Database\Factories\MaintenanceScheduleFactory;
-use Database\Factories\ServiceLogFactory;
 use Database\Factories\VehicleFactory;
 use Illuminate\Support\Carbon;
 
@@ -92,24 +91,21 @@ describe('MNT-04: mileage schedules', function () {
 });
 
 describe('MNT-04: engine hour schedules', function () {
-    it('uses the engine hours from the vehicle\'s service logs', function () {
-        $vehicle = VehicleFactory::new()->create();
-        ServiceLogFactory::new()->forVehicle($vehicle)->create(['current_engine_hours' => 1200]);
-        ServiceLogFactory::new()->forVehicle($vehicle)->create(['current_engine_hours' => 900]);
+    it('uses the vehicle\'s engine hours (PO-05)', function () {
+        $vehicle = VehicleFactory::new()->create(['engine_hours' => 1200]);
 
         $schedule = mntSchedule(['vehicle_id' => $vehicle->id, 'company_id' => $vehicle->company_id], fn ($f) => $f->engineHours(250))->calculateNextDue();
 
         expect($schedule->next_due_hours)->toBe(1450);
     });
 
-    it('is due once the logged engine hours reach the next due hours', function () {
-        $vehicle = VehicleFactory::new()->create();
-        ServiceLogFactory::new()->forVehicle($vehicle)->create(['current_engine_hours' => 1000]);
+    it('is due once the vehicle\'s engine hours reach the next due hours', function () {
+        $vehicle = VehicleFactory::new()->create(['engine_hours' => 1000]);
         $schedule = mntSchedule(['vehicle_id' => $vehicle->id, 'company_id' => $vehicle->company_id, 'next_due_hours' => 1100], fn ($f) => $f->engineHours(250));
 
         expect($schedule->isDue())->toBeFalse();
 
-        ServiceLogFactory::new()->forVehicle($vehicle)->create(['current_engine_hours' => 1100]);
+        $vehicle->update(['engine_hours' => 1100]);
         expect($schedule->fresh()->isDue())->toBeTrue();
     });
 

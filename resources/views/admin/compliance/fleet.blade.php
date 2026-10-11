@@ -30,7 +30,7 @@
             </div>
 
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 gap-4 mt-6 md:grid-cols-4">
+            <div class="grid grid-cols-1 gap-4 mt-6 md:grid-cols-3 xl:grid-cols-5">
                 <!-- Total Vehicles -->
                 <div
                     class="p-4 bg-white border border-gray-200 rounded-xl shadow-theme-xs dark:bg-gray-800 dark:border-gray-700">
@@ -87,6 +87,20 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Critical (missing / expired) -->
+                <div
+                    class="p-4 bg-white border border-gray-200 rounded-xl shadow-theme-xs dark:bg-gray-800 dark:border-gray-700">
+                    <div class="flex items-center">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/20">
+                            <i class="text-lg text-red-600 fas fa-times-circle dark:text-red-400"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Critical</p>
+                            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ $totalCritical }}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -105,7 +119,7 @@
                         <div class="flex items-center space-x-2">
                             <span
                                 class="px-2.5 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                                {{ $totalWarning }} Vehicles Need Attention
+                                {{ $vehiclesNeedingAttention }} Vehicles Need Attention
                             </span>
                         </div>
                     </div>
@@ -263,6 +277,12 @@
                             </div>
                         @endforelse
                     </div>
+
+                    @if ($vehicles->hasPages())
+                        <div class="mt-6">
+                            {{ $vehicles->links() }}
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Trailers Section -->
@@ -275,7 +295,7 @@
                         </div>
                         <span
                             class="px-2.5 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                            {{ $totalTrailers }} Trailers
+                            {{ $totalTrailers }} Trailers · {{ $trailersNeedingAttention }} Need Attention
                         </span>
                     </div>
 
@@ -428,6 +448,12 @@
                             </div>
                         @endforelse
                     </div>
+
+                    @if ($trailers->hasPages())
+                        <div class="mt-6">
+                            {{ $trailers->links() }}
+                        </div>
+                    @endif
                 </div>
             </div>
 

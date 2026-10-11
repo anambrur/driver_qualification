@@ -134,7 +134,7 @@ class ServiceLog extends Model
     }
 
     /**
-     * A vehicle's current engine hours: the highest current_engine_hours logged for it, or 0.
+     * A vehicle's current engine hours: the vehicle's engine_hours column (PO-05), or 0.
      */
     public static function currentEngineHoursFor(?int $vehicleId): int
     {
@@ -142,19 +142,45 @@ class ServiceLog extends Model
             return 0;
         }
 
-        return (int) static::where('vehicle_id', $vehicleId)->max('current_engine_hours');
+        return (int) Vehicle::withTrashed()->whereKey($vehicleId)->value('engine_hours');
     }
 
     /**
-     * Update vehicle odometer
+     * Update the vehicle's odometer and engine hours from this log. A log only raises them,
+     * except when it is corrected downwards and its old value was the vehicle's current one:
+     * the vehicle then gets the highest value logged now (PO-22).
      */
-    public function updateVehicleMetrics()
+    public function updateVehicleMetrics(?int $previousOdometer = null, ?int $previousEngineHours = null): void
     {
         $vehicle = $this->vehicle;
 
-        if ($this->current_odometer > $vehicle->odometer) {
-            $vehicle->odometer = $this->current_odometer;
+        if (! $vehicle) {
+            return;
+        }
+
+        $vehicle->odometer = $this->correctedMetric($vehicle->odometer, $this->current_odometer, $previousOdometer, 'current_odometer');
+        $vehicle->engine_hours = $this->correctedMetric($vehicle->engine_hours, $this->current_engine_hours, $previousEngineHours, 'current_engine_hours');
+
+        if ($vehicle->isDirty(['odometer', 'engine_hours'])) {
             $vehicle->save();
         }
+    }
+
+    private function correctedMetric(?int $vehicleValue, ?int $logValue, ?int $previousLogValue, string $column): ?int
+    {
+        if ($logValue !== null && $logValue > (int) $vehicleValue) {
+            return $logValue;
+        }
+
+        $loweredTheCurrentValue = $previousLogValue !== null
+            && $vehicleValue !== null
+            && $previousLogValue === $vehicleValue
+            && ($logValue ?? 0) < $previousLogValue;
+
+        if ($loweredTheCurrentValue) {
+            return (int) static::where('vehicle_id', $this->vehicle_id)->max($column);
+        }
+
+        return $vehicleValue;
     }
 }

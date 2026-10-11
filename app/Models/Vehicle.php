@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -25,6 +26,7 @@ class Vehicle extends Model
         'title_no',
         'tire_size',
         'odometer',
+        'engine_hours',
         'gvw',
         'vehicle_group_id',
         'fuel_type_id',
@@ -41,38 +43,57 @@ class Vehicle extends Model
     protected $casts = [
         'year' => 'integer',
         'odometer' => 'integer',
+        'engine_hours' => 'integer',
         'gvw' => 'integer',
         'no_axles' => 'integer',
         'wheel_base' => 'integer'
     ];
 
     // Relationships
+    /**
+     * @return BelongsTo<VehicleType, $this>
+     */
     public function vehicleType(): BelongsTo
     {
         return $this->belongsTo(VehicleType::class);
     }
 
+    /**
+     * @return BelongsTo<Company, $this>
+     */
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
     }
 
+    /**
+     * @return BelongsTo<VehicleGroup, $this>
+     */
     public function vehicleGroup(): BelongsTo
     {
         return $this->belongsTo(VehicleGroup::class);
     }
 
+    /**
+     * @return BelongsTo<FuelType, $this>
+     */
     public function fuelType(): BelongsTo
     {
         return $this->belongsTo(FuelType::class);
     }
 
+    /**
+     * @return HasOne<AssetGroup, $this>
+     */
     public function assetGroups(): HasOne
     {
         return $this->hasOne(AssetGroup::class);
     }
 
-    public function documents()
+    /**
+     * @return HasMany<VehicleDocument, $this>
+     */
+    public function documents(): HasMany
     {
         return $this->hasMany(VehicleDocument::class);
     }

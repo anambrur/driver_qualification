@@ -74,13 +74,18 @@ class CompanyController extends Controller
                         </span>';
                 })
                 ->addColumn('action', function ($company) {
+                    // Deactivate, never delete (PO-13); not offered for the admin's own company
+                    $deactivateBtn = $company->status === 'active' && ! $this->isOwnCompany($company)
+                        ? '<button type="button" onclick="deleteCompany(' . (int) $company->id . ')" class="inline-flex items-center justify-center w-8 h-8 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30" title="Deactivate">
+                                <i class="fas fa-ban text-xs"></i>
+                            </button>'
+                        : '';
+
                     return '<div class="flex items-center space-x-2">
                             <a href="' . route('admin.settings.company.edit', $company->id) . '" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30" title="Edit">
                                 <i class="fas fa-edit text-xs"></i>
                             </a>
-                            <button type="button" onclick="deleteCompany(' . $company->id . ')" class="inline-flex items-center justify-center w-8 h-8 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30" title="Delete">
-                                <i class="fas fa-trash text-xs"></i>
-                            </button>
+                            ' . $deactivateBtn . '
                         </div>';
                 })
                 ->rawColumns(['logo', 'status', 'apply_url', 'action'])
@@ -271,11 +276,14 @@ class CompanyController extends Controller
 
             $company->user->update($userData);
 
-            // Handle logo upload
-            $logoPath = $company->logo;
+            // Handle logo upload / removal; the old file is deleted once committed (PO-22)
+            $oldLogo = $company->logo;
+            $logoPath = $oldLogo;
             if ($request->hasFile('logo')) {
                 $logoFile = $request->file('logo');
                 $logoPath = $logoFile->storeAs('companies/logos', $logoFile->hashName(), 'public');
+            } elseif ($request->boolean('remove_logo')) {
+                $logoPath = null;
             }
 
             // Generate new slug if company name changed
@@ -311,6 +319,10 @@ class CompanyController extends Controller
             // Commit transaction
             DB::commit();
 
+            if ($oldLogo && $oldLogo !== $logoPath) {
+                Storage::disk('public')->delete($oldLogo);
+            }
+
             toastr()->success('Company updated successfully!');
 
             if (auth()->user()->hasRole('company')) {
@@ -336,46 +348,62 @@ class CompanyController extends Controller
         }
     }
 
+    /**
+     * Deactivate a company (PO-13): the company and its owner become inactive, so the owner
+     * can no longer log in, and every record and file is kept. A company is never hard-deleted
+     * here, and a super-admin can't deactivate their own company.
+     */
     public function destroy($id)
     {
+        $company = Company::with('user')->findOrFail($id);
+
+        if ($this->isOwnCompany($company)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot deactivate your own company.'
+            ], 422);
+        }
+
         DB::beginTransaction();
 
         try {
-            $company = Company::with('user')->findOrFail($id);
-            $user = $company->user;
-
-            // Delete company
-            $company->delete();
-
-            // Delete associated user
-            if ($user) {
-                $user->delete();
-            }
+            $company->update(['status' => 'inactive']);
+            $company->user?->update(['status' => 'inactive']);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Company deleted successfully!'
+                'message' => 'Company deactivated. Its data is kept and the owner can no longer log in.'
             ]);
         } catch (Exception $e) {
             DB::rollBack();
 
-            logger()->error('Company deletion failed: ' . $e->getMessage(), [
+            logger()->error('Company deactivation failed: ' . $e->getMessage(), [
                 'exception' => $e,
                 'company_id' => $id
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete company. Please try again.'
+                'message' => 'Failed to deactivate company. Please try again.'
             ], 500);
         }
     }
 
+    /**
+     * Policy PDFs (PO-14): a super-admin manages the platform set (company_id null), which every
+     * company falls back to; a company owner manages their own company's set.
+     */
     public function policyPDF()
     {
-        return view('admin.settings.company.policy-pdf');
+        $companyId = $this->policyCompanyId();
+        $policy = PolicyPdf::where('company_id', $companyId)->first();
+
+        return view('admin.settings.company.policy-pdf', [
+            'existingPolicies' => $policy ? collect([$policy]) : collect(),
+            'isPlatformSet' => $companyId === null,
+        ]);
     }
 
     public function policyPDFStore(Request $request)
@@ -407,8 +435,12 @@ class CompanyController extends Controller
             $alcoholPdfPath = null;
             $generalPdfPath = null;
 
-            // Define storage path
-            $storagePath = 'policy_pdfs';
+            // The platform set, or the owner's own company's set (PO-14)
+            $companyId = $this->policyCompanyId();
+
+            // Define storage path. Policies are shown to job applicants on the public
+            // application form, so they stay on the public disk, under a random name.
+            $storagePath = $companyId === null ? 'policy_pdfs' : 'policy_pdfs/' . $companyId;
 
             // Ensure directory exists
             $fullPath = storage_path('app/public/' . $storagePath);
@@ -429,11 +461,12 @@ class CompanyController extends Controller
             }
 
             // Create or update policy PDF record
-            $policyPdf = PolicyPdf::first();
+            $policyPdf = PolicyPdf::where('company_id', $companyId)->first();
 
             if (!$policyPdf) {
                 // Create first record if none exists
                 $policyPdf = PolicyPdf::create([
+                    'company_id' => $companyId,
                     'alcohol_drug_test_policy_pdf' => $alcoholPdfPath,
                     'general_work_policy_pdf' => $generalPdfPath,
                 ]);
@@ -470,7 +503,10 @@ class CompanyController extends Controller
             }
 
             toastr()->success($message);
-            return redirect()->route('admin.settings.company');
+
+            return $companyId === null
+                ? redirect()->route('admin.settings.company')
+                : redirect()->route('admin.settings.policy.pdf');
         } catch (\Exception $e) {
             Log::error('Policy PDF Upload Error: ' . $e->getMessage(), [
                 'exception' => $e,
@@ -480,6 +516,32 @@ class CompanyController extends Controller
             toastr()->error('An error occurred while uploading the PDF files. Please try again.');
             return back()->withInput()->withErrors(['system_error' => 'Upload failed. Please try again.']);
         }
+    }
+
+    /**
+     * The policy set the user manages: null (the platform set) for a super-admin, or a user who
+     * holds policy-pdf.edit without a company; otherwise the user's own company.
+     */
+    private function policyCompanyId(): ?int
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole('super-admin')) {
+            return null;
+        }
+
+        $companyId = $user->company?->id;
+
+        if ($companyId === null) {
+            abort_unless($user->can('policy-pdf.edit'), 403);
+        }
+
+        return $companyId;
+    }
+
+    private function isOwnCompany(Company $company): bool
+    {
+        return (int) $company->user_id === (int) auth()->id();
     }
 
     /**

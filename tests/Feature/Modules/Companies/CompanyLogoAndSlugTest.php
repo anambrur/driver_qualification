@@ -65,7 +65,7 @@ it('stores an uploaded logo under a content-derived name', function () {
     $logo = $company->fresh()->logo;
 
     expect($logo)->not->toBeNull()
-        ->and(basename($logo))->not->toContain('my')
+        ->and(basename($logo))->not->toContain('my logo')
         ->and(basename($logo))->toMatch('/^[A-Za-z0-9]{40}\.png$/');
     Storage::disk('public')->assertExists($logo);
 });

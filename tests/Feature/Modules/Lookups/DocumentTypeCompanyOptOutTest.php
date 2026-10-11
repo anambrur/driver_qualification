@@ -146,8 +146,8 @@ describe('compliance respects the company opt-out', function () {
         $this->actingAs(Actors::superAdmin())
             ->get(route('admin.compliance.fleet'))
             ->assertOk()
-            ->assertViewHas('vehicles', function (array $vehicles) use ($vehicleA, $vehicleB) {
-                $totals = collect($vehicles)->pluck('total_docs', 'id');
+            ->assertViewHas('vehicles', function ($vehicles) use ($vehicleA, $vehicleB) {
+                $totals = collect($vehicles->items())->pluck('total_docs', 'id');
 
                 return $totals[$vehicleA->id] === 1 && $totals[$vehicleB->id] === 2;
             });

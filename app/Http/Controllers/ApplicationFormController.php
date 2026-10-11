@@ -816,7 +816,7 @@ class ApplicationFormController extends Controller
         $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 9;
         $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
-        $policyPdf = PolicyPdf::first();
+        $policyPdf = PolicyPdf::resolveFor($company->id);
 
         // Check if we're in edit mode
         $isEditMode = $request->has('edit') && $request->edit == '1';
@@ -863,7 +863,7 @@ class ApplicationFormController extends Controller
         $driver = $this->applicationDriver($company, $driver_id)->load(['driver_documents', 'licenses']);
         $currentStep = 10;
         $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
-        $policyPdf = PolicyPdf::first();
+        $policyPdf = PolicyPdf::resolveFor($company->id);
 
         // Check if we're in edit mode
         $isEditMode = $request->has('edit') && $request->edit == '1';

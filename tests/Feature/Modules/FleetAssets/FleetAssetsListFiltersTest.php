@@ -43,17 +43,35 @@ describe('FLT-04: deleted assets can be listed and restored', function () {
             ->and($rows[0]['action'])->not->toContain('data-action="delete"');
     })->with('fleet assets');
 
-    it('keeps deleted assets out of the default and Active lists', function (string $kind, string $status) {
+    it('keeps deleted assets out of the Active list', function (string $kind) {
         $owner = Actors::companyOwner();
         FleetAssets::assetOf($owner, $kind)->delete();
         $live = FleetAssets::assetOf($owner, $kind);
 
-        $rows = fltList($this, $owner, $kind, ['status' => $status]);
+        $rows = fltList($this, $owner, $kind, ['status' => 'active']);
 
         expect(array_column($rows, 'id'))->toBe([$live->id])
             ->and($rows[0]['action'])->toContain('data-action="edit"')
             ->and($rows[0]['action'])->toContain('data-action="delete"');
-    })->with('fleet assets')->with(['all' => '', 'active' => 'active']);
+    })->with('fleet assets');
+
+    it('lists live and deleted assets under All Status, the deleted ones with their badge and Restore (decided PO-09)', function (string $kind, string $status) {
+        $owner = Actors::companyOwner();
+        $deleted = FleetAssets::assetOf($owner, $kind, ['unit_no' => 'A-GONE']);
+        $deleted->delete();
+        $live = FleetAssets::assetOf($owner, $kind, ['unit_no' => 'B-LIVE']);
+        FleetAssets::assetOf(Actors::companyOwner(), $kind)->delete();
+
+        $response = $this->actingAs($owner)->withHeaders(FleetAssets::ajax())
+            ->get(route("admin.$kind.index", ['draw' => 1, 'status' => $status]))->assertOk();
+        $rows = collect($response->json('data'))->keyBy('id');
+
+        expect($rows->keys()->sort()->values()->all())->toBe(collect([$deleted->id, $live->id])->sort()->values()->all())
+            ->and($response->json('recordsTotal'))->toBe(2)
+            ->and($rows[$deleted->id]['status'])->toContain('Deleted')
+            ->and($rows[$deleted->id]['action'])->toContain('data-action="restore"')
+            ->and($rows[$live->id]['action'])->toContain('data-action="edit"');
+    })->with('fleet assets')->with(['empty' => '', 'all' => 'all']);
 
     it('does not list another tenant\'s deleted assets', function (string $kind) {
         FleetAssets::assetOf(Actors::companyOwner(), $kind)->delete();

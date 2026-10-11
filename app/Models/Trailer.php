@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -35,27 +36,42 @@ class Trailer extends Model
     ];
 
     // Relationships
+    /**
+     * @return BelongsTo<EquipmentType, $this>
+     */
     public function equipmentType(): BelongsTo
     {
         return $this->belongsTo(EquipmentType::class, 'equipment_types_id');
     }
 
+    /**
+     * @return BelongsTo<Company, $this>
+     */
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
     }
 
+    /**
+     * @return BelongsTo<VehicleGroup, $this>
+     */
     public function vehicleGroup(): BelongsTo
     {
         return $this->belongsTo(VehicleGroup::class);
     }
 
+    /**
+     * @return HasOne<AssetGroup, $this>
+     */
     public function assetGroups(): HasOne
     {
         return $this->hasOne(AssetGroup::class);
     }
 
-    public function documents()
+    /**
+     * @return HasMany<TrailerDocument, $this>
+     */
+    public function documents(): HasMany
     {
         return $this->hasMany(TrailerDocument::class);
     }

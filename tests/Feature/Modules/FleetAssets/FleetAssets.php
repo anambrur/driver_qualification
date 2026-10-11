@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Models\Vehicle;
 use Database\Factories\TrailerFactory;
 use Database\Factories\VehicleFactory;
-use Illuminate\Support\Str;
 use Tests\Support\Actors;
 
 /**
@@ -38,7 +37,8 @@ final class FleetAssets
 
     public static function vin(): string
     {
-        return Str::upper(fake()->unique()->bothify('1FA??##########??'));
+        // VINs never contain I, O or Q
+        return fake()->unique()->regexify('1FA[A-HJ-NPR-Z]{2}[0-9]{10}[A-HJ-NPR-Z]{2}');
     }
 
     /**

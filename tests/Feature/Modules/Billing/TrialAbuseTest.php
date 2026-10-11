@@ -8,8 +8,8 @@ use Tests\Feature\Modules\Billing\Billing;
 use Tests\Support\Actors;
 
 /*
-| BIL-03: free trials are granted once per user. Whether that should be once per company /
-| per verified email is a product question (DEFERRED); these tests pin the per-user rule.
+| BIL-03: free trials are granted once per user. Decided PO-15 (2026-10-11): once per verified
+| email; emails are verified (User implements MustVerifyEmail) and checkout needs `verified`.
 */
 
 beforeEach(function () {
@@ -73,7 +73,7 @@ it('refuses a trial after a paid subscription has replaced an earlier trial', fu
     expect(Subscription::where('user_id', $user->id)->where('source', 'trial')->count())->toBe(1);
 });
 
-it('currently gives a brand-new account its own trial (per-user rule, see DEFERRED BIL-03)', function () {
+it('gives each verified email one trial (decided PO-15, 2026-10-11)', function () {
     $first = Actors::companyOwner(subscribed: false);
     $second = Actors::companyOwner(subscribed: false);
 
@@ -81,4 +81,40 @@ it('currently gives a brand-new account its own trial (per-user rule, see DEFERR
     $this->actingAs($second)->get(route('checkout', $this->trialPlan->slug))->assertRedirect(route('checkout.success'));
 
     expect(Subscription::where('source', 'trial')->count())->toBe(2);
+});
+
+it('refuses a trial to an account whose email is not verified (decided PO-15)', function () {
+    $user = Actors::companyOwner(['email_verified_at' => null], subscribed: false);
+
+    $this->actingAs($user)->get(route('checkout', $this->trialPlan->slug))->assertRedirect(route('verification.notice'));
+
+    expect(Subscription::count())->toBe(0);
+});
+
+it('sends a verification email on registration, and the new account verifies before its trial', function () {
+    Actors::seedAccessControl();
+
+    $this->post('/register', [
+        'name' => 'New Carrier',
+        'email' => 'new-carrier@example.test',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ])->assertRedirect(route('dashboard', absolute: false));
+
+    $user = \App\Models\User::where('email', 'new-carrier@example.test')->sole();
+    Notification::assertSentTo($user, \Illuminate\Auth\Notifications\VerifyEmail::class);
+
+    // Unverified: no trial, and /dashboard asks for verification first
+    $this->get(route('dashboard'))->assertRedirect(route('verification.notice'));
+    $this->get(route('checkout', $this->trialPlan->slug))->assertRedirect(route('verification.notice'));
+
+    // The link in the email returns them to the checkout they started
+    $this->get(\Illuminate\Support\Facades\URL::temporarySignedRoute('verification.verify', now()->addHour(), ['id' => $user->id, 'hash' => sha1($user->email)]))
+        ->assertRedirect(route('checkout', $this->trialPlan->slug));
+    expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
+
+    // Verified, no plan yet: /dashboard sends them to pricing (PO-16), the trial works
+    $this->get(route('dashboard'))->assertRedirect(route('pricing.plans'));
+    $this->get(route('checkout', $this->trialPlan->slug))->assertRedirect(route('checkout.success'));
+    $this->get(route('dashboard'))->assertOk();
 });

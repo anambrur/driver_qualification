@@ -71,7 +71,8 @@ FINISH
 
 ## Decisions the agent will defer to you
 
-These hotspots need a product decision before they can be fixed. Expect them as `DEFERRED` in the reports:
+These hotspots need a product decision before they can be fixed. Expect them as `DEFERRED` in the reports.
+The decisions deferred by runs 09–21 are collected, with options and implementation steps, in `docs/testing/PRODUCT_DECISIONS.md`.
 
 | ID | Question |
 |---|---|

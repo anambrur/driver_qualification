@@ -5,7 +5,6 @@ namespace Database\Factories;
 use App\Models\Company;
 use App\Models\Vehicle;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Vehicle>
@@ -22,7 +21,8 @@ class VehicleFactory extends Factory
         return [
             'company_id' => CompanyFactory::new(),
             'unit_no' => 'TRK-'.fake()->unique()->numerify('#####'),
-            'vin' => Str::upper(fake()->unique()->bothify('1HG??##########??')),
+            // VINs never contain I, O or Q
+            'vin' => fake()->unique()->regexify('1HG[A-HJ-NPR-Z]{2}[0-9]{10}[A-HJ-NPR-Z]{2}'),
             'year' => (int) fake()->numberBetween(2005, (int) date('Y')),
             'make' => fake()->randomElement(['Freightliner', 'Peterbilt', 'Kenworth', 'Volvo']),
             'model' => fake()->bothify('Model-##'),

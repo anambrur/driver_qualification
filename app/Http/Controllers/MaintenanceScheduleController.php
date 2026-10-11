@@ -144,8 +144,15 @@ class MaintenanceScheduleController extends Controller
             $request->merge(['company_id' => $companyId]);
         }
 
+        $isSuperAdmin = Auth::user()->hasRole('super-admin');
+
         $validator = Validator::make($request->all(), [
-            'vehicle_id' => ['nullable', $this->vehicleRule()],
+            'vehicle_id' => $this->vehicleRules($request),
+            // A super-admin's schedule for all vehicles names its company (PO-07); with a
+            // vehicle, the company comes from the vehicle
+            'company_id' => $isSuperAdmin
+                ? [Rule::requiredIf(! $request->filled('vehicle_id')), 'nullable', 'integer', Rule::exists('companies', 'id')]
+                : ['nullable'],
             'maintenance_category_id' => 'required|exists:maintenance_categories,id',
             'title' => 'nullable|string|max:255',
             'schedule_type' => 'required|in:date,mileage,engine_hours',
@@ -155,7 +162,7 @@ class MaintenanceScheduleController extends Controller
             'description' => 'nullable|string',
             'notes' => 'nullable|string',
             'status' => 'required|in:active,paused,completed',
-        ], [
+        ], $this->validationMessages() + [
             'interval_days.required_if' => 'Please enter the number of days between maintenance',
             'interval_miles.required_if' => 'Please enter the mileage interval',
             'interval_hours.required_if' => 'Please enter the engine hours interval',
@@ -168,9 +175,12 @@ class MaintenanceScheduleController extends Controller
             ], 422);
         }
 
-        // A super-admin's schedule belongs to the vehicle's company, not their own
+        // A super-admin's schedule belongs to the vehicle's company, or to the company they
+        // picked for an all-vehicles schedule (PO-07); tenants always get their own
         $companyId = $this->getOwningCompanyId(
-            $request->vehicle_id ? Vehicle::withTrashed()->whereKey($request->vehicle_id)->value('company_id') : null
+            $request->vehicle_id
+                ? Vehicle::withTrashed()->whereKey($request->vehicle_id)->value('company_id')
+                : ($isSuperAdmin ? $request->integer('company_id') : null)
         );
 
         DB::beginTransaction();
@@ -249,8 +259,14 @@ class MaintenanceScheduleController extends Controller
             $request->merge(['company_id' => $schedule->company_id]);
         }
 
+        $isSuperAdmin = Auth::user()->hasRole('super-admin');
+
         $validator = Validator::make($request->all(), [
-            'vehicle_id' => ['nullable', $this->vehicleRule()],
+            'vehicle_id' => $this->vehicleRules($request),
+            // A super-admin may move an all-vehicles schedule to another company (PO-07)
+            'company_id' => $isSuperAdmin
+                ? ['nullable', 'integer', Rule::exists('companies', 'id')]
+                : ['nullable'],
             'maintenance_category_id' => 'required|exists:maintenance_categories,id',
             'title' => 'nullable|string|max:255',
             'schedule_type' => 'required|in:date,mileage,engine_hours',
@@ -263,7 +279,7 @@ class MaintenanceScheduleController extends Controller
             'description' => 'nullable|string',
             'notes' => 'nullable|string',
             'status' => 'required|in:active,paused,completed',
-        ]);
+        ], $this->validationMessages());
 
         if ($validator->fails()) {
             return response()->json([
@@ -272,12 +288,13 @@ class MaintenanceScheduleController extends Controller
             ], 422);
         }
 
-        // Only the validated fields; company_id and next_due_* are never taken from the request.
-        // A schedule follows its vehicle's company, and keeps its company when it applies to all vehicles.
+        // Only the validated fields; next_due_* is never taken from the request.
+        // A schedule follows its vehicle's company. When it applies to all vehicles it keeps its
+        // company, unless a super-admin picked another one (PO-07).
         $data = $validator->validated();
         $data['company_id'] = $request->vehicle_id
             ? $this->getOwningCompanyId(Vehicle::whereKey($request->vehicle_id)->value('company_id'))
-            : $schedule->company_id;
+            : ($isSuperAdmin && $request->filled('company_id') ? $request->integer('company_id') : $schedule->company_id);
         $data['interval_days'] = $request->schedule_type === 'date' ? $request->interval_days : null;
         $data['interval_miles'] = $request->schedule_type === 'mileage' ? $request->interval_miles : null;
         $data['interval_hours'] = $request->schedule_type === 'engine_hours' ? $request->interval_hours : null;
@@ -401,8 +418,9 @@ class MaintenanceScheduleController extends Controller
         DB::beginTransaction();
 
         try {
-            $schedule->status = 'completed';
-
+            // Recording a service keeps a recurring schedule running: it stays in its status and
+            // only its last / next due values move forward. "completed" means retired, set by
+            // editing the schedule (PO-04).
             switch ($schedule->schedule_type) {
                 case 'date':
                     $schedule->last_due_date = now();
@@ -435,6 +453,32 @@ class MaintenanceScheduleController extends Controller
                 'message' => 'Failed to mark schedule as completed.'
             ], 500);
         }
+    }
+
+    /**
+     * vehicle_id is optional for date schedules ("All vehicles"), but mileage and engine-hour
+     * schedules need a vehicle to read the odometer / engine hours from (PO-06).
+     *
+     * @return array<int, mixed>
+     */
+    private function vehicleRules(Request $request): array
+    {
+        return [
+            Rule::requiredIf(in_array($request->input('schedule_type'), ['mileage', 'engine_hours'], true)),
+            'nullable',
+            $this->vehicleRule(),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function validationMessages(): array
+    {
+        return [
+            'vehicle_id.required' => 'Choose a vehicle: mileage and engine-hour schedules are tracked per vehicle.',
+            'company_id.required' => 'Choose the company this schedule belongs to.',
+        ];
     }
 
     /**

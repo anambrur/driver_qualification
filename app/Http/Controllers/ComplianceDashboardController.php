@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Trailer;
 use App\Models\Vehicle;
 use App\Models\DocumentType;
+use App\Services\Compliance\FleetComplianceService;
 use App\Traits\CompanyFilterTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -13,17 +14,36 @@ class ComplianceDashboardController extends Controller
 {
     use CompanyFilterTrait;
 
+    public function __construct(
+        private readonly FleetComplianceService $fleetCompliance
+    ) {}
+
+    /** Vehicles / trailers per page on the dashboard (PO-01). */
+    private const PER_PAGE = 25;
+
     public function fleet()
     {
-        // Get vehicles with company filtering
-        $vehiclesQuery = Vehicle::with(['assetGroups.driver', 'documents.documentType', 'company']);
-        $vehiclesQuery = $this->applyCompanyFilter($vehiclesQuery);
-        $vehicles = $vehiclesQuery->orderBy('unit_no')->get();
+        // Vehicles and trailers with company filtering
+        $vehiclesQuery = $this->applyCompanyFilter(Vehicle::query());
+        $trailersQuery = $this->applyCompanyFilter(Trailer::query());
 
-        // Get trailers with company filtering
-        $trailersQuery = Trailer::with(['assetGroups.driver', 'documents.documentType', 'company']);
-        $trailersQuery = $this->applyCompanyFilter($trailersQuery);
-        $trailers = $trailersQuery->orderBy('unit_no')->get();
+        // Summary cards cover every asset, computed in SQL (PO-01)
+        $vehicleSummary = $this->fleetCompliance->summary($vehiclesQuery, 'vehicle');
+        $trailerSummary = $this->fleetCompliance->summary($trailersQuery, 'trailer');
+
+        // Only the current page of each list is loaded with its documents; each list has its
+        // own page parameter and its links keep the other list's page.
+        $vehiclesPage = $vehiclesQuery->clone()
+            ->with(['assetGroups.driver', 'documents.documentType', 'company'])
+            ->orderBy('unit_no')->orderBy('id')
+            ->paginate(self::PER_PAGE, ['*'], 'vehicles_page')
+            ->withQueryString();
+
+        $trailersPage = $trailersQuery->clone()
+            ->with(['assetGroups.driver', 'documents.documentType', 'company'])
+            ->orderBy('unit_no')->orderBy('id')
+            ->paginate(self::PER_PAGE, ['*'], 'trailers_page')
+            ->withQueryString();
 
         // Get document types (no company filtering needed as these are global)
         $vehicleDocumentTypes = DocumentType::where('module', 'vehicle')
@@ -36,22 +56,18 @@ class ComplianceDashboardController extends Controller
 
         // Each company may have switched some global types off for itself
         $disabledTypeIds = DocumentType::disabledIdsByCompany(
-            $vehicles->pluck('company_id')->merge($trailers->pluck('company_id'))->unique()->values()->all()
+            $vehiclesPage->getCollection()->pluck('company_id')
+                ->merge($trailersPage->getCollection()->pluck('company_id'))->unique()->values()->all()
         );
 
-        // Process vehicles compliance
-        $processedVehicles = [];
-        $compliantVehicles = 0;
-        $warningVehicles = 0;
-
-        foreach ($vehicles as $vehicle) {
+        $vehicles = $vehiclesPage->through(function (Vehicle $vehicle) use ($vehicleDocumentTypes, $disabledTypeIds): array {
             $complianceData = $this->calculateCompliance(
                 $vehicle,
                 $vehicleDocumentTypes->whereNotIn('id', $disabledTypeIds[$vehicle->company_id] ?? [])->values(),
                 'vehicle'
             );
 
-            $processedVehicles[] = [
+            return [
                 'id' => $vehicle->id,
                 'unit_no' => $vehicle->unit_no,
                 'vin' => $vehicle->vin,
@@ -70,24 +86,16 @@ class ComplianceDashboardController extends Controller
                 'expiring_documents' => $complianceData['expiring_documents'],
                 'document_details' => $complianceData['document_details'],
             ];
+        });
 
-            if ($complianceData['status'] === 'compliant') $compliantVehicles++;
-            if ($complianceData['status'] === 'warning' || $complianceData['status'] === 'danger') $warningVehicles++;
-        }
-
-        // Process trailers compliance
-        $processedTrailers = [];
-        $compliantTrailers = 0;
-        $warningTrailers = 0;
-
-        foreach ($trailers as $trailer) {
+        $trailers = $trailersPage->through(function (Trailer $trailer) use ($trailersDocumentTypes, $disabledTypeIds): array {
             $complianceData = $this->calculateCompliance(
                 $trailer,
                 $trailersDocumentTypes->whereNotIn('id', $disabledTypeIds[$trailer->company_id] ?? [])->values(),
                 'trailer'
             );
 
-            $processedTrailers[] = [
+            return [
                 'id' => $trailer->id,
                 'unit_no' => $trailer->unit_no,
                 'vin' => $trailer->vin,
@@ -105,43 +113,45 @@ class ComplianceDashboardController extends Controller
                 'expiring_documents' => $complianceData['expiring_documents'],
                 'document_details' => $complianceData['document_details'],
             ];
-
-            if ($complianceData['status'] === 'compliant') $compliantTrailers++;
-            if ($complianceData['status'] === 'warning' || $complianceData['status'] === 'danger') $warningTrailers++;
-        }
+        });
 
         // Calculate overall metrics
-        $totalVehicles = count($processedVehicles);
-        $totalTrailers = count($processedTrailers);
+        $totalVehicles = $vehicleSummary['total'];
+        $totalTrailers = $trailerSummary['total'];
         $totalAssets = $totalVehicles + $totalTrailers;
 
-        $totalCompliant = $compliantVehicles + $compliantTrailers;
-        $totalWarning = $warningVehicles + $warningTrailers;
+        $totalCompliant = $vehicleSummary['compliant'] + $trailerSummary['compliant'];
+        // Warning = only expiring documents; Critical = missing/expired ones (PO-22)
+        $totalWarning = $vehicleSummary['warning'] + $trailerSummary['warning'];
+        $totalCritical = $vehicleSummary['danger'] + $trailerSummary['danger'];
 
         $overallCompliance = $totalAssets > 0
             ? round(($totalCompliant / $totalAssets) * 100, 1)
             : 0;
 
         $vehicleCompliance = $totalVehicles > 0
-            ? round(($compliantVehicles / $totalVehicles) * 100, 1)
+            ? round(($vehicleSummary['compliant'] / $totalVehicles) * 100, 1)
             : 0;
 
         $trailerCompliance = $totalTrailers > 0
-            ? round(($compliantTrailers / $totalTrailers) * 100, 1)
+            ? round(($trailerSummary['compliant'] / $totalTrailers) * 100, 1)
             : 0;
 
         // Get companies for filter (if super-admin)
         $companies = $this->getCompaniesForUser();
 
         return view('admin.compliance.fleet', [
-            'vehicles' => $processedVehicles,
-            'trailers' => $processedTrailers,
+            'vehicles' => $vehicles,
+            'trailers' => $trailers,
             'vehicleDocumentTypes' => $vehicleDocumentTypes,
             'trailersDocumentTypes' => $trailersDocumentTypes,
             'totalVehicles' => $totalVehicles,
             'totalTrailers' => $totalTrailers,
             'totalCompliant' => $totalCompliant,
             'totalWarning' => $totalWarning,
+            'totalCritical' => $totalCritical,
+            'vehiclesNeedingAttention' => $vehicleSummary['warning'] + $vehicleSummary['danger'],
+            'trailersNeedingAttention' => $trailerSummary['warning'] + $trailerSummary['danger'],
             'overallCompliance' => $overallCompliance,
             'vehicleCompliance' => $vehicleCompliance,
             'trailerCompliance' => $trailerCompliance,
@@ -161,9 +171,12 @@ class ComplianceDashboardController extends Controller
         $expiringDocs = [];
         $documentDetails = [];
 
+        // The oldest document of each type counts, as in FleetComplianceService.
+        $documents = $asset->documents->sortBy('id');
+
         foreach ($documentTypes as $docType) {
             // Use eager-loaded collection to avoid N+1 queries
-            $document = $asset->documents->firstWhere('document_type_id', $docType->id);
+            $document = $documents->firstWhere('document_type_id', $docType->id);
 
             $docStatus = [
                 'type_id' => $docType->id,
@@ -188,7 +201,8 @@ class ComplianceDashboardController extends Controller
                 } else {
                     $expiryDate = Carbon::parse($document->expiry_date);
                     $today = Carbon::today();
-                    $daysUntilExpiry = $today->diffInDays($expiryDate, false);
+                    // Whole days: Carbon 3 returns a float, which rendered as "10.0 days" (PO-22)
+                    $daysUntilExpiry = (int) $today->diffInDays($expiryDate, false);
 
                     $docStatus['expiry_date'] = $document->expiry_date;
                     $docStatus['days_until_expiry'] = $daysUntilExpiry;

@@ -464,12 +464,12 @@
         function deleteCompany(companyId) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You won't be able to revert this! This will delete the company and associated user account.",
+                text: "The company and its owner account will be set to inactive. All data is kept, and a super-admin can set the company active again from Edit.",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete it!',
+                confirmButtonText: 'Yes, deactivate it',
                 cancelButtonText: 'Cancel',
                 reverseButtons: true,
                 customClass: {
@@ -486,8 +486,8 @@
                 if (result.isConfirmed) {
                     // Show loading state
                     Swal.fire({
-                        title: 'Deleting...',
-                        text: 'Please wait while we delete the company.',
+                        title: 'Deactivating...',
+                        text: 'Please wait while we deactivate the company.',
                         allowOutsideClick: false,
                         showConfirmButton: false,
                         didOpen: () => {
@@ -511,7 +511,7 @@
 
                                 // Show success message
                                 Swal.fire({
-                                    title: 'Deleted!',
+                                    title: 'Deactivated!',
                                     text: response.message,
                                     icon: 'success',
                                     confirmButtonColor: '#3085d6',
@@ -533,7 +533,7 @@
                         error: function(xhr) {
                             Swal.close();
 
-                            let errorMessage = 'Failed to delete company. Please try again.';
+                            let errorMessage = 'Failed to deactivate company. Please try again.';
                             if (xhr.responseJSON && xhr.responseJSON.message) {
                                 errorMessage = xhr.responseJSON.message;
                             }

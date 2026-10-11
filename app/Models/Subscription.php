@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property \Illuminate\Support\Carbon|null $trial_ends_at
+ * @property \Illuminate\Support\Carbon|null $current_period_start
+ * @property \Illuminate\Support\Carbon|null $current_period_end
+ * @property \Illuminate\Support\Carbon|null $ends_at
+ */
 class Subscription extends Model
 {
     protected $fillable = [
@@ -38,21 +44,33 @@ class Subscription extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * @return BelongsTo<Plan, $this>
+     */
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
     }
 
+    /**
+     * @return HasMany<Payment, $this>
+     */
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
     }
 
+    /**
+     * @return HasMany<SubscriptionNotificationLog, $this>
+     */
     public function notificationLogs(): HasMany
     {
         return $this->hasMany(SubscriptionNotificationLog::class);

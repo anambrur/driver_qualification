@@ -1,6 +1,10 @@
 <?php
 
+use App\Models\AssetGroup;
+use App\Models\ServiceLog;
+use App\Models\VehicleDocument;
 use Database\Factories\AssetGroupFactory;
+use Database\Factories\DocumentTypeFactory;
 use Database\Factories\MaintenanceScheduleFactory;
 use Database\Factories\ServiceLogFactory;
 use Database\Factories\VehicleFactory;
@@ -15,8 +19,8 @@ use Tests\Support\Actors;
 | A super-admin can move an asset to another company. Asset groups, service logs and
 | maintenance schedules carry their own company_id and stayed with the old company, which then
 | kept a group/log/schedule pointing at another tenant's vehicle (and saw its unit no, VIN and
-| odometer through them). Until the product owner decides whether a move should take that
-| history along (see the report), a move is refused while such records exist.
+| odometer through them). Decided PO-08 (2026-10-11): the history moves along; the old
+| company's asset groups are ended (vehicle) or lose the trailer.
 */
 
 dataset('fleet assets', [
@@ -77,32 +81,67 @@ describe('FLT-03: update only saves the form fields', function () {
 });
 
 describe('FLT-03: a super-admin moving an asset to another company', function () {
-    it('refuses to move a vehicle that has company records', function (string $record) {
+    it('moves a vehicle\'s service logs and schedules to the new company (decided PO-08)', function () {
         $vehicle = VehicleFactory::new()->create();
-        match ($record) {
-            'asset group' => AssetGroupFactory::new()->create(['vehicle_id' => $vehicle->id]),
-            'service log' => ServiceLogFactory::new()->forVehicle($vehicle)->create(),
-            'maintenance schedule' => MaintenanceScheduleFactory::new()->forVehicle($vehicle)->create(),
-        };
+        $log = ServiceLogFactory::new()->forVehicle($vehicle)->create();
+        $deletedLog = ServiceLogFactory::new()->forVehicle($vehicle)->create();
+        $deletedLog->delete();
+        $schedule = MaintenanceScheduleFactory::new()->forVehicle($vehicle)->create();
+        $document = VehicleDocument::create(['vehicle_id' => $vehicle->id, 'document_type_id' => DocumentTypeFactory::new()->module('vehicle')->create()->id, 'expiry_date' => now()->addYear()->toDateString(), 'file_path' => 'documents/vehicles/x.pdf']);
+        $otherLog = ServiceLogFactory::new()->create();
         $target = Actors::companyOf(Actors::companyOwner());
 
         $this->actingAs(Actors::superAdmin())
             ->putJson(route('admin.vehicle.update', $vehicle->id), FleetAssets::vehicleFormData($vehicle, ['company_id' => $target->id]))
-            ->assertStatus(422)->assertJsonValidationErrors('company_id');
+            ->assertOk();
 
-        expect($vehicle->fresh()->company_id)->not->toBe($target->id);
-    })->with(['asset group', 'service log', 'maintenance schedule']);
+        expect($vehicle->fresh()->company_id)->toBe($target->id)
+            ->and($log->fresh()->company_id)->toBe($target->id)
+            ->and(ServiceLog::withTrashed()->find($deletedLog->id)->company_id)->toBe($target->id)
+            ->and($schedule->fresh()->company_id)->toBe($target->id)
+            ->and($document->fresh()->vehicle_id)->toBe($vehicle->id)
+            ->and($otherLog->fresh()->company_id)->not->toBe($target->id);
+    });
 
-    it('refuses to move a trailer that is in an asset group', function () {
-        $group = AssetGroupFactory::new()->withTrailer()->create();
+    it('ends the vehicle\'s asset groups, which stay with the old company (decided PO-08)', function () {
+        $group = AssetGroupFactory::new()->create(['status' => 'active']);
+        $vehicle = $group->vehicle()->firstOrFail();
+        $oldCompanyId = $group->company_id;
+        $target = Actors::companyOf(Actors::companyOwner());
+
+        $this->actingAs(Actors::superAdmin())
+            ->putJson(route('admin.vehicle.update', $vehicle->id), FleetAssets::vehicleFormData($vehicle, ['company_id' => $target->id]))
+            ->assertOk();
+
+        $ended = AssetGroup::withTrashed()->findOrFail($group->id);
+        expect($ended->status)->toBe('inactive')
+            ->and($ended->trashed())->toBeTrue()
+            ->and($ended->company_id)->toBe($oldCompanyId)
+            // the new company never sees the old company's driver through the vehicle
+            ->and($vehicle->fresh()->assetGroups)->toBeNull();
+    });
+
+    it('takes a moved trailer out of the old company\'s asset groups (decided PO-08)', function () {
+        $group = AssetGroupFactory::new()->withTrailer()->create(['status' => 'active']);
         $trailer = $group->trailer()->firstOrFail();
         $target = Actors::companyOf(Actors::companyOwner());
 
         $this->actingAs(Actors::superAdmin())
             ->putJson(route('admin.trailer.update', $trailer->id), FleetAssets::trailerFormData($trailer, ['company_id' => $target->id]))
-            ->assertStatus(422)->assertJsonValidationErrors('company_id');
+            ->assertOk();
 
-        expect($trailer->fresh()->company_id)->not->toBe($target->id);
+        expect($trailer->fresh()->company_id)->toBe($target->id)
+            ->and($group->fresh())->trailer_id->toBeNull()->status->toBe('active')->vehicle_id->toBe($group->vehicle_id);
+    });
+
+    it('still refuses a move when the unit no is taken in the new company', function () {
+        $vehicle = VehicleFactory::new()->create(['unit_no' => 'U-1']);
+        $owner = Actors::companyOwner();
+        FleetAssets::vehicleOf($owner, ['unit_no' => 'U-1']);
+
+        $this->actingAs(Actors::superAdmin())
+            ->putJson(route('admin.vehicle.update', $vehicle->id), FleetAssets::vehicleFormData($vehicle, ['company_id' => Actors::companyOf($owner)->id]))
+            ->assertStatus(422)->assertJsonValidationErrors('unit_no');
     });
 
     it('still moves an asset that has no company records', function (string $kind) {

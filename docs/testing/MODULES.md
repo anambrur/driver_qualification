@@ -175,9 +175,9 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| FCMP-01 | P1 | FIXED | Same shared-file bug as DCMP-02 for `upload_to_all`. |
+| FCMP-01 | P1 | FIXED | Same shared-file bug as DCMP-02 for `upload_to_all`. (2026-10-11 PO-02: the browser checkbox works; a super-admin picks one company.) |
 | FCMP-02 | P1 | FIXED | Same public-disk / guessable filename issue as DCMP-01. |
-| FCMP-03 | P2 | FIXED | N+1: `getVehiclesList`/`getTrailersList` run one `exists` query per asset; `fleet()` loads every asset + docs unpaginated. (2026-10-10: list N+1 fixed; dashboard query count was already constant; pagination DEFERRED, see report.) |
+| FCMP-03 | P2 | FIXED | N+1: `getVehiclesList`/`getTrailersList` run one `exists` query per asset; `fleet()` loads every asset + docs unpaginated. (2026-10-10: list N+1 fixed; dashboard query count was already constant; pagination DEFERRED, see report.) (2026-10-11 PO-01: FIXED, vehicles and trailers paginated 25 per page with SQL summary counts.) |
 | FCMP-04 | P2 | FIXED | Controller re-implements compliance math; check it for the same `warning`-unreachable bug as DCMP-03. Any `assetType` other than `vehicle` falls into the trailer branch. (2026-10-10: `warning` reachable, dismissed; unknown `assetType` now 404.) |
 | FCMP-05 | P3 | FIXED | Exception messages returned in JSON. |
 | FCMP-06 | P1 | FIXED | (Found 2026-10-10) Stored XSS: the details modal and the upload dropdown put tenant-controlled vehicle/trailer fields (make, model, VIN, unit no, description) into `innerHTML` unescaped. |
@@ -193,8 +193,8 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 | MNT-01 | P1 | FIXED | `store`/`update` validate `vehicle_id` with bare `exists:vehicles,id` → a tenant can attach logs/schedules to another company's vehicle. |
 | MNT-02 | P1 | FIXED | Stored XSS through raw DataTables columns (vehicle info, notes, category names). |
 | MNT-03 | P2 | FIXED | Super-admin-created logs/schedules are saved with the super-admin's own `company_id`, not the vehicle's. (2026-10-10: `store` already fixed by ACL-05; `update` fixed now.) |
-| MNT-04 | P2 | FIXED | `markAsCompleted` reads `$vehicle->engine_hours` (no such column) → always 0. Unit-test `MaintenanceSchedule::calculateNextDue()` (month ends, null intervals, each `schedule_type`). |
-| MNT-05 | P2 | FIXED | Service documents on the public disk; client extension kept; `.doc/.docx` allowed. (2026-10-10: private disk + `hashName()`; keeping `.doc/.docx` DEFERRED, see report.) |
+| MNT-04 | P2 | FIXED | `markAsCompleted` reads `$vehicle->engine_hours` (no such column) → always 0. Unit-test `MaintenanceSchedule::calculateNextDue()` (month ends, null intervals, each `schedule_type`). (2026-10-11 PO-04/05/06/07: completing keeps a schedule active; `vehicles.engine_hours`; mileage/engine-hour schedules need a vehicle; super-admin picks a company for all-vehicles schedules.) |
+| MNT-05 | P2 | FIXED | Service documents on the public disk; client extension kept; `.doc/.docx` allowed. (2026-10-10: private disk + `hashName()`; keeping `.doc/.docx` DEFERRED, see report.) (2026-10-11 PO-03: DISMISSED, `.doc/.docx` kept.) |
 | MNT-06 | P1 | FIXED | (Found 2026-10-10) Both index pages built the vehicle filter dropdown from every company's vehicles, leaking other tenants' unit numbers, makes and models. |
 | MNT-07 | P2 | FIXED | (Found 2026-10-10) The service-log category filter queried a non-existent JSON column; the query failed and, with debug on, returned the SQL error text. |
 | MNT-08 | P3 | FIXED | (Found 2026-10-10) `edit()` didn't load the log's categories, so the edit form opened with none ticked and saving failed validation. |
@@ -206,8 +206,8 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
 | FLT-01 | P1 | FIXED | Stored XSS: `unit_no`, `make`, `model`, `vin`, type/group names concatenated into raw DataTables columns. A tenant can target the super-admin, who sees every tenant's rows. |
-| FLT-02 | P2 | FIXED | `unit_no` and `vin` unique across all tenants → tenant B blocked by tenant A's data; the error leaks existence. (2026-10-10: unique per company, new migration; whether VIN should stay global is DEFERRED, see report.) |
-| FLT-03 | P2 | FIXED | `update($request->all())`: verify `$fillable` blocks everything sensitive; super-admin can move assets between companies without moving docs/groups. (2026-10-10: `$fillable` part not real; a move is now refused while the asset has groups/logs/schedules; what a move should do is DEFERRED, see report.) |
+| FLT-02 | P2 | FIXED | `unit_no` and `vin` unique across all tenants → tenant B blocked by tenant A's data; the error leaks existence. (2026-10-10: unique per company, new migration; whether VIN should stay global is DEFERRED, see report.) (2026-10-11 PO-10: DISMISSED, VIN stays unique per company.) |
+| FLT-03 | P2 | FIXED | `update($request->all())`: verify `$fillable` blocks everything sensitive; super-admin can move assets between companies without moving docs/groups. (2026-10-10: `$fillable` part not real; a move is now refused while the asset has groups/logs/schedules; what a move should do is DEFERRED, see report.) (2026-10-11 PO-08: FIXED, a move takes service logs and schedules along and ends the old company's asset groups.) |
 | FLT-04 | P3 | FIXED | Index query lacks `withTrashed()`, so the restore button never renders. |
 | FLT-05 | P3 | FIXED | (Found 2026-10-10) The quick search and the vehicle/equipment type filters were sent by the pages but ignored by the controllers. |
 
@@ -218,8 +218,8 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 
 | ID | Sev | Status | Hotspot |
 |---|---|---|---|
-| OTP-01 | P1 | FIXED | `PhoneNumberService::isValid()` accepts any `+<country>` E.164 number, including premium-rate destinations. Combined with APP-04 that means toll fraud. (2026-10-10: limited to +1/+880/+91 minus NANP 900/976; final country list DEFERRED, see report.) |
-| OTP-02 | P2 | FIXED | Limits are per phone only (3/hour, 60 s resend); there's no per-IP or global cap. (2026-10-10: per-IP already covered by route throttles; global hourly cap added, value DEFERRED, see report.) |
+| OTP-01 | P1 | FIXED | `PhoneNumberService::isValid()` accepts any `+<country>` E.164 number, including premium-rate destinations. Combined with APP-04 that means toll fraud. (2026-10-10: limited to +1/+880/+91 minus NANP 900/976; final country list DEFERRED, see report.) (2026-10-11 PO-11: FIXED, US/Canada only; Caribbean +1 codes blocked; +880/+91 on local/testing only.) |
+| OTP-02 | P2 | FIXED | Limits are per phone only (3/hour, 60 s resend); there's no per-IP or global cap. (2026-10-10: per-IP already covered by route throttles; global hourly cap added, value DEFERRED, see report.) (2026-10-11 PO-12: DISMISSED, 200/hour kept.) |
 | OTP-03 | P2 | FIXED | The legacy hashed-OTP path has no attempt counter (6-digit brute force); a failed Vonage check doesn't invalidate the record. |
 | OTP-04 | P3 | FIXED | `otp_attempts:*` cache key is never written; `generateOtpCode` unused; `OtpVerification::prunable()` without the `Prunable` trait never runs. |
 | OTP-05 | P3 | FIXED | `SendSmsJob` logs the full phone number while `SmsService` masks it. |
@@ -232,9 +232,9 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 |---|---|---|---|
 | CMP-01 | P1 | FIXED | Stored XSS: `company_name` in the logo `alt` attribute (raw column), slug inside `onclick`. |
 | CMP-02 | P2 | FIXED | A company owner can change their own `status` and email through `update`. |
-| CMP-03 | P2 | DEFERRED | `destroy` hard-deletes the company and its owner user → FK cascade wipes all drivers/vehicles; files left on disk. |
+| CMP-03 | P2 | FIXED | `destroy` hard-deletes the company and its owner user → FK cascade wipes all drivers/vehicles; files left on disk. (2026-10-11 PO-13: deactivates the company and owner instead; own company refused.) |
 | CMP-04 | P2 | FIXED | Logo allows SVG; `companies.slug` isn't unique, so duplicate slugs route `/{slug}/apply` to the wrong company. |
-| CMP-05 | P3 | FIXED / DEFERRED | `PolicyPdf` is global (`PolicyPdf::first()`), not per company. Confirm against requirements. Raw exception shown on upload failure. |
+| CMP-05 | P3 | FIXED | `PolicyPdf` is global (`PolicyPdf::first()`), not per company. Confirm against requirements. Raw exception shown on upload failure. (2026-10-11 PO-14: per company, platform set as fallback.) |
 
 ## 14. `billing`: Plans, checkout, portal, webhooks
 - **Scope**: `app/Http/Controllers/{PlanController,CheckoutController,BillingController,StripeWebhookController}.php`, `app/Services/Stripe/*`, `app/Services/Billing/TrialActivationService.php`, `app/Models/{Plan,Payment,Subscription}.php`, `app/Console/Commands/SyncPaymentsFromStripe.php`, views `billing/**`, plans on `welcome.blade.php`
@@ -245,7 +245,7 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 |---|---|---|---|
 | BIL-01 | P2 | DISMISSED | No webhook event-id idempotency. Concurrent `checkout.session.completed` + `customer.subscription.created` can create two Subscription rows (no unique constraint) and two "activated" emails. |
 | BIL-02 | P2 | FIXED | `Subscription::isAccessible()` and `scopeAccessible()` disagree (e.g. `past_due`). Write parity tests. |
-| BIL-03 | P2 | FIXED / DEFERRED | Trial abuse: `checkout` needs only `auth` (not `verified`), and trial use is per user, so a new account means a new trial. (2026-10-10: a synced paid subscription no longer overwrites the trial row; per-account rule DEFERRED, see report.) |
+| BIL-03 | P2 | FIXED | Trial abuse: `checkout` needs only `auth` (not `verified`), and trial use is per user, so a new account means a new trial. (2026-10-10: a synced paid subscription no longer overwrites the trial row; per-account rule DEFERRED, see report.) (2026-10-11 PO-15: one trial per verified email; `User` implements `MustVerifyEmail`, checkout needs `verified`.) |
 | BIL-04 | P2 | FIXED | `CheckoutController::success` with another user's `session_id` must not sync. Verify the metadata ownership check. |
 | BIL-05 | P3 | FIXED | `User::activeSubscription()` loads all subscriptions on every call (the `Subscribed` middleware calls it per request). `StripeClientFactory` keeps a static client. |
 
@@ -258,7 +258,7 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 | SUB-01 | P2 | FIXED | The log row is written before `notify()`; if sending throws, the reminder is never retried. |
 | SUB-02 | P2 | FIXED | Reminders fire only on an exact day match (`$days === $window`); a missed scheduler day skips that reminder forever. |
 | SUB-03 | P2 | FIXED | Expiry SMS goes to `company.phone` (free text, unvalidated); check failure handling. |
-| SUB-04 | P2 | DEFERRED | `/dashboard` (auth+verified) shows tenant data without `Subscribed`; `/admin/dashboard` requires it. |
+| SUB-04 | P2 | FIXED | `/dashboard` (auth+verified) shows tenant data without `Subscribed`; `/admin/dashboard` requires it. (2026-10-11 PO-16: `/dashboard` requires `Subscribed`.) |
 
 ## 16. `subscription-admin`: Super-admin billing tools
 - **Scope**: `app/Http/Controllers/Admin/SubscriptionAdminController.php`, views `admin/subscriptions/**`, `admin/plans/**`
@@ -299,7 +299,7 @@ Shared harness, used by every module (already built, don't rebuild): `tests/Supp
 | AUTH-01 | P2 | FIXED | 6 existing tests fail against current code. |
 | AUTH-02 | P2 | FIXED | Login reveals "account is inactive" for existing emails (user enumeration). |
 | AUTH-03 | P2 | FIXED | Registration swallows every exception into a generic toast; a missing role silently rolls back the signup. (2026-10-10: password no longer flashed to the session on failure; rollback + generic toast dismissed as correct.) |
-| AUTH-04 | P2 | DEFERRED | Deleting your profile cascades through Company → drivers/vehicles (FK cascade); confirm intended. |
+| AUTH-04 | P2 | FIXED | Deleting your profile cascades through Company → drivers/vehicles (FK cascade); confirm intended. (2026-10-11 PO-17: closing an account deactivates the owner and company; owners only.) |
 | AUTH-05 | P3 | FIXED | Company slug is derived from the person's name plus 4 random chars, not unique in the DB. |
 
 ## 20. `dashboard`: Dashboards

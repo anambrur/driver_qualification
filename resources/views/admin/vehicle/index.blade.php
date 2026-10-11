@@ -360,6 +360,20 @@
                                                 </div>
                                             </div>
 
+                                            <!-- Engine Hours (raised by service logs, like the odometer) -->
+                                            <div class="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label for="engine_hours"
+                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                        Engine Hours
+                                                    </label>
+                                                    <input type="number" name="engine_hours" placeholder="hours" id="engine_hours"
+                                                        min="0"
+                                                        class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                                    <div id="engine_hours_error" class="mt-1 text-sm text-red-600"></div>
+                                                </div>
+                                            </div>
+
                                             <!-- Fuel Type & Engine Type -->
                                             <div class="grid grid-cols-2 gap-3">
                                                 <div>

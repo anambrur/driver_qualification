@@ -50,7 +50,7 @@ test('email verification status is unchanged when the email address is unchanged
     $this->assertNotNull($user->refresh()->email_verified_at);
 });
 
-test('user can delete their account', function () {
+test('user can close their account, which deactivates it (PO-17)', function () {
     $user = Actors::companyOwner();
 
     $response = $this
@@ -64,7 +64,7 @@ test('user can delete their account', function () {
         ->assertRedirect('/');
 
     $this->assertGuest();
-    $this->assertNull($user->fresh());
+    $this->assertSame('inactive', $user->fresh()->status);
 });
 
 test('correct password must be provided to delete account', function () {

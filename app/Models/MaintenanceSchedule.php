@@ -193,12 +193,11 @@ class MaintenanceSchedule extends Model
     }
 
     /**
-     * The vehicle's engine hours. Vehicles have no engine hours column; the app records them
-     * on service logs (current_engine_hours), so the highest logged value is the current one.
+     * The vehicle's engine hours (vehicles.engine_hours, raised by service logs, PO-05).
      */
     public function currentEngineHours(): int
     {
-        return ServiceLog::currentEngineHoursFor($this->vehicle_id);
+        return (int) $this->vehicle?->engine_hours;
     }
 
     public function isDue()

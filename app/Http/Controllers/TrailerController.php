@@ -20,6 +20,10 @@ class TrailerController extends Controller
 {
     use CompanyFilterTrait;
 
+    private const VALIDATION_MESSAGES = [
+        'vin.not_regex' => 'A VIN never contains the letters I, O or Q.',
+    ];
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
@@ -29,9 +33,13 @@ class TrailerController extends Controller
             // Apply company filter
             $query = $this->applyCompanyFilter($query);
 
-            // Deleted trailers are listed (with Restore) only under the "Deleted" status filter
-            if ($request->input('status') === 'deleted') {
+            // "All Status" lists deleted trailers too (with Restore), "Active" only live ones and
+            // "Deleted" only deleted ones (PO-09)
+            $status = $request->input('status');
+            if ($status === 'deleted') {
                 $query->onlyTrashed();
+            } elseif ($status !== 'active') {
+                $query->withTrashed();
             }
 
             if ($request->filled('equipment_types_id')) {
@@ -141,7 +149,7 @@ class TrailerController extends Controller
         $validator = Validator::make($request->all(), [
             'company_id' => 'required|exists:companies,id',
             'unit_no' => ['required', 'string', 'max:50', $this->uniqueInCompany('unit_no', $request->input('company_id'))],
-            'vin' => ['required', 'string', 'size:17', $this->uniqueInCompany('vin', $request->input('company_id'))],
+            'vin' => ['required', 'string', 'size:17', 'not_regex:/[IOQ]/i', $this->uniqueInCompany('vin', $request->input('company_id'))],
             'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
@@ -153,7 +161,7 @@ class TrailerController extends Controller
             'gvw' => 'nullable|integer|min:0',
             'vehicle_group_id' => 'nullable|exists:vehicle_groups,id',
             'notes' => 'nullable|string|max:2000',
-        ]);
+        ], self::VALIDATION_MESSAGES);
 
         if ($validator->fails()) {
             return response()->json([
@@ -213,14 +221,9 @@ class TrailerController extends Controller
             'company_id' => [
                 'required',
                 'exists:companies,id',
-                function ($attribute, $value, $fail) use ($trailer) {
-                    if ((int) $value !== (int) $trailer->company_id && AssetGroup::withTrashed()->where('trailer_id', $trailer->id)->exists()) {
-                        $fail('This trailer is in an asset group of its current company, so it cannot be moved to another company.');
-                    }
-                },
             ],
             'unit_no' => ['required', 'string', 'max:50', $this->uniqueInCompany('unit_no', $request->input('company_id'), $trailer->id)],
-            'vin' => ['required', 'string', 'size:17', $this->uniqueInCompany('vin', $request->input('company_id'), $trailer->id)],
+            'vin' => ['required', 'string', 'size:17', 'not_regex:/[IOQ]/i', $this->uniqueInCompany('vin', $request->input('company_id'), $trailer->id)],
             'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
@@ -232,7 +235,7 @@ class TrailerController extends Controller
             'gvw' => 'nullable|integer|min:0',
             'vehicle_group_id' => 'nullable|exists:vehicle_groups,id',
             'notes' => 'nullable|string|max:2000',
-        ]);
+        ], self::VALIDATION_MESSAGES);
 
         if ($validator->fails()) {
             return response()->json([
@@ -244,7 +247,16 @@ class TrailerController extends Controller
         DB::beginTransaction();
 
         try {
+            $previousCompanyId = (int) $trailer->company_id;
+
             $trailer->update($validator->validated());
+
+            // A super-admin moved the trailer (PO-08): it leaves the old company's asset groups,
+            // which keep their vehicle and driver. Trailer documents point at the trailer and
+            // follow it already.
+            if ((int) $trailer->company_id !== $previousCompanyId) {
+                AssetGroup::withTrashed()->where('trailer_id', $trailer->id)->update(['trailer_id' => null]);
+            }
 
             DB::commit();
 

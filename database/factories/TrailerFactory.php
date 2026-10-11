@@ -6,7 +6,6 @@ use App\Models\Company;
 use App\Models\EquipmentType;
 use App\Models\Trailer;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Trailer>
@@ -23,7 +22,8 @@ class TrailerFactory extends Factory
         return [
             'company_id' => CompanyFactory::new(),
             'unit_no' => 'TRL-'.fake()->unique()->numerify('#####'),
-            'vin' => Str::upper(fake()->unique()->bothify('1JJ??##########??')),
+            // VINs never contain I, O or Q
+            'vin' => fake()->unique()->regexify('1JJ[A-HJ-NPR-Z]{2}[0-9]{10}[A-HJ-NPR-Z]{2}'),
             'year' => (int) fake()->numberBetween(2005, (int) date('Y')),
             'make' => fake()->randomElement(['Utility', 'Wabash', 'Great Dane']),
             'model' => fake()->bothify('Van-##'),

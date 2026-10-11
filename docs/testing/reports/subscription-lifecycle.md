@@ -52,3 +52,10 @@ None.
 
 - No new migrations, no config changes.
 - Optional: make sure `services.vonage.sms_from`, `api_key` and `api_secret` are set in production. Without them, expiry SMS are skipped, and are now retried daily inside each window instead of being marked sent.
+
+## Decision follow-up: PO-16
+
+Decided 2026-10-11: option B. `/dashboard` has `auth`, `verified` and `Subscribed`. New and lapsed accounts land on `/pricing/plans`. Super-admins pass `Subscribed`.
+
+- `routes/web.php`.
+- Tests: `DashboardGateTest.php`. The pinning test became `sends an expired tenant from /dashboard to pricing (decided PO-16, 2026-10-11)`; added a no-plan redirect test, a subscribed own-counts test and a super-admin test. Registration → verify → pricing → trial → dashboard is covered in `Billing/TrialAbuseTest.php`. `Auth`, `Dashboard` and `Billing` are green.

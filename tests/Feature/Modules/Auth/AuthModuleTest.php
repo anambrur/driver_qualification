@@ -158,11 +158,12 @@ describe('AUTH-05 company slug', function () {
 });
 
 /*
-| AUTH-04 (DEFERRED): documents current behaviour. Deleting your own profile deletes the
-| company and, via FK cascades, all of its drivers. Kept so a product decision changes it knowingly.
+| AUTH-04: deleting your own profile deleted the company and, via FK cascades, all of its
+| drivers. Decided PO-17 (2026-10-11): it deactivates the owner and the company instead, and
+| only company owners may do it.
 */
-describe('AUTH-04 profile deletion cascade', function () {
-    it('currently deletes the company and its drivers when the owner deletes their profile', function () {
+describe('AUTH-04 closing an account', function () {
+    it('deactivates the owner and the company and keeps its drivers (decided PO-17, 2026-10-11)', function () {
         $owner = Actors::companyOwner();
         $company = Company::where('user_id', $owner->id)->firstOrFail();
         $driver = DriverFactory::new()->create(['company_id' => $company->id]);
@@ -171,7 +172,35 @@ describe('AUTH-04 profile deletion cascade', function () {
             ->delete('/admin/profile', ['password' => 'password'])
             ->assertRedirect('/');
 
-        expect(Company::find($company->id))->toBeNull()
-            ->and(Driver::find($driver->id))->toBeNull();
+        $this->assertGuest();
+        expect($owner->fresh()->status)->toBe('inactive')
+            ->and($company->fresh()->status)->toBe('inactive')
+            ->and(Driver::find($driver->id))->not->toBeNull();
+    });
+
+    it('still needs the password', function () {
+        $owner = Actors::companyOwner();
+
+        $this->actingAs($owner)
+            ->delete('/admin/profile', ['password' => 'wrong'])
+            ->assertSessionHasErrorsIn('userDeletion', 'password');
+
+        expect($owner->fresh()->status)->toBe('active');
+    });
+
+    it('refuses sub-users and super-admins', function (string $who) {
+        $user = $who === 'super-admin' ? Actors::superAdmin() : Actors::plainUser();
+
+        $this->actingAs($user)
+            ->delete('/admin/profile', ['password' => 'password'])
+            ->assertForbidden();
+
+        expect($user->fresh()->status)->toBe('active');
+    })->with(['sub-user', 'super-admin']);
+
+    it('shows Close Account to owners only', function () {
+        $this->actingAs(Actors::companyOwner())->get('/admin/profile')->assertOk()->assertSee('Close Account');
+        $this->actingAs(Actors::plainUser())->get('/admin/profile')->assertOk()->assertDontSee('Close Account');
+        $this->actingAs(Actors::superAdmin())->get('/admin/profile')->assertOk()->assertDontSee('Close Account');
     });
 });

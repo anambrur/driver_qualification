@@ -277,6 +277,7 @@
             });
 
             $('#vehicle_id').on('change', function() {
+                toggleCompanyField();
                 var vehicleId = $(this).val();
                 if (vehicleId) {
                     $.ajax({
@@ -348,6 +349,15 @@
                 vehicleSelect.append(new Option(vehicle.unit_no + ' - ' + vehicle.year + ' ' + vehicle.make + ' ' +
                     vehicle.model, vehicle.id));
             });
+
+            // Populate companies (the select exists for super-admins only)
+            var companySelect = $('#company_id');
+            if (companySelect.length) {
+                companySelect.empty().append('<option value="">Select Company</option>');
+                (response.companies || []).forEach(function(company) {
+                    companySelect.append(new Option(company.company_name, company.id));
+                });
+            }
 
             // Populate categories
             var categorySelect = $('#maintenance_category_id');
@@ -427,6 +437,10 @@
             if (data.vehicle_id) {
                 $('#vehicle_id').val(data.vehicle_id);
             }
+            if (data.company_id) {
+                $('#company_id').val(data.company_id);
+            }
+            toggleCompanyField();
 
             // Set schedule type and interval
             if (data.schedule_type) {
@@ -633,6 +647,10 @@
             $('.schedule-type-option').removeClass('border-brand-500 bg-brand-50 dark:bg-brand-900/20');
             $(`#type-${type}-option`).addClass('border-brand-500 bg-brand-50 dark:bg-brand-900/20');
 
+            // Mileage and engine-hour schedules need a vehicle (PO-06)
+            $('#vehicle_required_hint').toggleClass('hidden', type === 'date');
+            $('#vehicle_optional_hint').toggleClass('hidden', type !== 'date');
+
             // Show/hide interval inputs
             $('.interval-input').addClass('hidden');
             if (type === 'date') {
@@ -650,6 +668,13 @@
             $('#schedule_id').val('');
             resetFormErrors();
             selectScheduleType('date');
+            toggleCompanyField();
+        }
+
+        // A schedule with a vehicle takes the vehicle's company; only an all-vehicles schedule
+        // needs the super-admin to pick one (PO-07)
+        function toggleCompanyField() {
+            $('#company-field').toggleClass('hidden', !!$('#vehicle_id').val());
         }
 
         // Reset form errors

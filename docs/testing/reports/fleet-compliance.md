@@ -84,3 +84,30 @@ No routes, shared traits, middleware, config or models were changed.
 - **`upload_to_all` with no assets returns success with an empty message.** It also leaves the stored file behind, which nothing references. The driver controller returns 422 in this case.
 - **`VehicleDocument`/`TrailerDocument` don't use `SoftDeletes`.** Their tables have a `deleted_at` column (from the create migrations), but deletes are hard. This is the existing behavior and wasn't changed.
 - **Relations have no return types.** `Vehicle`, `Trailer`, `VehicleDocument` and `TrailerDocument` relations have no `BelongsTo`/`HasMany` return types. That causes all the remaining Larastan errors here.
+
+## Decision follow-up: PO-01
+
+Decided 2026-10-11: option A. Vehicles and trailers are paginated server-side on one page, 25 per page, each with its own page parameter (`vehicles_page`, `trailers_page`). Each list's links keep the other list's page. The owner's note read "need full system all list page in one pagination with server side pagination". It was implemented as A for this page only; see the agent note in PRODUCT_DECISIONS.md.
+
+- `app/Services/Compliance/FleetComplianceService.php` (new): `summary()` / `withComplianceCounts()` compute each asset's status in SQL, with the same rules as `calculateCompliance()` (the oldest document of each type counts).
+- `ComplianceDashboardController::fleet()`: summary cards come from SQL over every asset. Only the current page is loaded with documents and mapped with `through()`.
+- `resources/views/admin/compliance/fleet.blade.php`: `links()` under each list.
+- Tests: `FleetComplianceDecisionsTest.php` → `PO-01: …` (30 assets → 25 + 5; other list keeps its page; cards count all 30; SQL status = row status; tenant only). The FCMP-03 query-budget tests are still green. `FleetComplianceDashboardTest::fcmpDashboardRows()` reads `->items()`.
+
+## Decision follow-up: PO-02
+
+Decided 2026-10-11: option A (the driver rule), and soft-deleted assets stay excluded.
+
+- `upload-document-modal.blade.php`: the checkbox has `value="1"`. There is a hidden `company_id`, filled from the list endpoint's `company` (the company of the asset the modal was opened for, as in the driver modal). A 422 message is now shown instead of "Network response was not ok". Closing the modal re-enables the asset select.
+- `DocumentUploadController::uploadDocument()`: `upload_to_all` accepts `on`. A super-admin must send `company_id` (`Rule::requiredIf`, `Rule::exists`); tenants always use their own company. `getVehiclesList()` / `getTrailersList()` take `asset_id`, return `company`, and for a super-admin list only that company's assets.
+- Tests: `FleetComplianceDecisionsTest.php` → `PO-02: …`. The exact-JSON list test now expects `company`.
+
+## Decision follow-up: PO-22 (fleet-compliance items)
+
+- `document_type_id` must be a type of the posted `asset_type` (`Rule::exists(...)->where('module', …)`).
+- The Warning card counts warning only. A new Critical card counts missing/expired. "N Vehicles Need Attention" counts vehicles only, and the trailer badge shows its own count.
+- `days_until_expiry` is an int (dashboard rows and the `VehicleDocument`/`TrailerDocument` accessor).
+- "Upload to all" with no assets returns 422 before any file is stored.
+- Tests: `FleetComplianceDecisionsTest.php` → `PO-22: …`.
+
+Manual steps: none. Out-of-scope: `app/Models/VehicleDocument.php`, `app/Models/TrailerDocument.php` (int cast).

@@ -6,7 +6,11 @@
     <div class="p-4 mx-auto max-w-6xl md:p-6">
         <div class="mb-6">
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white/90">Upload Company Policy PDFs</h2>
-            <p class="text-gray-600 dark:text-gray-400 mt-2">Upload PDF files of your company policies</p>
+            @if ($isPlatformSet ?? true)
+                <p class="text-gray-600 dark:text-gray-400 mt-2">Platform default policies, used by every company that hasn't uploaded its own</p>
+            @else
+                <p class="text-gray-600 dark:text-gray-400 mt-2">Your company's policies. Until you upload one, your drivers and applicants see the platform default.</p>
+            @endif
         </div>
 
         @if (session('success'))

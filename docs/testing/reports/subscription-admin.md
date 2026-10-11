@@ -49,3 +49,7 @@ None.
 - Optional data check in production: look for admin grants that were already turned into lifetime access by an earlier reactivate or resume:
   `SELECT id, user_id FROM subscriptions WHERE stripe_subscription_id IS NULL AND billing_cycle <> 'trial' AND stripe_status = 'active' AND cancel_at_period_end = 0 AND ends_at IS NULL;`
   Whether those rows should get an end date again is a business decision. This run did not change any data.
+
+## Decision follow-up: PO-19
+
+Decided 2026-10-11: option B (fix by hand from the subscription-admin page). The owner notes the system is still in development with no real accounts, so there is nothing to fix today. No code change. Run the read-only query from "Manual steps" again before go-live.

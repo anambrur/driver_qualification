@@ -23,6 +23,10 @@ class VehicleController extends Controller
 {
     use CompanyFilterTrait;
 
+    private const VALIDATION_MESSAGES = [
+        'vin.not_regex' => 'A VIN never contains the letters I, O or Q.',
+    ];
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
@@ -32,9 +36,13 @@ class VehicleController extends Controller
             // Apply company filter
             $query = $this->applyCompanyFilter($query);
 
-            // Deleted vehicles are listed (with Restore) only under the "Deleted" status filter
-            if ($request->input('status') === 'deleted') {
+            // "All Status" lists deleted vehicles too (with Restore), "Active" only live ones and
+            // "Deleted" only deleted ones (PO-09)
+            $status = $request->input('status');
+            if ($status === 'deleted') {
                 $query->onlyTrashed();
+            } elseif ($status !== 'active') {
+                $query->withTrashed();
             }
 
             if ($request->filled('vehicle_type_id')) {
@@ -147,7 +155,7 @@ class VehicleController extends Controller
         $validator = Validator::make($request->all(), [
             'company_id' => 'required|exists:companies,id',
             'unit_no' => ['required', 'string', 'max:50', $this->uniqueInCompany('unit_no', $request->input('company_id'))],
-            'vin' => ['required', 'string', 'size:17', $this->uniqueInCompany('vin', $request->input('company_id'))],
+            'vin' => ['required', 'string', 'size:17', 'not_regex:/[IOQ]/i', $this->uniqueInCompany('vin', $request->input('company_id'))],
             'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
@@ -157,6 +165,7 @@ class VehicleController extends Controller
             'title_no' => 'nullable|string|max:100',
             'tire_size' => 'nullable|string|max:50',
             'odometer' => 'required|integer|min:0',
+            'engine_hours' => 'nullable|integer|min:0',
             'gvw' => 'nullable|integer|min:0',
             'vehicle_group_id' => 'nullable|exists:vehicle_groups,id',
             'fuel_type_id' => 'nullable|exists:fuel_types,id',
@@ -168,7 +177,7 @@ class VehicleController extends Controller
             'wheel_base' => 'nullable|integer|min:0',
             'size_dimension' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:2000',
-        ]);
+        ], self::VALIDATION_MESSAGES);
 
 
         if ($validator->fails()) {
@@ -194,6 +203,7 @@ class VehicleController extends Controller
                 'title_no' => $request->title_no,
                 'tire_size' => $request->tire_size,
                 'odometer' => $request->odometer,
+                'engine_hours' => $request->engine_hours,
                 'gvw' => $request->gvw,
                 'vehicle_group_id' => $request->vehicle_group_id,
                 'fuel_type_id' => $request->fuel_type_id,
@@ -253,14 +263,9 @@ class VehicleController extends Controller
             'company_id' => [
                 'required',
                 'exists:companies,id',
-                function ($attribute, $value, $fail) use ($vehicle) {
-                    if ((int) $value !== (int) $vehicle->company_id && $this->hasCompanyRecords($vehicle)) {
-                        $fail('This vehicle has asset groups, service logs or maintenance schedules in its current company, so it cannot be moved to another company.');
-                    }
-                },
             ],
             'unit_no' => ['required', 'string', 'max:50', $this->uniqueInCompany('unit_no', $request->input('company_id'), $vehicle->id)],
-            'vin' => ['required', 'string', 'size:17', $this->uniqueInCompany('vin', $request->input('company_id'), $vehicle->id)],
+            'vin' => ['required', 'string', 'size:17', 'not_regex:/[IOQ]/i', $this->uniqueInCompany('vin', $request->input('company_id'), $vehicle->id)],
             'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
@@ -270,6 +275,7 @@ class VehicleController extends Controller
             'title_no' => 'nullable|string|max:100',
             'tire_size' => 'nullable|string|max:50',
             'odometer' => 'required|integer|min:0',
+            'engine_hours' => 'nullable|integer|min:0',
             'gvw' => 'nullable|integer|min:0',
             'vehicle_group_id' => 'nullable|exists:vehicle_groups,id',
             'fuel_type_id' => 'nullable|exists:fuel_types,id',
@@ -281,7 +287,7 @@ class VehicleController extends Controller
             'wheel_base' => 'nullable|integer|min:0',
             'size_dimension' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:2000',
-        ]);
+        ], self::VALIDATION_MESSAGES);
 
         if ($validator->fails()) {
             return response()->json([
@@ -293,7 +299,14 @@ class VehicleController extends Controller
         DB::beginTransaction();
 
         try {
+            $previousCompanyId = (int) $vehicle->company_id;
+
             $vehicle->update($validator->validated());
+
+            // A super-admin moved the vehicle: its history goes with it (PO-08)
+            if ((int) $vehicle->company_id !== $previousCompanyId) {
+                $this->moveCompanyRecords($vehicle);
+            }
 
             DB::commit();
 
@@ -323,6 +336,10 @@ class VehicleController extends Controller
 
         try {
             $vehicle->delete();
+
+            // Its asset group no longer has a vehicle: end it (PO-22)
+            AssetGroup::where('vehicle_id', $vehicle->id)->where('status', 'active')->update(['status' => 'inactive']);
+
             DB::commit();
 
             return response()->json([
@@ -399,7 +416,6 @@ class VehicleController extends Controller
                     'year' => $vehicle->year,
                     'make' => $vehicle->make,
                     'model' => $vehicle->model,
-                    'license_plate' => $vehicle->license_plate,
                     'vin' => $vehicle->vin,
                 ]
             ]);
@@ -422,13 +438,20 @@ class VehicleController extends Controller
     }
 
     /**
-     * Records that carry their own company_id and point at this vehicle. Moving the vehicle to
-     * another company would leave them behind in the old one.
+     * Move the records that carry their own company_id along with a vehicle moved to another
+     * company (PO-08): its service logs and maintenance schedules follow it. Its asset groups
+     * stay with the old company, whose driver they name, and are ended (made inactive and
+     * deleted, as AssetGroupController::destroy() does) so the new company never sees the old
+     * company's driver. Vehicle documents point at the vehicle and follow it already.
      */
-    private function hasCompanyRecords(Vehicle $vehicle): bool
+    private function moveCompanyRecords(Vehicle $vehicle): void
     {
-        return AssetGroup::withTrashed()->where('vehicle_id', $vehicle->id)->exists()
-            || ServiceLog::withTrashed()->where('vehicle_id', $vehicle->id)->exists()
-            || MaintenanceSchedule::withTrashed()->where('vehicle_id', $vehicle->id)->exists();
+        ServiceLog::withTrashed()->where('vehicle_id', $vehicle->id)->update(['company_id' => $vehicle->company_id]);
+        MaintenanceSchedule::withTrashed()->where('vehicle_id', $vehicle->id)->update(['company_id' => $vehicle->company_id]);
+
+        AssetGroup::where('vehicle_id', $vehicle->id)->get()->each(function (AssetGroup $group) {
+            $group->forceFill(['status' => 'inactive'])->save();
+            $group->delete();
+        });
     }
 }

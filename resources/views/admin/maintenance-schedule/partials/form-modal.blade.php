@@ -66,10 +66,28 @@
                                                 class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                 <option value="">All Vehicles (Global Schedule)</option>
                                             </select>
-                                            <p class="text-xs text-gray-500 mt-1">Leave empty for fleet-wide schedule
+                                            <p class="text-xs text-gray-500 mt-1" id="vehicle_optional_hint">Leave empty for fleet-wide schedule
+                                            </p>
+                                            <p class="hidden text-xs text-amber-600 mt-1" id="vehicle_required_hint">Required: mileage and engine-hour schedules are tracked per vehicle
                                             </p>
                                             <div id="vehicle_id_error" class="mt-1 text-sm text-red-600"></div>
                                         </div>
+
+                                        @if (auth()->user()->hasRole('super-admin'))
+                                            <!-- Company of an all-vehicles schedule (super-admin only, PO-07) -->
+                                            <div class="md:col-span-2" id="company-field">
+                                                <label for="company_id"
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    Company <span class="text-red-500">*</span>
+                                                </label>
+                                                <select name="company_id" id="company_id"
+                                                    class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                                    <option value="">Select Company</option>
+                                                </select>
+                                                <p class="text-xs text-gray-500 mt-1">The company whose vehicles this schedule covers</p>
+                                                <div id="company_id_error" class="mt-1 text-sm text-red-600"></div>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
 
@@ -277,6 +295,10 @@
             // Update selected styles
             $('.schedule-type-option').removeClass('border-brand-500 bg-brand-50 dark:bg-brand-900/20');
             $(`#type-${type}-option`).addClass('border-brand-500 bg-brand-50 dark:bg-brand-900/20');
+
+            // Mileage and engine-hour schedules need a vehicle (PO-06)
+            $('#vehicle_required_hint').toggleClass('hidden', type === 'date');
+            $('#vehicle_optional_hint').toggleClass('hidden', type !== 'date');
 
             // Show/hide interval inputs
             $('.interval-input').addClass('hidden');

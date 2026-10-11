@@ -98,3 +98,34 @@ No routes, shared traits, middleware or config were changed. The `permission:veh
 - **The controller memoizes the tenant.** `CompanyFilterTrait` caches the company per controller instance, and Laravel caches the controller on the route. Within one PHP process, a second request by a different user reuses the first user's company. Under php-fpm every request is a new process, so this only affects tests that switch users between requests. The restore tests use one actor per test for this reason. It would become a real cross-tenant bug if the app ever ran under Octane, Swoole or RoadRunner.
 - **The VIN rule is only `size:17`.** There is no character check (VINs exclude I, O and Q) and no check digit. That is unchanged.
 - **Deleting a vehicle doesn't touch its asset group.** The group stays active and still points at the deleted vehicle. This is the existing behavior and wasn't changed.
+
+## Decision follow-up: PO-08
+
+Decided 2026-10-11: option A. A super-admin's move is no longer refused.
+
+- `VehicleController::update()`: in the same transaction, the vehicle's service logs and maintenance schedules (trashed included) get the new `company_id`. Its asset groups stay with the old company, whose driver they name. They are ended the way `AssetGroupController` ends a group (`status = inactive` and soft-deleted), so the new company never sees the old driver through `$vehicle->assetGroups` (dashboard, reminders). Vehicle documents point at the vehicle and follow it.
+- `TrailerController::update()`: the trailer is taken out of the old company's asset groups (`trailer_id = null`). The groups keep their vehicle and driver and stay active, because a group can't lose its required vehicle.
+- Unit no / VIN are still checked as unique in the target company.
+- Tests: `FleetAssetsUpdateTest.php`. The three "refuses to move" tests were replaced by "moves … (decided PO-08)", "ends the vehicle's asset groups …", "takes a moved trailer out …" and "still refuses a move when the unit no is taken".
+- Out-of-scope: asset-groups rows are written (no asset-groups code changed). Known leftover: the old company can still restore its ended group from the "Deleted" filter, and it would then point at the moved vehicle. `AssetGroupController::restore()` doesn't check the vehicle's company.
+
+## Decision follow-up: PO-09
+
+Decided 2026-10-11: option A. "All Status" (empty or `all`) uses `withTrashed()`, "Active" shows live assets only, and "Deleted" uses `onlyTrashed()`. Deleted rows keep their badge and the Restore button. `recordsTotal` counts both. Tenant scoping is applied before `withTrashed()`.
+
+Tests: `FleetAssetsListFiltersTest.php` (the default-list test was split into "keeps deleted assets out of the Active list" and "lists live and deleted assets under All Status … (decided PO-09)").
+
+## Decision follow-up: PO-10
+
+Decided 2026-10-11: option A. VIN stays unique per company. DISMISSED. Guard test renamed: `FleetAssetsUniquenessTest.php` → `lets another tenant use the same unit no and VIN (VIN per company, decided PO-10, 2026-10-11)`.
+
+## Decision follow-up: PO-22 (fleet-assets items)
+
+- `getVehicleDetails()` no longer returns `license_plate`.
+- VIN also has `not_regex:/[IOQ]/i` on store and update (vehicles and trailers), with the message "A VIN never contains the letters I, O or Q." The Vehicle/Trailer factories and `FleetAssets::vin()` now generate VINs without I/O/Q, because random letters made tests flaky.
+- Deleting a vehicle sets its active asset group to `inactive`.
+- Tests: `FleetAssetsDecisionsTest.php`.
+
+## Decision follow-up: PO-22 (models / Larastan)
+
+Relations on `Driver`, `Vehicle`, `Trailer`, `VehicleDocument`, `TrailerDocument` and `Subscription` now have `BelongsTo` / `HasMany` / `HasOne` return types with generics. `Subscription` got `@property Carbon|null` for its datetime columns. `vendor/bin/phpstan analyse` on those six files: no errors (it reported 2 before).

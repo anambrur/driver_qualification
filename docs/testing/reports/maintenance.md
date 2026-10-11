@@ -111,3 +111,50 @@ No routes, shared traits, middleware, config or models outside the scope were ch
 - **Changing an interval on a schedule that was never completed** recalculates the due date from today, because there is no recorded baseline. With a `last_due_*` value it counts from that.
 - **`getDropdownData()` returns `companies`, which neither page uses.** For a super-admin that is every active company.
 - **Last Larastan error:** `ServiceLog::getFormattedTotalCostAttribute()` calls `number_format()` on the `decimal:2` cast, which is a string.
+
+## Decision follow-up: PO-03
+
+Decided 2026-10-11: option B. `.doc/.docx` stay allowed. DISMISSED, no code change.
+
+## Decision follow-up: PO-04
+
+Decided 2026-10-11: option A. "Mark as completed" no longer sets `status = 'completed'`. It records the last service and rolls the next due value forward, and the schedule keeps its status. A schedule is retired by editing its status to `completed`. The button and flash text are unchanged (the owner left no note asking for "Service recorded").
+
+- `MaintenanceScheduleController::markAsCompleted()`.
+- Tests: `MaintenanceDecisionsTest.php` → `PO-04: …`.
+
+## Decision follow-up: PO-05
+
+Decided 2026-10-11: option B. `vehicles.engine_hours` is the source.
+
+- New migration `2026_10_11_000100_add_engine_hours_to_vehicles.php`: unsigned int, nullable. It backfills from `MAX(service_logs.current_engine_hours)` (non-deleted logs) only where the column is empty, so it is safe to re-run and has a `down()`.
+- `Vehicle` (fillable, cast), `VehicleController` (`nullable|integer|min:0` on store/update), and the vehicle form field `engine_hours`.
+- `ServiceLog::updateVehicleMetrics()` raises engine hours like the odometer. `MaintenanceSchedule::currentEngineHours()` and `ServiceLog::currentEngineHoursFor()` read the column.
+- Tests: `MaintenanceDecisionsTest.php` → `PO-05: …` (raise, schedules, backfill and re-run). `FleetAssetsDecisionsTest.php` → `PO-05: …` (save/validate). The MNT-04 engine-hour tests now create logs through the endpoint, or set the column (unit tests).
+- Out-of-scope: fleet-assets files (`Vehicle`, `VehicleController`, `resources/views/admin/vehicle/index.blade.php`).
+
+## Decision follow-up: PO-06
+
+Decided 2026-10-11: option A. `vehicle_id` is required on store and update when `schedule_type` is `mileage` or `engine_hours`. The form shows a "Required" hint for those types. Existing rows were not changed; the owner didn't answer the note. Find them with:
+
+```sql
+SELECT id, company_id, title FROM maintenance_schedules
+WHERE vehicle_id IS NULL AND schedule_type IN ('mileage','engine_hours') AND deleted_at IS NULL;
+```
+
+Tests: `MaintenanceDecisionsTest.php` → `PO-06: …`.
+
+## Decision follow-up: PO-07
+
+Decided 2026-10-11: option A. On store, a super-admin must send `company_id` when there is no vehicle. With a vehicle, the vehicle's company wins. On update, a super-admin may move an all-vehicles schedule to the posted company, otherwise it keeps its own. Tenants' `company_id` is ignored. The form has a company select for super-admins only, hidden while a vehicle is chosen. `getDropdownData()` keeps `companies`, which the form now uses.
+
+Tests: `MaintenanceDecisionsTest.php` → `PO-07: …`. `AccessControl/SuperAdminCompanyAttributionTest.php` was flipped from "keeps the super-admin's own company" to "files … under the company they pick (decided PO-07)".
+
+## Decision follow-up: PO-22 (maintenance items)
+
+- Deleting a service log deletes its `service_documents` rows, and the files after commit (`ServiceLogController::destroy()`).
+- Correcting a log downwards lowers the vehicle's odometer / engine hours when the log's old value was the vehicle's current value. The vehicle then gets the highest value logged now (`ServiceLog::updateVehicleMetrics($previousOdometer, $previousEngineHours)`).
+- "Remove `companies` from `getDropdownData()` if PO-07 is not A": not applicable, PO-07 is A.
+- Tests: `MaintenanceDecisionsTest.php` → `PO-22: …`.
+
+Manual steps: run migration `2026_10_11_000100` (staging first).

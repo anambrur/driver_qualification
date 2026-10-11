@@ -48,6 +48,7 @@
                 <input type="hidden" id="upload_document_type_id" name="document_type_id">
                 <input type="hidden" id="upload_asset_type" name="asset_type" value="vehicle">
                 <input type="hidden" id="upload_asset_id" name="asset_id">
+                <input type="hidden" id="upload_company_id" name="company_id">
 
                 <!-- Select Vehicles/Trailers -->
                 <div class="mb-5">
@@ -63,14 +64,14 @@
                 <!-- Upload to All Checkbox -->
                 <div class="mb-5">
                     <label class="flex items-start cursor-pointer">
-                        <input type="checkbox" id="upload_to_all" name="upload_to_all"
+                        <input type="checkbox" id="upload_to_all" name="upload_to_all" value="1"
                             class="w-4 h-4 mt-0.5 text-brand-600 border-gray-300 rounded focus:ring-brand-500 dark:bg-gray-700 dark:border-gray-600">
                         <div class="ml-3">
                             <span class="text-sm font-medium text-gray-700 dark:text-gray-300" id="upload-all-label">
                                 Upload to All Vehicles
                             </span>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
-                                This will override individual vehicle selection and apply to all vehicles in your fleet
+                                This will override individual vehicle selection and apply to all vehicles of this company
                             </p>
                         </div>
                     </label>
@@ -198,9 +199,8 @@
 
     // Load assets for the dropdown
     function loadAssetsForUpload(assetType, selectedAssetId, documentTypeId) {
-        const endpoint = assetType === 'vehicle' ?
-            `/admin/compliance/vehicles/list?document_type_id=${documentTypeId}` :
-            `/admin/compliance/trailers/list?document_type_id=${documentTypeId}`;
+        const endpoint = (assetType === 'vehicle' ? '/admin/compliance/vehicles/list' : '/admin/compliance/trailers/list') +
+            `?document_type_id=${encodeURIComponent(documentTypeId)}&asset_id=${encodeURIComponent(selectedAssetId ?? '')}`;
 
         fetch(endpoint)
             .then(response => response.json())
@@ -227,6 +227,14 @@
                     const unitNo = selectedAsset ? selectedAsset.unit_no : selectedAssetId;
 
                     subtitle.textContent = `${documentTypeName} for ${assetLabel} #${unitNo}`;
+
+                    // "Upload to all" covers the assets of one company (PO-02)
+                    const uploadAll = document.getElementById('upload_to_all');
+                    document.getElementById('upload_company_id').value = data.company ? data.company.id : '';
+                    uploadAll.disabled = !data.company;
+                    if (data.company) {
+                        uploadAllLabel.textContent = `Upload to All ${assetLabelPlural} of ` + data.company.name;
+                    }
                     infoText.textContent =
                         `Upload documents for ${documentTypeName}. You can select multiple ${assetLabelPlural.toLowerCase()} or upload to all ${assetLabelPlural.toLowerCase()} at once.`;
 
@@ -255,6 +263,12 @@
         document.getElementById('uploadDocumentForm').reset();
         removeFile();
         hideUploadError();
+
+        const select = document.getElementById('upload_selected_asset');
+        if (select) {
+            select.disabled = false;
+            select.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
     }
 
     // Handle file selection
@@ -377,7 +391,8 @@
                 body: formData
             })
             .then(response => {
-                if (!response.ok) {
+                // Validation errors (422) carry a message to show
+                if (!response.ok && response.status !== 422) {
                     throw new Error('Network response was not ok');
                 }
                 return response.json();

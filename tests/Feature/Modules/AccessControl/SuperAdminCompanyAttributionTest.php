@@ -59,14 +59,19 @@ it('files a super-admin\'s maintenance schedule under the vehicle\'s company', f
     expect(MaintenanceSchedule::sole()->company_id)->toBe($vehicle->company_id);
 });
 
-it('keeps the super-admin\'s own company for a schedule with no vehicle', function () {
+it('files a super-admin\'s schedule with no vehicle under the company they pick (decided PO-07)', function () {
     $admin = Actors::superAdmin();
+    $company = Actors::companyOf(Actors::companyOwner());
 
     $this->actingAs($admin)
         ->postJson(route('admin.maintenance-schedule.store'), aclSchedulePayload(null))
+        ->assertStatus(422)->assertJsonValidationErrors('company_id', 'errors');
+
+    $this->actingAs($admin)
+        ->postJson(route('admin.maintenance-schedule.store'), aclSchedulePayload(null) + ['company_id' => $company->id])
         ->assertOk();
 
-    expect(MaintenanceSchedule::sole()->company_id)->toBe(Actors::companyOf($admin)->id);
+    expect(MaintenanceSchedule::sole()->company_id)->toBe($company->id);
 });
 
 it('still files a tenant\'s records under the tenant\'s company', function () {

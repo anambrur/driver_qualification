@@ -69,3 +69,25 @@ The shared Stripe object fixtures are in `tests/Feature/Modules/Billing/Billing.
 ## Manual steps
 
 - None. No migrations, no config changes.
+
+## Decision follow-up: PO-15
+
+Decided 2026-10-11: option A. One free trial per verified email.
+
+- `User implements MustVerifyEmail`. Registration sends the verification email through Laravel's default `Registered` listener. `/checkout/{name}` and `/checkout-success` have `verified`. After clicking the link, the user returns to the checkout they started (`redirect()->intended`). Changing the email on Profile already clears `email_verified_at`, so a new email must be verified before the next checkout.
+- Accounts created by a super-admin are auto-verified (unchanged). Existing unverified accounts must verify before their next checkout. The owner says there are no real accounts yet.
+- Tests: `TrialAbuseTest.php`. The pinning test became `gives each verified email one trial (decided PO-15, 2026-10-11)`; added "refuses a trial to an account whose email is not verified" and the registration → verify → trial flow.
+- Out-of-scope: `app/Models/User.php`, `routes/web.php`.
+- Manual step: production needs working mail delivery for verification emails (see PO-20).
+
+## Decision follow-up: PO-18
+
+Decided 2026-10-11: the Stripe account is shared.
+
+- `WebhookProcessor::handle()` ignores (logs at info, returns 200) subscription, checkout and invoice events whose `app_host` differs from `CheckoutService::appHost()`. `app_host` is read from `metadata`, `subscription_details.metadata` or `parent.subscription_details.metadata`. Events with no `app_host` are processed as before.
+- Tests: `WebhookSharedAccountTest.php`.
+
+## Decision follow-up: PO-22 (billing item)
+
+- New command `subscriptions:close-expired-trials` (`--dry-run` only counts). It marks local trials (`stripe_subscription_id` null, `stripe_status` trialing) whose end date has passed as `canceled`. Scheduled daily at 10:00, after the 09:00 expiry reminders, which still send the "expired" notice.
+- Tests: `CloseExpiredTrialsTest.php`.

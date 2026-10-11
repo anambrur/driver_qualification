@@ -810,7 +810,7 @@ class DriverController extends Controller
         }
         $authUser->loadMissing('company');
 
-        $policyPdf = PolicyPdf::first() ?? new PolicyPdf();
+        $policyPdf = PolicyPdf::resolveFor($driver->company_id);
 
         return view('admin.driver.alcohol-and-drug-test-policy', compact('currentStep', 'driver_id', 'driver', 'driver_document', 'driver_name', 'authUser', 'policyPdf', 'isEditMode'));
     }
@@ -861,7 +861,7 @@ class DriverController extends Controller
         }
         $authUser->loadMissing('company');
 
-        $policyPdf = PolicyPdf::first() ?? new PolicyPdf();
+        $policyPdf = PolicyPdf::resolveFor($driver->company_id);
 
         return view('admin.driver.general-work-policy', compact('currentStep', 'driver_id', 'driver', 'driver_document', 'driver_name', 'authUser', 'policyPdf', 'isEditMode'));
     }

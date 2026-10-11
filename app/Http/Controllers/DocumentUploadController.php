@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Company;
 use App\Models\DocumentType;
 use App\Models\Trailer;
 use App\Models\TrailerDocument;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class DocumentUploadController extends Controller
 {
@@ -45,6 +47,10 @@ class DocumentUploadController extends Controller
 
             $documentType = DocumentType::find($documentTypeId);
 
+            // The company "upload to all" applies to; a super-admin works on the company of the
+            // vehicle the modal was opened for, and only sees that company's vehicles (PO-02).
+            $company = $this->uploadCompany(Vehicle::class, $request->integer('asset_id') ?: null);
+
             // Apply company filter and load has_document in one query (avoid N+1 exists)
             $vehiclesQuery = Vehicle::select('vehicles.id', 'vehicles.unit_no')
                 ->withExists([
@@ -53,6 +59,9 @@ class DocumentUploadController extends Controller
                     },
                 ]);
             $vehiclesQuery = $this->applyCompanyFilter($vehiclesQuery);
+            if ($this->isSuperAdmin() && $company) {
+                $vehiclesQuery->where('vehicles.company_id', $company->id);
+            }
 
             $vehicles = $vehiclesQuery->orderBy('vehicles.unit_no')
                 ->get()
@@ -70,6 +79,7 @@ class DocumentUploadController extends Controller
                     'success' => true,
                     'assets' => [],
                     'document_type_name' => $documentType ? $documentType->name : 'Document',
+                    'company' => $this->companyPayload($company),
                     'message' => 'No vehicles found for your company',
                 ]);
             }
@@ -78,6 +88,7 @@ class DocumentUploadController extends Controller
                 'success' => true,
                 'assets' => $vehicles,
                 'document_type_name' => $documentType ? $documentType->name : 'Document',
+                'company' => $this->companyPayload($company),
                 'total' => $vehicles->count(),
             ]);
         } catch (\Exception $e) {
@@ -100,6 +111,10 @@ class DocumentUploadController extends Controller
 
             $documentType = DocumentType::find($documentTypeId);
 
+            // The company "upload to all" applies to; a super-admin works on the company of the
+            // trailer the modal was opened for, and only sees that company's trailers (PO-02).
+            $company = $this->uploadCompany(Trailer::class, $request->integer('asset_id') ?: null);
+
             // Apply company filter and load has_document in one query (avoid N+1 exists)
             $trailersQuery = Trailer::select('trailers.id', 'trailers.unit_no')
                 ->withExists([
@@ -108,6 +123,9 @@ class DocumentUploadController extends Controller
                     },
                 ]);
             $trailersQuery = $this->applyCompanyFilter($trailersQuery);
+            if ($this->isSuperAdmin() && $company) {
+                $trailersQuery->where('trailers.company_id', $company->id);
+            }
 
             $trailers = $trailersQuery->orderBy('trailers.unit_no')
                 ->get()
@@ -125,6 +143,7 @@ class DocumentUploadController extends Controller
                     'success' => true,
                     'assets' => [],
                     'document_type_name' => $documentType ? $documentType->name : 'Document',
+                    'company' => $this->companyPayload($company),
                     'message' => 'No trailers found for your company',
                 ]);
             }
@@ -133,6 +152,7 @@ class DocumentUploadController extends Controller
                 'success' => true,
                 'assets' => $trailers,
                 'document_type_name' => $documentType ? $documentType->name : 'Document',
+                'company' => $this->companyPayload($company),
                 'total' => $trailers->count(),
             ]);
         } catch (\Exception $e) {
@@ -150,15 +170,27 @@ class DocumentUploadController extends Controller
      */
     public function uploadDocument(Request $request)
     {
+        $isSuperAdmin = $this->isSuperAdmin();
+        $uploadToAll = $request->boolean('upload_to_all');
+
         // Validate request
         $validator = Validator::make($request->all(), [
-            'document_type_id' => 'required|exists:document_types,id',
+            // Only a fleet document type of this asset type can be attached (PO-22)
+            'document_type_id' => ['required', Rule::exists('document_types', 'id')->where('module', $request->input('asset_type'))],
             'asset_type' => 'required|in:vehicle,trailer',
             'expiry_date' => 'required|date|after_or_equal:today',
             'description' => 'nullable|string|max:500',
             'file' => 'required|file|mimes:jpg,jpeg,png,pdf|max:20480', // 20MB max
-            'upload_to_all' => 'nullable|boolean',
-            'selected_asset' => 'required_without:upload_to_all',
+            // A browser checkbox posts "on" (PO-02)
+            'upload_to_all' => 'nullable|in:0,1,on,off,true,false',
+            'selected_asset' => Rule::requiredIf(! $uploadToAll),
+            // Tenants always upload to their own company; a super-admin names the company
+            'company_id' => $isSuperAdmin
+                ? [Rule::requiredIf($uploadToAll), 'nullable', 'integer', Rule::exists('companies', 'id')]
+                : ['nullable'],
+        ], [
+            'document_type_id.exists' => 'The selected document type is invalid.',
+            'company_id.required' => 'Choose the company whose assets should get this document.',
         ]);
 
         if ($validator->fails()) {
@@ -171,11 +203,18 @@ class DocumentUploadController extends Controller
         $assetType = $request->asset_type;
         $assetModel = $assetType === 'vehicle' ? Vehicle::class : Trailer::class;
 
-        if ($request->boolean('upload_to_all')) {
-            // Upload to all assets (filtered by company)
-            $assets = $assetType === 'vehicle'
-                ? $this->applyCompanyFilter(Vehicle::query())->get()
-                : $this->applyCompanyFilter(Trailer::query())->get();
+        if ($uploadToAll) {
+            // Upload to all live assets of one company: the tenant's own, or the one a super-admin
+            // chose (PO-02, same rule as drivers). Soft-deleted assets are excluded.
+            $companyId = $isSuperAdmin ? $request->integer('company_id') : $this->getUserCompanyId();
+            $assets = $assetModel::where('company_id', $companyId ?? -1)->get();
+
+            if ($assets->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "There are no {$assetType}s to upload this document to.",
+                ], 422);
+            }
         } else {
             // Upload to selected asset (validate company access first): 404 if unknown, 403 if another company's
             $asset = $assetModel::whereKey($request->selected_asset)->first();
@@ -368,6 +407,36 @@ class DocumentUploadController extends Controller
         $disk = $this->diskHolding($document->file_path);
 
         return Storage::disk($disk)->response($document->file_path, null, self::FILE_HEADERS);
+    }
+
+    private function isSuperAdmin(): bool
+    {
+        $this->resolveCompanyContext();
+
+        return (bool) $this->resolvedSuperAdmin;
+    }
+
+    /**
+     * The company the upload modal works on: a tenant's own company, or for a super-admin the
+     * company of the given vehicle/trailer (null when there is none).
+     *
+     * @param  class-string<Vehicle>|class-string<Trailer>  $assetModel
+     */
+    private function uploadCompany(string $assetModel, ?int $assetId): ?Company
+    {
+        if (! $this->isSuperAdmin()) {
+            return Company::find($this->getUserCompanyId());
+        }
+
+        return $assetId ? Company::find($assetModel::whereKey($assetId)->value('company_id')) : null;
+    }
+
+    /**
+     * @return array{id: int, name: string}|null
+     */
+    private function companyPayload(?Company $company): ?array
+    {
+        return $company ? ['id' => $company->id, 'name' => (string) $company->company_name] : null;
     }
 
     /**

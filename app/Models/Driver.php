@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Driver extends Model
@@ -19,56 +22,90 @@ class Driver extends Model
         ];
     }
 
-    public function user()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
-    public function company()
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
     }
 
-    public function residence_addresses()
+    /**
+     * @return HasMany<ResidenceAddress, $this>
+     */
+    public function residence_addresses(): HasMany
     {
         return $this->hasMany(ResidenceAddress::class);
     }
 
-    public function licenses()
+    /**
+     * @return HasMany<License, $this>
+     */
+    public function licenses(): HasMany
     {
         return $this->hasMany(License::class);
     }
 
-    public function experiences()
+    /**
+     * @return HasMany<Experience, $this>
+     */
+    public function experiences(): HasMany
     {
         return $this->hasMany(Experience::class);
     }
 
-    public function accidents()
+    /**
+     * @return HasMany<Accident, $this>
+     */
+    public function accidents(): HasMany
     {
         return $this->hasMany(Accident::class);
     }
 
-    public function violations()
+    /**
+     * @return HasMany<Violation, $this>
+     */
+    public function violations(): HasMany
     {
         return $this->hasMany(Violation::class);
     }
 
-    public function forfeitures()
+    /**
+     * @return HasMany<Forfeitures, $this>
+     */
+    public function forfeitures(): HasMany
     {
         return $this->hasMany(Forfeitures::class);
     }
 
-    public function employment_records()
+    /**
+     * @return HasMany<EmploymentRecord, $this>
+     */
+    public function employment_records(): HasMany
     {
         return $this->hasMany(EmploymentRecord::class);
     }
 
-    public function driver_documents()
+    /**
+     * @return HasOne<DriverDocument, $this>
+     */
+    public function driver_documents(): HasOne
     {
         return $this->hasOne(DriverDocument::class);
     }
 
-    public function documents()
+    /**
+     * @return HasMany<DriverComplianceDocument, $this>
+     */
+    public function documents(): HasMany
     {
         return $this->hasMany(DriverComplianceDocument::class);
     }

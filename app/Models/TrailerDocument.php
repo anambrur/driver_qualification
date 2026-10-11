@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TrailerDocument extends Model
 {
@@ -19,12 +20,18 @@ class TrailerDocument extends Model
         'expiry_date' => 'date',
     ];
 
-    public function documentType()
+    /**
+     * @return BelongsTo<DocumentType, $this>
+     */
+    public function documentType(): BelongsTo
     {
         return $this->belongsTo(DocumentType::class);
     }
 
-    public function trailer()
+    /**
+     * @return BelongsTo<Trailer, $this>
+     */
+    public function trailer(): BelongsTo
     {
         return $this->belongsTo(Trailer::class);
     }
@@ -65,7 +72,7 @@ class TrailerDocument extends Model
             return null;
         }
 
-        return Carbon::today()->diffInDays(Carbon::parse($this->expiry_date), false);
+        return (int) Carbon::today()->diffInDays(Carbon::parse($this->expiry_date), false);
     }
 
     /**

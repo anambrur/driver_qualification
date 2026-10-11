@@ -51,3 +51,11 @@ None. `tests/Feature/Auth/*` and `tests/Feature/ProfileTest.php` are the module'
 
 - No migrations.
 - No config changes.
+
+## Decision follow-up: PO-17
+
+Decided 2026-10-11: option B. Q2: only company owners see the option.
+
+- `ProfileController::destroy()` returns 403 unless the user is a company owner (`company` role, not super-admin, owns a company). After the password check, it sets the user and their company `inactive`, logs out and keeps every row. This matches PO-13.
+- `profile/edit.blade.php` includes the section only when `$canCloseAccount`. `delete-user-form.blade.php` now reads "Close Account" and explains that data is kept.
+- Tests: `AuthModuleTest.php`. The pinning test became `deactivates the owner and the company and keeps its drivers (decided PO-17, 2026-10-11)`; added password, sub-user/super-admin 403 and visibility tests. `tests/Feature/ProfileTest.php` ("user can close their account, which deactivates it") expects `inactive` instead of a deleted row.

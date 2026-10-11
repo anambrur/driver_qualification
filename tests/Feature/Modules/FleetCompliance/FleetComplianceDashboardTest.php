@@ -28,7 +28,7 @@ beforeEach(function () {
  */
 function fcmpDashboardRows($test, User $user, string $assetType): array
 {
-    return $test->actingAs($user)->get(route('admin.compliance.fleet'))->assertOk()->viewData($assetType.'s');
+    return $test->actingAs($user)->get(route('admin.compliance.fleet'))->assertOk()->viewData($assetType.'s')->items();
 }
 
 describe('FCMP-04: compliance status', function () {
@@ -125,6 +125,7 @@ describe('FCMP-03: query budget', function () {
                     ['id' => $without->id, 'unit_no' => 'B2', 'has_document' => false],
                 ],
                 'document_type_name' => $type->name,
+                'company' => ['id' => $owner->company->id, 'name' => $owner->company->company_name],
                 'total' => 2,
             ]);
     })->with([
