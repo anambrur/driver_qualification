@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('trailer_documents', function (Blueprint $table) {
             $table->id();
             $table->foreignId('trailer_id')->constrained('trailers')->onDelete('cascade');
-            $table->foreignId('document_type_id')->constrained('document_types')->onDelete('cascade');
+            $table->foreignId('document_type_id')->constrained('document_types')->restrictOnDelete();
             $table->date('expiry_date');
             $table->string('description')->nullable();
             $table->string('file_path')->nullable();

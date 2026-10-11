@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('service_log_category', function (Blueprint $table) {
             $table->id();
             $table->foreignId('service_log_id')->constrained()->onDelete('cascade');
-            $table->foreignId('maintenance_category_id')->constrained()->onDelete('cascade');
+            $table->foreignId('maintenance_category_id')->constrained()->restrictOnDelete();
             $table->timestamps();
 
             // Prevent duplicate entries

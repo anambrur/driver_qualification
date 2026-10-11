@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('driver_compliance_documents', function (Blueprint $table) {
             $table->id();
             $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
-            $table->foreignId('document_type_id')->constrained('document_types')->onDelete('cascade');
+            $table->foreignId('document_type_id')->constrained('document_types')->restrictOnDelete();
             $table->date('file_date')->nullable();
             $table->date('expiry_date')->nullable();
             $table->string('description')->nullable();

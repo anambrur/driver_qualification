@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('asset_groups', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('company_id')->constrained('companies')->cascadeOnDelete();
+
             // Basic Information (from screenshot)
             $table->string('group_name');
 
@@ -41,6 +43,7 @@ return new class extends Migration
             // Indexes
             $table->index('group_name');
             $table->index('status');
+            $table->index(['company_id', 'group_name']);
         });
     }
 

@@ -15,12 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             // Trailer Information - Required
-            $table->string('unit_no')->unique();
-            $table->string('vin', 17)->unique();
+            $table->string('unit_no');
+            $table->string('vin', 17);
             $table->year('year');
             $table->string('make');
             $table->string('model');
-            $table->foreignId('equipment_types_id')->constrained('equipment_types')->onDelete('cascade');
+            $table->foreignId('equipment_types_id')->constrained('equipment_types')->restrictOnDelete();
             $table->string('owned_by')->nullable();
 
             // Trailer Details - Optional
@@ -28,7 +28,7 @@ return new class extends Migration
             $table->string('title_no')->nullable();
             $table->string('tire_size')->nullable();
             $table->integer('gvw')->nullable()->comment('Gross Vehicle Weight in lbs');
-            $table->foreignId('vehicle_group_id')->nullable()->constrained('vehicle_groups')->onDelete('cascade');
+            $table->foreignId('vehicle_group_id')->nullable()->constrained('vehicle_groups')->restrictOnDelete();
             // Notes
             $table->text('notes')->nullable();
 
@@ -39,6 +39,8 @@ return new class extends Migration
             // Indexes
             $table->index('unit_no');
             $table->index('vin');
+            $table->unique(['company_id', 'unit_no']);
+            $table->unique(['company_id', 'vin']);
         });
     }
 

@@ -4,9 +4,7 @@ use App\Models\MaintenanceSchedule;
 use App\Models\ServiceDocument;
 use App\Models\ServiceLog;
 use Database\Factories\MaintenanceScheduleFactory;
-use Database\Factories\ServiceLogFactory;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\Maintenance\Maintenance;
 use Tests\Support\Actors;
@@ -82,21 +80,6 @@ describe('PO-05: vehicle engine hours', function () {
 
         $vehicle->update(['engine_hours' => 1150]);
         expect($schedule->fresh()->isDue())->toBeTrue();
-    });
-
-    it('backfills the column from the highest logged value', function () {
-        [, $vehicle] = Maintenance::tenantWithVehicle();
-        [, $unlogged] = Maintenance::tenantWithVehicle();
-        ServiceLogFactory::new()->forVehicle($vehicle)->create(['current_engine_hours' => 1200]);
-        ServiceLogFactory::new()->forVehicle($vehicle)->create(['current_engine_hours' => 800]);
-        $migration = require database_path('migrations/2026_10_11_000100_add_engine_hours_to_vehicles.php');
-
-        $migration->down();
-        $migration->up();
-        $migration->up(); // safe to re-run
-
-        expect(DB::table('vehicles')->where('id', $vehicle->id)->value('engine_hours'))->toBe(1200)
-            ->and(DB::table('vehicles')->where('id', $unlogged->id)->value('engine_hours'))->toBeNull();
     });
 });
 

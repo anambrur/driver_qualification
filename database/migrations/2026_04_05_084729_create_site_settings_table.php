@@ -25,6 +25,13 @@ return new class extends Migration
             $table->string('meta_title')->nullable();
             $table->text('meta_description')->nullable();
             $table->text('meta_keywords')->nullable();
+            $table->string('google_analytics_id')->nullable();
+
+            // Tawk.to live chat
+            $table->boolean('tawk_enabled')->default(false);
+            $table->string('tawk_property_id')->nullable();
+            $table->string('tawk_widget_id')->nullable();
+            $table->longText('tawk_widget_code')->nullable();
             $table->timestamps();
         });
     }

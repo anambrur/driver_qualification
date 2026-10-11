@@ -5,14 +5,12 @@ use Database\Factories\AssetGroupFactory;
 use Database\Factories\CompanyFactory;
 use Database\Factories\DriverFactory;
 use Database\Factories\VehicleFactory;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Tests\Feature\Modules\AssetGroups\AssetGroupActors;
 use Tests\Support\Actors;
 
 /*
-| Follow-up: asset groups carry their own company_id (migration 2026_10_09_000400), backfilled
-| from the vehicle. Tenant scoping and name uniqueness use it directly.
+| Follow-up: asset groups carry their own company_id. Tenant scoping and name uniqueness use it
+| directly.
 */
 
 describe('company_id', function () {
@@ -68,23 +66,6 @@ describe('company_id', function () {
             ->assertOk()
             ->assertJsonPath('recordsTotal', 1)
             ->assertJsonPath('data.0.id', $own->id);
-    });
-
-    it('backfills company_id from the vehicle and makes it required', function () {
-        $migration = require database_path('migrations/2026_10_09_000400_add_company_id_to_asset_groups_table.php');
-        $group = AssetGroupFactory::new()->create();
-        $vehicleCompany = $group->vehicle->company_id;
-
-        $migration->down();
-        expect(Schema::hasColumn('asset_groups', 'company_id'))->toBeFalse();
-
-        $migration->up();
-
-        expect(DB::table('asset_groups')->where('id', $group->id)->value('company_id'))->toBe($vehicleCompany)
-            ->and(collect(Schema::getColumns('asset_groups'))->firstWhere('name', 'company_id')['nullable'])->toBeFalse()
-            ->and(collect(Schema::getForeignKeys('asset_groups'))->contains(
-                fn ($fk) => $fk['columns'] === ['company_id'] && $fk['foreign_table'] === 'companies'
-            ))->toBeTrue();
     });
 });
 

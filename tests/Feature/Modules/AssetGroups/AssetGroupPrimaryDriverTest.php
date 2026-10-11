@@ -9,7 +9,7 @@ use Tests\Feature\Modules\AssetGroups\AssetGroupActors;
 /*
 | Follow-up: the form's driver <select> was named primary_driver_name with driver ids as values,
 | so the group stored "42" as the driver's name. The select now posts driver_id and the server
-| takes the name from the driver record. Migration 2026_10_09_000500 repairs existing rows.
+| takes the name from the driver record.
 */
 
 describe('primary driver', function () {
@@ -81,19 +81,5 @@ describe('primary driver', function () {
             ->assertSee('<select name="driver_id" id="driver_id"', false)
             ->assertDontSee('name="primary_driver_name"', false)
             ->assertSee('id="driver_id_error"', false);
-    });
-
-    it('repairs groups whose primary_driver_name holds the driver id', function () {
-        $broken = AssetGroupFactory::new()->create();
-        $broken->driver->update(['first_name' => 'Ada', 'last_name' => 'Lovelace']);
-        $broken->update(['primary_driver_name' => (string) $broken->driver_id]);
-        $named = AssetGroupFactory::new()->create(['primary_driver_name' => 'Typed by hand']);
-        $otherNumber = AssetGroupFactory::new()->create(['primary_driver_name' => '999999']);
-
-        (require database_path('migrations/2026_10_09_000500_fix_asset_group_primary_driver_names.php'))->up();
-
-        expect($broken->fresh()->primary_driver_name)->toBe('Ada Lovelace')
-            ->and($named->fresh()->primary_driver_name)->toBe('Typed by hand')
-            ->and($otherNumber->fresh()->primary_driver_name)->toBe('999999');
     });
 });

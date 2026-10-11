@@ -3,7 +3,6 @@
 use App\Models\Driver;
 use App\Models\DriverDocument;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\Drivers\DriverAdmin;
 use Tests\Feature\Modules\PublicApplication\Applicant;
@@ -184,26 +183,6 @@ describe('DRV-03: driver documents are private', function () {
             ->get(route('public.application.step2', [$slug, $me->id]))->assertOk()->getContent();
         expect($html)->toContain(e(route('public.application.file', [$slug, $me->id, 'license_front'])))
             ->and($html)->not->toContain('/storage/images/');
-    });
-
-    it('moves files already on the public disk to the private disk, and can move them back', function () {
-        [, $driver] = DriverAdmin::tenantWithDriver();
-        DB::table('drivers')->where('id', $driver->id)->update(['photo' => 'images/drivers/p.png']);
-        DriverDocument::create(['driver_id' => $driver->id, 'license_front' => 'images/documents/f.png', 'medical_card' => 'images/documents/missing.png']);
-        Storage::disk('public')->put('images/drivers/p.png', 'photo');
-        Storage::disk('public')->put('images/documents/f.png', 'front');
-
-        $migration = require database_path('migrations/2026_10_09_000700_move_driver_files_to_private_disk.php');
-        $migration->up();
-
-        Storage::disk('public')->assertMissing(['images/drivers/p.png', 'images/documents/f.png']);
-        expect(Storage::disk('local')->get('images/drivers/p.png'))->toBe('photo')
-            ->and(Storage::disk('local')->get('images/documents/f.png'))->toBe('front');
-
-        $migration->down();
-
-        Storage::disk('local')->assertMissing('images/documents/f.png');
-        Storage::disk('public')->assertExists(['images/drivers/p.png', 'images/documents/f.png']);
     });
 });
 

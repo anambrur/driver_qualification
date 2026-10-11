@@ -15,12 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             // Vehicle Information - Required
-            $table->string('unit_no')->unique();
-            $table->string('vin', 17)->unique();
+            $table->string('unit_no');
+            $table->string('vin', 17);
             $table->year('year');
             $table->string('make');
             $table->string('model');
-            $table->foreignId('vehicle_type_id')->nullable()->constrained('vehicle_types')->onDelete('cascade');
+            $table->foreignId('vehicle_type_id')->nullable()->constrained('vehicle_types')->restrictOnDelete();
             $table->string('owned_by')->nullable();
 
             // Vehicle Details - Optional
@@ -28,11 +28,12 @@ return new class extends Migration
             $table->string('title_no')->nullable();
             $table->string('tire_size')->nullable();
             $table->bigInteger('odometer')->default(0);
+            $table->unsignedInteger('engine_hours')->nullable();
             $table->integer('gvw')->nullable()->comment('Gross Vehicle Weight in lbs');
-            $table->foreignId('vehicle_group_id')->nullable()->constrained('vehicle_groups')->onDelete('cascade');
+            $table->foreignId('vehicle_group_id')->nullable()->constrained('vehicle_groups')->restrictOnDelete();
 
             // Engine & Drivetrain - Optional
-            $table->foreignId('fuel_type_id')->nullable()->constrained('fuel_types')->onDelete('cascade');
+            $table->foreignId('fuel_type_id')->nullable()->constrained('fuel_types')->restrictOnDelete();
             $table->string('engine_type')->nullable();
             $table->string('transmission')->nullable();
             $table->string('suspension')->nullable();
@@ -52,6 +53,8 @@ return new class extends Migration
             // Indexes
             $table->index('unit_no');
             $table->index('vin');
+            $table->unique(['company_id', 'unit_no']);
+            $table->unique(['company_id', 'vin']);
         });
     }
 

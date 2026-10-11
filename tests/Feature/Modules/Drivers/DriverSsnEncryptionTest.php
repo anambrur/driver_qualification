@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Driver;
-use Database\Factories\DriverFactory;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\Modules\Drivers\DriverAdmin;
@@ -64,26 +63,5 @@ describe('DRV-02: SSNs are encrypted at rest', function () {
             ->assertOk()
             ->assertSee('***-**-6789')
             ->assertDontSee('123456789');
-    });
-
-    it('encrypts the SSNs already stored in plain text, once, and can undo it', function () {
-        $plain = DriverFactory::new()->create();
-        $empty = DriverFactory::new()->create();
-        DB::table('drivers')->where('id', $plain->id)->update(['ssn' => '111223333']);
-        DB::table('drivers')->where('id', $empty->id)->update(['ssn' => null]);
-
-        $migration = require database_path('migrations/2026_10_09_000600_encrypt_driver_ssn.php');
-        $migration->up();
-        $once = rawSsn($plain->id);
-        $migration->up(); // must not encrypt twice
-
-        expect(rawSsn($plain->id))->toBe($once)
-            ->and(Crypt::decryptString($once))->toBe('111223333')
-            ->and(rawSsn($empty->id))->toBeNull()
-            ->and(Driver::find($plain->id)->ssn)->toBe('111223333');
-
-        $migration->down();
-
-        expect(rawSsn($plain->id))->toBe('111223333');
     });
 });

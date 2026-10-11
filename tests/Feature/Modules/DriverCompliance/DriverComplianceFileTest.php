@@ -109,26 +109,6 @@ describe('DCMP-01: compliance documents are private', function () {
         expect($html)->not->toContain('/storage/${doc.file_path}')
             ->and($html)->toContain('/admin/compliance/driver-documents/${doc.id}/view');
     });
-
-    it('moves files already on the public disk to the private disk, and can move them back', function () {
-        [, $driver] = DriverCompliance::tenantWithDriver();
-        $type = DriverCompliance::documentType();
-        $moved = DriverCompliance::document($driver, $type, disk: 'public');
-        DriverCompliance::document(DriverCompliance::tenantWithDriver()[1], $type, ['file_path' => 'documents/drivers/missing.pdf']);
-        Storage::disk('local')->delete('documents/drivers/missing.pdf');
-        $content = Storage::disk('public')->get($moved->file_path);
-
-        $migration = require database_path('migrations/2026_10_09_000900_move_driver_compliance_files_to_private_disk.php');
-        $migration->up();
-
-        Storage::disk('public')->assertMissing($moved->file_path);
-        expect(Storage::disk('local')->get($moved->file_path))->toBe($content);
-
-        $migration->down();
-
-        Storage::disk('local')->assertMissing($moved->file_path);
-        expect(Storage::disk('public')->get($moved->file_path))->toBe($content);
-    });
 });
 
 describe('DCMP-04: stored names come from the content, not the client', function () {

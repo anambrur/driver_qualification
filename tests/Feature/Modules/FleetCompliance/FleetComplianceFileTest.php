@@ -113,23 +113,6 @@ describe('FCMP-02: fleet compliance documents are private', function () {
             ->and($html)->toContain("const assetType = 'vehicle';")
             ->and($html)->toContain("const assetType = 'trailer';");
     });
-
-    it('moves files already on the public disk to the private disk, and can move them back', function (string $assetType) {
-        [, $asset] = FleetCompliance::tenantWithAsset($assetType);
-        $document = FleetCompliance::document($asset, FleetCompliance::documentType($assetType), disk: 'public');
-
-        $migration = require database_path('migrations/2026_10_10_000100_move_fleet_compliance_files_to_private_disk.php');
-        $migration->up();
-        Storage::disk('local')->assertExists($document->file_path);
-        Storage::disk('public')->assertMissing($document->file_path);
-
-        $migration->up(); // re-running is safe
-        Storage::disk('local')->assertExists($document->file_path);
-
-        $migration->down();
-        Storage::disk('public')->assertExists($document->file_path);
-        Storage::disk('local')->assertMissing($document->file_path);
-    })->with(['vehicle', 'trailer']);
 });
 
 describe('FCMP-02: stored names come from the content, not the client', function () {

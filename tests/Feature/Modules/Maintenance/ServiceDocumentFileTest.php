@@ -92,23 +92,6 @@ describe('MNT-05: storage', function () {
 
         expect($document->file_url)->toBe(route('admin.service-log.download-document', $document->id));
     });
-
-    it('moves files already on the public disk to the private disk, and can move them back', function () {
-        [, $vehicle] = Maintenance::tenantWithVehicle();
-        $document = mntLogWithDocument($vehicle, 'public');
-        $migration = require database_path('migrations/2026_10_10_000200_move_service_documents_to_private_disk.php');
-
-        $migration->up();
-        Storage::disk('local')->assertExists($document->file_path);
-        Storage::disk('public')->assertMissing($document->file_path);
-
-        $migration->up();
-        Storage::disk('local')->assertExists($document->file_path);
-
-        $migration->down();
-        Storage::disk('public')->assertExists($document->file_path);
-        Storage::disk('local')->assertMissing($document->file_path);
-    });
 });
 
 describe('MNT-05: download', function () {

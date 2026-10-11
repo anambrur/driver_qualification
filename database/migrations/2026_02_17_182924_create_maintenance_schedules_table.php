@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             $table->foreignId('vehicle_id')->nullable()->constrained('vehicles')->onDelete('cascade');
-            $table->foreignId('maintenance_category_id')->constrained('maintenance_categories')->onDelete('cascade');
+            $table->foreignId('maintenance_category_id')->constrained('maintenance_categories')->restrictOnDelete();
 
             // Basic Information
             $table->string('title')->nullable();

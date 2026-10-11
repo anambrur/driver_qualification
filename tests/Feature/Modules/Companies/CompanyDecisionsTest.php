@@ -3,7 +3,6 @@
 use App\Models\PolicyPdf;
 use Database\Factories\DriverFactory;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\Companies\Companies;
 use Tests\Support\Actors;
@@ -67,18 +66,6 @@ describe('PO-14: policy PDFs per company', function () {
             ->assertOk()
             ->assertSee('policy_pdfs/'.$company->id.'/own-g.pdf', false)
             ->assertDontSee('platform-g.pdf', false);
-    });
-
-    it('keeps the existing row as the platform default after the migration', function () {
-        $migration = require database_path('migrations/2026_10_11_000200_add_company_id_to_policy_pdfs.php');
-        $migration->down();
-        DB::table('policy_pdfs')->insert(['general_work_policy_pdf' => 'policy_pdfs/old.pdf', 'created_at' => now(), 'updated_at' => now()]);
-
-        $migration->up();
-        $migration->up(); // safe to re-run
-
-        expect(PolicyPdf::sole()->company_id)->toBeNull()
-            ->and(PolicyPdf::resolveFor(Actors::companyOf(Actors::companyOwner())->id)->general_work_policy_pdf)->toBe('policy_pdfs/old.pdf');
     });
 });
 

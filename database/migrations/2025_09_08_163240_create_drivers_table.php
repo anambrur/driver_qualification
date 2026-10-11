@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('ssn')->nullable(); // Encrypted in real application
             $table->string('main_phone')->nullable();
             $table->string('alt_phone')->nullable();
-            $table->string('email')->nullable()->unique();
+            $table->string('email')->nullable();
             $table->date('medical_certificate_expiration_date')->nullable();
             $table->text('photo')->nullable();
 
@@ -50,7 +50,8 @@ return new class extends Migration
 
 
             // Status
-            $table->enum('status', ['draft', 'active', 'inactive', 'pending', 'submitted', 'under_review', 'approved', 'rejected'])->default('draft');
+            $table->enum('status', ['draft', 'active', 'inactive', 'pending', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn'])->default('draft');
+            $table->timestamp('withdrawn_at')->nullable();
 
 
             $table->enum('hazmat', ['yes', 'no'])->nullable();
@@ -71,16 +72,19 @@ return new class extends Migration
 
             // Optional: Add timestamps for hire actions
             $table->timestamp('hired_at')->nullable();
+            $table->date('hire_date')->nullable();
             $table->timestamp('rejected_at')->nullable();
             $table->foreignId('action_by')->nullable()->constrained('users')->after('rejected_at');
 
             $table->string('source')->default('admin')->comment('admin, public_application');
 
             $table->timestamps();
+            $table->softDeletes();
 
             // Indexes
             $table->index(['company_id', 'status']);
             $table->index(['user_id', 'company_id']);
+            $table->unique(['company_id', 'email']);
         });
     }
 
