@@ -6,16 +6,16 @@ This assessment covers what the application is today, at commit `d1d4d8d` (11 Oc
 
 | Area | Today |
 |---|---|
-| Framework | Laravel 12, PHP 8.2 (`composer.json`) |
+| Framework | Laravel 13, PHP 8.3+ (`composer.json`) |
 | Database | MySQL in `.env` / `.env.example`. Tests run on SQLite `:memory:` (`phpunit.xml`). |
-| Authorization | `spatie/laravel-permission` 6.25 with **teams off** (`config/permission.php`). Three global roles: `super-admin`, `company`, `user` (`database/seeders/PermissionSeeder.php`). |
+| Authorization | `spatie/laravel-permission` 8.x with **teams off** (`config/permission.php`). Three global roles: `super-admin`, `company`, `user` (`database/seeders/PermissionSeeder.php`). |
 | Billing | `stripe/stripe-php` called directly, not Cashier (`app/Services/Stripe/*`) |
 | UI | Blade, server-rendered tables via `yajra/laravel-datatables-oracle`, Toastr flash messages |
 | Background work | `database` queue. Queued mailables and notifications. Scheduled jobs in `routes/console.php`: subscription expiry reminders at 09:00, compliance digest at 09:30, closing expired trials at 10:00, OTP pruning. |
 | SMS | Vonage, used for applicant OTP and subscription-expiry SMS (`app/Services/OTPService.php`, `SmsService.php`) |
 | Files | Private `local` disk for driver, compliance and service documents. Public disk for company logos, policy PDFs and site branding. |
 | Routes | `routes/web.php` and `routes/auth.php` only. There is no `routes/api.php`. |
-| Tests | Pest, 1,081 passing after run 21 (`docs/testing/PRODUCT_DECISIONS.md` rule 1.7). Module suites live in `tests/Feature/Modules/*`. |
+| Tests | Pest 4, 1,184 passing after the Laravel 13 upgrade (`docs/testing/PRODUCT_DECISIONS.md` rule 1.7). Module suites live in `tests/Feature/Modules/*`. |
 
 ## 2. Modules that exist
 
@@ -63,7 +63,7 @@ Ranked by impact on the multi-tenant target.
 | R4 | **The super-admin bypasses tenant isolation silently.** The trait returns unfiltered queries for super-admins. Product decisions PO-02, PO-07 and PO-08 build on this. | `CompanyFilterTrait.php:97,119`; `VehicleController.php:447-456`; `DashboardController.php:99` | No audit trail of platform staff reading tenant data |
 | R5 | **Isolation is controller-only.** There are no global scopes and no policies. `DB::table`, `fromSub` and `unique:` / `exists:` rules are never scoped. | `DriverComplianceService.php:137-204`, `FleetComplianceService.php:34-113`, `DriverCrudService.php:175` | Every new query must remember to filter. New modules (trips, API) raise the risk. |
 | R11 | **Company-level actions are only permission-gated.** `CompanyController::index` lists every company and `destroy` has no ownership check. | `CompanyController.php:25,356-392` | Safe only while the seeded `company` role lacks `companies.view` and `companies.delete` |
-| R12 | **Tenant context state can leak.** The trait memoizes the tenant per controller instance (a cross-tenant leak under Octane). With teams on, Spatie's team id lives in a singleton that survives across queued jobs. | `CompanyFilterTrait.php:10-34`; `vendor/spatie/laravel-permission/src/PermissionRegistrar.php:102-116` | Must be handled by the request and job tenant middleware |
+| R12 | **Tenant context state can leak.** The trait memoizes the tenant per controller instance (a cross-tenant leak under Octane). With teams on, Spatie's team id lives in a singleton that survives across queued jobs. | `CompanyFilterTrait.php:10-34`; `vendor/spatie/laravel-permission/src/PermissionRegistrar.php:105-113` | Must be handled by the request and job tenant middleware |
 
 ### Data and billing
 

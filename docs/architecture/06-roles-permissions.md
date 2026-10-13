@@ -15,8 +15,8 @@ This decision rests on a load test at 2,000 and 5,000 companies (section 2). A c
 
 ### 2.1 How stock Spatie checks a permission [V]
 
-1. `hasPermissionTo()` → `hasPermissionViaRole()` → `$this->hasRole($permission->roles)` (`Traits/HasPermissions.php:308-314`).
-2. `$permission->roles` comes from the registrar's cache. That cache holds **every permission together with every role, in every team, that has it** (`PermissionRegistrar.php:302-367`, `getPermissionsWithRoles()` = `Permission::with('roles')`).
+1. `hasPermissionTo()` → `hasPermissionViaRole()` → `$this->hasRole($permission->roles)` (`Traits/HasPermissions.php:301-308`).
+2. `$permission->roles` comes from the registrar's cache. That cache holds **every permission together with every role, in every team, that has it** (`PermissionRegistrar.php:296-299` and `331-368`, `getPermissionsWithRoles()` = `Permission::with('roles')`).
 3. With teams, the role list per permission therefore grows with the number of companies. The whole payload is read and unserialized on every request that checks a permission.
 4. Any change to a role's permissions, in any company, clears the cache for everyone. The next request rebuilds it.
 
@@ -24,7 +24,7 @@ This decision rests on a load test at 2,000 and 5,000 companies (section 2). A c
 
 **Script:** `docs/architecture/spikes/permission-scale-spike.php`. It is standalone and ran against a throwaway MySQL database that has since been dropped.
 
-**Environment:** MySQL 9.3.0 and PHP 8.3 on an Apple-silicon laptop, with Laravel 12 and Spatie 6.25 taken from this repository.
+**Environment:** MySQL 9.3.0 and PHP 8.3 on an Apple-silicon laptop, with Laravel 12 and Spatie 6.25 taken from this repository at the time. The app has since moved to Laravel 13 and Spatie 8.3.0. The functional and isolation checks were re-run on Spatie 8 (section 2.7); the timing and memory figures were not and still describe 6.25.
 
 **Data per company:** 7 system roles, 110 permissions and 7 users, shaped like the catalogue in section 5.
 
@@ -86,8 +86,38 @@ Stock `hasPermissionTo()` then returns **false**, because it fails closed. It mu
 
 ### 2.6 Constraints found during the spike [V]
 
-- Spatie binds its registrar in `PermissionServiceProvider::boot()` (`PermissionServiceProvider.php:43`), not in `register()`. The override must therefore be bound **after** providers boot, in `AppServiceProvider::boot()`. Binding it in `register()` has no effect.
+- Spatie binds its registrar in `PermissionServiceProvider::boot()` (`PermissionServiceProvider.php:59`, in `packageBooted()`, which runs inside `boot()`), not in `register()`. The override must therefore be bound **after** providers boot, in `AppServiceProvider::boot()`. Binding it in `register()` has no effect.
 - Turn off Spatie's own Gate hook (`register_permission_check_method = false`). Otherwise its `Gate::before` would call stock `checkPermissionTo` before the app's checks.
+
+### 2.7 Spatie 8 upgrade check [V]
+
+The app moved from Spatie 6.25 to **8.3.0** (with Laravel 13). I read the upgrade guide, diffed `src/` of both versions, and re-ran `spikes/permission-scale-spike.php` (`setup`, `seed 50`, `functional`, `isolation`, `dbfirst 200`) on 8.3.0 in a throwaway MySQL 9.3.0 database, which was dropped afterwards. The upgrade guide does not mention teams or the registrar at all; the findings below come from the source diff.
+
+**Unchanged, so the design still holds**
+
+- `PermissionRegistrar::getPermissionsWithRoles()` is still `protected` with the same signature and body (`:296-299`). `CatalogueRegistrar` can override it as before.
+- Team state is still `setPermissionsTeamId()` / `getPermissionsTeamId()` on the registrar, delegating to `DefaultTeamResolver`. Only the types are stricter (`int|string|Model|null`). `ResolveTenant` and the platform id `0` work unchanged.
+- The `teams`, `team_foreign_key`, `team_resolver`, `register_permission_check_method` and `cache.*` config keys keep their meaning. The Gate hook still runs through `registerPermissions()` and can still be switched off.
+- Migration stub: same tables, same team columns and the same unique/primary keys (`roles` unique on `team_id, name, guard_name`; team column in the `model_has_*` primary keys). Only style changed (`id()`, `cascadeOnDelete()`, `dropIfExists`).
+- Spike results on 8.3.0 match section 2.5: role `team_id` correct, resolver allows and denies the same permissions, stock `hasPermissionTo` with the slim cache is still `false` (so checks must stay routed to the resolver), cross-team pivots are rejected by the composite FK, and the integrity query still finds the stray pivot. `dbfirst`: p50 0.39 ms, p95 1.05 ms at 50 companies (not comparable with the 2,000-company figures).
+
+**Changed, and what to do about it**
+
+| Change in 8.x | Effect here | Action |
+|---|---|---|
+| Registrar singleton now bound in `PermissionServiceProvider::packageBooted()` (`:59`), not `boot()` (`:43`) | None. It still happens during provider boot, so the override must still be bound in `AppServiceProvider::boot()` | Keep the rule; update line refs only |
+| `PermissionRegistrar::initializeCache()` now also calls `clearPermissionsCollection()` and resets `cachedRoles` | Changing cache config at runtime (tests) now discards loaded permissions | None. Keep the cache-reset call in test setup |
+| `clearClassPermissions()` removed | Not used by the app | Use `clearPermissionsCollection()` if ever needed |
+| Events renamed with an `Event` suffix (`RoleAttachedEvent` ...). Commands renamed with a `Command` suffix (signatures unchanged) | Matters only for listeners on `permission.events_enabled` | Use the new names in any audit listener |
+| `Contracts\Role` / `Contracts\Permission`: `findByName()` and `findOrCreate()` take `BackedEnum\|string` | The planned `App\Models\Role` / `Permission` (not created yet) will extend Spatie's models and inherit this. A subclass that overrides these methods must match the new signatures | Match signatures if overridden |
+| `Contracts\PermissionsTeamResolver::setPermissionsTeamId()` is typed (`int\|string\|Model\|null`) | A custom team resolver must match | Only relevant if `TenantPermissionResolver` implements this contract; it does not need to |
+| New `models.team` and `models.default_model` config keys (default `null`); new `teams()` relation, `scopeTeam()` and `scopeWithoutTeam()` on `HasRoles` | The new methods throw `TeamModelNotConfigured` if called without `models.team`; `TeamsNotEnabled` if teams are off | Do not use them unless a `Company` team model is configured. Leave `null` by default |
+| Team-scoped detach: pivot deletes on `roles()` and `permissions()` now add the team key | Safer cross-team behaviour for `removeRole()` / `revokePermissionTo()` | None |
+| Service provider now extends `PackageServiceProvider` (`spatie/laravel-package-tools`); requires PHP 8.3+ and Laravel 12+ | New transitive dependency | None |
+
+The repository's `config/permission.php` is the 6.x published file and lacks the two new keys. Phase 0.5 rewrites that file for teams anyway: publish the 8.x config afresh and re-apply the settings in section 3, and base the edited `create_permission_tables` migration on the 8.x stub.
+
+**Not re-measured:** the 2,000-company load, rebuild-time and Redis figures in 2.1 to 2.4 are 6.25 numbers. The cache serialization code (`:331-368`) changed only in type hints, so the conclusion should hold, but re-run `seed 2000` and `stock database 30` before quoting those numbers for 8.x.
 
 ## 3. Configuration
 

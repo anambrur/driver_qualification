@@ -46,9 +46,9 @@ This document pulls the 14 architecture documents together into one technical vi
 
 | Area | Today [V] | Target |
 |---|---|---|
-| Framework | Laravel 12, PHP 8.2 | Same |
+| Framework | Laravel 13, PHP 8.3+ | Same |
 | Database | MySQL; tests on SQLite `:memory:` | **MySQL 8.0.16+** in production (D7a; CHECK constraints). SQLite stays for the fast suite, plus a **MySQL CI job**. |
-| Authorization | Spatie Permission 6.25, `teams = false`, global roles `super-admin`, `company`, `user` | Spatie with **teams** (`team_id = company_id`, `0` = platform). **Database-first** checks. Legacy roles dropped. |
+| Authorization | Spatie Permission 8.x, `teams = false`, global roles `super-admin`, `company`, `user` | Spatie with **teams** (`team_id = company_id`, `0` = platform). **Database-first** checks. Legacy roles dropped. |
 | Billing | `stripe/stripe-php` called directly, billing owned by the **user** | Same library; billing owned by the **company**; webhook inbox and queued processing |
 | UI | Blade, yajra DataTables, Toastr | Same, plus `/platform` area |
 | API | None (no `routes/api.php`) | `routes/api.php` v1 with **Sanctum** (P3) |
@@ -60,7 +60,7 @@ This document pulls the 14 architecture documents together into one technical vi
 | Push | None | FCM / APNs via `device_tokens` (P3) |
 | Maps | None | Google Maps Platform (P2 web, P3 app) [L] terms and cost |
 | Accounting | None | QuickBooks Online Accounting API (P4) |
-| Tests | Pest, 1,081 passing after run 21 | Same, plus tenancy, authorization, entitlement, limit, integrity and scale suites |
+| Tests | Pest 4, 1,184 passing after the Laravel 13 upgrade | Same, plus tenancy, authorization, entitlement, limit, integrity and scale suites |
 
 ### 1.2 System context
 
@@ -72,7 +72,7 @@ flowchart LR
     DR[Drivers]
     AP[Applicants]
   end
-  subgraph App[DriverFilesHub - Laravel 12]
+  subgraph App[DriverFilesHub - Laravel 13]
     PW["/platform web<br/>guard: platform"]
     TW["Tenant web<br/>guard: web"]
     PUB["Public apply<br/>/{slug}/..."]
@@ -189,7 +189,7 @@ Detail: [architecture/06](architecture/06-roles-permissions.md).
 | Component | Role |
 |---|---|
 | `config/permission.php` | `teams = true`, `team_foreign_key = team_id`, **`register_permission_check_method = false`** |
-| `App\Authorization\CatalogueRegistrar` | Extends `PermissionRegistrar`; `getPermissionsWithRoles()` returns permissions without roles. **Bound in `AppServiceProvider::boot()`** because Spatie binds its registrar in `boot()` (`PermissionServiceProvider.php:43`) [V]. |
+| `App\Authorization\CatalogueRegistrar` | Extends `PermissionRegistrar`; `getPermissionsWithRoles()` returns permissions without roles. **Bound in `AppServiceProvider::boot()`** because Spatie binds its registrar in `boot()` (`PermissionServiceProvider.php:59`, `packageBooted()`, Spatie 8.3.0; see [06](architecture/06-roles-permissions.md) §2.7) [V]. |
 | `App\Authorization\TenantPermissionResolver` | One `UNION` query over `model_has_roles → roles → role_has_permissions → permissions` and `model_has_permissions`, filtered by `team_id = users.company_id` (never request input). Memoised per request in `TenantContext`. No cross-request cache. |
 | `User::hasPermissionTo()` / `PlatformUser::hasPermissionTo()` | Overridden to ask the resolver. `checkPermissionTo`, `hasAnyPermission`, `hasAllPermissions` follow [V]. |
 | Architecture test | Bans reading `$permission->roles` for any authorization decision |
