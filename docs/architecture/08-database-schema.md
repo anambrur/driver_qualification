@@ -52,9 +52,27 @@ Platform staff accounts, behind the `platform` guard ([04](04-platform-administr
 
 The single-row platform configuration [V].
 
+- **Existing columns [V]** (`…084729_create_site_settings_table.php`):
+  - Platform info: `site_name`, `email`, `phone`, `address`;
+  - Branding: `logo`, `favicon`;
+  - Social: `facebook_url`, `twitter_url`, `linkedin_url`;
+  - SEO: `meta_title`, `meta_description`, `meta_keywords`;
+  - Analytics: `google_analytics_id`;
+  - Live chat: `tawk_enabled`, `tawk_property_id`, `tawk_widget_id`, `tawk_widget_code`.
 - **Added columns:**
   - `default_alcohol_drug_test_policy_pdf`, `default_general_work_policy_pdf` (paths; these replace the `policy_pdfs` row with a null `company_id`);
   - `trial_plan_id` (FK `plans`, RESTRICT, null), `trial_days` (default 14), `grace_days` (default 7, decided Q2), `support_session_max_minutes` (default 240).
+- **Added columns, platform identity [R]:**
+  - `legal_name`, `support_email`, `support_phone`, `footer_text`, `terms_url`, `privacy_url`, `timezone` (default `America/Chicago` [A]).
+- **Added columns, theme [R]:**
+  - `primary_color`, `accent_color` (hex), `default_color_mode` enum(light, dark, system), `logo_dark`, `email_logo`.
+  - How the colors reach Tailwind is PENDING (the current Tailwind setup has not been checked).
+- **Added columns, SEO [R]:**
+  - `og_image`, `twitter_card` (default `summary_large_image`), `canonical_base_url`, `robots_noindex_default` (bool), `search_console_verification`.
+  - Public pages are indexable and private pages are `noindex` (skill `seo-checklist`). `robots_noindex_default` only covers pages that set no explicit rule.
+- **Added columns, mail sender [R]:** `mail_from_name`, `mail_from_address`. Whether these replace the `.env` values is PENDING.
+- **Not in `site_settings`:** per-company branding (`companies.logo_path`), sitemap/robots toggles (route-level, [A]) and SMS sender (PENDING, no decision yet).
+- **Migration:** the columns are added by editing the existing consolidated create-table file, not by a new alter migration (decided).
 
 ### `features` (Platform)
 
@@ -892,7 +910,7 @@ Maps local records to external ids.
 | `document_types` and the lookups | Modify | Unique names, `is_active`, `system_key`; trait fix |
 | `plans` | **Split** into `plans` + `plan_prices` (+ `plan_features`) | Prices per interval; entitlements |
 | `subscriptions`, `payments`, `subscription_notification_logs` | Modify (**re-keyed** to company) | Company-owned billing |
-| `site_settings` | Modify | Platform defaults and billing settings |
+| `site_settings` | Modify | Platform defaults, billing settings, platform identity, theme, SEO defaults, mail sender |
 | `countries`, `states`, `otp_verifications`, `notifications`, framework tables | Retain | — |
 | Every new table in sections 3–12 | New | Required by the client and the architecture |
 

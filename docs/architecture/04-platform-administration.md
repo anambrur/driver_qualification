@@ -216,4 +216,10 @@ Tests that flip: `AccessControl/SuperAdminCompanyAttributionTest`, `FleetComplia
   - `default_alcohol_drug_test_policy_pdf` and `default_general_work_policy_pdf`, which replace the `policy_pdfs` row with a null `company_id` ([09](09-erd-audit.md) F12);
   - `trial_plan_id`, `trial_days` and `grace_days`;
   - `support_session_max_minutes`.
+- It also gains the platform owner's basic settings [R], all managed with `platform.settings.manage`:
+  - identity: `legal_name`, `support_email`, `support_phone`, `footer_text`, `terms_url`, `privacy_url`, `timezone`;
+  - theme: `primary_color`, `accent_color`, `default_color_mode`, `logo_dark`, `email_logo`;
+  - SEO defaults: `og_image`, `twitter_card`, `canonical_base_url`, `robots_noindex_default`, `search_console_verification`;
+  - mail sender: `mail_from_name`, `mail_from_address` (PENDING: replaces `.env` or not).
+- Together with the existing site name, logo, favicon, contact, social, meta and analytics fields, the full column list is in [08](08-database-schema.md) §`site_settings`.
 - The PO-14 fallback is unchanged: the company's own file first, then the platform default.
