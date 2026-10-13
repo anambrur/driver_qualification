@@ -1,0 +1,93 @@
+# DriverFilesHub target architecture
+
+This document set describes how DriverFilesHub becomes a company-based, multi-tenant SaaS application. That is the foundation the client's DOT Doc Hub use cases (trips, mobile app, tracking, pay, QuickBooks, messaging) will be built on.
+
+- Status: **decisions applied 13 October 2026**. Ready for Phase 0.
+- Written: 11 October 2026, against commit `d1d4d8d`.
+- Code and migrations have not been changed yet. Implementation follows [13-implementation-roadmap.md](13-implementation-roadmap.md).
+
+## Documents
+
+| # | Document | What it answers |
+|---|---|---|
+| 01 | [Current architecture assessment](01-current-architecture-assessment.md) | What exists today, what is solid, and what is risky, with file references |
+| 02 | [Requirement matrix](02-requirement-matrix.md) | Each client requirement: verified status, the code involved, and the database changes, dependencies and priority it needs |
+| 03 | [Multi-tenant architecture](03-multi-tenant-architecture.md) | How companies are isolated, and where isolation could fail |
+| 04 | [Platform administration](04-platform-administration.md) | Platform Owner, platform staff, support sessions |
+| 05 | [Plans, features and entitlements](05-plans-features-entitlements.md) | How plans decide what a company can use |
+| 06 | [Roles and permissions](06-roles-permissions.md) | Spatie teams per company, escalation rules |
+| 07 | [Subscription and billing](07-subscription-billing.md) | Company-owned subscriptions on Stripe |
+| 08 | [Database schema](08-database-schema.md) | Every table: ownership, keys, constraints, indexes |
+| 09 | [ERD audit](09-erd-audit.md) | Problems in the current schema and how each is fixed |
+| — | [Proposed ERD](../erd-proposed.md) | Mermaid diagrams of the target schema (the current one stays in [../erd.md](../erd.md)) |
+| 10 | [Workflows](10-workflows.md) | End-to-end flows, from registration to purge |
+| 11 | [Migration strategy](11-migration-strategy.md) | Order of migrations, seeders, test changes, verification, rollback |
+| 12 | [Performance plan](12-performance-plan.md) | Prioritised database and application improvements |
+| 13 | [Implementation roadmap](13-implementation-roadmap.md) | Phases, tasks, dependencies, acceptance criteria |
+| 14 | [Decisions and open questions](14-open-questions.md) | Answers from 13 Oct 2026, investigation notes, the few remaining questions |
+| — | [Permission scale spike](spikes/permission-scale-spike.php) | The load-test script behind the permission decision |
+
+## Labels used in every document
+
+| Label | Meaning |
+|---|---|
+| **[V]** | Verified in the repository. A file or line reference is given. |
+| **[R]** | Recommendation |
+| **[A]** | Assumption, not yet verified |
+| **[L]** | Legal, compliance or external-policy item. The client or their counsel must confirm it. |
+| **PENDING** | A business decision that is still open. The documents use the recommended default and say so. |
+
+## Decision log
+
+### Confirmed decisions
+
+| Decision | Source |
+|---|---|
+| There is no real customer data yet. Schema changes go into the existing create-table migrations, and environments are rebuilt with `migrate:fresh --seed`. Once the first production deploy happens, migrations become additive only. | Product owner, 11 Oct 2026; PO-19 |
+| Drivers get their own login, linked to their driver record. | Product owner, 11 Oct 2026 |
+| A user belongs to exactly one company (`users.company_id`). | Product owner, 11 Oct 2026 |
+| Roles and permissions use Spatie Permission with teams turned on (`team_id = company_id`). | Product owner, 11 Oct 2026 |
+| Permission checks are **database-first**: one indexed query per request in the user's own team, with no global role cache. Spatie stays for the schema, management APIs and middleware. Chosen after a load test at 2,000 and 5,000 companies. | Product owner instruction 13 Oct 2026; [06](06-roles-permissions.md) §2 |
+| Platform staff have a separate `platform_users` table and `platform` guard. An email can't be both a platform and a tenant login. | D1b, D3a (13 Oct 2026) |
+| `companies.email` is no longer synced from the owner's login; there is a separate `billing_email`. Part of PO-22 is reversed. | D3b (13 Oct 2026) |
+| The three typed compliance-document tables stay. Production database: MySQL 8.0.16 or later. | D5a, D7a (13 Oct 2026) |
+| PO-02 and PO-07 run in `read_write` support sessions. PO-08 becomes the audited platform Asset Transfer. | D11 (13 Oct 2026) |
+| Support sessions need the company Owner **and** a second Platform Owner. At least two Platform Owners must exist. | Q1 (13 Oct 2026) |
+| A lapsed subscription is read-only, after a 7-day grace period. Plan edits apply immediately (with overrides for grandfathering), downgrades at period end, and lost modules are read-only and exportable. | Q2, Q3 (13 Oct 2026) |
+| The rest of the defaults are confirmed: limits counting (Q4), trial plan (Q5), one load per trip (Q6), folders, PDF conversion and ZIP (Q8), C1, C2, C4–C6, C8–C10. Daily-threshold overtime (C3). | 13 Oct 2026; [14](14-open-questions.md) |
+| Lookups (vehicle types, fuel types, equipment types, vehicle groups, maintenance categories, document types) are global, and only platform staff edit them. | LKP-01 |
+| Driver email is unique per company. | APP-07 |
+| VIN and unit number are unique per company. | PO-10, FLT-02 |
+| Companies and owners are deactivated, never cascade-deleted. | PO-13, PO-17 |
+| Policy PDFs are per company, with a platform default as fallback. | PO-14 |
+| One free trial per verified email. | PO-15 |
+| The Stripe account is shared with another app, so events with a foreign `app_host` are ignored. | PO-18 |
+| Every other answered item in [../testing/PRODUCT_DECISIONS.md](../testing/PRODUCT_DECISIONS.md) | PO-01 … PO-22 |
+
+### Rules this document set supersedes
+
+| Rule | New rule | Why |
+|---|---|---|
+| PRODUCT_DECISIONS rule 1.6: "new migrations only, never edit an existing one" | Until the first production deploy, edit the create-table migrations; after it, additive only | The product owner confirmed there is no data. Commit `d1d4d8d` already consolidated the migrations. |
+
+### Decisions still open
+
+[14-open-questions.md](14-open-questions.md) §3:
+- Co-driver on asset groups (the default `co_driver_id` is kept).
+- The client's empty requirement bullet (C7). Investigated: there is no hidden text, so ask the client.
+- Retention periods [L].
+- Scheduler and Octane confirmation (PO-20).
+
+## Glossary
+
+| Term | Meaning |
+|---|---|
+| Tenant / company | One carrier account, a `companies` row. Every tenant record belongs to exactly one company. |
+| Platform | The SaaS operator: Platform Owner and platform staff. They have their own `platform_users` table and `platform` guard. |
+| Owner | The tenant user in `companies.owner_user_id`. Holds the system Owner role and is the billing account holder. |
+| Driver user | A tenant user linked to a `drivers` row through `drivers.user_id`. Holds the system Driver role. |
+| Feature | A capability listed in the code feature registry and synced to the `features` table: a module (e.g. `trips`) or a limit (e.g. `max_drivers`). |
+| Entitlement | What a company may use. Comes from its plan, adjusted by platform overrides. |
+| Access state | `full`, `grace`, `read_only` or `blocked`, worked out from the company status and its subscription. |
+| Support session | Time-limited, approved and audited access by platform staff to one company's data. |
+| DQ file | The driver qualification file 49 CFR 391.51 requires a carrier to keep for each driver. |
