@@ -13,10 +13,11 @@ Laravel 13, PHP 8.3+, Spatie permission (teams), Pest, Larastan lvl 5, Pint, Str
 
 ## Rules
 - Every query on tenant data must be company-scoped. Every route authorized.
+- SEO: for any page/layout/route change, decide public vs private first (private = noindex). See skill `seo-checklist`.
 - Review before implementation: label claims with evidence, mark unknowns PENDING, get approval before final artifacts or code.
 - Read only the files you need; do not scan the repo or `vendor/`, `node_modules/`.
 - Match surrounding code style. No speculative abstractions, no extra docs/comments.
 - Before finishing PHP changes: run `quality-gate` skill steps on changed files only.
 
 ## Skills (load on demand)
-laravel-conventions, repository-service-pattern, multi-tenant-safety, security-checklist, db-performance, pest-testing, quality-gate, queue-and-jobs
+laravel-conventions, repository-service-pattern, multi-tenant-safety, security-checklist, db-performance, pest-testing, quality-gate, queue-and-jobs, seo-checklist

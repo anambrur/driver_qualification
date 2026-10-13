@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Create Account — {{ config('app.name', 'Laravel') }}</title>
+    <x-seo title="Create Account — {{ config('app.name', 'Laravel') }}" description="Create your account to start managing driver qualification files and stay DOT audit-ready." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">

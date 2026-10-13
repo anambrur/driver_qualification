@@ -34,11 +34,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
 
+Route::get('robots.txt', [\App\Http\Controllers\SeoController::class, 'robots'])->name('seo.robots');
+Route::get('sitemap.xml', [\App\Http\Controllers\SeoController::class, 'sitemap'])->name('seo.sitemap');
+
 Route::get('/', function () {
     $plans = \App\Models\Plan::active()->ordered()->get();
 
     return view('welcome', compact('plans'));
-});
+})->name('home');
 
 
 // New and lapsed accounts are sent to pricing (PO-16); super-admins pass `Subscribed`

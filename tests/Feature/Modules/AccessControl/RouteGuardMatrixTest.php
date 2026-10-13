@@ -18,6 +18,9 @@ const ACL_PUBLIC_ROUTES = [
     // Landing page and health check.
     'GET /',
     'GET up',
+    // SEO files: public by design (config/seo.php).
+    'GET robots.txt',
+    'GET sitemap.xml',
     // Laravel's local-disk file routes: they only serve signed temporary URLs.
     'GET storage/{path}',
     'PUT storage/{path}',

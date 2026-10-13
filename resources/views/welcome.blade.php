@@ -5,20 +5,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
-    <!-- Dynamic Primary SEO Elements -->
-    <title>{{ settings('meta_title', settings('site_name', 'Driver Qualification Platform')) }} — Always Audit-Ready</title>
-    <meta name="description" content="{{ settings('meta_description', 'Complete Driver Qualification File management platform. Stay DOT audit-ready with automated tracking, expiration alerts, and digital document management.') }}">
-    <meta name="keywords" content="{{ settings('meta_keywords', 'driver qualification, DOT compliance, fleet management, trucking software') }}">
-    
-    <!-- Open Graph (Facebook/LinkedIn) -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:title" content="{{ settings('meta_title', settings('site_name', 'Driver Qualification Platform')) }}">
-    <meta property="og:description" content="{{ settings('meta_description', 'Complete Driver Qualification File management platform. Stay DOT audit-ready with automated tracking.') }}">
-    @if(settings('logo'))
-        <meta property="og:image" content="{{ asset('storage/' . settings('logo')) }}">
-    @endif
-    
+    <!-- SEO: title, description, canonical, Open Graph, Twitter, JSON-LD (see app/Support/Seo.php) -->
+    @php
+        $seoTitle = settings('meta_title', settings('site_name', 'Driver Qualification Platform')).' — Always Audit-Ready';
+        $seoDescription = settings('meta_description', 'Complete Driver Qualification File management platform. Stay DOT audit-ready with automated tracking, expiration alerts, and digital document management.');
+    @endphp
+    <title>{{ $seoTitle }}</title>
+    <x-seo :title="$seoTitle" :description="$seoDescription" :schema="\App\Support\Seo::homeSchema($plans)" />
+
     <!-- Favicon Integration -->
     @if(settings('favicon'))
         <link rel="icon" type="image/png" href="{{ asset('storage/' . settings('favicon')) }}">

@@ -15,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'stripe/*',
         ]);
+        // Global (outermost) so auth redirects and 404s also carry the noindex header
+        $middleware->append(\App\Http\Middleware\SeoRobotsHeader::class);
         $middleware->web(append: [
             \App\Http\Middleware\EnsureUserIsActive::class,
         ]);
