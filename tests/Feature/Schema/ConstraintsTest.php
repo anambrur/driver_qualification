@@ -119,7 +119,7 @@ describe('tenancy and authorization', function () {
     it('rejects a role pivot that uses another team\'s role', function () {
         $a = CompanyFactory::new()->create();
         $b = CompanyFactory::new()->create();
-        $roleOfA = DB::table('roles')->insertGetId(['team_id' => $a->id, 'name' => 'Owner', 'guard_name' => 'web']);
+        $roleOfA = DB::table('roles')->insertGetId(['team_id' => $a->id, 'name' => 'Custom', 'guard_name' => 'web']);
 
         expect(fn () => DB::table('model_has_roles')->insert([
             'team_id' => $b->id, 'role_id' => $roleOfA, 'model_type' => User::class, 'model_id' => $b->owner_user_id,
@@ -129,11 +129,11 @@ describe('tenancy and authorization', function () {
     it('assigns a team role through Spatie', function () {
         $company = CompanyFactory::new()->create();
         app(PermissionRegistrar::class)->setPermissionsTeamId($company->id);
-        Role::create(['name' => 'Owner', 'guard_name' => 'web', 'system_key' => 'owner', 'is_system' => true]);
+        $role = Role::create(['name' => 'Custom', 'guard_name' => 'web']);
 
-        $company->owner->assignRole('Owner');
+        $company->owner->assignRole('Custom');
 
-        expect(DB::table('model_has_roles')->where('model_id', $company->owner_user_id)->value('team_id'))->toBe($company->id);
+        expect(DB::table('model_has_roles')->where('role_id', $role->id)->where('model_id', $company->owner_user_id)->value('team_id'))->toBe($company->id);
     });
 });
 
@@ -198,11 +198,11 @@ describe('drivers, fleet, billing, files and audit', function () {
     });
 
     it('restricts deleting a company that still has drivers', function () {
-        // No owner, users or settings, so only the driver can block the delete.
-        $company = CompanyFactory::new()->withoutOwner()->create();
-        DriverFactory::new()->create(['company_id' => $company->id, 'created_by_user_id' => null]);
+        // A bare row with no owner, users or settings, so only the driver can block the delete.
+        $companyId = DB::table('companies')->insertGetId(['company_name' => 'Bare Co', 'slug' => 'bare-co', 'status' => 'active']);
+        DriverFactory::new()->create(['company_id' => $companyId, 'created_by_user_id' => null]);
 
-        expect(fn () => DB::table('companies')->where('id', $company->id)->delete())->toThrow(QueryException::class);
+        expect(fn () => DB::table('companies')->where('id', $companyId)->delete())->toThrow(QueryException::class);
     });
 
     it('allows one open subscription per company', function () {

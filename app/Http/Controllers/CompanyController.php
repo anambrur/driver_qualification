@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use Exception;
-use App\Models\User;
 use App\Models\Company;
 use App\Models\PolicyPdf;
-use Illuminate\Support\Str;
+use App\Models\User;
+use App\Services\Company\CompanyProvisioner;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Yajra\DataTables\Facades\DataTables;
 
 class CompanyController extends Controller
 {
@@ -28,8 +29,9 @@ class CompanyController extends Controller
                 ->addIndexColumn()
                 ->addColumn('logo', function ($company) {
                     if ($company->logo) {
-                        return '<img src="' . e(asset('storage/' . $company->logo)) . '" alt="' . e($company->company_name) . '" class="w-10 h-10 rounded-full object-cover">';
+                        return '<img src="'.e(asset('storage/'.$company->logo)).'" alt="'.e($company->company_name).'" class="w-10 h-10 rounded-full object-cover">';
                     }
+
                     return '<div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                             <i class="fas fa-building text-gray-500 dark:text-gray-400"></i>
                         </div>';
@@ -38,6 +40,7 @@ class CompanyController extends Controller
                     $status = $company->status === 'active'
                         ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>'
                         : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Inactive</span>';
+
                     return $status;
                 })
                 ->addColumn('user_email', function ($company) {
@@ -47,11 +50,11 @@ class CompanyController extends Controller
                     // Check if slug exists
                     if ($company->slug) {
                         // Create the URL
-                        $applyUrl = e(url('/') . '/' . $company->slug . '/apply');
+                        $applyUrl = e(url('/').'/'.$company->slug.'/apply');
 
                         // Return with copy button
                         return '<div class="flex items-center space-x-2">
-                                <a href="' . $applyUrl . '" 
+                                <a href="'.$applyUrl.'" 
                                    target="_blank" 
                                    class="inline-flex items-center text-brand-600 hover:text-brand-700 dark:text-brand-400 apply-url-link"
                                    title="Open Application Form">
@@ -59,7 +62,7 @@ class CompanyController extends Controller
                                     Link
                                 </a>
                                 <button type="button" 
-                                        data-url="' . $applyUrl . '"
+                                        data-url="'.$applyUrl.'"
                                         class="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400 copy-url-btn"
                                         title="Copy URL">
                                     <i class="fas fa-copy text-xs"></i>
@@ -76,16 +79,16 @@ class CompanyController extends Controller
                 ->addColumn('action', function ($company) {
                     // Deactivate, never delete (PO-13); not offered for the admin's own company
                     $deactivateBtn = $company->status === 'active' && ! $this->isOwnCompany($company)
-                        ? '<button type="button" onclick="deleteCompany(' . (int) $company->id . ')" class="inline-flex items-center justify-center w-8 h-8 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30" title="Deactivate">
+                        ? '<button type="button" onclick="deleteCompany('.(int) $company->id.')" class="inline-flex items-center justify-center w-8 h-8 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30" title="Deactivate">
                                 <i class="fas fa-ban text-xs"></i>
                             </button>'
                         : '';
 
                     return '<div class="flex items-center space-x-2">
-                            <a href="' . route('admin.settings.company.edit', $company->id) . '" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30" title="Edit">
+                            <a href="'.route('admin.settings.company.edit', $company->id).'" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30" title="Edit">
                                 <i class="fas fa-edit text-xs"></i>
                             </a>
-                            ' . $deactivateBtn . '
+                            '.$deactivateBtn.'
                         </div>';
                 })
                 ->rawColumns(['logo', 'status', 'apply_url', 'action'])
@@ -100,7 +103,7 @@ class CompanyController extends Controller
         return view('admin.settings.company.create');
     }
 
-    public function store(Request $request)
+    public function store(Request $request, CompanyProvisioner $provisioner)
     {
         // Form validation
         $validator = Validator::make($request->all(), [
@@ -109,7 +112,7 @@ class CompanyController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'address' => 'required|string|max:255',
             'city' => 'required|string|max:255',
-            'state' => 'required|string|max:255',
+            'state' => 'required|string|size:2',
             'zip' => 'required|string|max:20',
             'description' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
@@ -123,24 +126,11 @@ class CompanyController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput()->withErrors($validator);
         }
 
-        DB::beginTransaction();
-
         try {
-            // Generate a random password if not provided (though it's required in validation)
-            $password = $request->password ?: Str::random(12);
-
-            // Create user first
-            $user = User::create([
-                'name' => $request->company_name,
-                'email' => $request->email,
-                'password' => Hash::make($password),
-                'email_verified_at' => now(), // Auto-verify company emails
-                'status' => $request->status === 'active' ? 'active' : 'inactive',
-            ]);
-
             // Handle logo upload
             $logoPath = null;
             if ($request->hasFile('logo')) {
@@ -150,44 +140,36 @@ class CompanyController extends Controller
                 $storagePath = 'images/companies/logos';
 
                 // Check if directory exists, if not create it
-                $fullPath = storage_path('app/public/' . $storagePath);
-                if (!file_exists($fullPath)) {
+                $fullPath = storage_path('app/public/'.$storagePath);
+                if (! file_exists($fullPath)) {
                     File::makeDirectory($fullPath, 0755, true, true);
                 }
 
                 $logoPath = $logoFile->storeAs($storagePath, $logoFile->hashName(), 'public');
             }
 
-            // Generate slug for company
-            $slug = Str::slug($request->company_name);
-            $originalSlug = $slug;
-            $slugCounter = 1;
+            $isActive = $request->status === 'active';
 
-            // Ensure slug is unique
-            while (Company::where('slug', $slug)->exists()) {
-                $slug = $originalSlug . '-' . $slugCounter;
-                $slugCounter++;
-            }
-
-            // Create company with user_id
-            $company = Company::create([
-                'user_id' => $user->id,
+            $provisioner->provision([
                 'company_name' => $request->company_name,
-                'slug' => $slug,
                 'email' => $request->email,
                 'address' => $request->address,
                 'city' => $request->city,
-                'state' => $request->state,
+                'state_code' => strtoupper($request->state),
                 'zip' => $request->zip,
                 'description' => $request->description,
                 'phone' => $request->phone,
                 'fax' => $request->fax,
-                'logo' => $logoPath,
-                'status' => $request->status,
+                'logo_path' => $logoPath,
+                'status' => $isActive ? 'active' : 'deactivated',
+                'status_changed_at' => $isActive ? null : now(),
+            ], [
+                'name' => $request->company_name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'email_verified_at' => now(), // Auto-verify company emails
+                'status' => $isActive ? 'active' : 'inactive',
             ]);
-
-            // Commit transaction
-            DB::commit();
 
             // CORRECT TOASTR SUCCESS SYNTAX
             toastr()->success('Company created successfully!');
@@ -195,20 +177,17 @@ class CompanyController extends Controller
             // Redirect to company index or show page
             return redirect()->route('admin.settings.company');
         } catch (Exception $e) {
-            // Rollback transaction on error
-            DB::rollBack();
-
             // Log the error
-            logger()->error('Company creation failed: ' . $e->getMessage(), [
+            logger()->error('Company creation failed: '.$e->getMessage(), [
                 'exception' => $e,
-                'request_data' => $request->except(['password', 'password_confirmation'])
+                'request_data' => $request->except(['password', 'password_confirmation']),
             ]);
 
             // CORRECT TOASTR ERROR SYNTAX
             toastr()->error('Failed to create company. Please try again.');
 
             return back()->withInput()->withErrors([
-                'system_error' => 'An error occurred while creating the company. Please try again.'
+                'system_error' => 'An error occurred while creating the company. Please try again.',
             ]);
         }
     }
@@ -255,6 +234,7 @@ class CompanyController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput()->withErrors($validator);
         }
 
@@ -295,7 +275,7 @@ class CompanyController extends Controller
 
                 // Ensure slug is unique
                 while (Company::where('slug', $slug)->where('id', '!=', $id)->exists()) {
-                    $slug = $originalSlug . '-' . $slugCounter;
+                    $slug = $originalSlug.'-'.$slugCounter;
                     $slugCounter++;
                 }
             }
@@ -335,15 +315,16 @@ class CompanyController extends Controller
             DB::rollBack();
 
             // Log the error
-            logger()->error('Company update failed: ' . $e->getMessage(), [
+            logger()->error('Company update failed: '.$e->getMessage(), [
                 'exception' => $e,
                 'company_id' => $id,
-                'request_data' => $request->except(['password', 'password_confirmation'])
+                'request_data' => $request->except(['password', 'password_confirmation']),
             ]);
 
             toastr()->error('Failed to update company. Please try again.');
+
             return back()->withInput()->withErrors([
-                'system_error' => 'An error occurred while updating the company. Please try again.'
+                'system_error' => 'An error occurred while updating the company. Please try again.',
             ]);
         }
     }
@@ -360,7 +341,7 @@ class CompanyController extends Controller
         if ($this->isOwnCompany($company)) {
             return response()->json([
                 'success' => false,
-                'message' => 'You cannot deactivate your own company.'
+                'message' => 'You cannot deactivate your own company.',
             ], 422);
         }
 
@@ -374,19 +355,19 @@ class CompanyController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Company deactivated. Its data is kept and the owner can no longer log in.'
+                'message' => 'Company deactivated. Its data is kept and the owner can no longer log in.',
             ]);
         } catch (Exception $e) {
             DB::rollBack();
 
-            logger()->error('Company deactivation failed: ' . $e->getMessage(), [
+            logger()->error('Company deactivation failed: '.$e->getMessage(), [
                 'exception' => $e,
-                'company_id' => $id
+                'company_id' => $id,
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to deactivate company. Please try again.'
+                'message' => 'Failed to deactivate company. Please try again.',
             ], 500);
         }
     }
@@ -422,13 +403,15 @@ class CompanyController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput()->withErrors($validator);
         }
 
         try {
             // Check if at least one file was uploaded
-            if (!$request->hasFile('alcohol_drug_test_policy_pdf') && !$request->hasFile('general_work_policy_pdf')) {
+            if (! $request->hasFile('alcohol_drug_test_policy_pdf') && ! $request->hasFile('general_work_policy_pdf')) {
                 toastr()->warning('Please select at least one PDF file to upload.');
+
                 return back()->withInput();
             }
 
@@ -440,11 +423,11 @@ class CompanyController extends Controller
 
             // Define storage path. Policies are shown to job applicants on the public
             // application form, so they stay on the public disk, under a random name.
-            $storagePath = $companyId === null ? 'policy_pdfs' : 'policy_pdfs/' . $companyId;
+            $storagePath = $companyId === null ? 'policy_pdfs' : 'policy_pdfs/'.$companyId;
 
             // Ensure directory exists
-            $fullPath = storage_path('app/public/' . $storagePath);
-            if (!File::exists($fullPath)) {
+            $fullPath = storage_path('app/public/'.$storagePath);
+            if (! File::exists($fullPath)) {
                 File::makeDirectory($fullPath, 0755, true, true);
             }
 
@@ -463,7 +446,7 @@ class CompanyController extends Controller
             // Create or update policy PDF record
             $policyPdf = PolicyPdf::where('company_id', $companyId)->first();
 
-            if (!$policyPdf) {
+            if (! $policyPdf) {
                 // Create first record if none exists
                 $policyPdf = PolicyPdf::create([
                     'company_id' => $companyId,
@@ -507,13 +490,14 @@ class CompanyController extends Controller
             return $companyId === null
                 ? redirect()->route('admin.settings.company')
                 : redirect()->route('admin.settings.policy.pdf');
-        } catch (\Exception $e) {
-            Log::error('Policy PDF Upload Error: ' . $e->getMessage(), [
+        } catch (Exception $e) {
+            Log::error('Policy PDF Upload Error: '.$e->getMessage(), [
                 'exception' => $e,
-                'request_data' => $request->except(['alcohol_drug_test_policy_pdf', 'general_work_policy_pdf'])
+                'request_data' => $request->except(['alcohol_drug_test_policy_pdf', 'general_work_policy_pdf']),
             ]);
 
             toastr()->error('An error occurred while uploading the PDF files. Please try again.');
+
             return back()->withInput()->withErrors(['system_error' => 'Upload failed. Please try again.']);
         }
     }

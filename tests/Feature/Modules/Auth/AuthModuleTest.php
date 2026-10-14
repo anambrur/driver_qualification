@@ -7,6 +7,7 @@ use Database\Factories\CompanyFactory;
 use Database\Factories\DriverFactory;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 use Tests\Support\Actors;
 
 afterEach(function () {
@@ -68,11 +69,13 @@ describe('AUTH-02 login enumeration', function () {
 | and must not flash the plaintext password into the session.
 */
 describe('AUTH-03 registration failure handling', function () {
-    it('rolls back the user and company when the company role is missing', function () {
+    it('rolls back the user and company when creating the company roles fails', function () {
         Log::spy();
+        Role::creating(fn () => throw new RuntimeException('role store unavailable'));
 
         $this->from('/register')->post('/register', [
             'name' => 'Acme Hauling',
+            'company_name' => 'Acme Hauling LLC',
             'email' => 'acme@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',

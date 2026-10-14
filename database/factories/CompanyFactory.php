@@ -3,15 +3,16 @@
 namespace Database\Factories;
 
 use App\Models\Company;
+use App\Services\Company\CompanyProvisioner;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
  * Company has no HasFactory trait; use CompanyFactory::new().
  *
- * Creates the company the way production does: company without owner -> owner user in that
- * company -> owner_user_id. Interim until CompanyProvisioner (WP2) becomes the only path.
+ * Creates companies through CompanyProvisioner, the only path that creates a company.
  *
  * @extends Factory<Company>
  */
@@ -39,24 +40,25 @@ class CompanyFactory extends Factory
         ];
     }
 
-    public function configure(): static
-    {
-        return $this->afterCreating(function (Company $company) {
-            if ($company->owner_user_id === null) {
-                $owner = UserFactory::new()->create(['company_id' => $company->id]);
-                $company->forceFill(['owner_user_id' => $owner->id])->save();
-            }
-
-            $company->settings()->firstOrCreate([]);
-        });
-    }
-
     /**
-     * Skips the owner and settings. Call before adding other afterCreating callbacks.
+     * Every factory company is provisioned like production: owner, settings, sequence, system
+     * roles and support user. The factory attributes become the company columns.
+     *
+     * @param  Collection<int, Company>  $results
      */
-    public function withoutOwner(): static
+    protected function store(Collection $results)
     {
-        return $this->newInstance(['afterCreating' => new Collection]);
+        $results->each(function (Company $model) {
+            $owner = Arr::except(UserFactory::new()->state(['company_id' => null])->raw(), ['company_id']);
+            $company = app(CompanyProvisioner::class)->provision($model->getAttributes(), $owner);
+
+            $model->setRawAttributes($company->getAttributes(), true);
+            $model->exists = true;
+            $model->wasRecentlyCreated = true;
+            $model->setRelation('owner', $company->owner);
+
+            $this->createChildren($model);
+        });
     }
 
     public function suspended(): static

@@ -2,11 +2,13 @@
 
 namespace Tests\Support;
 
+use App\Authorization\RoleTemplates;
 use App\Models\Company;
 use App\Models\Driver;
 use App\Models\PlatformUser;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Tenancy\TenantContext;
 use Database\Factories\CompanyFactory;
 use Database\Factories\DriverFactory;
 use Database\Factories\PlanPriceFactory;
@@ -21,22 +23,13 @@ use Spatie\Permission\PermissionRegistrar;
 /**
  * Test actors per docs/architecture/11-migration-strategy.md §5.
  *
- * Interim (WP1): companies are built with the factories and get the seven system roles of
- * 06 §6 as bare rows, without permission grants. CompanyProvisioner (WP2) and RoleTemplates
- * (WP3) replace that, and actingAsTenant() will also set TenantContext (WP2).
+ * Companies are built through CompanyProvisioner (via CompanyFactory) with the seven system
+ * roles of 06 §6; their permission grants follow in WP3.
  */
 final class Actors
 {
-    /** Role name => system_key (null = system role without a key), from 06 §6. */
-    public const SYSTEM_ROLES = [
-        'Owner' => 'owner',
-        'Administrator' => null,
-        'Dispatcher' => null,
-        'Office / Compliance' => null,
-        'Driver' => 'driver',
-        'Support (read)' => 'support_read',
-        'Support (read/write)' => 'support_read_write',
-    ];
+    /** Role name => system_key, from 06 §6. */
+    public const SYSTEM_ROLES = RoleTemplates::SYSTEM_ROLES;
 
     public static function platformOwner(array $attributes = []): PlatformUser
     {
@@ -55,14 +48,6 @@ final class Actors
     public static function company(array $attributes = []): Company
     {
         $company = CompanyFactory::new()->create($attributes);
-
-        self::withTeam($company->id, function () use ($company) {
-            foreach (self::SYSTEM_ROLES as $name => $key) {
-                Role::create(['name' => $name, 'guard_name' => 'web', 'system_key' => $key, 'is_system' => true]);
-            }
-
-            $company->owner->assignRole('Owner');
-        });
 
         SubscriptionFactory::new()->forCompany($company)->create();
 
@@ -166,6 +151,7 @@ final class Actors
     public static function actingAsTenant(User $user): User
     {
         app(PermissionRegistrar::class)->setPermissionsTeamId($user->company_id);
+        app(TenantContext::class)->set($user->company_id);
         Auth::guard('web')->setUser($user);
         Auth::shouldUse('web');
 
