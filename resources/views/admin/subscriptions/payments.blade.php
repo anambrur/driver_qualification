@@ -61,7 +61,7 @@
                                 @if($payment->user)
                                     <div class="font-medium text-gray-900 dark:text-white">{{ $payment->user->name }}</div>
                                     <div class="text-xs text-gray-500">
-                                        <a href="{{ route('admin.subscriptions.show', $payment->user) }}" class="hover:underline">{{ $payment->user->email }}</a>
+                                        {{ $payment->user->email }}
                                     </div>
                                 @else
                                     <span class="text-gray-400">Deleted User</span>

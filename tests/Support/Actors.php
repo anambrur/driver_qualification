@@ -44,14 +44,16 @@ final class Actors
     }
 
     /**
-     * An active company with an owner, settings, the system roles and an open, active
-     * subscription. No feature rows exist until WP7, so the plan has no plan_features yet.
+     * An active company with an owner, settings, the system roles and, unless $subscribed is
+     * false, an open, active subscription. No feature rows exist until WP7.
      */
-    public static function company(array $attributes = []): Company
+    public static function company(array $attributes = [], bool $subscribed = true): Company
     {
         $company = CompanyFactory::new()->create($attributes);
 
-        SubscriptionFactory::new()->forCompany($company)->create();
+        if ($subscribed) {
+            SubscriptionFactory::new()->forCompany($company)->create();
+        }
 
         return $company->fresh();
     }

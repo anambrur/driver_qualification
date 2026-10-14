@@ -28,14 +28,14 @@ final class StripeFake
     /**
      * JSON body for a Stripe event of $type wrapping $object.
      */
-    public static function event(string $type, array $object, ?string $id = null): string
+    public static function event(string $type, array $object, ?string $id = null, ?int $created = null): string
     {
         return json_encode([
             'id' => $id ?? 'evt_test_'.bin2hex(random_bytes(6)),
             'object' => 'event',
             'type' => $type,
             'api_version' => '2024-06-20',
-            'created' => time(),
+            'created' => $created ?? time(),
             'data' => ['object' => $object],
         ], JSON_THROW_ON_ERROR);
     }

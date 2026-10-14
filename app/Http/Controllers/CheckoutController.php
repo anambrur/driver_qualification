@@ -2,106 +2,87 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Plan;
-use App\Services\Stripe\StripeClientFactory;
-use App\Services\Stripe\WebhookProcessor;
+use App\Http\Requests\Billing\CheckoutRequest;
+use App\Models\PlanPrice;
+use App\Services\Billing\AccessStateResolver;
 use App\Services\Billing\TrialActivationService;
 use App\Services\Stripe\CheckoutService;
+use App\Services\Stripe\StripeClientFactory;
+use App\Services\Stripe\StripeEventProcessor;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
+use InvalidArgumentException;
 
+/**
+ * Checkout and trials for the user's company (07 §5, §6.1). Routes need billing.manage.
+ */
 class CheckoutController extends Controller
 {
-    public function checkout(
-        string $name,
-        Request $request,
-        TrialActivationService $trialActivation,
-        CheckoutService $checkoutService
-    ) {
-        $plan = Plan::where('slug', $name)->firstOrFail();
+    public function checkout(CheckoutRequest $request, CheckoutService $checkout): RedirectResponse
+    {
+        $user = $request->user();
+        $price = PlanPrice::query()->findOrFail($request->validated('plan_price_id'));
 
-        if (! $plan->is_active) {
-            toastr()->error('This plan is not available.');
-
-            return redirect()->route('pricing.plans');
+        try {
+            return redirect()->away($checkout->createSubscriptionCheckout($user->company, $user, $price)->url);
+        } catch (InvalidArgumentException $e) {
+            toastr()->error($e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('Checkout failed', ['company_id' => $user->company_id, 'plan_price_id' => $price->id, 'error' => $e->getMessage()]);
+            toastr()->error('Unable to start checkout. Please try again.');
         }
 
+        return redirect()->route('pricing.plans');
+    }
+
+    public function trial(Request $request, TrialActivationService $trials): RedirectResponse
+    {
         $user = $request->user();
 
         try {
-            if ($plan->isTrial()) {
-                $trialActivation->activate($user, $plan);
-                toastr()->success('Your free trial is active. No credit card required.');
+            $trials->activate($user->company, $user);
+            toastr()->success('Your free trial is active. No credit card required.');
 
-                return redirect()->route('checkout.success');
-            }
-
-            if (! in_array($plan->billing_cycle, ['monthly', 'yearly'], true)) {
-                toastr()->error('Invalid plan billing cycle.');
-
-                return redirect()->route('pricing.plans');
-            }
-
-            if ($user->hasActiveSubscription()) {
-                toastr()->error('You already have an active subscription. Manage it from Billing.');
-
-                return redirect()->route('billing.index');
-            }
-
-            $session = $checkoutService->createSubscriptionCheckout($user, $plan);
-
-            return redirect()->away($session->url);
-        } catch (\InvalidArgumentException $e) {
+            return redirect()->route('checkout.success');
+        } catch (InvalidArgumentException $e) {
             toastr()->error($e->getMessage());
-
-            return redirect()->route('pricing.plans');
-        } catch (\Throwable $e) {
-            Log::error('Checkout failed', [
-                'user_id' => $user->id,
-                'plan' => $plan->slug,
-                'error' => $e->getMessage(),
-            ]);
-            toastr()->error('Unable to start checkout. Please try again.');
 
             return redirect()->route('pricing.plans');
         }
     }
 
-    public function success(Request $request, StripeClientFactory $stripe, WebhookProcessor $processor)
+    /**
+     * Syncs the session only when it belongs to the user's company (07 §6.1): the dual write
+     * that works without webhook forwarding on localhost.
+     */
+    public function success(Request $request, StripeClientFactory $stripe, StripeEventProcessor $processor): View
     {
-        $user = $request->user();
+        $company = $request->user()->company;
         $sessionId = $request->query('session_id');
 
-        if ($sessionId && $user) {
+        if (is_string($sessionId) && $sessionId !== '') {
             try {
-                $session = $stripe->make()->checkout->sessions->retrieve($sessionId, [
-                    'expand' => ['invoice', 'subscription'],
-                ]);
-                // Every owner id the session carries must be this user; syncCheckoutSession()
-                // prefers metadata.user_id, so matching only client_reference_id is not enough.
-                $ownerIds = array_filter([
-                    (string) ($session->metadata->user_id ?? ''),
+                $session = $stripe->make()->checkout->sessions->retrieve($sessionId);
+                $owners = array_filter([
+                    (string) ($session->metadata->company_id ?? ''),
                     (string) ($session->client_reference_id ?? ''),
                 ], fn (string $id) => $id !== '');
-                $belongsToUser = $ownerIds !== []
-                    && array_diff($ownerIds, [(string) $user->id]) === [];
 
-                if ($belongsToUser) {
-                    // Dual-write: subscription + payment (works without webhook on localhost).
-                    $processor->syncCheckoutSession($session);
+                // Every company id the session carries must be this company.
+                if ($owners !== [] && array_diff($owners, [(string) $company->id]) === []) {
+                    $processor->syncCheckoutSession($company, $session);
                 }
             } catch (\Throwable $e) {
-                Log::warning('Checkout success sync failed', [
-                    'session_id' => $sessionId,
-                    'error' => $e->getMessage(),
-                ]);
+                Log::warning('Checkout success sync failed', ['session_id' => $sessionId, 'error' => $e->getMessage()]);
             }
         }
 
-        $user?->refresh();
-        $subscription = $user?->activeSubscription();
-        $plan = $subscription?->plan;
-        $latestPayment = $user?->payments()->where('status', 'paid')->first();
+        $subscription = AccessStateResolver::accessibleSubscription($company);
+        $subscription?->load('planPrice.plan');
+        $plan = $subscription?->planPrice?->plan;
+        $latestPayment = $company->payments()->where('status', 'paid')->latest('paid_at')->first();
 
         return view('billing.checkout-success', compact('plan', 'subscription', 'latestPayment'));
     }

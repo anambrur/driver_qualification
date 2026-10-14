@@ -621,14 +621,16 @@
                     <h3 class="text-xl font-bold mb-2">{{ $plan->name }}</h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">{{ $plan->description ?? 'Perfect for growing fleets' }}</p>
 
+                    @if ($monthly = $plan->currentPrice('month'))
                     <div class="mb-6">
-                        <span class="text-4xl font-extrabold">${{ number_format($plan->price, 0) }}</span>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">/{{ $plan->billing_cycle ?? 'month' }}</span>
+                        <span class="text-4xl font-extrabold">${{ number_format((float) $monthly->amount, 0) }}</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">/month</span>
                     </div>
+                    @endif
 
-                    @if ($plan->features)
+                    @if ($plan->marketing_bullets)
                     <ul class="space-y-3 mb-8 flex-grow">
-                        @foreach ($plan->features as $feature)
+                        @foreach ($plan->marketing_bullets as $feature)
                         <li class="flex items-start gap-2 text-sm">
                             <svg class="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
@@ -640,7 +642,7 @@
                     @endif
 
                     @if (Route::has('register'))
-                    <a href="{{ route('checkout', $plan->slug ?? $plan->name) }}" class="block w-full py-3 text-center rounded-xl font-semibold transition-all duration-300 {{ $plan->is_featured ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/40 hover:-translate-y-0.5' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-brand-50 dark:hover:bg-brand-500/10 hover:text-brand-600 dark:hover:text-brand-400' }}">
+                    <a href="{{ auth()->check() ? route('pricing.plans') : route('register') }}" class="block w-full py-3 text-center rounded-xl font-semibold transition-all duration-300 {{ $plan->is_featured ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/40 hover:-translate-y-0.5' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-brand-50 dark:hover:bg-brand-500/10 hover:text-brand-600 dark:hover:text-brand-400' }}">
                         Get Started
                     </a>
                     @endif

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\Billing\AccessState;
+use App\Services\Billing\AccessStateResolver;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +16,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $current_period_start
  * @property Carbon|null $current_period_end
  * @property Carbon|null $ends_at
+ * @property Carbon|null $ended_at
+ * @property Carbon|null $last_stripe_event_at
  */
 class Subscription extends Model
 {
@@ -79,6 +83,11 @@ class Subscription extends Model
         return $this->belongsTo(PlanPrice::class);
     }
 
+    public function planName(): string
+    {
+        return $this->planPrice->plan->name ?? 'your plan';
+    }
+
     public function scopeOpen(Builder $query): Builder
     {
         return $query->whereNull('ended_at');
@@ -100,56 +109,86 @@ class Subscription extends Model
         return $this->hasMany(SubscriptionNotificationLog::class);
     }
 
+    /**
+     * When access ends (07 §4.4). A converted trial no longer falls back to its trial date.
+     */
     public function accessEndsAt(): ?CarbonInterface
     {
-        return $this->ends_at
-            ?? $this->trial_ends_at
-            ?? $this->current_period_end;
-    }
-
-    public function isAccessible(): bool
-    {
-        if (in_array($this->status, ['incomplete', 'incomplete_expired', 'unpaid'], true)) {
-            return false;
-        }
-
-        $endsAt = $this->accessEndsAt();
-
-        if (in_array($this->status, ['active', 'trialing'], true)) {
-            if ($this->cancel_at_period_end && $endsAt && $endsAt->isPast()) {
-                return false;
-            }
-
-            if ($this->source === 'trial' && $endsAt && $endsAt->isPast()) {
-                return false;
-            }
-
-            return true;
+        if ($this->status === 'trialing') {
+            return $this->trial_ends_at;
         }
 
         if ($this->status === 'canceled' || $this->cancel_at_period_end) {
-            return $endsAt !== null && $endsAt->isFuture();
+            return $this->ends_at ?? $this->current_period_end;
         }
 
+        return $this->current_period_end;
+    }
+
+    /**
+     * The state this row grants (07 §4.3); None when it never granted access (incomplete).
+     */
+    public function accessState(int $graceDays): AccessState
+    {
+        if ($this->ended_at !== null) {
+            return AccessState::ReadOnly;
+        }
+
+        $granted = match ($this->status) {
+            'incomplete', 'incomplete_expired' => null,
+            'trialing' => $this->trial_ends_at === null || $this->trial_ends_at->isFuture(),
+            'active' => $this->periodLeft(),
+            'canceled' => (bool) $this->accessEndsAt()?->isFuture(),
+            'past_due' => $this->periodLeft() && (bool) $this->graceEndsAt($graceDays)?->isFuture(),
+            default => false,
+        };
+
+        return match ($granted) {
+            null => AccessState::None,
+            false => AccessState::ReadOnly,
+            true => $this->status === 'past_due' ? AccessState::Grace : AccessState::Full,
+        };
+    }
+
+    public function isAccessible(?int $graceDays = null): bool
+    {
+        return $this->accessState($graceDays ?? AccessStateResolver::graceDays())->allowsWrites();
+    }
+
+    /**
+     * Grace runs from the failed renewal: Stripe starts the new period when it creates the
+     * renewal invoice, so that is current_period_start [A].
+     */
+    public function graceEndsAt(int $graceDays): ?CarbonInterface
+    {
+        return $this->current_period_start?->copy()->addDays($graceDays);
+    }
+
+    /**
+     * When the company drops to read-only, for reminders; null while it renews on its own.
+     */
+    public function readOnlyAt(int $graceDays): ?CarbonInterface
+    {
         if ($this->status === 'past_due') {
-            return $endsAt === null || $endsAt->isFuture();
+            return $this->graceEndsAt($graceDays);
         }
 
-        return false;
+        if ($this->status === 'trialing' || $this->status === 'canceled'
+            || $this->cancel_at_period_end || $this->source !== 'stripe') {
+            return $this->accessEndsAt();
+        }
+
+        return null;
     }
 
-    public function isExpired(): bool
+    /**
+     * A cancelling row with time left, which the company can still resume.
+     */
+    public function canResume(): bool
     {
-        return ! $this->isAccessible();
-    }
-
-    public function onGracePeriod(): bool
-    {
-        $endsAt = $this->accessEndsAt();
-
-        return ($this->status === 'canceled' || $this->cancel_at_period_end)
-            && $endsAt !== null
-            && $endsAt->isFuture();
+        return $this->ended_at === null
+            && $this->cancel_at_period_end
+            && (bool) $this->accessEndsAt()?->isFuture();
     }
 
     public function onTrial(): bool
@@ -158,115 +197,42 @@ class Subscription extends Model
             && ($this->trial_ends_at === null || $this->trial_ends_at->isFuture());
     }
 
-    public function active(): bool
+    /**
+     * A Stripe row renews by itself; a cancelling or local (trial, admin) row ends at its date.
+     */
+    private function periodLeft(): bool
     {
-        return $this->isAccessible() && in_array($this->status, ['active', 'trialing'], true);
-    }
+        if (! $this->cancel_at_period_end && $this->source === 'stripe') {
+            return true;
+        }
 
-    public function canceled(): bool
-    {
-        return $this->status === 'canceled' || $this->cancel_at_period_end;
-    }
-
-    public function daysUntilAccessEnds(): ?int
-    {
         $endsAt = $this->accessEndsAt();
 
-        if (! $endsAt) {
-            return null;
-        }
-
-        return (int) now()->startOfDay()->diffInDays($endsAt->copy()->startOfDay(), false);
-    }
-
-    public function isEndingSoon(): bool
-    {
-        if (! $this->shouldReceiveExpiryReminders()) {
-            return false;
-        }
-
-        $days = $this->daysUntilAccessEnds();
-
-        return $days !== null && $days >= 0 && $days <= 7;
-    }
-
-    public function shouldReceiveExpiryReminders(): bool
-    {
-        if ($this->source === 'trial') {
-            return $this->isAccessible() || $this->justExpired();
-        }
-
-        if ($this->source === 'admin' && $this->ends_at) {
-            return true;
-        }
-
-        if ($this->cancel_at_period_end || $this->status === 'canceled') {
-            return true;
-        }
-
-        if ($this->status === 'past_due') {
-            return true;
-        }
-
-        return false;
-    }
-
-    public function justExpired(): bool
-    {
-        $endsAt = $this->accessEndsAt();
-
-        return $endsAt !== null
-            && $endsAt->isPast()
-            && $endsAt->gte(now()->subDay());
-    }
-
-    public function scopeActive(Builder $query): Builder
-    {
-        return $query->whereIn('status', ['active', 'trialing']);
-    }
-
-    public function scopeCanceled(Builder $query): Builder
-    {
-        return $query->where('status', 'canceled');
+        return $endsAt === null || $endsAt->isFuture();
     }
 
     /**
-     * SQL mirror of isAccessible(); keep the two in sync.
+     * SQL mirror of isAccessible() (full or grace); keep the two in sync.
      */
-    public function scopeAccessible(Builder $query): Builder
+    public function scopeAccessible(Builder $query, ?int $graceDays = null): Builder
     {
-        // Same fallback order as accessEndsAt().
-        $endsAt = 'COALESCE(ends_at, trial_ends_at, current_period_end)';
         $now = now();
+        $graceStart = $now->copy()->subDays($graceDays ?? AccessStateResolver::graceDays());
+        // Same branches as accessEndsAt() for a row that is not trialing.
+        $endsAt = 'CASE WHEN cancel_at_period_end = 1 OR status = \'canceled\' THEN COALESCE(ends_at, current_period_end) ELSE current_period_end END';
+        $periodLeft = function (Builder $q) use ($endsAt, $now) {
+            $q->where(fn (Builder $q) => $q->where('cancel_at_period_end', false)->where('source', 'stripe'))
+                ->orWhereRaw("({$endsAt}) IS NULL")
+                ->orWhereRaw("({$endsAt}) > ?", [$now]);
+        };
 
-        return $query->where(function (Builder $q) use ($endsAt, $now) {
-            $q->where(function (Builder $q) use ($endsAt, $now) {
-                $q->whereIn('status', ['active', 'trialing'])
-                    ->where(function (Builder $inner) use ($endsAt, $now) {
-                        $inner->where('cancel_at_period_end', false)
-                            ->orWhereRaw("{$endsAt} IS NULL")
-                            ->orWhereRaw("{$endsAt} >= ?", [$now]);
-                    })
-                    ->where(function (Builder $inner) use ($endsAt, $now) {
-                        $inner->where('source', '!=', 'trial')
-                            ->orWhereRaw("{$endsAt} IS NULL")
-                            ->orWhereRaw("{$endsAt} >= ?", [$now]);
-                    });
-            })->orWhere(function (Builder $q) use ($endsAt, $now) {
-                $q->whereNotIn('status', ['active', 'trialing', 'incomplete', 'incomplete_expired', 'unpaid'])
-                    ->where(function (Builder $inner) {
-                        $inner->where('status', 'canceled')
-                            ->orWhere('cancel_at_period_end', true);
-                    })
-                    ->whereRaw("{$endsAt} > ?", [$now]);
-            })->orWhere(function (Builder $q) use ($endsAt, $now) {
-                $q->where('status', 'past_due')
-                    ->where('cancel_at_period_end', false)
-                    ->where(function (Builder $inner) use ($endsAt, $now) {
-                        $inner->whereRaw("{$endsAt} IS NULL")
-                            ->orWhereRaw("{$endsAt} > ?", [$now]);
-                    });
-            });
+        return $query->whereNull('ended_at')->where(function (Builder $q) use ($endsAt, $now, $periodLeft, $graceStart) {
+            $q->where(fn (Builder $q) => $q->where('status', 'trialing')
+                ->where(fn (Builder $q) => $q->whereNull('trial_ends_at')->orWhere('trial_ends_at', '>', $now)))
+                ->orWhere(fn (Builder $q) => $q->where('status', 'active')->where($periodLeft))
+                ->orWhere(fn (Builder $q) => $q->where('status', 'canceled')->whereRaw("({$endsAt}) > ?", [$now]))
+                ->orWhere(fn (Builder $q) => $q->where('status', 'past_due')->where($periodLeft)
+                    ->where('current_period_start', '>', $graceStart));
         });
     }
 }

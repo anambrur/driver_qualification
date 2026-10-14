@@ -38,6 +38,21 @@ class Plan extends Model
     }
 
     /**
+     * Public, active plans with their current prices, for pricing pages.
+     */
+    public function scopeForSale(Builder $query): Builder
+    {
+        return $query->where('is_active', true)->where('is_public', true)->orderBy('sort_order')->orderBy('id')
+            ->whereHas('prices', fn (Builder $q) => $q->whereNull('archived_at'))
+            ->with(['prices' => fn ($q) => $q->whereNull('archived_at')->orderBy('interval')]);
+    }
+
+    public function currentPrice(string $interval = 'month'): ?PlanPrice
+    {
+        return $this->prices->first(fn (PlanPrice $price) => $price->interval === $interval && $price->archived_at === null);
+    }
+
+    /**
      * @return HasMany<PlanPrice, $this>
      */
     public function prices(): HasMany

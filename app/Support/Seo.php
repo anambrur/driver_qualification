@@ -71,12 +71,13 @@ class Seo
             'operatingSystem' => 'Web',
             'url' => $url,
             'publisher' => ['@id' => $url.'#organization'],
-            'offers' => $plans->map(fn (Plan $plan) => [
+            // Real prices only: plans without a current monthly price are left out.
+            'offers' => $plans->map(fn (Plan $plan) => $plan->currentPrice() ? [
                 '@type' => 'Offer',
                 'name' => $plan->name,
-                'price' => number_format((float) $plan->price, 2, '.', ''),
-                'priceCurrency' => strtoupper($plan->currency ?: 'USD'),
-            ])->values()->all(),
+                'price' => number_format((float) $plan->currentPrice()->amount, 2, '.', ''),
+                'priceCurrency' => strtoupper($plan->currentPrice()->currency),
+            ] : null)->filter()->values()->all(),
         ];
 
         if (! $application['offers']) {

@@ -20,6 +20,7 @@ use App\Http\Controllers\FuelTypeController;
 use App\Http\Controllers\MaintenanceCategoryController;
 use App\Http\Controllers\MaintenanceScheduleController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\Platform\CompanySubscriptionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SeoController;
@@ -43,14 +44,14 @@ Route::get('robots.txt', [SeoController::class, 'robots'])->name('seo.robots');
 Route::get('sitemap.xml', [SeoController::class, 'sitemap'])->name('seo.sitemap');
 
 Route::get('/', function () {
-    $plans = Plan::active()->ordered()->get();
+    $plans = Plan::query()->forSale()->get();
 
     return view('welcome', compact('plans'));
 })->name('home');
 
-// New and lapsed accounts are sent to pricing (PO-16); super-admins pass `Subscribed`
+// New accounts are sent to pricing (PO-16); a lapsed company stays read-only (07 §4.3)
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified', 'Subscribed'])
+    ->middleware(['auth', 'verified', 'subscribed'])
     ->name('dashboard');
 
 // =====================================================================
@@ -194,24 +195,36 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{role}', [RoleController::class, 'destroy'])->name('destroy')->middleware('permission:roles.delete');
     });
 
-    // ─── Billing & Subscription ───────────────────────────────────────────────
-    Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
-    Route::get('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
-    Route::post('/billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
-    Route::post('/billing/resume', [BillingController::class, 'resume'])->name('billing.resume');
+    // ─── Billing (07 §6): per company. Reachable in every access state except blocked, so a
+    // company without a subscription, or a read-only one, can still pay.
+    Route::get('/billing', [BillingController::class, 'index'])->name('billing.index')->middleware('permission:billing.view');
+    Route::post('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal')->middleware('permission:billing.manage');
+    Route::post('/billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel')->middleware('permission:billing.manage');
+    Route::post('/billing/resume', [BillingController::class, 'resume'])->name('billing.resume')->middleware('permission:billing.manage');
 
     Route::get('/pricing/plans', [PlanController::class, 'plans'])->name('pricing.plans');
     // A trial or a checkout needs a verified email: one free trial per verified email (PO-15)
-    Route::get('/checkout-success', [CheckoutController::class, 'success'])->name('checkout.success')->middleware('verified');
-    Route::get('/checkout/{name}', [CheckoutController::class, 'checkout'])->name('checkout')->middleware('verified');
+    Route::post('/billing/trial', [CheckoutController::class, 'trial'])->name('billing.trial')->middleware(['verified', 'permission:billing.manage', 'throttle:10,1']);
+    Route::post('/checkout', [CheckoutController::class, 'checkout'])->name('checkout')->middleware(['verified', 'permission:billing.manage', 'throttle:10,1']);
+    Route::get('/checkout-success', [CheckoutController::class, 'success'])->name('checkout.success')->middleware(['verified', 'permission:billing.manage']);
 
     // Legacy subscription routes (redirect to new billing flow)
     Route::get('/subscription/plans', fn () => redirect()->route('pricing.plans'));
     Route::get('/subscription/my', fn () => redirect()->route('billing.index'));
-    Route::get('/subscription/renew', fn () => redirect()->route('billing.portal'));
+    Route::get('/subscription/renew', fn () => redirect()->route('billing.index'));
     Route::get('/subscription/expired', fn () => redirect()->route('pricing.plans'));
-    Route::get('/subscription/checkout/{plan}', fn (Plan $plan) => redirect()->route('checkout', $plan->slug));
 });
+
+// ─── Platform billing actions on a company (07 §7); the /platform screens arrive in WP8 ───
+Route::middleware(['auth:platform', 'permission:platform.subscriptions.manage,platform'])
+    ->prefix('platform/companies/{company}/subscription')->name('platform.companies.subscription.')
+    ->whereNumber('company')->group(function () {
+        Route::post('/grant', [CompanySubscriptionController::class, 'grant'])->name('grant');
+        Route::post('/expire', [CompanySubscriptionController::class, 'expire'])->name('expire');
+        Route::post('/suspend', [CompanySubscriptionController::class, 'suspend'])->name('suspend');
+        Route::post('/reactivate', [CompanySubscriptionController::class, 'reactivate'])->name('reactivate');
+        Route::post('/move-price', [CompanySubscriptionController::class, 'movePrice'])->name('move-price');
+    });
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:super-admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -219,11 +232,6 @@ Route::middleware(['auth', 'role:super-admin'])->prefix('admin')->name('admin.')
     Route::get('/subscriptions', [SubscriptionAdminController::class, 'dashboard'])->name('subscriptions.dashboard');
     Route::get('/subscriptions/all', [SubscriptionAdminController::class, 'index'])->name('subscriptions.index');
     Route::get('/subscriptions/payments', [SubscriptionAdminController::class, 'payments'])->name('subscriptions.payments');
-    Route::get('/subscriptions/user/{user}', [SubscriptionAdminController::class, 'show'])->name('subscriptions.show');
-    Route::post('/subscriptions/user/{user}/grant', [SubscriptionAdminController::class, 'grant'])->name('subscriptions.grant');
-    Route::post('/subscriptions/{subscription}/expire', [SubscriptionAdminController::class, 'expire'])->name('subscriptions.expire');
-    Route::post('/subscriptions/{subscription}/suspend', [SubscriptionAdminController::class, 'suspend'])->name('subscriptions.suspend');
-    Route::post('/subscriptions/{subscription}/reactivate', [SubscriptionAdminController::class, 'reactivate'])->name('subscriptions.reactivate');
 
     Route::get('/plans', [SubscriptionAdminController::class, 'plansIndex'])->name('plans.index');
     Route::get('/plans/create', [SubscriptionAdminController::class, 'createPlan'])->name('plans.create');
@@ -234,7 +242,7 @@ Route::middleware(['auth', 'role:super-admin'])->prefix('admin')->name('admin.')
     Route::post('/plans/{plan}/toggle', [SubscriptionAdminController::class, 'togglePlan'])->name('plans.toggle');
 });
 
-Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

@@ -39,4 +39,22 @@ class AuditLog extends Model
             'user_agent' => $request?->userAgent(),
         ]);
     }
+
+    /**
+     * A change made by a Stripe webhook (07 §6.2): no user, no request.
+     *
+     * @param  array<string, mixed>  $changes  never secrets
+     */
+    public static function recordStripe(int $companyId, string $action, Model $subject, array $changes = []): self
+    {
+        return self::query()->create([
+            'company_id' => $companyId,
+            'actor_type' => 'stripe',
+            'actor_id' => null,
+            'action' => $action,
+            'subject_type' => $subject->getMorphClass(),
+            'subject_id' => $subject->getKey(),
+            'changes' => $changes ?: null,
+        ]);
+    }
 }

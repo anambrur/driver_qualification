@@ -2,9 +2,12 @@
 
 namespace App\Services\Stripe;
 
-use App\Models\Plan;
+use App\Models\Company;
+use App\Models\PlanPrice;
 use App\Models\User;
+use App\Services\Billing\AccessStateResolver;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use Stripe\Checkout\Session;
 use Stripe\Customer;
 use Stripe\Exception\ApiErrorException;
@@ -15,116 +18,74 @@ class CheckoutService
         private readonly StripeClientFactory $stripe
     ) {}
 
-    public function createOrGetCustomer(User $user): Customer
+    /**
+     * The company's Stripe customer (07 §2), created on first use and tagged with the app host
+     * because the Stripe account is shared (PO-18).
+     */
+    public function customerFor(Company $company): Customer
     {
         $client = $this->stripe->make();
-        $appMeta = $this->appMetadata();
+        $meta = $this->appMetadata() + ['company_id' => (string) $company->id];
 
-        if ($user->stripe_id) {
+        if ($company->stripe_customer_id) {
             try {
-                $customer = $client->customers->retrieve($user->stripe_id);
-                // Keep app identity on the customer for shared Stripe accounts.
-                $client->customers->update($user->stripe_id, [
-                    'metadata' => array_merge(
-                        (array) ($customer->metadata?->toArray() ?? []),
-                        $appMeta,
-                        ['user_id' => (string) $user->id]
-                    ),
-                ]);
-
-                return $customer;
+                return $client->customers->update($company->stripe_customer_id, ['metadata' => $meta]);
             } catch (ApiErrorException $e) {
                 Log::warning('Stored Stripe customer missing; creating a new one.', [
-                    'user_id' => $user->id,
-                    'stripe_id' => $user->stripe_id,
+                    'company_id' => $company->id,
                     'error' => $e->getMessage(),
                 ]);
             }
         }
 
         $customer = $client->customers->create([
-            'email' => $user->email,
-            'name' => $user->name,
-            'description' => $this->appLabel().' customer #'.$user->id,
-            'metadata' => array_merge($appMeta, [
-                'user_id' => (string) $user->id,
-            ]),
+            'email' => $company->billing_email ?: $company->owner?->email,
+            'name' => $company->company_name,
+            'description' => $this->appLabel().' company #'.$company->id,
+            'metadata' => $meta,
         ]);
 
-        $user->forceFill(['stripe_id' => $customer->id])->save();
+        $company->forceFill(['stripe_customer_id' => $customer->id])->save();
 
         return $customer;
     }
 
     /**
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException when the price cannot be bought or the company already pays
      * @throws ApiErrorException
      */
-    public function createSubscriptionCheckout(User $user, Plan $plan): Session
+    public function createSubscriptionCheckout(Company $company, User $actor, PlanPrice $price): Session
     {
-        if (! $plan->is_active) {
-            throw new \InvalidArgumentException('This plan is not available.');
+        $price->loadMissing('plan');
+
+        if ($price->archived_at !== null || ! $price->plan?->is_active || ! $price->plan->is_public || ! $price->stripe_price_id) {
+            throw new InvalidArgumentException('This plan is not available.');
         }
 
-        if ($plan->isTrial() || $plan->isFree()) {
-            throw new \InvalidArgumentException('Trial and free plans cannot use Stripe Checkout.');
+        // A trialing company may convert; a paying one changes plan in the billing portal (07 §4.1).
+        $open = AccessStateResolver::accessibleSubscription($company);
+        if ($open && $open->source !== 'trial') {
+            throw new InvalidArgumentException('Your company already has an active subscription. Manage it from Billing.');
         }
 
-        if (! in_array($plan->billing_cycle, ['monthly', 'yearly'], true)) {
-            throw new \InvalidArgumentException('Only monthly and yearly plans can be checked out with Stripe.');
-        }
-
-        $interval = $plan->stripeInterval();
-        if (! $interval) {
-            throw new \InvalidArgumentException('Invalid billing cycle for Stripe Checkout.');
-        }
-
-        $customer = $this->createOrGetCustomer($user);
-        $appMeta = $this->appMetadata();
-        $productName = $this->labeledProductName($plan);
-        $description = $this->labeledDescription($plan);
-
-        $planMeta = [
-            'user_id' => (string) $user->id,
-            'plan_id' => (string) $plan->id,
-            'plan_slug' => $plan->slug,
-            'billing_cycle' => $plan->billing_cycle,
+        $meta = $this->appMetadata() + [
+            'company_id' => (string) $company->id,
+            'actor_user_id' => (string) $actor->id,
+            'plan_price_id' => (string) $price->id,
         ];
-
-        $subscriptionData = [
-            'description' => $description,
-            'metadata' => array_merge($appMeta, $planMeta),
-        ];
-
-        if ((int) $plan->trial_days > 0) {
-            $subscriptionData['trial_period_days'] = (int) $plan->trial_days;
-        }
 
         return $this->stripe->make()->checkout->sessions->create([
             'mode' => 'subscription',
-            'customer' => $customer->id,
-            'payment_method_types' => ['card'],
-            'line_items' => [[
-                'price_data' => [
-                    'currency' => strtolower($plan->currency ?: 'usd'),
-                    'unit_amount' => $plan->amountInCents(),
-                    'recurring' => [
-                        'interval' => $interval,
-                    ],
-                    'product_data' => [
-                        // Appears on invoices / line items in Stripe (best visible label).
-                        'name' => $productName,
-                        'description' => $description,
-                        'metadata' => $appMeta,
-                    ],
-                ],
-                'quantity' => 1,
-            ]],
+            'customer' => $this->customerFor($company)->id,
+            'line_items' => [['price' => $price->stripe_price_id, 'quantity' => 1]],
             'success_url' => route('checkout.success').'?session_id={CHECKOUT_SESSION_ID}',
             'cancel_url' => route('pricing.plans'),
-            'client_reference_id' => (string) $user->id,
-            'metadata' => array_merge($appMeta, $planMeta),
-            'subscription_data' => $subscriptionData,
+            'client_reference_id' => (string) $company->id,
+            'metadata' => $meta,
+            'subscription_data' => [
+                'description' => $this->labeledDescription($price),
+                'metadata' => $meta,
+            ],
             'allow_promotion_codes' => true,
         ]);
     }
@@ -153,20 +114,8 @@ class CheckoutService
         ];
     }
 
-    public function labeledProductName(Plan $plan): string
+    private function labeledDescription(PlanPrice $price): string
     {
-        return $this->appLabel().' — '.$plan->name;
-    }
-
-    public function labeledDescription(Plan $plan): string
-    {
-        $cycle = ucfirst($plan->billing_cycle);
-
-        return sprintf(
-            '%s subscription (%s) · %s',
-            $this->appLabel(),
-            $cycle,
-            $this->appHost()
-        );
+        return sprintf('%s %s (%sly) · %s', $this->appLabel(), $price->plan->name, $price->interval, $this->appHost());
     }
 }

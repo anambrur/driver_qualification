@@ -12,7 +12,7 @@ use Tests\Support\Actors;
 | Route guard matrix. Every registered route must fall into one of the buckets below, so a new
 | route that forgets its middleware fails here instead of shipping open:
 |   - public (no `auth`): listed in ACL_PUBLIC_ROUTES with the reason it is safe;
-|   - every /admin route has `Subscribed` or `role:super-admin`;
+|   - every /admin route has `subscribed` or `role:super-admin`;
 |   - every authenticated route has `permission:` / `role:`, or is listed in ACL_NO_PERMISSION_ROUTES;
 |   - every authenticated route runs ResolveTenant, every public application route ResolvePublicCompany (03 §4.1).
 | Routes are keyed "METHODS uri" (HEAD dropped), because several routes have no name.
@@ -67,19 +67,13 @@ const ACL_NO_PERMISSION_ROUTES = [
     'POST confirm-password',
     'PUT password',
     'POST logout',
-    // Billing must be reachable without a subscription or permission, to buy one.
-    'GET billing',
-    'GET billing/portal',
-    'POST billing/cancel',
-    'POST billing/resume',
+    // Pricing must be reachable without a subscription or permission, to see the plans; the
+    // billing actions themselves need billing.view / billing.manage (07 §6.3).
     'GET pricing/plans',
-    'GET checkout-success',
-    'GET checkout/{name}',
     'GET subscription/plans',
     'GET subscription/my',
     'GET subscription/renew',
     'GET subscription/expired',
-    'GET subscription/checkout/{plan}',
     // Global lookups: read-only for every tenant, writes need super-admin permissions (LKP-02).
     'GET admin/vehicle-type',
     'GET admin/vehicle-group',
@@ -139,10 +133,10 @@ describe('route guard matrix', function () {
         }
     });
 
-    it('puts every /admin route behind Subscribed or role:super-admin', function () {
+    it('puts every /admin route behind subscribed or role:super-admin', function () {
         $unguarded = aclRoutes()
             ->filter(fn (array $route) => str_starts_with($route['uri'], 'admin/'))
-            ->reject(fn (array $route) => aclHasMiddleware($route, 'Subscribed')
+            ->reject(fn (array $route) => aclHasMiddleware($route, 'subscribed')
                 || in_array('role:super-admin', $route['middleware'], true))
             ->pluck('key')->values()->all();
 

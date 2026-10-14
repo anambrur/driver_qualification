@@ -104,9 +104,9 @@ Evaluated in `AccessState::for($company)` and cached with the entitlements.
 | Condition, checked in order | Access state |
 |---|---|
 | `companies.status` is `suspended` or `deactivated` | **blocked** |
-| No open subscription, and no ended subscription in the last N days | **none**: only account, billing and pricing pages |
+| The company never had a subscription | **none**: only account, billing and pricing pages. A lapsed company stays **read_only** (decided WP6; revisit with retention) |
 | `trialing` or `active` within the access window | **full** |
-| `past_due` and less than `grace_days` since the failed renewal | **grace**: full access plus a banner |
+| `past_due` and less than `grace_days` since the failed renewal (`current_period_start`: Stripe moves the period when it creates the renewal invoice [A]) | **grace**: full access plus a banner |
 | `past_due` beyond grace, `unpaid`, `canceled` past `ends_at`, or a trial past its end | **read_only** (decided Q2) |
 
 - `grace_days` is 7 (decided Q2: keep the default unless new requirements change it). It lives in `site_settings`.
@@ -128,9 +128,9 @@ The `AccessibleParityTest` approach (the database answer and the PHP answer must
 - **Eligibility** (keeps PO-15):
   - the owner's email is verified;
   - `companies.trial_used_at IS NULL`;
-  - no other company whose owner has the same email has ever had a trial.
+  - no company has claimed a trial with the owner's email: `companies.trial_email` is unique (decided WP6), so this holds under concurrency and after an email change.
 
-  `trial_used_at` is set when the trial starts.
+  `trial_used_at` and `trial_email` are set when the trial starts.
 - **Paid conversion:** checkout opens a Stripe subscription. When the webhook confirms it, the trial row is closed (`ended_at = now`) and the Stripe row becomes the open one.
 - **Expired trials:** `subscriptions:close-expired-trials` stays [V], now acting per company.
 

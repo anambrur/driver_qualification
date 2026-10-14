@@ -2,37 +2,37 @@
 
 namespace App\Services\Stripe;
 
+use App\Models\Company;
+use App\Models\PlanPrice;
 use App\Models\Subscription;
-use App\Models\User;
-use Carbon\Carbon;
 use InvalidArgumentException;
 use Stripe\BillingPortal\Session as PortalSession;
 use Stripe\Exception\ApiErrorException;
 
+/**
+ * Cancel, resume and price moves. A Stripe row is changed in Stripe and synced back; a local
+ * row (trial, admin grant) is changed here and never reaches Stripe.
+ */
 class SubscriptionService
 {
     public function __construct(
         private readonly StripeClientFactory $stripe,
-        private readonly CheckoutService $checkout
+        private readonly CheckoutService $checkout,
+        private readonly SubscriptionSync $sync,
     ) {}
 
     public function cancelAtPeriodEnd(Subscription $subscription): Subscription
     {
         if ($subscription->stripe_subscription_id) {
-            $stripeSub = $this->stripe->make()->subscriptions->update(
+            return $this->syncStripe($subscription, $this->stripe->make()->subscriptions->update(
                 $subscription->stripe_subscription_id,
                 ['cancel_at_period_end' => true]
-            );
-
-            return $this->syncFromStripeObject($subscription, $stripeSub);
+            ));
         }
-
-        $endsAt = $subscription->accessEndsAt() ?? now();
 
         $subscription->update([
             'cancel_at_period_end' => true,
-            'stripe_status' => $subscription->stripe_status === 'trialing' ? 'trialing' : 'canceled',
-            'ends_at' => $endsAt,
+            'ends_at' => $subscription->accessEndsAt() ?? now(),
         ]);
 
         return $subscription->fresh();
@@ -41,112 +41,74 @@ class SubscriptionService
     public function cancelNow(Subscription $subscription): Subscription
     {
         if ($subscription->stripe_subscription_id) {
-            $stripeSub = $this->stripe->make()->subscriptions->cancel(
+            return $this->syncStripe($subscription, $this->stripe->make()->subscriptions->cancel(
                 $subscription->stripe_subscription_id
-            );
-
-            return $this->syncFromStripeObject($subscription, $stripeSub);
+            ));
         }
 
         $subscription->update([
-            'stripe_status' => 'canceled',
+            'status' => 'canceled',
             'cancel_at_period_end' => false,
             'ends_at' => now(),
+            'ended_at' => now(),
         ]);
 
         return $subscription->fresh();
     }
 
+    /**
+     * A local row keeps its end date: a trial or grant with no end would grant access forever.
+     */
     public function resume(Subscription $subscription): Subscription
     {
+        if (! $subscription->canResume()) {
+            throw new InvalidArgumentException('This subscription cannot be resumed.');
+        }
+
         if (! $subscription->stripe_subscription_id) {
-            if (! $subscription->onGracePeriod()) {
-                throw new InvalidArgumentException('This subscription cannot be resumed.');
-            }
-
-            $isTrial = $subscription->billing_cycle === 'trial';
-
-            // Local non-trial subscriptions (admin grants) never renew: keep their end date,
-            // otherwise an active row with no end date grants access forever.
-            $subscription->update([
-                'cancel_at_period_end' => ! $isTrial,
-                'stripe_status' => $isTrial ? 'trialing' : 'active',
-                'ends_at' => $isTrial ? null : $subscription->accessEndsAt(),
-            ]);
+            $subscription->update(['cancel_at_period_end' => $subscription->source !== 'trial']);
 
             return $subscription->fresh();
         }
 
-        $stripeSub = $this->stripe->make()->subscriptions->update(
+        return $this->syncStripe($subscription, $this->stripe->make()->subscriptions->update(
             $subscription->stripe_subscription_id,
             ['cancel_at_period_end' => false]
-        );
-
-        return $this->syncFromStripeObject($subscription, $stripeSub);
-    }
-
-    public function createBillingPortalSession(User $user, string $returnUrl): PortalSession
-    {
-        if (! $user->stripe_id) {
-            $this->checkout->createOrGetCustomer($user);
-            $user->refresh();
-        }
-
-        if (! $user->stripe_id) {
-            throw new InvalidArgumentException('Unable to create a Stripe customer for billing portal.');
-        }
-
-        return $this->stripe->make()->billingPortal->sessions->create([
-            'customer' => $user->stripe_id,
-            'return_url' => $returnUrl,
-        ]);
+        ));
     }
 
     /**
-     * @param  object  $stripeSub
+     * Platform "move to price" (07 §7): immediate, prorated. The webhook confirms plan_price_id.
      */
-    public function syncFromStripeObject(Subscription $subscription, $stripeSub): Subscription
+    public function moveToPrice(Subscription $subscription, PlanPrice $price): Subscription
     {
-        $periodStart = isset($stripeSub->current_period_start)
-            ? Carbon::createFromTimestamp($stripeSub->current_period_start)
-            : $subscription->current_period_start;
-        $periodEnd = isset($stripeSub->current_period_end)
-            ? Carbon::createFromTimestamp($stripeSub->current_period_end)
-            : $subscription->current_period_end;
-        $trialEnd = ! empty($stripeSub->trial_end)
-            ? Carbon::createFromTimestamp($stripeSub->trial_end)
-            : null;
-
-        $cancelAtPeriodEnd = (bool) ($stripeSub->cancel_at_period_end ?? false);
-        $endsAt = null;
-
-        if (! empty($stripeSub->ended_at)) {
-            $endsAt = Carbon::createFromTimestamp($stripeSub->ended_at);
-        } elseif ($cancelAtPeriodEnd && $periodEnd) {
-            $endsAt = $periodEnd;
-        } elseif (! empty($stripeSub->cancel_at)) {
-            $endsAt = Carbon::createFromTimestamp($stripeSub->cancel_at);
+        if (! $subscription->stripe_subscription_id || ! $price->stripe_price_id || $price->archived_at !== null) {
+            throw new InvalidArgumentException('Only a Stripe subscription can move to a current Stripe price.');
         }
 
-        $subscription->update([
-            'stripe_subscription_id' => $stripeSub->id,
-            'stripe_status' => $stripeSub->status,
-            'trial_ends_at' => $trialEnd,
-            'current_period_start' => $periodStart,
-            'current_period_end' => $periodEnd,
-            'cancel_at_period_end' => $cancelAtPeriodEnd,
-            'ends_at' => $endsAt,
-            'source' => 'stripe',
-        ]);
+        $client = $this->stripe->make();
+        $current = $client->subscriptions->retrieve($subscription->stripe_subscription_id);
 
-        return $subscription->fresh();
+        return $this->syncStripe($subscription, $client->subscriptions->update($subscription->stripe_subscription_id, [
+            'items' => [['id' => $current->items->data[0]->id, 'price' => $price->stripe_price_id]],
+            'proration_behavior' => 'create_prorations',
+        ]));
     }
 
     /**
      * @throws ApiErrorException
      */
-    public function retrieveStripeSubscription(string $stripeSubscriptionId)
+    public function createBillingPortalSession(Company $company, string $returnUrl): PortalSession
     {
-        return $this->stripe->make()->subscriptions->retrieve($stripeSubscriptionId);
+        return $this->stripe->make()->billingPortal->sessions->create([
+            'customer' => $this->checkout->customerFor($company)->id,
+            'return_url' => $returnUrl,
+        ]);
+    }
+
+    private function syncStripe(Subscription $subscription, object $stripeSub): Subscription
+    {
+        // The API response is live state: stamp the ordering guard so older queued events are stale.
+        return $this->sync->upsert($subscription->company, $stripeSub, now()) ?? $subscription->fresh();
     }
 }

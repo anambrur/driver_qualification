@@ -5,6 +5,7 @@ namespace App\Authorization;
 use App\Models\Permission;
 use App\Models\PlatformUser;
 use App\Models\User;
+use App\Services\Billing\AccessState;
 use App\Tenancy\TenantContext;
 
 /**
@@ -42,7 +43,14 @@ class PermissionGate
             return Permission::fromCatalogue($ability) === null ? null : false;
         }
 
-        // 4-5. Entitlement and read-only access state: WP7 (05 §4).
+        // 4. Entitlement: WP7 (05 §4).
+
+        // 5. A read-only company keeps viewing and exporting; billing stays open so it can pay (07 §4.3).
+        if ($permission->is_write && ! str_starts_with($permission->name, 'billing.')
+            && $user instanceof User && $user->company
+            && ! AccessState::for($user->company)->allowsWrites()) {
+            return false;
+        }
 
         return $this->resolver->has($user, $permission->name);
     }

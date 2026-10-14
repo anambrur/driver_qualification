@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Subscription;
+use App\Notifications\Concerns\BillingRecipient;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -10,18 +11,13 @@ use Illuminate\Notifications\Notification;
 
 class SubscriptionActivatedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use BillingRecipient, Queueable;
 
     public function __construct(public Subscription $subscription) {}
 
-    public function via(object $notifiable): array
-    {
-        return ['mail', 'database'];
-    }
-
     public function toMail(object $notifiable): MailMessage
     {
-        $planName = $this->subscription->plan?->name ?? 'your plan';
+        $planName = $this->subscription->planName();
         $sourceLabel = match ($this->subscription->source) {
             'trial' => 'free trial',
             'admin' => 'complimentary subscription',
@@ -31,9 +27,9 @@ class SubscriptionActivatedNotification extends Notification implements ShouldQu
 
         $mail = (new MailMessage)
             ->subject("Your {$planName} subscription is active")
-            ->greeting("Hello {$notifiable->name},")
+            ->greeting($this->greetingFor($notifiable))
             ->line("Your {$planName} {$sourceLabel} is now active.")
-            ->line('Billing cycle: '.ucfirst((string) ($this->subscription->billing_cycle ?? 'n/a')).'.');
+            ->line('Billing cycle: '.($this->subscription->interval === 'year' ? 'Yearly' : 'Monthly').'.');
 
         if ($endsAt) {
             $mail->line("Access is currently available through {$endsAt}.");
@@ -48,7 +44,7 @@ class SubscriptionActivatedNotification extends Notification implements ShouldQu
     {
         return [
             'type' => 'subscription_activated',
-            'plan' => $this->subscription->plan?->name,
+            'plan' => $this->subscription->planName(),
             'source' => $this->subscription->source,
             'message' => 'Your subscription is now active.',
             'action' => route('billing.index'),

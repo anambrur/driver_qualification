@@ -6,15 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
-use App\Models\User;
-use App\Services\Billing\SubscriptionNotificationService;
-use App\Services\Stripe\SubscriptionService;
-use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
+/**
+ * Legacy read screens and plan CRUD; WP8 replaces them with the /platform area. Billing actions
+ * moved to Platform\CompanySubscriptionController (07 §7).
+ */
 class SubscriptionAdminController extends Controller
 {
     public function dashboard(): View
@@ -37,7 +38,7 @@ class SubscriptionAdminController extends Controller
                         ->where('trial_ends_at', '<', now());
                 })
                 ->count(),
-            'total_cancelled' => Subscription::query()->canceled()->count(),
+            'total_cancelled' => Subscription::query()->where('status', 'canceled')->count(),
             'total_revenue' => $totalRevenue,
             'monthly_revenue' => $monthlyRevenue,
             'expiring_soon' => Subscription::query()
@@ -99,96 +100,6 @@ class SubscriptionAdminController extends Controller
         $totalPaid = (float) Payment::where('status', 'paid')->sum('amount');
 
         return view('admin.subscriptions.payments', compact('payments', 'totalPaid'));
-    }
-
-    public function show(User $user): View
-    {
-        $subscriptions = $user->subscriptions()->with('plan')->get();
-        $payments = $user->payments()->with('plan')->limit(50)->get();
-        $plans = Plan::active()->ordered()->get();
-        $current = $user->activeSubscription();
-
-        return view('admin.subscriptions.show', compact('user', 'subscriptions', 'payments', 'plans', 'current'));
-    }
-
-    public function grant(Request $request, User $user): RedirectResponse
-    {
-        $request->validate([
-            'plan_id' => 'required|exists:plans,id',
-            'notes' => 'nullable|string|max:500',
-            'custom_end_date' => 'nullable|date|after:today',
-        ]);
-
-        $plan = Plan::findOrFail($request->plan_id);
-
-        if ($user->hasActiveSubscription()) {
-            return redirect()->route('admin.subscriptions.show', $user)
-                ->with('error', 'User already has an active subscription. Expire it first.');
-        }
-
-        $endsAt = $request->filled('custom_end_date')
-            ? Carbon::parse($request->custom_end_date)->endOfDay()
-            : now()->addDays((int) ($plan->duration_days ?: 30));
-
-        $subscription = Subscription::create([
-            'user_id' => $user->id,
-            'plan_id' => $plan->id,
-            'stripe_subscription_id' => null,
-            'stripe_status' => $plan->isTrial() ? 'trialing' : 'active',
-            'billing_cycle' => $plan->billing_cycle,
-            'amount' => $plan->price,
-            'currency' => strtoupper($plan->currency ?: 'USD'),
-            'trial_ends_at' => $plan->isTrial() ? $endsAt : null,
-            'current_period_start' => now(),
-            'current_period_end' => $endsAt,
-            'cancel_at_period_end' => true,
-            'ends_at' => $endsAt,
-            'source' => 'admin',
-        ]);
-
-        app(SubscriptionNotificationService::class)->sendActivated($subscription);
-
-        return redirect()->route('admin.subscriptions.show', $user)
-            ->with('success', "Complimentary subscription granted to {$user->name}.");
-    }
-
-    public function expire(Subscription $subscription, SubscriptionService $subscriptions): RedirectResponse
-    {
-        try {
-            $subscriptions->cancelNow($subscription);
-            toastr()->success('Subscription cancelled and expired immediately!');
-        } catch (\Throwable $e) {
-            Log::warning('Admin expire failed', ['error' => $e->getMessage()]);
-            toastr()->error('Unable to expire subscription.');
-        }
-
-        return back();
-    }
-
-    public function suspend(Subscription $subscription, SubscriptionService $subscriptions): RedirectResponse
-    {
-        try {
-            $subscriptions->cancelAtPeriodEnd($subscription);
-            toastr()->success('Subscription will end at period end.');
-        } catch (\Throwable $e) {
-            Log::warning('Admin suspend failed', ['error' => $e->getMessage()]);
-            toastr()->error('Unable to suspend subscription.');
-        }
-
-        return back();
-    }
-
-    public function reactivate(Subscription $subscription, SubscriptionService $subscriptions): RedirectResponse
-    {
-        try {
-            $subscriptions->resume($subscription);
-            toastr()->success('Subscription resumed successfully!');
-        } catch (\Throwable $e) {
-            Log::warning('Admin reactivate failed', ['error' => $e->getMessage()]);
-            toastr()->error('Cannot resume this subscription.');
-        }
-
-        return back();
     }
 
     public function plansIndex(): View
@@ -256,7 +167,7 @@ class SubscriptionAdminController extends Controller
                 'required',
                 'string',
                 'max:100',
-                \Illuminate\Validation\Rule::unique('plans', 'slug')->ignore($plan?->id),
+                Rule::unique('plans', 'slug')->ignore($plan?->id),
             ],
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
@@ -286,12 +197,12 @@ class SubscriptionAdminController extends Controller
 
         if ($validated['billing_cycle'] === 'trial') {
             if ((float) $validated['price'] > 0) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'price' => 'Trial plans must have price 0.',
                 ]);
             }
             if ($validated['trial_days'] < 1) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'trial_days' => 'Trial plans require trial_days of at least 1.',
                 ]);
             }
