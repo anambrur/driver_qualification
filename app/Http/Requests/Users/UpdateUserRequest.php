@@ -2,12 +2,18 @@
 
 namespace App\Http\Requests\Users;
 
+use App\Services\Users\UserService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateUserRequest extends FormRequest
 {
-    public function authorize(): bool
+    /**
+     * Another company's user is a 404 before validation runs (03 §5).
+     */
+    public function authorize(UserService $users): bool
     {
+        $users->find($this->user(), (int) $this->route('user'));
+
         return true;
     }
 

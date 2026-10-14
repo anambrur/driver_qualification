@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\AssetGroup;
 use App\Models\Company;
 use App\Models\Vehicle;
+use Database\Factories\Concerns\CreatesInTenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class AssetGroupFactory extends Factory
 {
+    use CreatesInTenant;
+
     protected $model = AssetGroup::class;
 
     /**
@@ -46,6 +49,6 @@ class AssetGroupFactory extends Factory
 
     private static function companyOfVehicle(int $vehicleId): Company
     {
-        return Company::findOrFail(Vehicle::withTrashed()->findOrFail($vehicleId)->company_id);
+        return Company::findOrFail(Vehicle::withoutTenancy()->withTrashed()->findOrFail($vehicleId)->company_id);
     }
 }

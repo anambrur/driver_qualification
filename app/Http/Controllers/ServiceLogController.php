@@ -1,17 +1,19 @@
 <?php
+
 // app/Http/Controllers/ServiceLogController.php
 
 namespace App\Http\Controllers;
 
-use App\Models\ServiceLog;
-use App\Models\ServiceDocument;
-use App\Models\Vehicle;
 use App\Models\MaintenanceCategory;
+use App\Models\ServiceDocument;
+use App\Models\ServiceLog;
+use App\Models\Vehicle;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -43,9 +45,6 @@ class ServiceLogController extends Controller
             $query = ServiceLog::with(['vehicle', 'company', 'documents'])
                 ->select(['service_logs.*']);
 
-            // Apply company filter
-            $query = $this->applyCompanyFilter($query);
-
             // Apply filters
             if ($request->filled('vehicle_id')) {
                 $query->where('vehicle_id', $request->vehicle_id);
@@ -72,7 +71,7 @@ class ServiceLogController extends Controller
                 ->addIndexColumn()
                 ->addColumn('vehicle_info', function ($row) {
                     $vehicle = $row->vehicle;
-                    if (!$vehicle) {
+                    if (! $vehicle) {
                         return '<span class="text-gray-400">Deleted Vehicle</span>';
                     }
 
@@ -88,11 +87,11 @@ class ServiceLogController extends Controller
                         </div>
                         <div class="ml-4">
                             <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center">
-                                ' . e($vehicle->unit_no . ' - ' . $vehicle->year . ' ' . $vehicle->make . ' ' . $vehicle->model) . '
-                                ' . $documentIcon . '
+                                '.e($vehicle->unit_no.' - '.$vehicle->year.' '.$vehicle->make.' '.$vehicle->model).'
+                                '.$documentIcon.'
                             </div>
                             <div class="text-sm text-gray-500 dark:text-gray-400">
-                                VIN: ' . e($vehicle->vin) . '
+                                VIN: '.e($vehicle->vin).'
                             </div>
                         </div>
                     </div>';
@@ -104,71 +103,71 @@ class ServiceLogController extends Controller
                     if ($categories->count() > 0) {
                         $categoriesHtml = '<div class="mt-1 flex flex-wrap gap-1">';
                         foreach ($categories->take(2) as $category) {
-                            $categoriesHtml .= '<span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">' . e($category->name) . '</span>';
+                            $categoriesHtml .= '<span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">'.e($category->name).'</span>';
                         }
                         if ($categories->count() > 2) {
-                            $categoriesHtml .= '<span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-800 rounded-full">+' . ($categories->count() - 2) . '</span>';
+                            $categoriesHtml .= '<span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-800 rounded-full">+'.($categories->count() - 2).'</span>';
                         }
                         $categoriesHtml .= '</div>';
                     }
 
                     return '
                     <div class="text-sm">
-                        <div><span class="font-medium">Date:</span> ' . $row->service_date->format('M d, Y') . '</div>
+                        <div><span class="font-medium">Date:</span> '.$row->service_date->format('M d, Y').'</div>
                         <div><span class="font-medium">Categories:</span> </div>
-                        ' . $categoriesHtml . '
+                        '.$categoriesHtml.'
                     </div>';
                 })
                 ->addColumn('metrics', function ($row) {
                     $engineHours = $row->engine_hours_at_service ?
-                        '<div><span class="font-medium">Engine Hrs:</span> ' . number_format($row->engine_hours_at_service) . '</div>' : '';
+                        '<div><span class="font-medium">Engine Hrs:</span> '.number_format($row->engine_hours_at_service).'</div>' : '';
 
                     return '
                     <div class="text-sm">
-                        <div><span class="font-medium">Odometer:</span> ' . number_format($row->odometer_at_service) . ' mi</div>
-                        ' . $engineHours . '
-                        <div><span class="font-medium">Current:</span> ' . number_format($row->current_odometer) . ' mi</div>
+                        <div><span class="font-medium">Odometer:</span> '.number_format($row->odometer_at_service).' mi</div>
+                        '.$engineHours.'
+                        <div><span class="font-medium">Current:</span> '.number_format($row->current_odometer).' mi</div>
                     </div>';
                 })
                 ->addColumn('cost', function ($row) {
                     return '
                     <div class="text-sm">
-                        <div class="font-medium text-gray-900 dark:text-white">' . $row->formatted_total_cost . '</div>
+                        <div class="font-medium text-gray-900 dark:text-white">'.$row->formatted_total_cost.'</div>
                     </div>';
                 })
                 ->addColumn('status', function ($row) {
                     $badgeClass = [
                         'completed' => 'bg-green-100 text-green-800',
                         'pending' => 'bg-yellow-100 text-yellow-800',
-                        'cancelled' => 'bg-red-100 text-red-800'
+                        'cancelled' => 'bg-red-100 text-red-800',
                     ][$row->status] ?? 'bg-gray-100 text-gray-800';
 
                     $statusText = ucfirst($row->status);
 
-                    return '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' . $badgeClass . '">
-                        ' . $statusText . '
+                    return '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full '.$badgeClass.'">
+                        '.$statusText.'
                     </span>';
                 })
                 ->addColumn('action', function ($row) {
-                    $viewBtn = '<button onclick="viewServiceLog(' . $row->id . ')" 
+                    $viewBtn = '<button onclick="viewServiceLog('.$row->id.')" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors mr-1"
                                 title="View Details">
                                 <i class="fas fa-eye"></i>
                             </button>';
 
-                    $editBtn = '<button onclick="editServiceLog(' . $row->id . ')" 
+                    $editBtn = '<button onclick="editServiceLog('.$row->id.')" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-indigo-600 bg-indigo-100 rounded-md hover:bg-indigo-200 transition-colors mr-1"
                                 title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>';
 
-                    $deleteBtn = '<button onclick="deleteServiceLog(' . $row->id . ')" 
+                    $deleteBtn = '<button onclick="deleteServiceLog('.$row->id.')" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
                                 title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>';
 
-                    return '<div class="flex justify-center space-x-1">' . $viewBtn . $editBtn . $deleteBtn . '</div>';
+                    return '<div class="flex justify-center space-x-1">'.$viewBtn.$editBtn.$deleteBtn.'</div>';
                 })
                 ->addColumn('created_at_formatted', function ($row) {
                     return $row->created_at->format('M d, Y');
@@ -178,7 +177,7 @@ class ServiceLogController extends Controller
         }
 
         // Get dropdown data for filters
-        $vehicles = $this->applyCompanyFilter(Vehicle::orderBy('unit_no'))->get();
+        $vehicles = Vehicle::orderBy('unit_no')->get();
         $maintenanceCategories = MaintenanceCategory::orderBy('name')->get();
         $companies = $this->getCompaniesForUser();
 
@@ -193,11 +192,11 @@ class ServiceLogController extends Controller
         $serviceLog = ServiceLog::with(['vehicle', 'documents', 'maintenanceCategories'])->findOrFail($id);
 
         // Check if user has access to this service log
-        $this->authorizeCompanyAccess($serviceLog, 'You do not have permission to edit this service log.');
+        Gate::authorize('update', $serviceLog);
 
         return response()->json([
             'success' => true,
-            'data' => $serviceLog
+            'data' => $serviceLog,
         ]);
     }
 
@@ -210,7 +209,7 @@ class ServiceLogController extends Controller
             ->findOrFail($id);
 
         // Check if user has access to this service log
-        $this->authorizeCompanyAccess($serviceLog, 'You do not have permission to view this service log.');
+        Gate::authorize('view', $serviceLog);
 
         return response()->json([
             'success' => true,
@@ -219,7 +218,7 @@ class ServiceLogController extends Controller
                 'unit_no' => $serviceLog->vehicle->unit_no,
                 'full_name' => $serviceLog->vehicle->full_name,
                 'current_odometer' => $serviceLog->vehicle->odometer,
-            ] : null
+            ] : null,
         ]);
     }
 
@@ -231,10 +230,9 @@ class ServiceLogController extends Controller
         // Add company validation based on user role
         $companyId = $this->getAllUserCompanyId();
 
-        if (!Auth::user()->hasRole('super-admin')) {
+        if (! Auth::user()->hasRole('super-admin')) {
             $request->merge(['company_id' => $companyId]);
         }
-
 
         $validator = Validator::make($request->all(), [
             'vehicle_id' => ['required', $this->vehicleRule()],
@@ -249,7 +247,7 @@ class ServiceLogController extends Controller
             'total_cost' => 'required|numeric|min:0',
             'status' => 'required|in:completed,pending,cancelled',
             'documents' => 'nullable|array',
-            'documents.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240'
+            'documents.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
         ], [
             'current_odometer.gte' => 'Current odometer must be greater than or equal to odometer at service',
             'current_engine_hours.gte' => 'Current engine hours must be greater than or equal to engine hours at service',
@@ -259,7 +257,7 @@ class ServiceLogController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -282,7 +280,7 @@ class ServiceLogController extends Controller
                 'engine_hours_at_service' => $request->engine_hours_at_service,
                 'current_engine_hours' => $request->current_engine_hours,
                 'total_cost' => $request->total_cost,
-                'status' => $request->status
+                'status' => $request->status,
             ]);
 
             // Attach maintenance categories (many-to-many)
@@ -303,15 +301,16 @@ class ServiceLogController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Service log created successfully!',
-                'data' => $serviceLog->load(['documents', 'maintenanceCategories'])
+                'data' => $serviceLog->load(['documents', 'maintenanceCategories']),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Storage::disk(self::DISK)->delete($storedPaths);
-            Log::error('Service log store error: ' . $e->getMessage());
+            Log::error('Service log store error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create service log. Please try again.'
+                'message' => 'Failed to create service log. Please try again.',
             ], 500);
         }
     }
@@ -324,10 +323,10 @@ class ServiceLogController extends Controller
         $serviceLog = ServiceLog::findOrFail($id);
 
         // Check if user has access to this service log
-        $this->authorizeCompanyAccess($serviceLog, 'You do not have permission to update this service log.');
+        Gate::authorize('update', $serviceLog);
 
         // Ensure user can't change company if not super-admin
-        if (!Auth::user()->hasRole('super-admin')) {
+        if (! Auth::user()->hasRole('super-admin')) {
             $request->merge(['company_id' => $serviceLog->company_id]);
         }
 
@@ -346,7 +345,7 @@ class ServiceLogController extends Controller
             'new_documents' => 'nullable|array',
             'new_documents.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
             'delete_documents' => 'nullable|array',
-            'delete_documents.*' => 'exists:service_documents,id'
+            'delete_documents.*' => 'exists:service_documents,id',
         ], [
             'current_odometer.gte' => 'Current odometer must be greater than or equal to odometer at service',
             'current_engine_hours.gte' => 'Current engine hours must be greater than or equal to engine hours at service',
@@ -356,7 +355,7 @@ class ServiceLogController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -400,7 +399,7 @@ class ServiceLogController extends Controller
                 'engine_hours_at_service' => $request->engine_hours_at_service,
                 'current_engine_hours' => $request->current_engine_hours,
                 'total_cost' => $request->total_cost,
-                'status' => $request->status
+                'status' => $request->status,
             ]);
 
             // Sync maintenance categories (many-to-many)
@@ -417,21 +416,19 @@ class ServiceLogController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Service log updated successfully!',
-                'data' => $serviceLog->load(['documents', 'maintenanceCategories'])
+                'data' => $serviceLog->load(['documents', 'maintenanceCategories']),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Storage::disk(self::DISK)->delete($storedPaths);
-            Log::error('Service log update error: ' . $e->getMessage());
+            Log::error('Service log update error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update service log. Please try again.'
+                'message' => 'Failed to update service log. Please try again.',
             ], 500);
         }
     }
-
-
-
 
     /**
      * Remove the specified service log.
@@ -441,7 +438,7 @@ class ServiceLogController extends Controller
         $serviceLog = ServiceLog::findOrFail($id);
 
         // Check if user has access to this service log
-        $this->authorizeCompanyAccess($serviceLog, 'You do not have permission to delete this service log.');
+        Gate::authorize('delete', $serviceLog);
 
         DB::beginTransaction();
 
@@ -458,14 +455,15 @@ class ServiceLogController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Service log deleted successfully!'
+                'message' => 'Service log deleted successfully!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Service log delete error: ' . $e->getMessage());
+            Log::error('Service log delete error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete service log. Please try again.'
+                'message' => 'Failed to delete service log. Please try again.',
             ], 500);
         }
     }
@@ -475,7 +473,7 @@ class ServiceLogController extends Controller
      */
     public function downloadDocument($id)
     {
-        $document = $this->findAuthorizedDocument($id, 'You do not have permission to download this document.');
+        $document = $this->findAuthorizedDocument($id, 'view');
 
         foreach ([self::DISK, self::LEGACY_DISK] as $disk) {
             if (Storage::disk($disk)->exists($document->file_path)) {
@@ -485,7 +483,7 @@ class ServiceLogController extends Controller
 
         return response()->json([
             'success' => false,
-            'message' => 'File not found.'
+            'message' => 'File not found.',
         ], 404);
     }
 
@@ -494,7 +492,7 @@ class ServiceLogController extends Controller
      */
     public function deleteDocument($id)
     {
-        $document = $this->findAuthorizedDocument($id, 'You do not have permission to delete this document.');
+        $document = $this->findAuthorizedDocument($id, 'update');
 
         DB::beginTransaction();
 
@@ -506,14 +504,15 @@ class ServiceLogController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Document deleted successfully!'
+                'message' => 'Document deleted successfully!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Document delete error: ' . $e->getMessage());
+            Log::error('Document delete error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete document.'
+                'message' => 'Failed to delete document.',
             ], 500);
         }
     }
@@ -524,7 +523,6 @@ class ServiceLogController extends Controller
     public function getDropdownData()
     {
         $vehiclesQuery = Vehicle::orderBy('unit_no');
-        $vehiclesQuery = $this->applyCompanyFilter($vehiclesQuery);
         $vehicles = $vehiclesQuery->get(['id', 'unit_no', 'make', 'model', 'year', 'odometer']);
 
         $maintenanceCategories = MaintenanceCategory::orderBy('name')->get(['id', 'name']);
@@ -538,8 +536,8 @@ class ServiceLogController extends Controller
             'statusOptions' => [
                 'completed' => 'Completed',
                 'pending' => 'Pending',
-                'cancelled' => 'Cancelled'
-            ]
+                'cancelled' => 'Cancelled',
+            ],
         ]);
     }
 
@@ -552,7 +550,7 @@ class ServiceLogController extends Controller
             $vehicle = Vehicle::findOrFail($id);
 
             // Check if user has access to this vehicle
-            $this->authorizeCompanyAccess($vehicle, 'You do not have permission to view this vehicle.');
+            Gate::authorize('view', $vehicle);
 
             return response()->json([
                 'success' => true,
@@ -562,12 +560,12 @@ class ServiceLogController extends Controller
                     'full_name' => $vehicle->full_name,
                     'current_odometer' => $vehicle->odometer,
                     'vin' => $vehicle->vin,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Vehicle not found'
+                'message' => 'Vehicle not found',
             ], 404);
         }
     }
@@ -578,7 +576,7 @@ class ServiceLogController extends Controller
      */
     private function storeDocument(ServiceLog $serviceLog, UploadedFile $file): string
     {
-        $filePath = $file->store('service-documents/' . $serviceLog->id, self::DISK);
+        $filePath = $file->store('service-documents/'.$serviceLog->id, self::DISK);
 
         ServiceDocument::create([
             'service_log_id' => $serviceLog->id,
@@ -586,7 +584,7 @@ class ServiceLogController extends Controller
             'file_name' => basename($filePath),
             'file_path' => $filePath,
             'mime_type' => $file->getMimeType(),
-            'file_size' => $file->getSize()
+            'file_size' => $file->getSize(),
         ]);
 
         return $filePath;
@@ -605,17 +603,17 @@ class ServiceLogController extends Controller
 
     /**
      * A document whose service log the user may access: 404 when the document or its (soft-deleted)
-     * log is gone, 403 for another company's.
+     * log is gone, or another company's.
      */
-    private function findAuthorizedDocument($id, string $message): ServiceDocument
+    private function findAuthorizedDocument($id, string $ability): ServiceDocument
     {
         $document = ServiceDocument::with('serviceLog')->findOrFail($id);
 
-        if (!$document->serviceLog) {
+        if (! $document->serviceLog) {
             abort(404);
         }
 
-        $this->authorizeCompanyAccess($document->serviceLog, $message);
+        Gate::authorize($ability, $document->serviceLog);
 
         return $document;
     }
@@ -627,7 +625,7 @@ class ServiceLogController extends Controller
     {
         $rule = Rule::exists('vehicles', 'id')->whereNull('deleted_at');
 
-        if (!Auth::user()->hasRole('super-admin')) {
+        if (! Auth::user()->hasRole('super-admin')) {
             $rule->where('company_id', $this->getUserCompanyId() ?? -1);
         }
 

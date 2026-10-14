@@ -77,7 +77,7 @@ describe('DCMP-05: dashboard load and expiry dates', function () {
             ->assertStatus(422)
             ->assertJson(['success' => false]);
 
-        expect(DriverComplianceDocument::count())->toBe(0);
+        expect(DriverComplianceDocument::withoutTenancy()->count())->toBe(0);
     });
 
     it('still accepts today, or no expiry date at all', function (?string $expiry) {

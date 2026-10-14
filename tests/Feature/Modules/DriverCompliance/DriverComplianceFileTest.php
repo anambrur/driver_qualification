@@ -28,7 +28,7 @@ describe('DCMP-01: compliance documents are private', function () {
             ->post(route('admin.compliance.driver.documents.upload'), DriverCompliance::payload($driver, $type), DriverCompliance::json())
             ->assertOk()->assertJson(['success' => true]);
 
-        $path = DriverComplianceDocument::where('driver_id', $driver->id)->value('file_path');
+        $path = DriverComplianceDocument::withoutTenancy()->where('driver_id', $driver->id)->value('file_path');
         Storage::disk('local')->assertExists($path);
         Storage::disk('public')->assertMissing($path);
     });
@@ -55,11 +55,11 @@ describe('DCMP-01: compliance documents are private', function () {
             ->assertOk();
     });
 
-    it('refuses another tenant', function (string $route) {
+    it('returns 404 to another tenant', function (string $route) {
         [, $driver] = DriverCompliance::tenantWithDriver();
         $document = DriverCompliance::document($driver, DriverCompliance::documentType());
 
-        $this->actingAs(Actors::companyOwner())->get(route($route, $document->id))->assertForbidden();
+        $this->actingAs(Actors::companyOwner())->get(route($route, $document->id))->assertNotFound();
     })->with(['admin.compliance.driver.documents.view', 'admin.compliance.driver.documents.download']);
 
     it('refuses guests and users without driver permissions', function () {
@@ -121,7 +121,7 @@ describe('DCMP-04: stored names come from the content, not the client', function
             ->post(route('admin.compliance.driver.documents.upload'), DriverCompliance::payload($driver, $type, ['file' => $file]), DriverCompliance::json())
             ->assertOk();
 
-        $path = DriverComplianceDocument::where('driver_id', $driver->id)->value('file_path');
+        $path = DriverComplianceDocument::withoutTenancy()->where('driver_id', $driver->id)->value('file_path');
         expect($path)->toStartWith('documents/drivers/')
             ->toEndWith('.pdf')
             ->not->toContain('x.html')
@@ -139,7 +139,7 @@ describe('DCMP-04: stored names come from the content, not the client', function
                 ->assertOk();
         }
 
-        expect(DriverComplianceDocument::pluck('file_path')->unique())->toHaveCount(2);
+        expect(DriverComplianceDocument::withoutTenancy()->pluck('file_path')->unique())->toHaveCount(2);
     });
 
     it('rejects files whose content is not jpg, png or pdf', function (string $name, string $bytes, string $mime) {
@@ -154,7 +154,7 @@ describe('DCMP-04: stored names come from the content, not the client', function
             )
             ->assertStatus(422);
 
-        expect(DriverComplianceDocument::count())->toBe(0);
+        expect(DriverComplianceDocument::withoutTenancy()->count())->toBe(0);
     })->with([
         'html' => ['x.html', '<html><body><script>alert(1)</script></body></html>', 'text/html'],
         'svg named .pdf' => ['x.pdf', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', 'application/pdf'],

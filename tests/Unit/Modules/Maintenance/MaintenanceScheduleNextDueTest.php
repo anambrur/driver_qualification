@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\MaintenanceSchedule;
+use App\Tenancy\TenantContext;
 use Database\Factories\MaintenanceScheduleFactory;
 use Database\Factories\VehicleFactory;
 use Illuminate\Support\Carbon;
@@ -22,7 +23,11 @@ function mntSchedule(array $attributes = [], ?callable $state = null): Maintenan
         $factory = $state($factory);
     }
 
-    return $factory->create(array_merge(['next_due_date' => null], $attributes));
+    $schedule = $factory->create(array_merge(['next_due_date' => null], $attributes));
+    // The schedule reads its vehicle, a tenant model
+    app(TenantContext::class)->set($schedule->company_id);
+
+    return $schedule;
 }
 
 describe('MNT-04: date schedules', function () {

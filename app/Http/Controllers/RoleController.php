@@ -46,8 +46,11 @@ class RoleController extends Controller
         return redirect()->route('admin.roles.index');
     }
 
-    public function show(int $role): RedirectResponse
+    public function show(Request $request, int $role): RedirectResponse
     {
+        // Another company's role is a 404, not a redirect that confirms it exists
+        $this->roles->find($this->actor($request), $role);
+
         return redirect()->route('admin.roles.edit', $role);
     }
 

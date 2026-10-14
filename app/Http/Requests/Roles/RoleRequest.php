@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Roles;
 
 use App\Authorization\PermissionCatalogue;
+use App\Services\Authorization\RoleService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,8 +13,15 @@ use Illuminate\Validation\Rule;
  */
 class RoleRequest extends FormRequest
 {
-    public function authorize(): bool
+    /**
+     * On update, another company's role is a 404 before validation runs (03 §5).
+     */
+    public function authorize(RoleService $roles): bool
     {
+        if ($this->route('role') !== null) {
+            $roles->find($this->user(), (int) $this->route('role'));
+        }
+
         return true;
     }
 

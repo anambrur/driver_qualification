@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Driver;
 use App\Models\Violation;
 use Tests\Feature\Modules\Drivers\DriverAdmin;
 use Tests\Support\Actors;
@@ -61,7 +62,7 @@ describe('DRV-08: destroy does not leak exception text', function () {
 
     it('logs a failed delete and returns a generic message', function () {
         [$owner, $driver] = DriverAdmin::tenantWithDriver();
-        \App\Models\Driver::deleting(fn () => throw new RuntimeException('SQLSTATE[23000] secret detail'));
+        Driver::deleting(fn () => throw new RuntimeException('SQLSTATE[23000] secret detail'));
 
         $response = $this->actingAs($owner)->deleteJson(route('admin.driver.destroy', $driver->id));
 
@@ -69,10 +70,10 @@ describe('DRV-08: destroy does not leak exception text', function () {
         expect($response->getContent())->not->toContain('SQLSTATE');
     });
 
-    it('still returns 403 for another tenant\'s driver and keeps it', function () {
+    it('returns 404 for another tenant\'s driver and keeps it', function () {
         [, $driver] = DriverAdmin::tenantWithDriver();
 
-        $this->actingAs(Actors::companyOwner())->deleteJson(route('admin.driver.destroy', $driver->id))->assertForbidden();
+        $this->actingAs(Actors::companyOwner())->deleteJson(route('admin.driver.destroy', $driver->id))->assertNotFound();
 
         expect($driver->fresh()->trashed())->toBeFalse();
     });
@@ -83,6 +84,6 @@ describe('DRV-08: destroy does not leak exception text', function () {
         $this->actingAs($owner)->deleteJson(route('admin.driver.destroy', $driver->id))
             ->assertOk()->assertJson(['success' => true]);
 
-        expect(\App\Models\Driver::find($driver->id))->toBeNull();
+        expect(Driver::withoutTenancy()->find($driver->id))->toBeNull();
     });
 });

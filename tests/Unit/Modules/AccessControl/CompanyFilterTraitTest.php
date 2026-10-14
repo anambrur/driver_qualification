@@ -5,18 +5,18 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Traits\CompanyFilterTrait;
 use Database\Factories\CompanyFactory;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Support\Actors;
 
 /*
-| CompanyFilterTrait is the tenancy boundary for every company-scoped controller. A fresh harness
-| per call, because the trait memoizes the company context per instance.
+| What is left of CompanyFilterTrait after WP5: the company of new records and the company
+| dropdowns. Row filtering and the 403 access check are gone; the tenant scope and the policies
+| replace them (03 §7). The super-admin helpers go with WP8.
 */
 
 function aclScope(?User $user = null): object
 {
     if ($user) {
-        test()->actingAs($user);
+        Actors::actingAsTenant($user);
     }
 
     return new class
@@ -25,9 +25,6 @@ function aclScope(?User $user = null): object
             getUserCompanyId as public;
             getAllUserCompanyId as public;
             getOwningCompanyId as public;
-            applyCompanyFilter as public;
-            userHasAccess as public;
-            authorizeCompanyAccess as public;
             getCompaniesForUser as public;
         }
     };
@@ -43,27 +40,10 @@ function aclTenantWithVehicles(): array
 }
 
 describe('tenant', function () {
-    it('only sees its own company\'s rows', function () {
-        [$tenant, $company, $own] = aclTenantWithVehicles();
-
-        expect(aclScope($tenant)->applyCompanyFilter(Vehicle::query())->pluck('id')->all())->toBe([$own->id])
-            ->and(aclScope($tenant)->getUserCompanyId())->toBe($company->id);
-    });
-
-    it('can access its own rows and is refused another company\'s with 403', function () {
-        [$tenant, , $own, $other] = aclTenantWithVehicles();
-        $scope = aclScope($tenant);
-
-        expect($scope->userHasAccess($own))->toBeTrue()
-            ->and($scope->userHasAccess($other))->toBeFalse()
-            ->and(fn () => $scope->authorizeCompanyAccess($other))
-            ->toThrow(fn (HttpException $e) => expect($e->getStatusCode())->toBe(403));
-    });
-
-    it('accepts a company_id stored as a string', function () {
+    it('works in its own company', function () {
         [$tenant, $company] = aclTenantWithVehicles();
 
-        expect(aclScope($tenant)->userHasAccess((object) ['company_id' => (string) $company->id]))->toBeTrue();
+        expect(aclScope($tenant)->getUserCompanyId())->toBe($company->id);
     });
 
     it('owns new records itself, whatever company the resource belongs to', function () {
@@ -81,14 +61,10 @@ describe('tenant', function () {
 });
 
 describe('super-admin', function () {
-    it('sees every company\'s rows and can access them', function () {
-        [, , $own, $other] = aclTenantWithVehicles();
+    it('is not limited to a company', function () {
         $scope = aclScope(Actors::superAdmin());
 
-        expect($scope->applyCompanyFilter(Vehicle::query())->count())->toBe(2)
-            ->and($scope->getUserCompanyId())->toBeNull()
-            ->and($scope->userHasAccess($own))->toBeTrue()
-            ->and($scope->userHasAccess($other))->toBeTrue();
+        expect($scope->getUserCompanyId())->toBeNull();
     });
 
     it('files new records under the resource\'s company, or its own when there is none', function () {
@@ -110,17 +86,11 @@ describe('super-admin', function () {
     });
 });
 
-describe('user without a company, and guest', function () {
-    it('sees nothing and can access nothing', function (?callable $makeUser) {
-        Vehicle::factory()->create();
-        $scope = aclScope($makeUser ? $makeUser() : null);
+describe('guest', function () {
+    it('gets no company', function () {
+        $scope = aclScope();
 
-        expect($scope->applyCompanyFilter(Vehicle::query())->count())->toBe(0)
-            ->and($scope->userHasAccess(Vehicle::first()))->toBeFalse()
-            ->and($scope->getCompaniesForUser())->toBeEmpty()
+        expect($scope->getCompaniesForUser())->toBeEmpty()
             ->and($scope->getAllUserCompanyId())->toBeNull();
-    })->with([
-        'plain user' => [fn () => Actors::plainUser()],
-        'guest' => [null],
-    ]);
+    });
 });

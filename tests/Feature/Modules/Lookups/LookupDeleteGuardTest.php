@@ -33,7 +33,7 @@ describe('LKP-01: deleting a lookup used by vehicles', function () {
             ->assertJson(['success' => false]);
 
         expect($model::query()->whereKey($lookup->id)->exists())->toBeTrue()
-            ->and(Vehicle::query()->whereKey($vehicle->id)->exists())->toBeTrue();
+            ->and(Vehicle::withoutTenancy()->whereKey($vehicle->id)->exists())->toBeTrue();
     })->with([
         'fuel type' => [FuelType::class, 'admin.fuel.type', 'fuel_type_id'],
         'vehicle type' => [VehicleType::class, 'admin.vehicle.type', 'vehicle_type_id'],
@@ -49,7 +49,7 @@ describe('LKP-01: deleting a lookup used by vehicles', function () {
             ->deleteJson(route('admin.fuel.type.destroy', $diesel->id))
             ->assertStatus(400);
 
-        expect(Vehicle::withTrashed()->whereKey($vehicle->id)->exists())->toBeTrue();
+        expect(Vehicle::withoutTenancy()->withTrashed()->whereKey($vehicle->id)->exists())->toBeTrue();
     });
 
     it('refuses to delete a vehicle group used only by a trailer', function () {
@@ -60,7 +60,7 @@ describe('LKP-01: deleting a lookup used by vehicles', function () {
             ->deleteJson(route('admin.vehicle.group.destroy', $group->id))
             ->assertStatus(400);
 
-        expect(Trailer::query()->whereKey($trailer->id)->exists())->toBeTrue();
+        expect(Trailer::withoutTenancy()->whereKey($trailer->id)->exists())->toBeTrue();
     });
 });
 
@@ -75,7 +75,7 @@ describe('LKP-05: deleting an equipment type used by trailers', function () {
             ->assertJson(['success' => false]);
 
         expect(EquipmentType::query()->whereKey($type->id)->exists())->toBeTrue()
-            ->and(Trailer::query()->whereKey($trailer->id)->exists())->toBeTrue();
+            ->and(Trailer::withoutTenancy()->whereKey($trailer->id)->exists())->toBeTrue();
     });
 });
 

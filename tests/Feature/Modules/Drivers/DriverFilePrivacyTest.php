@@ -70,7 +70,7 @@ describe('DRV-03: driver documents are private', function () {
             ->post(route('admin.driver.store'), DriverAdmin::payload(['photo' => DriverAdmin::png()]))
             ->assertSessionHasNoErrors();
 
-        $photo = Driver::query()->latest('id')->value('photo');
+        $photo = Driver::withoutTenancy()->latest('id')->value('photo');
         Storage::disk('local')->assertExists($photo);
         Storage::disk('public')->assertMissing($photo);
     });
@@ -105,11 +105,11 @@ describe('DRV-03: driver documents are private', function () {
         $this->actingAs(Actors::superAdmin())->get(route('admin.driver.file', [$driver->id, 'license_front']))->assertOk();
     });
 
-    it('refuses another tenant', function (string $field) {
+    it('returns 404 to another tenant', function (string $field) {
         [, $driver] = DriverAdmin::tenantWithDriver();
         driverWithStoredFiles($driver);
 
-        $this->actingAs(Actors::companyOwner())->get(route('admin.driver.file', [$driver->id, $field]))->assertForbidden();
+        $this->actingAs(Actors::companyOwner())->get(route('admin.driver.file', [$driver->id, $field]))->assertNotFound();
     })->with('driver file fields');
 
     it('refuses guests and users without driver permissions', function () {
@@ -195,7 +195,7 @@ describe('DRV-04/DRV-05: photo uploads (regression guards)', function () {
             ->post(route('admin.driver.store'), DriverAdmin::payload(['photo' => $svg]))
             ->assertSessionHasErrors('photo');
 
-        expect(Driver::count())->toBe(0);
+        expect(Driver::withoutTenancy()->count())->toBe(0);
     });
 
     it('stores the photo under a random name with the extension of its content', function () {
@@ -205,7 +205,7 @@ describe('DRV-04/DRV-05: photo uploads (regression guards)', function () {
             ->post(route('admin.driver.store'), DriverAdmin::payload(['photo' => DriverAdmin::png('evil.svg')]))
             ->assertSessionHasNoErrors();
 
-        expect(Driver::query()->latest('id')->value('photo'))->toEndWith('.png')->not->toContain('evil');
+        expect(Driver::withoutTenancy()->latest('id')->value('photo'))->toEndWith('.png')->not->toContain('evil');
     });
 
     it('gives two photos uploaded in the same second different names', function () {
@@ -215,7 +215,7 @@ describe('DRV-04/DRV-05: photo uploads (regression guards)', function () {
         $this->actingAs($owner)->post(route('admin.driver.store'), DriverAdmin::payload(['photo' => DriverAdmin::png()]));
         $this->actingAs($owner)->post(route('admin.driver.store'), DriverAdmin::payload(['photo' => DriverAdmin::png()]));
 
-        $photos = Driver::query()->pluck('photo');
+        $photos = Driver::withoutTenancy()->pluck('photo');
         expect($photos)->toHaveCount(2)
             ->and($photos->unique())->toHaveCount(2);
     });

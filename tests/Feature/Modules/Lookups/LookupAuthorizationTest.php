@@ -8,6 +8,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleGroup;
 use App\Models\VehicleType;
 use Database\Factories\VehicleFactory;
+use Illuminate\Database\Eloquent\Model;
 use Tests\Support\Actors;
 
 /*
@@ -31,7 +32,7 @@ function lookupPayload(string $model, string $name): array
         : ['name' => $name];
 }
 
-function createLookup(string $model, string $name = 'Shared Lookup'): \Illuminate\Database\Eloquent\Model
+function createLookup(string $model, string $name = 'Shared Lookup'): Model
 {
     return $model::query()->create(lookupPayload($model, $name));
 }
@@ -56,7 +57,7 @@ describe('LKP-01: tenants cannot delete global lookups', function () {
             ->deleteJson(route('admin.fuel.type.destroy', $diesel->id))
             ->assertForbidden();
 
-        expect(Vehicle::withTrashed()->whereKey($vehicle->id)->exists())->toBeTrue();
+        expect(Vehicle::withoutTenancy()->withTrashed()->whereKey($vehicle->id)->exists())->toBeTrue();
     });
 });
 

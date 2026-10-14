@@ -178,7 +178,7 @@ describe('AUTH-04 closing an account', function () {
         $this->assertGuest();
         expect($owner->fresh()->status)->toBe('inactive')
             ->and($company->fresh()->status)->toBe('inactive')
-            ->and(Driver::find($driver->id))->not->toBeNull();
+            ->and(Driver::withoutTenancy()->find($driver->id))->not->toBeNull();
     });
 
     it('still needs the password', function () {

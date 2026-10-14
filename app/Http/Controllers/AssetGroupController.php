@@ -7,9 +7,9 @@ use App\Models\Driver;
 use App\Models\Trailer;
 use App\Models\Vehicle;
 use App\Traits\CompanyFilterTrait;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -23,7 +23,7 @@ class AssetGroupController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = $this->scopedGroups()->with(['vehicle', 'trailer'])
+            $query = AssetGroup::query()->with(['vehicle', 'trailer'])
                 ->select(['asset_groups.*']);
 
             // Status filter: active / inactive, or the soft-deleted groups (the only place Restore shows)
@@ -143,9 +143,9 @@ class AssetGroupController extends Controller
         }
 
         // Get dropdown data for filters
-        $vehicles = $this->applyCompanyFilter(Vehicle::query())->orderBy('unit_no')->get();
-        $trailers = $this->applyCompanyFilter(Trailer::query())->orderBy('unit_no')->get();
-        $drivers = $this->applyCompanyFilter(Driver::where('status', 'active'))->get();
+        $vehicles = Vehicle::query()->orderBy('unit_no')->get();
+        $trailers = Trailer::query()->orderBy('unit_no')->get();
+        $drivers = Driver::where('status', 'active')->get();
 
         return view('admin.asset-group.index', compact('vehicles', 'trailers', 'drivers'));
     }
@@ -213,9 +213,10 @@ class AssetGroupController extends Controller
     public function edit($id)
     {
         // Only the driver's id and name: the select needs them when the driver is no longer active
-        $assetGroup = $this->scopedGroups()
+        $assetGroup = AssetGroup::query()
             ->with(['vehicle', 'trailer', 'driver:id,first_name,last_name,status'])
             ->findOrFail($id);
+        Gate::authorize('view', $assetGroup);
 
         return response()->json([
             'success' => true,
@@ -225,7 +226,8 @@ class AssetGroupController extends Controller
 
     public function update(Request $request, $id)
     {
-        $assetGroup = $this->scopedGroups()->findOrFail($id);
+        $assetGroup = AssetGroup::query()->findOrFail($id);
+        Gate::authorize('update', $assetGroup);
         $companyId = $this->owningCompanyId($request);
 
         $validator = Validator::make($request->all(), [
@@ -276,7 +278,8 @@ class AssetGroupController extends Controller
 
     public function destroy($id)
     {
-        $assetGroup = $this->scopedGroups()->findOrFail($id);
+        $assetGroup = AssetGroup::query()->findOrFail($id);
+        Gate::authorize('delete', $assetGroup);
 
         DB::beginTransaction();
 
@@ -301,7 +304,8 @@ class AssetGroupController extends Controller
 
     public function restore($id)
     {
-        $assetGroup = $this->scopedGroups()->withTrashed()->findOrFail($id);
+        $assetGroup = AssetGroup::query()->withTrashed()->findOrFail($id);
+        Gate::authorize('restore', $assetGroup);
 
         DB::beginTransaction();
 
@@ -326,11 +330,11 @@ class AssetGroupController extends Controller
 
     public function getDropdownData()
     {
-        $vehicles = $this->applyCompanyFilter(Vehicle::query())
+        $vehicles = Vehicle::query()
             ->orderBy('unit_no')
             ->get(['id', 'unit_no', 'vin', 'make', 'model', 'year']);
 
-        $trailers = $this->applyCompanyFilter(Trailer::query())
+        $trailers = Trailer::query()
             ->orderBy('unit_no')
             ->get(['id', 'unit_no', 'vin', 'make', 'model', 'year']);
 
@@ -340,14 +344,6 @@ class AssetGroupController extends Controller
             'trailers' => $trailers,
             'statusOptions' => AssetGroup::getStatusOptions(),
         ]);
-    }
-
-    /**
-     * @return Builder<AssetGroup>
-     */
-    private function scopedGroups(): Builder
-    {
-        return $this->applyCompanyFilter(AssetGroup::query());
     }
 
     /**

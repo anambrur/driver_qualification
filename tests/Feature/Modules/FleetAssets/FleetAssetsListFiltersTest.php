@@ -89,11 +89,11 @@ describe('FLT-04: deleted assets can be listed and restored', function () {
         expect($asset->fresh()->trashed())->toBeFalse();
     })->with('fleet assets');
 
-    it('refuses to restore another tenant\'s asset', function (string $kind) {
+    it('returns 404 when another tenant restores an asset', function (string $kind) {
         $asset = FleetAssets::assetOf(Actors::companyOwner(), $kind);
         $asset->delete();
 
-        $this->actingAs(Actors::companyOwner())->postJson(route("admin.$kind.restore", $asset->id))->assertForbidden();
+        $this->actingAs(Actors::companyOwner())->postJson(route("admin.$kind.restore", $asset->id))->assertNotFound();
         expect($asset->fresh()->trashed())->toBeTrue();
     })->with('fleet assets');
 });

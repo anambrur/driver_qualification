@@ -50,7 +50,7 @@ it('deactivates the company and its owner and keeps every record (decided PO-13,
 
     expect($company->fresh()->status)->toBe('inactive')
         ->and($owner->fresh()->status)->toBe('inactive')
-        ->and(Driver::find($driver->id))->not->toBeNull()
+        ->and(Driver::withoutTenancy()->find($driver->id))->not->toBeNull()
         ->and($vehicle->fresh())->not->toBeNull()
         ->and($owner->fresh()->subscriptions()->count())->toBe(1);
 });

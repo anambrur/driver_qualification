@@ -26,7 +26,7 @@ describe('FCMP-02: fleet compliance documents are private', function () {
             ->post(route('admin.compliance.documents.upload'), FleetCompliance::payload($asset, $type), FleetCompliance::json())
             ->assertOk()->assertJson(['success' => true]);
 
-        $path = FleetCompliance::documentModel($assetType)::where($assetType.'_id', $asset->id)->value('file_path');
+        $path = FleetCompliance::documentModel($assetType)::withoutTenancy()->where($assetType.'_id', $asset->id)->value('file_path');
         expect($path)->toStartWith('documents/'.$assetType.'s/');
         Storage::disk('local')->assertExists($path);
         Storage::disk('public')->assertMissing($path);
@@ -125,7 +125,7 @@ describe('FCMP-02: stored names come from the content, not the client', function
             ->post(route('admin.compliance.documents.upload'), FleetCompliance::payload($asset, $type, ['file' => $file]), FleetCompliance::json())
             ->assertOk();
 
-        $path = FleetCompliance::documentModel($assetType)::where($assetType.'_id', $asset->id)->value('file_path');
+        $path = FleetCompliance::documentModel($assetType)::withoutTenancy()->where($assetType.'_id', $asset->id)->value('file_path');
         expect($path)->toEndWith('.pdf')->not->toContain('x.html')->not->toContain('x_html');
     })->with(['vehicle', 'trailer']);
 
@@ -140,7 +140,7 @@ describe('FCMP-02: stored names come from the content, not the client', function
                 ->assertOk();
         }
 
-        $paths = FleetCompliance::documentModel('vehicle')::pluck('file_path');
+        $paths = FleetCompliance::documentModel('vehicle')::withoutTenancy()->pluck('file_path');
         expect($paths->unique())->toHaveCount(2)
             ->and($paths->first())->not->toContain('insurance');
     });

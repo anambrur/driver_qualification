@@ -11,6 +11,7 @@ use App\Models\VehicleDocument;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -51,14 +52,13 @@ class DocumentUploadController extends Controller
             // vehicle the modal was opened for, and only sees that company's vehicles (PO-02).
             $company = $this->uploadCompany(Vehicle::class, $request->integer('asset_id') ?: null);
 
-            // Apply company filter and load has_document in one query (avoid N+1 exists)
+            // Load has_document in one query (avoid N+1 exists); the tenant scope limits the rows
             $vehiclesQuery = Vehicle::select('vehicles.id', 'vehicles.unit_no')
                 ->withExists([
                     'documents as has_document' => function ($query) use ($documentTypeId) {
                         $query->where('document_type_id', $documentTypeId);
                     },
                 ]);
-            $vehiclesQuery = $this->applyCompanyFilter($vehiclesQuery);
             if ($this->isSuperAdmin() && $company) {
                 $vehiclesQuery->where('vehicles.company_id', $company->id);
             }
@@ -115,14 +115,13 @@ class DocumentUploadController extends Controller
             // trailer the modal was opened for, and only sees that company's trailers (PO-02).
             $company = $this->uploadCompany(Trailer::class, $request->integer('asset_id') ?: null);
 
-            // Apply company filter and load has_document in one query (avoid N+1 exists)
+            // Load has_document in one query (avoid N+1 exists); the tenant scope limits the rows
             $trailersQuery = Trailer::select('trailers.id', 'trailers.unit_no')
                 ->withExists([
                     'documents as has_document' => function ($query) use ($documentTypeId) {
                         $query->where('document_type_id', $documentTypeId);
                     },
                 ]);
-            $trailersQuery = $this->applyCompanyFilter($trailersQuery);
             if ($this->isSuperAdmin() && $company) {
                 $trailersQuery->where('trailers.company_id', $company->id);
             }
@@ -216,10 +215,10 @@ class DocumentUploadController extends Controller
                 ], 422);
             }
         } else {
-            // Upload to selected asset (validate company access first): 404 if unknown, 403 if another company's
+            // Upload to selected asset: 404 if unknown or another company's
             $asset = $assetModel::whereKey($request->selected_asset)->first();
             abort_unless($asset !== null, 404, ucfirst($assetType).' not found.');
-            $this->authorizeCompanyAccess($asset, "You do not have permission to upload documents for this {$assetType}.");
+            Gate::authorize('update', $asset);
             $assets = collect([$asset]);
         }
 
@@ -302,10 +301,7 @@ class DocumentUploadController extends Controller
         $created = false;
         $replacedPath = null;
 
-        // Double-check the asset belongs to user's company
-        if (! $this->userHasAccess($asset)) {
-            throw new \Exception("Unauthorized access to {$assetType}");
-        }
+        Gate::authorize('update', $asset);
 
         $documentModel = $this->documentModel($assetType);
 
@@ -358,7 +354,7 @@ class DocumentUploadController extends Controller
         }
 
         $assetType = $request->asset_type;
-        $document = $this->findAuthorizedDocument($assetType, $request->document_id, "You do not have permission to delete documents for this {$assetType}.");
+        $document = $this->findAuthorizedDocument($assetType, $request->document_id, 'update');
 
         try {
             $filePath = $document->file_path;
@@ -390,7 +386,7 @@ class DocumentUploadController extends Controller
      */
     public function downloadDocument(Request $request, $documentId, $assetType)
     {
-        $document = $this->findAuthorizedDocument($assetType, $documentId, "You do not have permission to download documents for this {$assetType}.");
+        $document = $this->findAuthorizedDocument($assetType, $documentId, 'view');
         $disk = $this->diskHolding($document->file_path);
 
         $fileName = $document->documentType->name.'_'.basename($document->file_path);
@@ -403,7 +399,7 @@ class DocumentUploadController extends Controller
      */
     public function viewDocument($documentId, $assetType)
     {
-        $document = $this->findAuthorizedDocument($assetType, $documentId, "You do not have permission to view documents for this {$assetType}.");
+        $document = $this->findAuthorizedDocument($assetType, $documentId, 'view');
         $disk = $this->diskHolding($document->file_path);
 
         return Storage::disk($disk)->response($document->file_path, null, self::FILE_HEADERS);
@@ -442,10 +438,10 @@ class DocumentUploadController extends Controller
 
     /**
      * Load a document the user may act on: 404 for an unknown asset type (FCMP-04), or if the
-     * document or its vehicle/trailer is gone (a soft-deleted asset loads as null, FCMP-07),
-     * 403 if the asset belongs to another company.
+     * document or its vehicle/trailer is gone (a soft-deleted asset loads as null, FCMP-07) or
+     * belongs to another company.
      */
-    private function findAuthorizedDocument($assetType, $documentId, string $message): VehicleDocument|TrailerDocument
+    private function findAuthorizedDocument($assetType, $documentId, string $ability): VehicleDocument|TrailerDocument
     {
         abort_unless(in_array($assetType, self::ASSET_TYPES, true), 404, 'Document not found');
 
@@ -453,7 +449,7 @@ class DocumentUploadController extends Controller
         $asset = $document?->getRelationValue($assetType);
         abort_unless($asset !== null, 404, 'Document not found');
 
-        $this->authorizeCompanyAccess($asset, $message);
+        Gate::authorize($ability, $asset);
 
         return $document;
     }

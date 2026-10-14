@@ -75,7 +75,8 @@ describe('PO-05: vehicle engine hours', function () {
             'interval_hours' => 250,
         ]))->assertOk();
 
-        $schedule = MaintenanceSchedule::sole();
+        Actors::actingAsTenant($owner);
+        $schedule = MaintenanceSchedule::withoutTenancy()->sole();
         expect($schedule->next_due_hours)->toBe(1150)->and($schedule->isDue())->toBeFalse();
 
         $vehicle->update(['engine_hours' => 1150]);
@@ -92,7 +93,7 @@ describe('PO-06: mileage and engine-hour schedules need a vehicle', function () 
             $intervalField => 5000,
         ]))->assertStatus(422)->assertJsonValidationErrors('vehicle_id', 'errors');
 
-        expect(MaintenanceSchedule::count())->toBe(0);
+        expect(MaintenanceSchedule::withoutTenancy()->count())->toBe(0);
     })->with([
         'mileage' => ['mileage', 'interval_miles'],
         'engine hours' => ['engine_hours', 'interval_hours'],
@@ -115,7 +116,7 @@ describe('PO-06: mileage and engine-hour schedules need a vehicle', function () 
 
         $this->actingAs($owner)->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload(null))->assertOk();
 
-        expect(MaintenanceSchedule::sole()->vehicle_id)->toBeNull();
+        expect(MaintenanceSchedule::withoutTenancy()->sole()->vehicle_id)->toBeNull();
     });
 });
 
@@ -125,7 +126,7 @@ describe('PO-07: a super-admin\'s schedule for all vehicles', function () {
             ->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload(null))
             ->assertStatus(422)->assertJsonValidationErrors('company_id', 'errors');
 
-        expect(MaintenanceSchedule::count())->toBe(0);
+        expect(MaintenanceSchedule::withoutTenancy()->count())->toBe(0);
     });
 
     it('is filed under the company picked', function () {
@@ -136,7 +137,7 @@ describe('PO-07: a super-admin\'s schedule for all vehicles', function () {
             ->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload(null, ['company_id' => $company->id]))
             ->assertOk();
 
-        expect(MaintenanceSchedule::sole()->company_id)->toBe($company->id);
+        expect(MaintenanceSchedule::withoutTenancy()->sole()->company_id)->toBe($company->id);
     });
 
     it('takes the vehicle\'s company when there is a vehicle, whatever company is posted', function () {
@@ -147,7 +148,7 @@ describe('PO-07: a super-admin\'s schedule for all vehicles', function () {
             ->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload($vehicle, ['company_id' => Actors::companyOf($other)->id]))
             ->assertOk();
 
-        expect(MaintenanceSchedule::sole()->company_id)->toBe($vehicle->company_id);
+        expect(MaintenanceSchedule::withoutTenancy()->sole()->company_id)->toBe($vehicle->company_id);
     });
 
     it('can be moved to another company on update', function () {
@@ -170,7 +171,7 @@ describe('PO-07: a super-admin\'s schedule for all vehicles', function () {
             ->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload(null, ['company_id' => Actors::companyOf($other)->id]))
             ->assertOk();
 
-        expect(MaintenanceSchedule::sole()->company_id)->toBe(Actors::companyOf($owner)->id);
+        expect(MaintenanceSchedule::withoutTenancy()->sole()->company_id)->toBe(Actors::companyOf($owner)->id);
     });
 
     it('shows the company select to super-admins only', function () {
@@ -189,11 +190,11 @@ describe('PO-22: service log follow-ups', function () {
         $this->actingAs($owner)
             ->post(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle, ['documents' => [Maintenance::pdf()]]), ['Accept' => 'application/json'])
             ->assertOk();
-        $document = ServiceDocument::sole();
+        $document = ServiceDocument::withoutTenancy()->sole();
 
         $this->actingAs($owner)->deleteJson(route('admin.service-log.destroy', $document->service_log_id))->assertOk();
 
-        expect(ServiceDocument::count())->toBe(0);
+        expect(ServiceDocument::withoutTenancy()->count())->toBe(0);
         Storage::disk('local')->assertMissing($document->file_path);
     });
 
@@ -203,7 +204,7 @@ describe('PO-22: service log follow-ups', function () {
         $this->actingAs($owner)->postJson(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle, ['odometer_at_service' => 150000, 'current_odometer' => 150000]))->assertOk();
         expect($vehicle->fresh()->odometer)->toBe(150000);
 
-        $typo = ServiceLog::where('current_odometer', 150000)->sole();
+        $typo = ServiceLog::withoutTenancy()->where('current_odometer', 150000)->sole();
         $this->actingAs($owner)->putJson(route('admin.service-log.update', $typo->id), Maintenance::serviceLogPayload($vehicle, [
             'maintenance_categories' => $typo->maintenanceCategories->pluck('id')->all() ?: [Maintenance::category()->id],
             'odometer_at_service' => 15000,
@@ -219,7 +220,7 @@ describe('PO-22: service log follow-ups', function () {
         $this->actingAs($owner)->postJson(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle, ['odometer_at_service' => 30000, 'current_odometer' => 30000]))->assertOk();
         $this->actingAs($owner)->postJson(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle, ['odometer_at_service' => 50000, 'current_odometer' => 50000]))->assertOk();
 
-        $older = ServiceLog::where('current_odometer', 30000)->sole();
+        $older = ServiceLog::withoutTenancy()->where('current_odometer', 30000)->sole();
         $this->actingAs($owner)->putJson(route('admin.service-log.update', $older->id), Maintenance::serviceLogPayload($vehicle, [
             'odometer_at_service' => 20000,
             'current_odometer' => 20000,
@@ -232,7 +233,7 @@ describe('PO-22: service log follow-ups', function () {
         [$owner, $vehicle] = Maintenance::tenantWithVehicle();
         $this->actingAs($owner)->postJson(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle, ['engine_hours_at_service' => 9000, 'current_engine_hours' => 9000]))->assertOk();
 
-        $log = ServiceLog::sole();
+        $log = ServiceLog::withoutTenancy()->sole();
         $this->actingAs($owner)->putJson(route('admin.service-log.update', $log->id), Maintenance::serviceLogPayload($vehicle, [
             'engine_hours_at_service' => 900,
             'current_engine_hours' => 900,

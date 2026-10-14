@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\DocumentType;
 use App\Models\Driver;
 use App\Models\DriverComplianceDocument;
+use Database\Factories\Concerns\CreatesInTenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class DriverComplianceDocumentFactory extends Factory
 {
+    use CreatesInTenant;
+
     protected $model = DriverComplianceDocument::class;
 
     /**
@@ -23,7 +26,7 @@ class DriverComplianceDocumentFactory extends Factory
     {
         return [
             'driver_id' => DriverFactory::new(),
-            'company_id' => fn (array $attributes) => Driver::withTrashed()->whereKey($attributes['driver_id'])->value('company_id'),
+            'company_id' => fn (array $attributes) => Driver::withoutTenancy()->withTrashed()->whereKey($attributes['driver_id'])->value('company_id'),
             'document_type_id' => DocumentTypeFactory::new(),
             'file_id' => fn (array $attributes) => StoredFileFactory::new()->create(['company_id' => $attributes['company_id']])->id,
             'file_date' => now()->subMonth()->toDateString(),

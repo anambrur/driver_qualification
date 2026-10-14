@@ -39,7 +39,7 @@ describe('APP-08: an inactive company accepts no applications', function () {
             ->post(route('public.application.submit.otp', $this->company->slug), ['otp' => '123456'])
             ->assertNotFound();
 
-        expect(Driver::query()->where('company_id', $this->company->id)->exists())->toBeFalse();
+        expect(Driver::withoutTenancy()->where('company_id', $this->company->id)->exists())->toBeFalse();
     });
 
     it('does not save application steps, even with a session started while it was active', function (int $step) {

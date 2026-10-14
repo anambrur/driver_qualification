@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\VehicleGroup;
-use Illuminate\Support\Facades\DB;
+use App\Tenancy\CompanyScope;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -20,11 +21,11 @@ class VehicleGroupController extends Controller
                 ->addColumn('action', function ($row) {
                     return '
                     <div class="flex justify-center space-x-1">
-                        <button onclick="editVehicleGroup(' . $row->id . ')" 
+                        <button onclick="editVehicleGroup('.$row->id.')" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors">
                             <i class="fas fa-edit mr-1"></i> Edit
                         </button>
-                        <button data-action="delete" data-id="' . $row->id . '" data-name="' . e($row->name) . '" 
+                        <button data-action="delete" data-id="'.$row->id.'" data-name="'.e($row->name).'" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
                             <i class="fas fa-trash mr-1"></i> Delete
                         </button>
@@ -52,7 +53,7 @@ class VehicleGroupController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -68,13 +69,14 @@ class VehicleGroupController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Vehicle group created successfully!',
-                'data' => $vehicleGroup
+                'data' => $vehicleGroup,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create vehicle group. Please try again.'
+                'message' => 'Failed to create vehicle group. Please try again.',
             ], 500);
         }
     }
@@ -82,9 +84,10 @@ class VehicleGroupController extends Controller
     public function edit($id)
     {
         $vehicleGroup = VehicleGroup::findOrFail($id);
+
         return response()->json([
             'success' => true,
-            'data' => $vehicleGroup
+            'data' => $vehicleGroup,
         ]);
     }
 
@@ -93,13 +96,13 @@ class VehicleGroupController extends Controller
         $vehicleGroup = VehicleGroup::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:vehicle_groups,name,' . $id,
+            'name' => 'required|string|max:255|unique:vehicle_groups,name,'.$id,
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -115,13 +118,14 @@ class VehicleGroupController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Vehicle group updated successfully!',
-                'data' => $vehicleGroup
+                'data' => $vehicleGroup,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update vehicle group. Please try again.'
+                'message' => 'Failed to update vehicle group. Please try again.',
             ], 500);
         }
     }
@@ -130,10 +134,10 @@ class VehicleGroupController extends Controller
     {
         $vehicleGroup = VehicleGroup::findOrFail($id);
 
-        if ($vehicleGroup->vehicles()->withTrashed()->exists() || $vehicleGroup->trailers()->withTrashed()->exists()) {
+        if ($vehicleGroup->vehicles()->withoutGlobalScope(CompanyScope::class)->withTrashed()->exists() || $vehicleGroup->trailers()->withoutGlobalScope(CompanyScope::class)->withTrashed()->exists()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete vehicle group because it is assigned to vehicles or trailers.'
+                'message' => 'Cannot delete vehicle group because it is assigned to vehicles or trailers.',
             ], 400);
         }
 
@@ -145,13 +149,14 @@ class VehicleGroupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Vehicle group deleted successfully!'
+                'message' => 'Vehicle group deleted successfully!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete vehicle group. Please try again.'
+                'message' => 'Failed to delete vehicle group. Please try again.',
             ], 500);
         }
     }

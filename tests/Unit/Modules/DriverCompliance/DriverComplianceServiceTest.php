@@ -5,6 +5,7 @@ use App\Models\Driver;
 use App\Models\DriverComplianceDocument;
 use App\Models\License;
 use App\Services\Compliance\DriverComplianceService;
+use App\Tenancy\TenantContext;
 use Database\Factories\DocumentTypeFactory;
 use Database\Factories\DriverComplianceDocumentFactory;
 use Database\Factories\DriverFactory;
@@ -135,10 +136,10 @@ describe('F17: medical certificate and CDL expiry', function () {
         }
 
         $service = app(DriverComplianceService::class);
-        $rows = $service->withComplianceCounts(Driver::query())->get()->keyBy('id');
+        $rows = $service->withComplianceCounts(Driver::withoutTenancy())->get()->keyBy('id');
 
         foreach ($drivers as $label => $driver) {
-            $php = $service->forDriver(Driver::findOrFail($driver->id));
+            $php = app(TenantContext::class)->run($driver->company_id, fn () => $service->forDriver(Driver::findOrFail($driver->id)));
             $sql = $rows[$driver->id];
             $sqlStatus = $sql->total_docs - $sql->valid_docs - $sql->expiring_docs > 0 ? 'danger' : ($sql->expiring_docs > 0 ? 'warning' : 'compliant');
 
@@ -146,7 +147,7 @@ describe('F17: medical certificate and CDL expiry', function () {
                 ->toBe([$php['total_docs'], $php['compliant_docs'], $php['status']], $label);
         }
 
-        expect($service->summary(Driver::query()))
+        expect($service->summary(Driver::withoutTenancy()))
             ->toBe(['total' => 5, 'compliant' => 1, 'warning' => 1, 'danger' => 3]);
     });
 });

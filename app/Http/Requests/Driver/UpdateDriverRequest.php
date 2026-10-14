@@ -2,13 +2,20 @@
 
 namespace App\Http\Requests\Driver;
 
+use App\Models\Driver;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class UpdateDriverRequest extends FormRequest
 {
+    /**
+     * Another company's driver is a 404 before validation runs (03 §5).
+     */
     public function authorize(): bool
     {
+        Gate::authorize('update', Driver::findOrFail($this->route('id')));
+
         return true;
     }
 

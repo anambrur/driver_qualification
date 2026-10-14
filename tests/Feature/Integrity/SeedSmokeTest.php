@@ -2,6 +2,7 @@
 
 use App\Models\Company;
 use App\Models\PlatformUser;
+use App\Tenancy\TenantContext;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -28,7 +29,7 @@ it('gives each demo company an owner with the Owner role, settings and an open s
             ->and($company->settings)->not->toBeNull()
             ->and($company->subscriptions()->whereNull('ended_at')->count())->toBe(1)
             ->and(DB::table('model_has_roles')->where(['team_id' => $company->id, 'role_id' => $ownerRole, 'model_id' => $company->owner_user_id])->exists())->toBeTrue()
-            ->and($company->drivers()->whereHas('currentLicense')->count())->toBe(3);
+            ->and(app(TenantContext::class)->run($company->id, fn () => $company->drivers()->whereHas('currentLicense')->count()))->toBe(3);
     }
 });
 

@@ -11,8 +11,10 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Queue\SerializesModels;
 
+#[WithoutRelations]
 class VehicleComplianceStatusReminderMail extends Mailable implements ShouldQueue
 {
     use Queueable, RetriesQueuedDelivery, SerializesModels;

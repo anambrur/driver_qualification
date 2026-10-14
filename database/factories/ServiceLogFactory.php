@@ -4,13 +4,16 @@ namespace Database\Factories;
 
 use App\Models\ServiceLog;
 use App\Models\Vehicle;
+use Database\Factories\Concerns\CreatesInTenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\ServiceLog>
+ * @extends Factory<ServiceLog>
  */
 class ServiceLogFactory extends Factory
 {
+    use CreatesInTenant;
+
     protected $model = ServiceLog::class;
 
     /**
@@ -22,7 +25,7 @@ class ServiceLogFactory extends Factory
 
         return [
             'vehicle_id' => VehicleFactory::new(),
-            'company_id' => fn (array $attributes) => Vehicle::withTrashed()->whereKey($attributes['vehicle_id'])->value('company_id'),
+            'company_id' => fn (array $attributes) => Vehicle::withoutTenancy()->withTrashed()->whereKey($attributes['vehicle_id'])->value('company_id'),
             'service_date' => fake()->dateTimeBetween('-1 year')->format('Y-m-d'),
             'maintenance_notes' => fake()->sentence(),
             'odometer_at_service' => $odometer,

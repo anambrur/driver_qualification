@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\FleetCompliance\FleetCompliance;
 use Tests\Support\Actors;
@@ -172,7 +171,7 @@ describe('PO-02: "upload to all" for fleet', function () {
             ->post(route('admin.compliance.documents.upload'), fcmpUploadAllPayload($assetType, $type->id), FleetCompliance::json())
             ->assertStatus(422);
 
-        expect(FleetCompliance::documentModel($assetType)::count())->toBe(0)
+        expect(FleetCompliance::documentModel($assetType)::withoutTenancy()->count())->toBe(0)
             ->and(Storage::disk('local')->allFiles())->toBe([]);
     })->with(['vehicle', 'trailer']);
 
@@ -200,8 +199,8 @@ describe('PO-02: "upload to all" for fleet', function () {
             ->post(route('admin.compliance.documents.upload'), fcmpUploadAllPayload('vehicle', $type->id, ['company_id' => Actors::companyOf($other)->id]), FleetCompliance::json())
             ->assertOk()->assertJson(['uploaded_count' => 1]);
 
-        expect(FleetCompliance::documentModel('vehicle')::where('vehicle_id', $mine->id)->exists())->toBeTrue()
-            ->and(FleetCompliance::documentModel('vehicle')::where('vehicle_id', $theirs->id)->exists())->toBeFalse();
+        expect(FleetCompliance::documentModel('vehicle')::withoutTenancy()->where('vehicle_id', $mine->id)->exists())->toBeTrue()
+            ->and(FleetCompliance::documentModel('vehicle')::withoutTenancy()->where('vehicle_id', $theirs->id)->exists())->toBeFalse();
     });
 
     it('leaves soft-deleted assets out', function (string $assetType) {
@@ -214,7 +213,7 @@ describe('PO-02: "upload to all" for fleet', function () {
             ->post(route('admin.compliance.documents.upload'), fcmpUploadAllPayload($assetType, $type->id), FleetCompliance::json())
             ->assertOk()->assertJson(['uploaded_count' => 1]);
 
-        expect(FleetCompliance::documentModel($assetType)::where($assetType.'_id', $deleted->id)->exists())->toBeFalse();
+        expect(FleetCompliance::documentModel($assetType)::withoutTenancy()->where($assetType.'_id', $deleted->id)->exists())->toBeFalse();
     })->with(['vehicle', 'trailer']);
 
     it('lists only the opened asset\'s company for a super-admin, and returns that company', function () {
@@ -239,7 +238,7 @@ describe('PO-22: fleet compliance follow-ups', function () {
             ->post(route('admin.compliance.documents.upload'), FleetCompliance::payload($asset, $wrong), FleetCompliance::json())
             ->assertStatus(422);
 
-        expect(FleetCompliance::documentModel($assetType)::count())->toBe(0);
+        expect(FleetCompliance::documentModel($assetType)::withoutTenancy()->count())->toBe(0);
     })->with([
         'driver type on a vehicle' => ['vehicle', 'driver'],
         'trailer type on a vehicle' => ['vehicle', 'trailer'],

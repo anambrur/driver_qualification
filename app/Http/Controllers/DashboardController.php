@@ -10,24 +10,21 @@ use App\Models\Trailer;
 use App\Models\TrailerDocument;
 use App\Models\Vehicle;
 use App\Models\VehicleDocument;
-use App\Traits\CompanyFilterTrait;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    use CompanyFilterTrait;
-
     public function index()
     {
-        $user         = Auth::user();
+        $user = Auth::user();
         $isSuperAdmin = $user->hasRole('super-admin');
 
         // Company context (for company dashboards & share links)
         $company = $user->loadMissing('company')->company;
 
-        // Drivers (company-filtered for non-super-admin)
+        // Drivers (tenant-scoped)
         $driversQuery = Driver::query();
-        $driversQuery = $this->applyCompanyFilter($driversQuery);
 
         // Drafts are hidden from tenants' driver list, so keep the numbers consistent
         if (! $isSuperAdmin) {
@@ -43,39 +40,28 @@ class DashboardController extends Controller
             ->selectRaw("SUM(CASE WHEN source = 'public_application' AND created_at >= ? THEN 1 ELSE 0 END) as new_applicants", [now()->subDays(7)])
             ->first();
 
-        $totalDrivers        = (int) $driverCounts->total;
-        $activeDrivers       = (int) $driverCounts->active;
-        $pendingDrivers      = (int) $driverCounts->pending;
-        $inactiveDrivers     = (int) $driverCounts->inactive;
-        $newApplicants7Days  = (int) $driverCounts->new_applicants;
+        $totalDrivers = (int) $driverCounts->total;
+        $activeDrivers = (int) $driverCounts->active;
+        $pendingDrivers = (int) $driverCounts->pending;
+        $inactiveDrivers = (int) $driverCounts->inactive;
+        $newApplicants7Days = (int) $driverCounts->new_applicants;
 
         // Fleet (vehicles & trailers)
         $vehiclesQuery = Vehicle::query();
-        $vehiclesQuery = $this->applyCompanyFilter($vehiclesQuery);
-
         $trailersQuery = Trailer::query();
-        $trailersQuery = $this->applyCompanyFilter($trailersQuery);
 
         $totalVehicles = $vehiclesQuery->count();
         $totalTrailers = $trailersQuery->count();
-        $totalUnits    = $totalVehicles + $totalTrailers;
+        $totalUnits = $totalVehicles + $totalTrailers;
 
         // Compliance snapshots (overdue / due soon documents)
-        $driverDocsQuery = DriverComplianceDocument::query()->whereHas('driver', function ($q) {
-            $this->applyCompanyFilter($q);
-        });
-
-        $vehicleDocsQuery = VehicleDocument::query()->whereHas('vehicle', function ($q) {
-            $this->applyCompanyFilter($q);
-        });
-
-        $trailerDocsQuery = TrailerDocument::query()->whereHas('trailer', function ($q) {
-            $this->applyCompanyFilter($q);
-        });
+        $driverDocsQuery = DriverComplianceDocument::query()->whereHas('driver');
+        $vehicleDocsQuery = VehicleDocument::query()->whereHas('vehicle');
+        $trailerDocsQuery = TrailerDocument::query()->whereHas('trailer');
 
         $now = now();
 
-        [$driverOverdue, $driverDueSoon]   = $this->expiryCounts($driverDocsQuery, $now);
+        [$driverOverdue, $driverDueSoon] = $this->expiryCounts($driverDocsQuery, $now);
         [$vehicleOverdue, $vehicleDueSoon] = $this->expiryCounts($vehicleDocsQuery, $now);
         [$trailerOverdue, $trailerDueSoon] = $this->expiryCounts($trailerDocsQuery, $now);
 
@@ -84,15 +70,14 @@ class DashboardController extends Controller
 
         // Maintenance overview
         $serviceLogsQuery = ServiceLog::query();
-        $serviceLogsQuery = $this->applyCompanyFilter($serviceLogsQuery);
 
         $serviceCounts = $serviceLogsQuery->toBase()
             ->selectRaw('COUNT(*) as total')
             ->selectRaw('SUM(CASE WHEN service_date >= ? THEN 1 ELSE 0 END) as recent', [now()->subDays(30)])
             ->first();
 
-        $totalServices      = (int) $serviceCounts->total;
-        $recentServices30   = (int) $serviceCounts->recent;
+        $totalServices = (int) $serviceCounts->total;
+        $recentServices30 = (int) $serviceCounts->recent;
 
         // Company-wide metrics (admin only)
         $companyStats = null;
@@ -102,11 +87,11 @@ class DashboardController extends Controller
                 ->selectRaw("SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active")
                 ->first();
 
-            $totalCompanies  = (int) $companyCounts->total;
+            $totalCompanies = (int) $companyCounts->total;
             $activeCompanies = (int) $companyCounts->active;
 
             $companyStats = [
-                'total_companies'  => $totalCompanies,
+                'total_companies' => $totalCompanies,
                 'active_companies' => $activeCompanies,
                 'inactive_companies' => $totalCompanies - $activeCompanies,
             ];
@@ -114,16 +99,16 @@ class DashboardController extends Controller
 
         return view('dashboard', [
             'isSuperAdmin' => $isSuperAdmin,
-            'company'      => $company,
-            'driverStats'  => [
-                'total'          => $totalDrivers,
-                'active'         => $activeDrivers,
-                'pending'        => $pendingDrivers,
-                'inactive'       => $inactiveDrivers,
+            'company' => $company,
+            'driverStats' => [
+                'total' => $totalDrivers,
+                'active' => $activeDrivers,
+                'pending' => $pendingDrivers,
+                'inactive' => $inactiveDrivers,
                 'new_applicants' => $newApplicants7Days,
             ],
-            'fleetStats'   => [
-                'units'    => $totalUnits,
+            'fleetStats' => [
+                'units' => $totalUnits,
                 'vehicles' => $totalVehicles,
                 'trailers' => $totalTrailers,
             ],
@@ -131,15 +116,15 @@ class DashboardController extends Controller
                 'overdue' => $driverOverdue,
                 'due_soon' => $driverDueSoon,
             ],
-            'fleetComplianceStats'  => [
+            'fleetComplianceStats' => [
                 'overdue' => $fleetOverdue,
                 'due_soon' => $fleetDueSoon,
             ],
-            'maintenanceStats'      => [
-                'total_services'    => $totalServices,
-                'recent_30_days'    => $recentServices30,
+            'maintenanceStats' => [
+                'total_services' => $totalServices,
+                'recent_30_days' => $recentServices30,
             ],
-            'companyStats'          => $companyStats,
+            'companyStats' => $companyStats,
         ]);
     }
 
@@ -149,7 +134,7 @@ class DashboardController extends Controller
      * @param  \Illuminate\Database\Eloquent\Builder<*>  $docsQuery
      * @return array{0: int, 1: int}
      */
-    private function expiryCounts($docsQuery, \Illuminate\Support\Carbon $now): array
+    private function expiryCounts($docsQuery, Carbon $now): array
     {
         $counts = $docsQuery->toBase()
             ->whereNotNull('expiry_date')

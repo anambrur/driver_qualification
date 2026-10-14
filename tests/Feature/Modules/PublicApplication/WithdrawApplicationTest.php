@@ -98,7 +98,7 @@ describe('APP-06: a withdrawn applicant can apply again', function () {
         expect($me->status)->toBe('draft')
             ->and($me->withdrawn_at)->toBeNull()
             ->and(session('application_driver_id'))->toBe($me->id)
-            ->and(Driver::query()->where('company_id', $me->company_id)->count())->toBe(1);
+            ->and(Driver::withoutTenancy()->where('company_id', $me->company_id)->count())->toBe(1);
 
         // …and can complete step 1 again with the same email.
         $this->post(route('public.application.store.step1', $slug), Applicant::step1Payload($me))

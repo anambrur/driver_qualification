@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\MaintenanceSchedule;
 use Database\Factories\MaintenanceScheduleFactory;
 use Illuminate\Support\Carbon;
 use Tests\Feature\Modules\Maintenance\Maintenance;
@@ -49,12 +50,12 @@ describe('MNT-04: completing a schedule', function () {
             ->next_due_date->toDateString()->toBe('2026-11-09');
     });
 
-    it('refuses another tenant\'s schedule', function () {
+    it('returns 404 for another tenant\'s schedule', function () {
         [$owner] = Maintenance::tenantWithVehicle();
         [, $foreign] = Maintenance::tenantWithVehicle();
         $schedule = MaintenanceScheduleFactory::new()->forVehicle($foreign)->create(['next_due_date' => '2026-10-01']);
 
-        $this->actingAs($owner)->postJson(route('admin.maintenance-schedule.mark-completed', $schedule->id))->assertForbidden();
+        $this->actingAs($owner)->postJson(route('admin.maintenance-schedule.mark-completed', $schedule->id))->assertNotFound();
 
         expect($schedule->fresh()->last_due_date)->toBeNull();
     });
@@ -90,7 +91,7 @@ describe('MNT-04: editing a schedule', function () {
         Carbon::setTestNow('2026-10-01 12:00:00');
         [$owner, $vehicle] = Maintenance::tenantWithVehicle();
         $this->actingAs($owner)->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload($vehicle, ['interval_days' => 30]))->assertOk();
-        $schedule = \App\Models\MaintenanceSchedule::sole();
+        $schedule = MaintenanceSchedule::withoutTenancy()->sole();
         expect($schedule->next_due_date->toDateString())->toBe('2026-10-31');
 
         Carbon::setTestNow('2026-10-20 12:00:00');

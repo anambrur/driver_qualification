@@ -7,6 +7,7 @@ use Database\Factories\CompanyFactory;
 use Database\Factories\DriverFactory;
 use Database\Factories\TrailerFactory;
 use Database\Factories\VehicleFactory;
+use Illuminate\Support\Arr;
 use Tests\Feature\Modules\AssetGroups\AssetGroupActors;
 use Tests\Support\Actors;
 
@@ -41,7 +42,7 @@ describe('AGR-03', function () {
             ->assertStatus(422)
             ->assertJsonValidationErrors($field);
 
-        expect(AssetGroup::count())->toBe(0);
+        expect(AssetGroup::withoutTenancy()->count())->toBe(0);
     })->with('foreign ids');
 
     it('rejects another tenant\'s id on update', function (string $field, int $foreignId) {
@@ -70,8 +71,8 @@ describe('AGR-03', function () {
 
         $this->actingAs($tenant)->postJson(route('admin.asset-group.store'), $payload)->assertOk();
 
-        expect(AssetGroup::first()->only(['driver_id', 'vehicle_id', 'trailer_id']))
-            ->toBe(\Illuminate\Support\Arr::only($payload, ['driver_id', 'vehicle_id', 'trailer_id']));
+        expect(AssetGroup::withoutTenancy()->first()->only(['driver_id', 'vehicle_id', 'trailer_id']))
+            ->toBe(Arr::only($payload, ['driver_id', 'vehicle_id', 'trailer_id']));
     });
 
     it('makes a super-admin pick the driver and trailer from the vehicle\'s company', function (string $field) {
@@ -93,6 +94,6 @@ describe('AGR-03', function () {
 
         $this->actingAs(Actors::superAdmin())->postJson(route('admin.asset-group.store'), $payload)->assertOk();
 
-        expect(AssetGroup::count())->toBe(1);
+        expect(AssetGroup::withoutTenancy()->count())->toBe(1);
     });
 });

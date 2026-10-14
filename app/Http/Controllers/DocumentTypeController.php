@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DocumentType;
+use App\Tenancy\CompanyScope;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -265,9 +266,9 @@ class DocumentTypeController extends Controller
             $documentType = DocumentType::findOrFail($id);
 
             // Deleting cascades to every tenant's uploaded documents of this type
-            if ($documentType->driverComplianceDocuments()->exists()
-                || $documentType->vehicleDocuments()->exists()
-                || $documentType->trailerDocuments()->exists()) {
+            if ($documentType->driverComplianceDocuments()->withoutGlobalScope(CompanyScope::class)->exists()
+                || $documentType->vehicleDocuments()->withoutGlobalScope(CompanyScope::class)->exists()
+                || $documentType->trailerDocuments()->withoutGlobalScope(CompanyScope::class)->exists()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Cannot delete document type because it has associated documents. Deactivate it instead.',

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\AssetGroup;
+use App\Models\Company;
 use Database\Factories\AssetGroupFactory;
 use Database\Factories\DriverFactory;
 use Database\Factories\VehicleFactory;
@@ -13,7 +14,7 @@ use Tests\Support\Actors;
 | Names are now unique per company (the vehicle's company), soft-deleted groups included.
 */
 
-function agrNewGroupPayload(\App\Models\Company $company, string $name): array
+function agrNewGroupPayload(Company $company, string $name): array
 {
     return [
         'group_name' => $name,
@@ -32,7 +33,7 @@ describe('AGR-05', function () {
             ->postJson(route('admin.asset-group.store'), agrNewGroupPayload(AssetGroupActors::company($tenant), 'GR#101'))
             ->assertOk();
 
-        expect(AssetGroup::where('group_name', 'GR#101')->count())->toBe(2);
+        expect(AssetGroup::withoutTenancy()->where('group_name', 'GR#101')->count())->toBe(2);
     });
 
     it('still rejects a duplicate name within one company', function (bool $trashed) {

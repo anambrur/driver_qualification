@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\MaintenanceCategory;
-use Illuminate\Support\Facades\DB;
+use App\Tenancy\CompanyScope;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -23,11 +24,11 @@ class MaintenanceCategoryController extends Controller
                 ->addColumn('action', function ($row) {
                     return '
                     <div class="flex justify-center space-x-1">
-                        <button onclick="editMaintenanceCategory(' . $row->id . ')" 
+                        <button onclick="editMaintenanceCategory('.$row->id.')" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors">
                             <i class="fas fa-edit mr-1"></i> Edit
                         </button>
-                        <button data-action="delete" data-id="' . $row->id . '" data-name="' . e($row->name) . '" 
+                        <button data-action="delete" data-id="'.$row->id.'" data-name="'.e($row->name).'" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
                             <i class="fas fa-trash mr-1"></i> Delete
                         </button>
@@ -58,7 +59,7 @@ class MaintenanceCategoryController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -73,13 +74,14 @@ class MaintenanceCategoryController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Maintenance category created successfully!'
+                'message' => 'Maintenance category created successfully!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create maintenance category. Please try again.'
+                'message' => 'Failed to create maintenance category. Please try again.',
             ], 500);
         }
     }
@@ -94,12 +96,12 @@ class MaintenanceCategoryController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $maintenanceCategory
+                'data' => $maintenanceCategory,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Maintenance category not found'
+                'message' => 'Maintenance category not found',
             ], 404);
         }
     }
@@ -112,13 +114,13 @@ class MaintenanceCategoryController extends Controller
         $maintenanceCategory = MaintenanceCategory::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:maintenance_categories,name,' . $id,
+            'name' => 'required|string|max:255|unique:maintenance_categories,name,'.$id,
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -133,13 +135,14 @@ class MaintenanceCategoryController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Maintenance category updated successfully!'
+                'message' => 'Maintenance category updated successfully!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update maintenance category. Please try again.'
+                'message' => 'Failed to update maintenance category. Please try again.',
             ], 500);
         }
     }
@@ -152,10 +155,10 @@ class MaintenanceCategoryController extends Controller
         $maintenanceCategory = MaintenanceCategory::findOrFail($id);
 
         // Check if category has related maintenance records
-        if ($maintenanceCategory->serviceLogs()->withTrashed()->exists() || $maintenanceCategory->maintenanceSchedules()->withTrashed()->exists()) {
+        if ($maintenanceCategory->serviceLogs()->withoutGlobalScope(CompanyScope::class)->withTrashed()->exists() || $maintenanceCategory->maintenanceSchedules()->withoutGlobalScope(CompanyScope::class)->withTrashed()->exists()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete category because it has associated maintenance records.'
+                'message' => 'Cannot delete category because it has associated maintenance records.',
             ], 400);
         }
 
@@ -167,13 +170,14 @@ class MaintenanceCategoryController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Maintenance category deleted successfully!'
+                'message' => 'Maintenance category deleted successfully!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete maintenance category. Please try again.'
+                'message' => 'Failed to delete maintenance category. Please try again.',
             ], 500);
         }
     }

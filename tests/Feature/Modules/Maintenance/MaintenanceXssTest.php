@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ServiceDocument;
+use App\Tenancy\TenantContext;
 use Database\Factories\MaintenanceScheduleFactory;
 use Database\Factories\ServiceLogFactory;
 use Tests\Feature\Modules\Maintenance\Maintenance;
@@ -26,7 +27,7 @@ describe('MNT-02: the list escapes tenant-controlled data', function () {
         [$owner, $vehicle] = Maintenance::tenantWithVehicle(mntVehicleFields());
         $log = ServiceLogFactory::new()->forVehicle($vehicle)->create();
         $log->maintenanceCategories()->attach(Maintenance::category(['name' => MNT_PAYLOAD.'c']));
-        ServiceDocument::create(['service_log_id' => $log->id, 'original_name' => 'a.pdf', 'file_name' => 'a.pdf', 'file_path' => 'x/a.pdf', 'mime_type' => 'application/pdf', 'file_size' => 1]);
+        app(TenantContext::class)->run($log->company_id, fn () => ServiceDocument::create(['service_log_id' => $log->id, 'original_name' => 'a.pdf', 'file_name' => 'a.pdf', 'file_path' => 'x/a.pdf', 'mime_type' => 'application/pdf', 'file_size' => 1]));
 
         $row = $this->actingAs($owner)->withHeaders(Maintenance::ajax())
             ->get(route('admin.service-log.index', ['draw' => 1]))
@@ -69,7 +70,8 @@ describe('MNT-02: the list escapes tenant-controlled data', function () {
     });
 
     it('escapes the HTML helpers on the models', function () {
-        [, $vehicle] = Maintenance::tenantWithVehicle(mntVehicleFields());
+        [$owner, $vehicle] = Maintenance::tenantWithVehicle(mntVehicleFields());
+        Actors::actingAsTenant($owner);
         $log = ServiceLogFactory::new()->forVehicle($vehicle)->create();
         $log->maintenanceCategories()->attach(Maintenance::category(['name' => MNT_PAYLOAD]));
         $schedule = MaintenanceScheduleFactory::new()->forVehicle($vehicle)->create();
@@ -86,7 +88,7 @@ describe('MNT-02: the modals build HTML from escaped values', function () {
 
         $html = $this->actingAs($owner)->get(route('admin.service-log.index'))->assertOk()->getContent();
 
-        foreach (['>${category.name}<', '>${doc.original_name}<', '>${file.name}<', '>${message}<', "cat.name +", "'\">' + vehicle.unit_no"] as $sink) {
+        foreach (['>${category.name}<', '>${doc.original_name}<', '>${file.name}<', '>${message}<', 'cat.name +', "'\">' + vehicle.unit_no"] as $sink) {
             expect($html)->not->toContain($sink);
         }
         expect($html)->toContain('function escapeHtml(')

@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Company;
+use App\Models\DocumentType;
 use App\Models\Trailer;
 use App\Models\Vehicle;
-use App\Models\DocumentType;
 use App\Services\Compliance\FleetComplianceService;
 use App\Traits\CompanyFilterTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class ComplianceDashboardController extends Controller
 {
@@ -23,9 +25,8 @@ class ComplianceDashboardController extends Controller
 
     public function fleet()
     {
-        // Vehicles and trailers with company filtering
-        $vehiclesQuery = $this->applyCompanyFilter(Vehicle::query());
-        $trailersQuery = $this->applyCompanyFilter(Trailer::query());
+        $vehiclesQuery = Vehicle::query();
+        $trailersQuery = Trailer::query();
 
         // Summary cards cover every asset, computed in SQL (PO-01)
         $vehicleSummary = $this->fleetCompliance->summary($vehiclesQuery, 'vehicle');
@@ -79,7 +80,7 @@ class ComplianceDashboardController extends Controller
                 'company_name' => $vehicle->company?->company_name,
                 'driver' => $vehicle->assetGroups->driver ?? null,
                 'compliance_status' => $complianceData['status'],
-                'compliance_percentage' => $complianceData['percentage'] . '%',
+                'compliance_percentage' => $complianceData['percentage'].'%',
                 'compliant_docs' => $complianceData['compliant_docs'],
                 'total_docs' => $complianceData['total_docs'],
                 'missing_documents' => $complianceData['missing_documents'],
@@ -106,7 +107,7 @@ class ComplianceDashboardController extends Controller
                 'company_name' => $trailer->company?->company_name,
                 'driver' => $trailer->assetGroups->driver ?? null,
                 'compliance_status' => $complianceData['status'],
-                'compliance_percentage' => $complianceData['percentage'] . '%',
+                'compliance_percentage' => $complianceData['percentage'].'%',
                 'compliant_docs' => $complianceData['compliant_docs'],
                 'total_docs' => $complianceData['total_docs'],
                 'missing_documents' => $complianceData['missing_documents'],
@@ -211,7 +212,7 @@ class ComplianceDashboardController extends Controller
                         if ($daysUntilExpiry <= 30) {
                             // Expiring soon (within 30 days)
                             $docStatus['status'] = 'expiring';
-                            $expiringDocs[] = $docType->name . ' (expires in ' . $daysUntilExpiry . ' days)';
+                            $expiringDocs[] = $docType->name.' (expires in '.$daysUntilExpiry.' days)';
                         } else {
                             // Valid and not expiring soon
                             $docStatus['status'] = 'valid';
@@ -220,7 +221,7 @@ class ComplianceDashboardController extends Controller
                     } else {
                         // Expired
                         $docStatus['status'] = 'expired';
-                        $missingDocs[] = $docType->name . ' (expired)';
+                        $missingDocs[] = $docType->name.' (expired)';
                     }
                 }
             } else {
@@ -263,7 +264,7 @@ class ComplianceDashboardController extends Controller
                 ->findOrFail($id);
 
             // Check if user has access to this vehicle
-            $this->authorizeCompanyAccess($vehicle, 'You do not have permission to view this vehicle.');
+            Gate::authorize('view', $vehicle);
 
             $vehicleDocumentTypes = DocumentType::where('module', 'vehicle')
                 ->enabledForCompany($vehicle->company_id)
@@ -297,19 +298,19 @@ class ComplianceDashboardController extends Controller
                     'company_id' => $vehicle->company_id,
                     'company_name' => $vehicle->company?->company_name,
                     'compliance_status' => $complianceData['status'],
-                    'compliance_percentage' => $complianceData['percentage'] . '%',
+                    'compliance_percentage' => $complianceData['percentage'].'%',
                     'compliant_docs' => $complianceData['compliant_docs'],
                     'total_docs' => $complianceData['total_docs'],
                     'missing_documents' => $complianceData['missing_documents'],
                     'expiring_documents' => $complianceData['expiring_documents'],
                     'document_details' => $complianceData['document_details'],
                     'documents' => $documents,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Vehicle not found or access denied'
+                'message' => 'Vehicle not found or access denied',
             ], 404);
         }
     }
@@ -324,7 +325,7 @@ class ComplianceDashboardController extends Controller
                 ->findOrFail($id);
 
             // Check if user has access to this trailer
-            $this->authorizeCompanyAccess($trailer, 'You do not have permission to view this trailer.');
+            Gate::authorize('view', $trailer);
 
             $trailerDocumentTypes = DocumentType::where('module', 'trailer')
                 ->enabledForCompany($trailer->company_id)
@@ -357,19 +358,19 @@ class ComplianceDashboardController extends Controller
                     'company_id' => $trailer->company_id,
                     'company_name' => $trailer->company?->company_name,
                     'compliance_status' => $complianceData['status'],
-                    'compliance_percentage' => $complianceData['percentage'] . '%',
+                    'compliance_percentage' => $complianceData['percentage'].'%',
                     'compliant_docs' => $complianceData['compliant_docs'],
                     'total_docs' => $complianceData['total_docs'],
                     'missing_documents' => $complianceData['missing_documents'],
                     'expiring_documents' => $complianceData['expiring_documents'],
                     'document_details' => $complianceData['document_details'],
                     'documents' => $documents,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Trailer not found or access denied'
+                'message' => 'Trailer not found or access denied',
             ], 404);
         }
     }
@@ -379,15 +380,15 @@ class ComplianceDashboardController extends Controller
      */
     public function getCompanySummary()
     {
-        if (!Auth::user()->hasRole('super-admin')) {
+        if (! Auth::user()->hasRole('super-admin')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized access'
+                'message' => 'Unauthorized access',
             ], 403);
         }
 
         try {
-            $companies = \App\Models\Company::where('status', 'active')->get();
+            $companies = Company::where('status', 'active')->get();
             $summary = [];
 
             foreach ($companies as $company) {
@@ -405,12 +406,12 @@ class ComplianceDashboardController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $summary
+                'data' => $summary,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch company summary'
+                'message' => 'Failed to fetch company summary',
             ], 500);
         }
     }

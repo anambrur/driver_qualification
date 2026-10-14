@@ -33,6 +33,7 @@ use App\Http\Controllers\UserPermissionController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleGroupController;
 use App\Http\Controllers\VehicleTypeController;
+use App\Http\Middleware\ResolvePublicCompany;
 use App\Models\Plan;
 use Illuminate\Support\Facades\Route;
 
@@ -57,10 +58,10 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // =====================================================================
 
 // Dynamic route for application form landing page
-Route::get('/{slug}/apply', [ApplicationFormController::class, 'show'])->name('application.form');
+Route::get('/{slug}/apply', [ApplicationFormController::class, 'show'])->name('application.form')->middleware(ResolvePublicCompany::class);
 
 // Public application routes with multi-step process
-Route::prefix('{slug}/application')->name('public.application.')->group(function () {
+Route::prefix('{slug}/application')->name('public.application.')->middleware(ResolvePublicCompany::class)->group(function () {
     // Step 0: Start & OTP Verification
     Route::get('/start', [ApplicationFormController::class, 'start'])->name('start');
     Route::post('/send-otp', [ApplicationFormController::class, 'sendOtp'])->name('send.otp')

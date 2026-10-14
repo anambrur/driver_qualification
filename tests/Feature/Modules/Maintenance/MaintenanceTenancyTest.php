@@ -13,7 +13,7 @@ use Tests\Support\Actors;
 | odometer up through updateVehicleMetrics()).
 |
 | MNT-06 (found 2026-10-10): both index pages built the vehicle filter dropdown from
-| Vehicle::all(), so every tenant saw every other tenant's unit numbers, makes and models.
+| Vehicle::withoutTenancy()->get(), so every tenant saw every other tenant's unit numbers, makes and models.
 */
 
 describe('MNT-01: vehicle_id must belong to the tenant', function () {
@@ -26,7 +26,7 @@ describe('MNT-01: vehicle_id must belong to the tenant', function () {
             ->assertUnprocessable()
             ->assertJsonValidationErrors('vehicle_id');
 
-        expect(ServiceLog::count())->toBe(0)
+        expect(ServiceLog::withoutTenancy()->count())->toBe(0)
             ->and($foreign->fresh()->odometer)->toBe(100);
     });
 
@@ -53,7 +53,7 @@ describe('MNT-01: vehicle_id must belong to the tenant', function () {
             ->assertUnprocessable()
             ->assertJsonValidationErrors('vehicle_id');
 
-        expect(MaintenanceSchedule::count())->toBe(0);
+        expect(MaintenanceSchedule::withoutTenancy()->count())->toBe(0);
     });
 
     it('rejects moving a schedule to another company\'s vehicle', function () {
@@ -91,8 +91,8 @@ describe('MNT-01: vehicle_id must belong to the tenant', function () {
             ->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload($vehicle))
             ->assertOk();
 
-        expect(ServiceLog::sole()->vehicle_id)->toBe($vehicle->id)
-            ->and(MaintenanceSchedule::sole()->vehicle_id)->toBe($vehicle->id)
+        expect(ServiceLog::withoutTenancy()->sole()->vehicle_id)->toBe($vehicle->id)
+            ->and(MaintenanceSchedule::withoutTenancy()->sole()->vehicle_id)->toBe($vehicle->id)
             ->and($vehicle->fresh()->odometer)->toBe(2000);
     });
 
@@ -103,7 +103,7 @@ describe('MNT-01: vehicle_id must belong to the tenant', function () {
             ->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload(null))
             ->assertOk();
 
-        expect(MaintenanceSchedule::sole()->vehicle_id)->toBeNull();
+        expect(MaintenanceSchedule::withoutTenancy()->sole()->vehicle_id)->toBeNull();
     });
 
     it('still lets a super-admin use any company\'s vehicle', function () {
@@ -113,7 +113,7 @@ describe('MNT-01: vehicle_id must belong to the tenant', function () {
             ->postJson(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle))
             ->assertOk();
 
-        expect(ServiceLog::sole()->vehicle_id)->toBe($vehicle->id);
+        expect(ServiceLog::withoutTenancy()->sole()->vehicle_id)->toBe($vehicle->id);
     });
 });
 

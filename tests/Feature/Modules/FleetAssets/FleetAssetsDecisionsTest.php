@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\AssetGroup;
+use App\Models\Vehicle;
 use Database\Factories\AssetGroupFactory;
 use Tests\Feature\Modules\FleetAssets\FleetAssets;
 use Tests\Support\Actors;
@@ -19,7 +20,7 @@ describe('PO-05: engine hours on the vehicle form', function () {
         $this->actingAs($owner)
             ->postJson(route('admin.vehicle.store'), FleetAssets::vehiclePayload(['engine_hours' => 1500]))
             ->assertOk();
-        $vehicle = \App\Models\Vehicle::sole();
+        $vehicle = Vehicle::withoutTenancy()->sole();
         expect($vehicle->engine_hours)->toBe(1500);
 
         $this->actingAs($owner)
@@ -33,7 +34,7 @@ describe('PO-05: engine hours on the vehicle form', function () {
             ->postJson(route('admin.vehicle.store'), FleetAssets::vehiclePayload(['engine_hours' => '']))
             ->assertOk();
 
-        expect(\App\Models\Vehicle::sole()->engine_hours)->toBeNull();
+        expect(Vehicle::withoutTenancy()->sole()->engine_hours)->toBeNull();
     });
 
     it('rejects negative or non-numeric engine hours', function (mixed $value) {
@@ -85,6 +86,6 @@ describe('PO-22: fleet-assets follow-ups', function () {
 
         $this->actingAs($owner)->deleteJson(route('admin.vehicle.destroy', $vehicle->id))->assertOk();
 
-        expect(AssetGroup::findOrFail($group->id)->status)->toBe('inactive');
+        expect(AssetGroup::withoutTenancy()->findOrFail($group->id)->status)->toBe('inactive');
     });
 });

@@ -26,7 +26,7 @@ describe('primary driver', function () {
             'status' => 'active',
         ])->assertOk();
 
-        expect(AssetGroup::sole()->primary_driver_name)->toBe('Ada Lovelace');
+        expect(AssetGroup::withoutTenancy()->sole()->primary_driver_name)->toBe('Ada Lovelace');
     });
 
     it('updates the name when another driver is picked', function () {

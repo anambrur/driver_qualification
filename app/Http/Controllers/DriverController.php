@@ -14,11 +14,14 @@ use App\Services\Compliance\DriverComplianceService;
 use App\Services\Driver\DriverCrudService;
 use App\Services\Driver\DriverDocumentWizardService;
 use App\Services\Driver\DriverHireService;
+use App\Tenancy\TenantRule;
 use App\Traits\CompanyFilterTrait;
 use Exception;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
@@ -36,11 +39,8 @@ class DriverController extends Controller
                 $query->latest('expires');
             }])->select('drivers.*');
 
-            // Apply company filter
-            $drivers = $this->applyCompanyFilter($drivers);
-
             // Exclude draft drivers for non-super-admin users
-            if (!Auth::user()->hasRole('super-admin')) {
+            if (! Auth::user()->hasRole('super-admin')) {
                 $drivers->where('status', '!=', 'draft');
             }
 
@@ -52,21 +52,21 @@ class DriverController extends Controller
             return DataTables::of($drivers)
                 ->addIndexColumn()
                 ->addColumn('photo', function ($driver) {
-                    $initials = strtoupper(substr($driver->first_name ?? 'D', 0, 1) . substr($driver->last_name ?? 'R', 0, 1));
+                    $initials = strtoupper(substr($driver->first_name ?? 'D', 0, 1).substr($driver->last_name ?? 'R', 0, 1));
 
                     if ($driver->photo) {
                         $photoUrl = e(route('admin.driver.file', [$driver->id, 'photo']));
 
-                        return '<img src="' . $photoUrl . '" alt="' . e($driver->first_name) . '" class="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-sm" />';
+                        return '<img src="'.$photoUrl.'" alt="'.e($driver->first_name).'" class="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-sm" />';
                     }
 
-                    return '<span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700 ring-2 ring-white dark:bg-brand-900/40 dark:text-brand-300 dark:ring-gray-800">' . e($initials) . '</span>';
+                    return '<span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700 ring-2 ring-white dark:bg-brand-900/40 dark:text-brand-300 dark:ring-gray-800">'.e($initials).'</span>';
                 })
                 ->addColumn('full_name', function ($driver) {
-                    return $driver->first_name . ' ' .
-                        ($driver->middle_name ? $driver->middle_name . ' ' : '') .
-                        $driver->last_name .
-                        ($driver->suffix ? ' ' . $driver->suffix : '');
+                    return $driver->first_name.' '.
+                        ($driver->middle_name ? $driver->middle_name.' ' : '').
+                        $driver->last_name.
+                        ($driver->suffix ? ' '.$driver->suffix : '');
                 })
                 ->addColumn('company_name', function ($driver) {
                     return $driver->company ? $driver->company->company_name : 'N/A';
@@ -80,9 +80,11 @@ class DriverController extends Controller
                 ->addColumn('license_expiration_date', function ($driver) {
                     if (isset($driver->licenses) && $driver->licenses->isNotEmpty()) {
                         $latestLicense = $driver->licenses->sortByDesc('expires')->first();
+
                         return $latestLicense->expires ?
                             $latestLicense->expires : 'N/A';
                     }
+
                     return 'N/A';
                 })
                 ->addColumn('medical_certificate_expiration_date', function ($driver) {
@@ -93,59 +95,59 @@ class DriverController extends Controller
                     $statusConfigs = [
                         'draft' => [
                             'label' => 'Draft',
-                            'classes' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                            'classes' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
                         ],
                         'pending' => [
                             'label' => 'Pending',
-                            'classes' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                            'classes' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
                         ],
                         'active' => [
                             'label' => 'Active',
-                            'classes' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            'classes' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
                         ],
                         'inactive' => [
                             'label' => 'Inactive',
-                            'classes' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                            'classes' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
                         ],
                         'submitted' => [
                             'label' => 'Submitted',
-                            'classes' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                            'classes' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
                         ],
                         'under_review' => [
                             'label' => 'Under Review',
-                            'classes' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                            'classes' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
                         ],
                         'approved' => [
                             'label' => 'Approved',
-                            'classes' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            'classes' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
                         ],
                         'rejected' => [
                             'label' => 'Rejected',
-                            'classes' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            'classes' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
                         ],
                     ];
 
                     $config = $statusConfigs[$driver->status] ?? [
                         'label' => ucfirst($driver->status),
-                        'classes' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                        'classes' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
                     ];
 
-                    return '<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ' . $config['classes'] . '">' . $config['label'] . '</span>';
+                    return '<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium '.$config['classes'].'">'.$config['label'].'</span>';
                 })
                 ->addColumn('action', function ($driver) {
                     return '<div class="flex items-center space-x-2">
-                <a href="' . route('admin.driver.show', $driver->id) . '" 
+                <a href="'.route('admin.driver.show', $driver->id).'" 
                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700" 
                    title="View">
                     <i class="fas fa-eye text-xs"></i>
                 </a>
-                <a href="' . route('admin.driver.edit', $driver->id) . '" 
+                <a href="'.route('admin.driver.edit', $driver->id).'" 
                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700" 
                    title="Edit">
                     <i class="fas fa-edit text-xs"></i>
                 </a>
                 <button type="button"
-                        data-action="delete-driver" data-driver-id="' . $driver->id . '" data-driver-name="' . e($driver->first_name . ' ' . $driver->last_name) . '"
+                        data-action="delete-driver" data-driver-id="'.$driver->id.'" data-driver-name="'.e($driver->first_name.' '.$driver->last_name).'"
                         class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-red-50 hover:text-red-600 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400" 
                         title="Delete">
                     <i class="fas fa-trash text-xs"></i>
@@ -154,7 +156,7 @@ class DriverController extends Controller
                 })
                 ->rawColumns(['photo', 'status', 'action'])
                 ->filter(function ($query) use ($request) {
-                    if ($request->has('search') && !empty($request->search['value'])) {
+                    if ($request->has('search') && ! empty($request->search['value'])) {
                         $search = $request->search['value'];
                         $query->where(function ($q) use ($search) {
                             $q->where('first_name', 'like', "%{$search}%")
@@ -210,12 +212,10 @@ class DriverController extends Controller
                 ->make(true);
         }
 
-        // Get base query with company filtering
         $baseQuery = Driver::query();
-        $baseQuery = $this->applyCompanyFilter($baseQuery);
 
         // Exclude draft drivers for non-super-admin users
-        if (!Auth::user()->hasRole('super-admin')) {
+        if (! Auth::user()->hasRole('super-admin')) {
             $baseQuery->where('status', '!=', 'draft');
         }
 
@@ -241,8 +241,9 @@ class DriverController extends Controller
     {
         $companies = $this->getCompaniesForUser();
 
-        if ($companies->isEmpty() && !Auth::user()->hasRole('super-admin')) {
+        if ($companies->isEmpty() && ! Auth::user()->hasRole('super-admin')) {
             toastr()->error('You do not have a company assigned.');
+
             return redirect()->route('admin.driver.index');
         }
 
@@ -260,14 +261,16 @@ class DriverController extends Controller
             $driver = $crud->create($request->validated(), Auth::id(), $request->file('photo'));
 
             toastr()->success('Driver created successfully!');
+
             return redirect()->route('admin.driver.license', ['driver_id' => $driver->id]);
         } catch (Exception $e) {
-            Log::error('Driver creation failed: ' . $e->getMessage(), [
+            Log::error('Driver creation failed: '.$e->getMessage(), [
                 'exception' => $e,
                 'request_data' => $request->except(['ssn', 'license_number']),
             ]);
 
             toastr()->error('Failed to create driver. Please try again.');
+
             return back()->withInput()->withErrors([
                 'system_error' => 'An error occurred while creating the driver. Please try again.',
             ]);
@@ -288,7 +291,7 @@ class DriverController extends Controller
             },
         ])->findOrFail($id);
 
-        $this->authorizeCompanyAccess($driver, 'You do not have permission to view this driver.');
+        Gate::authorize('view', $driver);
 
         $compliance = $complianceService->forDriver($driver);
 
@@ -368,7 +371,7 @@ class DriverController extends Controller
             },
         ])->findOrFail($id);
 
-        $this->authorizeCompanyAccess($driver, 'You do not have permission to edit this driver.');
+        Gate::authorize('update', $driver);
 
         $currentStep = 1;
         $isEditMode = $request->has('edit') && $request->edit == '1';
@@ -393,7 +396,7 @@ class DriverController extends Controller
             'residence_addresses',
         ])->findOrFail($id);
 
-        $this->authorizeCompanyAccess($driver, 'You do not have permission to update this driver.');
+        Gate::authorize('update', $driver);
 
         try {
             $crud->update($driver, $request->validated(), $request->file('photo'));
@@ -405,13 +408,14 @@ class DriverController extends Controller
                 'edit' => '1',
             ]);
         } catch (Exception $e) {
-            Log::error('Driver update failed: ' . $e->getMessage(), [
+            Log::error('Driver update failed: '.$e->getMessage(), [
                 'exception' => $e,
                 'driver_id' => $id,
                 'request_data' => $request->except(['ssn', 'license_number']),
             ]);
 
             toastr()->error('Failed to update driver. Please try again.');
+
             return back()->withInput()->withErrors([
                 'system_error' => 'An error occurred while updating the driver. Please try again.',
             ]);
@@ -421,7 +425,7 @@ class DriverController extends Controller
     public function destroy($id)
     {
         $driver = Driver::findOrFail($id);
-        $this->authorizeCompanyAccess($driver, 'You do not have permission to delete this driver.');
+        Gate::authorize('delete', $driver);
 
         try {
             DB::transaction(function () use ($driver) {
@@ -432,7 +436,7 @@ class DriverController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Driver deleted successfully']);
         } catch (Exception $e) {
-            Log::error('Driver delete failed: ' . $e->getMessage(), [
+            Log::error('Driver delete failed: '.$e->getMessage(), [
                 'exception' => $e,
                 'driver_id' => $driver->id,
             ]);
@@ -444,7 +448,7 @@ class DriverController extends Controller
     public function getDriverDetails($id)
     {
         $driver = Driver::findOrFail($id);
-        $this->authorizeCompanyAccess($driver);
+        Gate::authorize('view', $driver);
 
         return response()->json([
             'success' => true,
@@ -459,7 +463,7 @@ class DriverController extends Controller
     public function file($id, string $field, DriverDocumentWizardService $documents)
     {
         $driver = Driver::findOrFail($id);
-        $this->authorizeCompanyAccess($driver, 'You do not have permission to view this driver.');
+        Gate::authorize('view', $driver);
 
         return $documents->fileResponse($driver, $field);
     }
@@ -481,15 +485,16 @@ class DriverController extends Controller
         $backRule = ($existing && $existing->license_back) ? 'nullable' : 'required';
 
         $validator = Validator::make($request->all(), [
-            'license_front' => $frontRule . '|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'license_back' => $backRule . '|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'driver_id' => 'required|exists:drivers,id',
+            'license_front' => $frontRule.'|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'license_back' => $backRule.'|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'driver_id' => ['required', TenantRule::exists('drivers')],
         ]);
 
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -501,12 +506,13 @@ class DriverController extends Controller
 
             return $this->wizardRedirect('admin.driver.medical.card', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
-            Log::error('License Upload Error: ' . $e->getMessage(), [
+            Log::error('License Upload Error: '.$e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
 
             toastr()->error('Something went wrong while uploading the license.');
+
             return back()->withInput();
         }
     }
@@ -525,7 +531,7 @@ class DriverController extends Controller
     {
         $request->validate([
             'medical_card' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => ['required', TenantRule::exists('drivers')],
         ]);
 
         try {
@@ -536,7 +542,7 @@ class DriverController extends Controller
 
             return $this->wizardRedirect('admin.driver.forfeiture', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
-            Log::error('Medical Card Upload Error: ' . $e->getMessage(), [
+            Log::error('Medical Card Upload Error: '.$e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
@@ -561,7 +567,7 @@ class DriverController extends Controller
     {
         $request->validate([
             'forfeiture_document' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => ['required', TenantRule::exists('drivers')],
         ]);
 
         try {
@@ -572,7 +578,7 @@ class DriverController extends Controller
 
             return $this->wizardRedirect('admin.driver.violation', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
-            Log::error('Forfeiture Upload Error: ' . $e->getMessage(), [
+            Log::error('Forfeiture Upload Error: '.$e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
@@ -596,7 +602,7 @@ class DriverController extends Controller
     public function violationStore(Request $request, DriverDocumentWizardService $documents)
     {
         $validator = Validator::make($request->all(), [
-            'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => ['required', TenantRule::exists('drivers')],
             'violation' => 'required|in:no,yes',
             'violation_date' => 'sometimes|array',
             'violation_date.*' => 'nullable|date',
@@ -614,6 +620,7 @@ class DriverController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -625,7 +632,7 @@ class DriverController extends Controller
 
             return $this->wizardRedirect('admin.driver.alcohol.and.drug.test', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
-            Log::error('Violation Store Error: ' . $e->getMessage(), [
+            Log::error('Violation Store Error: '.$e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
                 'request' => $request->except(['applicant_signature']),
@@ -641,7 +648,7 @@ class DriverController extends Controller
     {
         $driver = $this->loadWizardDriver($driver_id);
         $currentStep = 6;
-        $driver_document = DriverDocument::where('driver_id', $driver_id)->first() ?? new DriverDocument();
+        $driver_document = DriverDocument::where('driver_id', $driver_id)->first() ?? new DriverDocument;
         $isEditMode = $request->has('edit') && $request->edit == '1';
 
         return view('admin.driver.alcohol-and-drug-test', compact('currentStep', 'driver_id', 'driver', 'driver_document', 'isEditMode'));
@@ -650,7 +657,7 @@ class DriverController extends Controller
     public function alcoholAndDrugTestStore(Request $request, DriverDocumentWizardService $documents)
     {
         $validator = Validator::make($request->all(), [
-            'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => ['required', TenantRule::exists('drivers')],
             'drug_test_question_1' => 'required|in:yes,no',
             'drug_test_question_2' => 'required|in:yes,no,n/a',
             'applicant_signature' => 'required|string|max:255',
@@ -661,6 +668,7 @@ class DriverController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -672,7 +680,7 @@ class DriverController extends Controller
 
             return $this->wizardRedirect('admin.driver.fmcsa.consent', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
-            Log::error('Error saving alcohol and drug test statement: ' . $e->getMessage(), [
+            Log::error('Error saving alcohol and drug test statement: '.$e->getMessage(), [
                 'driver_id' => $request->driver_id ?? 'N/A',
                 'exception' => $e,
             ]);
@@ -689,13 +697,14 @@ class DriverController extends Controller
     {
         $driver = $this->loadWizardDriver($driver_id);
         $currentStep = 7;
-        $driver_name = $driver->first_name . ' ' . $driver->last_name;
+        $driver_name = $driver->first_name.' '.$driver->last_name;
         $isEditMode = $request->has('edit') && $request->edit == '1';
-        $driver_document = DriverDocument::where('driver_id', $driver_id)->first() ?? new DriverDocument();
+        $driver_document = DriverDocument::where('driver_id', $driver_id)->first() ?? new DriverDocument;
 
         $authUser = Auth::user();
-        if (!$authUser) {
+        if (! $authUser) {
             toastr()->error('Authenticated user not found.');
+
             return redirect()->back();
         }
         $authUser->loadMissing('company');
@@ -706,7 +715,7 @@ class DriverController extends Controller
     public function consentStore(Request $request, DriverDocumentWizardService $documents)
     {
         $validator = Validator::make($request->all(), [
-            'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => ['required', TenantRule::exists('drivers')],
             'employee_signature' => 'required|string|max:255',
             'consent_agreement' => 'required|in:1',
             'date_signed' => 'required|date',
@@ -719,6 +728,7 @@ class DriverController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -730,8 +740,9 @@ class DriverController extends Controller
 
             return $this->wizardRedirect('admin.driver.psp', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
-            Log::error('Error saving FMCSA consent: ' . $e->getMessage());
+            Log::error('Error saving FMCSA consent: '.$e->getMessage());
             toastr()->error('An error occurred while saving the FMCSA consent. Please try again.');
+
             return back()->withInput()->withErrors([
                 'error' => 'An unexpected error occurred. Please try again.',
             ]);
@@ -742,12 +753,13 @@ class DriverController extends Controller
     {
         $driver = $this->loadWizardDriver($driver_id);
         $currentStep = 8;
-        $driver_document = DriverDocument::where('driver_id', $driver_id)->first() ?? new DriverDocument();
+        $driver_document = DriverDocument::where('driver_id', $driver_id)->first() ?? new DriverDocument;
         $isEditMode = $request->has('edit') && $request->edit == '1';
 
         $authUser = Auth::user();
-        if (!$authUser) {
+        if (! $authUser) {
             toastr()->error('Authenticated user not found.');
+
             return redirect()->back();
         }
         $authUser->loadMissing('company');
@@ -758,7 +770,7 @@ class DriverController extends Controller
     public function pspStore(Request $request, DriverDocumentWizardService $documents)
     {
         $validator = Validator::make($request->all(), [
-            'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => ['required', TenantRule::exists('drivers')],
             'applicant_signature' => 'required|string|max:255',
             'authorization_agreement' => 'required|in:1',
             'date_signed' => 'required|date',
@@ -771,6 +783,7 @@ class DriverController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -782,7 +795,7 @@ class DriverController extends Controller
 
             return $this->wizardRedirect('admin.driver.alcohol.and.drug.test.policy', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
-            Log::error('Error saving PSP authorization: ' . $e->getMessage(), [
+            Log::error('Error saving PSP authorization: '.$e->getMessage(), [
                 'driver_id' => $request->driver_id ?? 'N/A',
                 'exception' => $e,
             ]);
@@ -799,13 +812,14 @@ class DriverController extends Controller
     {
         $driver = $this->loadWizardDriver($driver_id);
         $currentStep = 9;
-        $driver_name = $driver->first_name . ' ' . $driver->last_name;
-        $driver_document = DriverDocument::where('driver_id', $driver_id)->first() ?? new DriverDocument();
+        $driver_name = $driver->first_name.' '.$driver->last_name;
+        $driver_document = DriverDocument::where('driver_id', $driver_id)->first() ?? new DriverDocument;
         $isEditMode = $request->has('edit') && $request->edit == '1';
 
         $authUser = Auth::user();
-        if (!$authUser) {
+        if (! $authUser) {
             toastr()->error('Authenticated user not found.');
+
             return redirect()->back();
         }
         $authUser->loadMissing('company');
@@ -818,7 +832,7 @@ class DriverController extends Controller
     public function alcoholAndDrugTestPolicyStore(Request $request, DriverDocumentWizardService $documents)
     {
         $validator = Validator::make($request->all(), [
-            'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => ['required', TenantRule::exists('drivers')],
             'employee_signature' => 'required|string|max:255',
             'date_signed' => 'required|date',
         ]);
@@ -827,6 +841,7 @@ class DriverController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
@@ -838,8 +853,9 @@ class DriverController extends Controller
 
             return $this->wizardRedirect('admin.driver.general.work.policy', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
-            Log::error('Error saving Alcohol & Drug Testing Policy: ' . $e->getMessage());
+            Log::error('Error saving Alcohol & Drug Testing Policy: '.$e->getMessage());
             toastr()->error('An error occurred while saving the Alcohol & Drug Testing Policy. Please try again.');
+
             return back()->withInput()->withErrors([
                 'error' => 'An unexpected error occurred. Please try again.',
             ]);
@@ -850,13 +866,14 @@ class DriverController extends Controller
     {
         $driver = $this->loadWizardDriver($driver_id);
         $currentStep = 10;
-        $driver_name = $driver->first_name . ' ' . $driver->last_name;
-        $driver_document = DriverDocument::where('driver_id', $driver_id)->first() ?? new DriverDocument();
+        $driver_name = $driver->first_name.' '.$driver->last_name;
+        $driver_document = DriverDocument::where('driver_id', $driver_id)->first() ?? new DriverDocument;
         $isEditMode = $request->has('edit') && $request->edit == '1';
 
         $authUser = Auth::user();
-        if (!$authUser) {
+        if (! $authUser) {
             toastr()->error('Authenticated user not found.');
+
             return redirect()->back();
         }
         $authUser->loadMissing('company');
@@ -869,7 +886,7 @@ class DriverController extends Controller
     public function generalWorkPolicyStore(Request $request, DriverDocumentWizardService $documents)
     {
         $validator = Validator::make($request->all(), [
-            'driver_id' => 'required|exists:drivers,id',
+            'driver_id' => ['required', TenantRule::exists('drivers')],
             'employee_signature' => 'required|string|max:255',
             'date_signed' => 'required|date',
         ]);
@@ -878,13 +895,14 @@ class DriverController extends Controller
             foreach ($validator->errors()->all() as $error) {
                 toastr()->error($error);
             }
+
             return back()->withInput();
         }
 
         try {
             $driver = $this->loadWizardDriver((int) $request->driver_id);
             $fromEdit = $this->isEditFlow($request);
-            $documents->saveGeneralWorkPolicy($driver, $request->all(), finalizeToPending: !$fromEdit);
+            $documents->saveGeneralWorkPolicy($driver, $request->all(), finalizeToPending: ! $fromEdit);
 
             toastr()->success($fromEdit
                 ? 'General Work Policy updated successfully.'
@@ -892,8 +910,9 @@ class DriverController extends Controller
 
             return redirect()->route('admin.driver.index');
         } catch (Exception $e) {
-            Log::error('Error saving General Work Policy: ' . $e->getMessage());
+            Log::error('Error saving General Work Policy: '.$e->getMessage());
             toastr()->error('An error occurred while saving the General Work Policy. Please try again.');
+
             return back()->withInput()->withErrors([
                 'error' => 'An unexpected error occurred. Please try again.',
             ]);
@@ -902,9 +921,9 @@ class DriverController extends Controller
 
     public function updateHireStatus(Request $request, Driver $driver, DriverHireService $hireService)
     {
-        $this->authorizeCompanyAccess($driver);
+        Gate::authorize('update', $driver);
 
-        if (!Auth::user()->can('drivers.hire')) {
+        if (! Auth::user()->can('drivers.hire')) {
             return response()->json([
                 'success' => false,
                 'message' => 'You are not authorized to perform this action.',
@@ -970,7 +989,7 @@ class DriverController extends Controller
                 'message' => $e->getMessage(),
             ], 422);
         } catch (Exception $e) {
-            Log::error('Failed to update driver hire status: ' . $e->getMessage(), [
+            Log::error('Failed to update driver hire status: '.$e->getMessage(), [
                 'driver_id' => $driver->id,
                 'action' => $action,
                 'error' => $e,
@@ -988,7 +1007,7 @@ class DriverController extends Controller
         return $request->has('from_edit') && $request->from_edit == '1';
     }
 
-    private function wizardRedirect(string $routeName, int $driverId, bool $edit): \Illuminate\Http\RedirectResponse
+    private function wizardRedirect(string $routeName, int $driverId, bool $edit): RedirectResponse
     {
         $params = ['driver_id' => $driverId];
         if ($edit) {
@@ -1007,7 +1026,7 @@ class DriverController extends Controller
         abort_unless(ctype_digit((string) $driverId), 404);
 
         $driver = Driver::findOrFail((int) $driverId);
-        $this->authorizeCompanyAccess($driver, 'Unauthorized action.');
+        Gate::authorize('update', $driver);
 
         return $driver;
     }

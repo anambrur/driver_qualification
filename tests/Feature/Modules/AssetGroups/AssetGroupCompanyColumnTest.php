@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\AssetGroup;
+use App\Tenancy\TenantContext;
 use Database\Factories\AssetGroupFactory;
 use Database\Factories\CompanyFactory;
 use Database\Factories\DriverFactory;
@@ -26,7 +27,7 @@ describe('company_id', function () {
             'company_id' => CompanyFactory::new()->create()->id,
         ])->assertOk();
 
-        expect(AssetGroup::sole()->company_id)->toBe($company->id);
+        expect(AssetGroup::withoutTenancy()->sole()->company_id)->toBe($company->id);
     });
 
     it('stores the vehicle\'s company when a super-admin creates a group', function () {
@@ -39,7 +40,7 @@ describe('company_id', function () {
             'status' => 'active',
         ])->assertOk();
 
-        expect(AssetGroup::sole()->company_id)->toBe($company->id);
+        expect(AssetGroup::withoutTenancy()->sole()->company_id)->toBe($company->id);
     });
 
     it('moves the group when a super-admin assigns another company\'s vehicle and driver', function () {
@@ -69,15 +70,16 @@ describe('company_id', function () {
     });
 });
 
-it('falls back to the vehicle\'s company when code creates a group without company_id', function () {
+it('fills company_id from the tenant context when code creates a group without one', function () {
     $vehicle = VehicleFactory::new()->create();
 
-    $group = AssetGroup::create([
+    $driverId = DriverFactory::new()->forCompany($vehicle->company)->create()->id;
+    $group = app(TenantContext::class)->run($vehicle->company_id, fn () => AssetGroup::create([
         'group_name' => 'Seeded',
-        'driver_id' => DriverFactory::new()->forCompany($vehicle->company)->create()->id,
+        'driver_id' => $driverId,
         'vehicle_id' => $vehicle->id,
         'status' => 'active',
-    ]);
+    ]));
 
     expect($group->fresh()->company_id)->toBe($vehicle->company_id);
 });
