@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Authorization\TenantPermissionResolver;
+use BackedEnum;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -10,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Contracts\Permission as PermissionContract;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -41,6 +44,17 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'remember_token',
     ];
+
+    /**
+     * Decided database-first in the user's own team (06 §4.3), never from Spatie's role cache.
+     * hasAnyPermission, hasAllPermissions and checkPermissionTo all call this.
+     *
+     * @param  string|int|PermissionContract|BackedEnum  $permission
+     */
+    public function hasPermissionTo($permission, ?string $guardName = null): bool
+    {
+        return app(TenantPermissionResolver::class)->allows($this, $permission, $guardName);
+    }
 
     /**
      * @return array<string, string>

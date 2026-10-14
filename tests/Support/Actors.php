@@ -6,6 +6,7 @@ use App\Authorization\RoleTemplates;
 use App\Models\Company;
 use App\Models\Driver;
 use App\Models\PlatformUser;
+use App\Models\Role;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Tenancy\TenantContext;
@@ -15,16 +16,16 @@ use Database\Factories\PlanPriceFactory;
 use Database\Factories\PlatformUserFactory;
 use Database\Factories\SubscriptionFactory;
 use Database\Factories\UserFactory;
+use Database\Seeders\PlatformRoleSeeder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Test actors per docs/architecture/11-migration-strategy.md §5.
  *
  * Companies are built through CompanyProvisioner (via CompanyFactory) with the seven system
- * roles of 06 §6; their permission grants follow in WP3.
+ * roles of 06 §6 and their template permissions.
  */
 final class Actors
 {
@@ -33,12 +34,12 @@ final class Actors
 
     public static function platformOwner(array $attributes = []): PlatformUser
     {
-        return self::platformUser('Platform Owner', 'platform_owner', $attributes);
+        return self::platformUser('platform_owner', $attributes);
     }
 
     public static function platformSupport(array $attributes = []): PlatformUser
     {
-        return self::platformUser('Support Agent', 'platform_support', $attributes);
+        return self::platformUser('platform_support', $attributes);
     }
 
     /**
@@ -173,15 +174,13 @@ final class Actors
         return $user;
     }
 
-    private static function platformUser(string $role, string $key, array $attributes): PlatformUser
+    private static function platformUser(string $systemKey, array $attributes): PlatformUser
     {
+        (new PlatformRoleSeeder)->run();
         $user = PlatformUserFactory::new()->create($attributes);
+        $role = Role::query()->where('team_id', 0)->where('system_key', $systemKey)->firstOrFail();
 
-        self::withTeam(0, function () use ($user, $role, $key) {
-            $model = Role::findOrCreate($role, 'platform');
-            $model->forceFill(['system_key' => $key, 'is_system' => true])->save();
-            $user->assignRole($model);
-        });
+        self::withTeam(0, fn () => $user->assignRole($role));
 
         return $user;
     }

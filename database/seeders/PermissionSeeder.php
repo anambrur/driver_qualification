@@ -2,82 +2,60 @@
 
 namespace Database\Seeders;
 
+use App\Authorization\PermissionCatalogue;
+use App\Models\Permission;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\PermissionRegistrar;
 
 class PermissionSeeder extends Seeder
 {
-    // Shared with the test suite (tests/Support/Actors.php) so tests use the real permission map.
-    public const MODULES = [
-        'roles',
-        'users',
-        'permission',
-        'settings',
-        'companies',
-        'drivers',
-        'policy-pdf',
-        'fleets',
-        'vehicle-types',
-        'vehicle-groups',
-        'vehicles',
-        'fuel-types',
-        'equipment-types',
-        'trailers',
-        'asset-groups',
-        'asset-histories',
-        'document-types',
-        'maintenance-categories',
-        'maintenance',
-        'scheduled',
-        'subscription',
-    ];
-
-    public const BASIC_ACTIONS = ['create', 'view', 'edit', 'delete'];
-
-    public const SPECIAL_ACTIONS = [
-        'drivers' => ['hire', 'dashboard'],
-        'fleets' => ['dashboard'],
-    ];
-
     /**
-     * All permission names, e.g. "drivers.create", "drivers.hire".
-     *
-     * @return list<string>
-     */
-    public static function permissionNames(): array
-    {
-        $names = [];
-
-        foreach (self::MODULES as $module) {
-            foreach (self::BASIC_ACTIONS as $action) {
-                $names[] = "$module.$action";
-            }
-
-            foreach (self::SPECIAL_ACTIONS[$module] ?? [] as $action) {
-                $names[] = "$module.$action";
-            }
-        }
-
-        return $names;
-    }
-
-    /**
-     * Sync tenant permissions (web guard). Non-destructive and idempotent, so it is safe to run
-     * in production: it only adds permissions and never touches roles or their grants. Roles are
-     * per company (Spatie teams) and come from the role templates (WP3); the legacy global
-     * super-admin, company and user roles are not created (06 §10).
+     * Sync the permission catalogue (06 §5, 04 §3). Idempotent and safe in production: it only
+     * creates or updates permission rows and never deletes one, so it never touches team roles
+     * or their grants. A feature_key is set once its features row exists (WP7 registry sync).
      *
      * php artisan db:seed --class=PermissionSeeder
      */
     public function run(): void
     {
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->forgetCachedPermissions();
 
-        foreach (self::permissionNames() as $name) {
-            Permission::findOrCreate($name, 'web');
+        $features = DB::table('features')->pluck('key')->flip();
+
+        $now = now();
+        $rows = [];
+
+        foreach (PermissionCatalogue::TENANT as $name => [$feature, $write, $own]) {
+            $rows[] = [
+                'name' => $name, 'guard_name' => 'web', 'is_write' => $write, 'self_scoped' => $own,
+                'feature_key' => $feature !== null && $features->has($feature) ? $feature : null,
+                'created_at' => $now, 'updated_at' => $now,
+            ];
         }
 
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        foreach (PermissionCatalogue::PLATFORM as $name => $write) {
+            $rows[] = [
+                'name' => $name, 'guard_name' => 'platform', 'is_write' => $write, 'self_scoped' => false,
+                'feature_key' => null, 'created_at' => $now, 'updated_at' => $now,
+            ];
+        }
+
+        Permission::query()->upsert($rows, ['name', 'guard_name'], ['is_write', 'self_scoped', 'feature_key', 'updated_at']);
+
+        $known = array_merge(
+            array_map(fn (string $name) => "web:{$name}", PermissionCatalogue::tenantNames()),
+            array_map(fn (string $name) => "platform:{$name}", PermissionCatalogue::platformNames()),
+        );
+        $stale = Permission::query()->get(['name', 'guard_name'])
+            ->map(fn (Permission $permission) => "{$permission->guard_name}:{$permission->name}")
+            ->diff($known);
+
+        if ($stale->isNotEmpty()) {
+            $this->command?->warn('Permissions not in the catalogue (left in place): '.$stale->implode(', '));
+        }
+
+        $registrar->forgetCachedPermissions();
     }
 }

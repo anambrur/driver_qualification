@@ -2,11 +2,11 @@
 
 use App\Authorization\RoleTemplates;
 use App\Models\Company;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\Company\CompanyProvisioner;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 function provisionCompany(string $name = 'Acme Trucking', string $email = 'owner@acme.test'): Company
