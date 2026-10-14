@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\ResolvePublicCompany;
+use App\Http\Middleware\ResolveTenant;
+use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
@@ -10,7 +13,8 @@ use Tests\Support\Actors;
 | route that forgets its middleware fails here instead of shipping open:
 |   - public (no `auth`): listed in ACL_PUBLIC_ROUTES with the reason it is safe;
 |   - every /admin route has `Subscribed` or `role:super-admin`;
-|   - every authenticated route has `permission:` / `role:`, or is listed in ACL_NO_PERMISSION_ROUTES.
+|   - every authenticated route has `permission:` / `role:`, or is listed in ACL_NO_PERMISSION_ROUTES;
+|   - every authenticated route runs ResolveTenant, every public application route ResolvePublicCompany (03 §4.1).
 | Routes are keyed "METHODS uri" (HEAD dropped), because several routes have no name.
 */
 
@@ -143,6 +147,25 @@ describe('route guard matrix', function () {
             ->pluck('key')->values()->all();
 
         expect($unguarded)->toBe([]);
+    });
+
+    it('resolves the tenant on every authenticated route and the slug company on every public application route', function () {
+        // The HTTP kernel copies the web group (with ResolveTenant) onto the router
+        app(HttpKernel::class);
+        $router = app('router');
+        $missing = collect(Route::getRoutes()->getRoutes())
+            ->map(fn (RoutingRoute $route) => [
+                'key' => implode('|', array_values(array_diff($route->methods(), ['HEAD']))).' '.$route->uri(),
+                'uri' => $route->uri(),
+                'middleware' => $route->gatherMiddleware(),
+                'resolved' => $router->gatherRouteMiddleware($route),
+            ])
+            ->filter(fn (array $route) => (aclHasMiddleware($route, 'auth') && ! in_array(ResolveTenant::class, $route['resolved'], true))
+                || (collect(ACL_PUBLIC_PREFIXES)->contains(fn (string $prefix) => str_starts_with($route['uri'], $prefix))
+                    && ! in_array(ResolvePublicCompany::class, $route['resolved'], true)))
+            ->pluck('key')->values()->all();
+
+        expect($missing)->toBe([]);
     });
 
     it('lists exactly the authenticated routes that have no permission or role middleware', function () {

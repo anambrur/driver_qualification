@@ -61,21 +61,21 @@ class TenantContext
     }
 
     /**
-     * Runs the callback as the given company (context and Spatie team), then restores the
-     * previous state even when the callback throws.
+     * Runs the callback as the given company (context and Spatie team) in the given mode, then
+     * restores the previous state even when the callback throws.
      *
      * @template TReturn
      *
      * @param  Closure(): TReturn  $callback
      * @return TReturn
      */
-    public function run(int $companyId, Closure $callback): mixed
+    public function run(int $companyId, Closure $callback, string $mode = 'tenant'): mixed
     {
         $previous = [$this->companyId, $this->mode, $this->supportSessionId];
         $registrar = app(PermissionRegistrar::class);
         $previousTeam = $registrar->getPermissionsTeamId();
 
-        $this->set($companyId);
+        $this->set($companyId, $mode);
         $registrar->setPermissionsTeamId($companyId);
 
         try {

@@ -194,7 +194,7 @@ class CompanyController extends Controller
 
     public function edit($id)
     {
-        $company = Company::with('user')->findOrFail($id);
+        $company = Company::findOrFail($id);
         $this->ensureCanManageCompany($company);
 
         return view('admin.settings.company.edit', compact('company'));
@@ -202,7 +202,7 @@ class CompanyController extends Controller
 
     public function update(Request $request, $id)
     {
-        $company = Company::with('user')->findOrFail($id);
+        $company = Company::findOrFail($id);
         $this->ensureCanManageCompany($company);
 
         // Status and login email are super-admin fields; owners change their email via Profile
@@ -539,7 +539,10 @@ class CompanyController extends Controller
             return;
         }
 
-        if ($user->hasRole('company') && (int) $user->company?->id === (int) $company->id) {
+        // Another company is a 404 (03 §5)
+        abort_unless((int) $user->company_id === (int) $company->id, 404);
+
+        if ($user->hasRole('company')) {
             return;
         }
 

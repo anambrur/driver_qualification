@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 class Subscribed
 {
     /**
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -20,7 +20,8 @@ class Subscribed
             return $next($request);
         }
 
-        if (! $request->user()?->hasActiveSubscription()) {
+        // Interim until WP6: access follows the company's open subscription
+        if (! $request->user()?->company?->subscriptions()->open()->first()?->isAccessible()) {
             if (function_exists('toastr')) {
                 toastr()->warning('An active subscription is required. Please choose a plan.');
             }

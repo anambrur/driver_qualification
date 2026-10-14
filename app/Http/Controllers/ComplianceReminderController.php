@@ -7,17 +7,17 @@ use App\Models\Driver;
 use App\Models\Trailer;
 use App\Models\Vehicle;
 use App\Services\ComplianceReminderService;
-use App\Traits\CompanyFilterTrait;
+use App\Tenancy\TenantRule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ComplianceReminderController extends Controller
 {
-    use CompanyFilterTrait;
-
     public function __construct(
         private ComplianceReminderService $reminderService,
     ) {}
@@ -25,7 +25,7 @@ class ComplianceReminderController extends Controller
     public function sendDriverReminder(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'driver_id' => 'required|integer|exists:drivers,id',
+            'driver_id' => ['required', 'integer', TenantRule::exists('drivers')],
             'document_type_id' => 'required|integer|exists:document_types,id',
         ]);
 
@@ -36,10 +36,11 @@ class ComplianceReminderController extends Controller
             ], 422);
         }
 
-        try {
-            $driver = Driver::with('company')->findOrFail($request->integer('driver_id'));
-            $this->authorizeCompanyAccess($driver, 'You do not have permission to send reminders for this driver.');
+        // Outside the try: another company's driver is a 404, not a logged 500
+        $driver = Driver::with('company')->findOrFail($request->integer('driver_id'));
+        Gate::authorize('update', $driver);
 
+        try {
             $documentType = DocumentType::query()
                 ->where('id', $request->integer('document_type_id'))
                 ->where('module', 'driver')
@@ -59,7 +60,7 @@ class ComplianceReminderController extends Controller
                 'message' => $e->getMessage(),
             ], 404);
         } catch (\Exception $e) {
-            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+            if ($e instanceof HttpException) {
                 throw $e;
             }
 
@@ -91,18 +92,12 @@ class ComplianceReminderController extends Controller
             ], 422);
         }
 
+        // Outside the try: another company's asset is a 404, not a logged 500
+        $assetType = $request->string('asset_type')->toString();
+        $asset = ($assetType === 'vehicle' ? Vehicle::query() : Trailer::query())->findOrFail($request->integer('asset_id'));
+        Gate::authorize('update', $asset);
+
         try {
-            $assetType = $request->string('asset_type')->toString();
-            $assetId = $request->integer('asset_id');
-
-            if ($assetType === 'vehicle') {
-                $asset = Vehicle::query()->findOrFail($assetId);
-                $this->authorizeCompanyAccess($asset, 'You do not have permission to access this vehicle.');
-            } else {
-                $asset = Trailer::query()->findOrFail($assetId);
-                $this->authorizeCompanyAccess($asset, 'You do not have permission to access this trailer.');
-            }
-
             $documentType = DocumentType::query()
                 ->where('id', $request->integer('document_type_id'))
                 ->where('module', $assetType)
@@ -115,13 +110,6 @@ class ComplianceReminderController extends Controller
 
             $asset->loadMissing('assetGroups.driver');
 
-            if ($asset->assetGroups?->driver && ! $this->userHasAccess($asset->assetGroups->driver)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Assigned driver does not belong to your company.',
-                ], 403);
-            }
-
             $result = $this->reminderService->sendVehicleReminder($asset, $documentType, $assetType);
 
             return response()->json($result, $result['success'] ? 200 : 400);
@@ -131,7 +119,7 @@ class ComplianceReminderController extends Controller
                 'message' => $e->getMessage(),
             ], 404);
         } catch (\Exception $e) {
-            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+            if ($e instanceof HttpException) {
                 throw $e;
             }
 

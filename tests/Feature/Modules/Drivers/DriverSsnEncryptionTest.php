@@ -26,7 +26,7 @@ describe('DRV-02: SSNs are encrypted at rest', function () {
             ->assertSessionHasNoErrors()
             ->assertRedirect();
 
-        $driver = Driver::query()->latest('id')->firstOrFail();
+        $driver = Driver::withoutTenancy()->latest('id')->firstOrFail();
 
         expect(rawSsn($driver->id))->not->toContain('123456789')
             ->and(Crypt::decryptString(rawSsn($driver->id)))->toBe('123456789')

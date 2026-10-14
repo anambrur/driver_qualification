@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AssetGroup extends Model
 {
-    use HasFactory, SoftDeletes;
+    use BelongsToCompany, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'company_id',
@@ -24,16 +25,6 @@ class AssetGroup extends Model
     protected $casts = [
         'status' => 'string',
     ];
-
-    protected static function booted(): void
-    {
-        // A group without an explicit company belongs to its vehicle's company
-        static::creating(function (AssetGroup $group) {
-            if ($group->company_id === null && $group->vehicle_id !== null) {
-                $group->company_id = Vehicle::withTrashed()->whereKey($group->vehicle_id)->value('company_id');
-            }
-        });
-    }
 
     // Relationships
     /** @return BelongsTo<Company, $this> */

@@ -77,7 +77,7 @@ describe('switching a type off', function () {
             ->assertSee('Add Document Type');
     });
 
-    it("shows a tenant which types are switched off for their company", function () {
+    it('shows a tenant which types are switched off for their company', function () {
         $owner = Actors::companyOwner();
         $type = DocumentType::factory()->create();
         disableForCompany(Actors::companyOf($owner)->id, $type);
@@ -171,6 +171,8 @@ describe('compliance respects the company opt-out', function () {
         DocumentType::factory()->module('vehicle')->create(['name' => 'Insurance']);
         disableForCompany($company->id, DocumentType::factory()->module('vehicle')->create(['name' => 'IFTA']));
         $vehicle = VehicleFactory::new()->forCompany($company)->create();
+
+        Actors::actingAsTenant($company->owner);
 
         expect($vehicle->missing_documents)->toBe(['Insurance'])
             ->and($vehicle->compliance_percentage)->toEqual(0);

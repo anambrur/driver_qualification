@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\MaintenanceSchedule;
 use App\Models\Vehicle;
+use Database\Factories\Concerns\CreatesInTenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class MaintenanceScheduleFactory extends Factory
 {
+    use CreatesInTenant;
+
     protected $model = MaintenanceSchedule::class;
 
     /**
@@ -24,7 +27,7 @@ class MaintenanceScheduleFactory extends Factory
             'vehicle_id' => VehicleFactory::new(),
             'company_id' => fn (array $attributes) => $attributes['vehicle_id'] === null
                 ? CompanyFactory::new()
-                : Vehicle::withTrashed()->whereKey($attributes['vehicle_id'])->value('company_id'),
+                : Vehicle::withoutTenancy()->withTrashed()->whereKey($attributes['vehicle_id'])->value('company_id'),
             'maintenance_category_id' => MaintenanceCategoryFactory::new(),
             'title' => fake()->words(3, true),
             'schedule_type' => 'date',

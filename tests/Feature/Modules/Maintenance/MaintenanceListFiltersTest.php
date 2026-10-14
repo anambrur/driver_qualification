@@ -52,11 +52,11 @@ describe('MNT-07: list scoping (regression guards)', function () {
         $log = ServiceLogFactory::new()->forVehicle($theirs)->create();
         $schedule = MaintenanceScheduleFactory::new()->forVehicle($theirs)->create();
 
-        $this->actingAs($owner)->getJson(route('admin.service-log.show', $log->id))->assertForbidden();
-        $this->actingAs($owner)->getJson(route('admin.service-log.edit', $log->id))->assertForbidden();
-        $this->actingAs($owner)->deleteJson(route('admin.service-log.destroy', $log->id))->assertForbidden();
-        $this->actingAs($owner)->getJson(route('admin.maintenance-schedule.show', $schedule->id))->assertForbidden();
-        $this->actingAs($owner)->deleteJson(route('admin.maintenance-schedule.destroy', $schedule->id))->assertForbidden();
+        $this->actingAs($owner)->getJson(route('admin.service-log.show', $log->id))->assertNotFound();
+        $this->actingAs($owner)->getJson(route('admin.service-log.edit', $log->id))->assertNotFound();
+        $this->actingAs($owner)->deleteJson(route('admin.service-log.destroy', $log->id))->assertNotFound();
+        $this->actingAs($owner)->getJson(route('admin.maintenance-schedule.show', $schedule->id))->assertNotFound();
+        $this->actingAs($owner)->deleteJson(route('admin.maintenance-schedule.destroy', $schedule->id))->assertNotFound();
         $this->actingAs($owner)->getJson(route('admin.service-log.get-vehicle-details', $theirs->id))->assertNotFound();
 
         expect($log->fresh())->not->toBeNull()->and($schedule->fresh())->not->toBeNull();

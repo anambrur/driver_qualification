@@ -45,7 +45,7 @@ it('files a super-admin\'s service log under the vehicle\'s company', function (
         ->postJson(route('admin.service-log.store'), aclServiceLogPayload($vehicle))
         ->assertOk();
 
-    expect(ServiceLog::sole()->company_id)->toBe($vehicle->company_id);
+    expect(ServiceLog::withoutTenancy()->sole()->company_id)->toBe($vehicle->company_id);
 });
 
 it('files a super-admin\'s maintenance schedule under the vehicle\'s company', function () {
@@ -56,7 +56,7 @@ it('files a super-admin\'s maintenance schedule under the vehicle\'s company', f
         ->postJson(route('admin.maintenance-schedule.store'), aclSchedulePayload($vehicle))
         ->assertOk();
 
-    expect(MaintenanceSchedule::sole()->company_id)->toBe($vehicle->company_id);
+    expect(MaintenanceSchedule::withoutTenancy()->sole()->company_id)->toBe($vehicle->company_id);
 });
 
 it('files a super-admin\'s schedule with no vehicle under the company they pick (decided PO-07)', function () {
@@ -71,7 +71,7 @@ it('files a super-admin\'s schedule with no vehicle under the company they pick 
         ->postJson(route('admin.maintenance-schedule.store'), aclSchedulePayload(null) + ['company_id' => $company->id])
         ->assertOk();
 
-    expect(MaintenanceSchedule::sole()->company_id)->toBe($company->id);
+    expect(MaintenanceSchedule::withoutTenancy()->sole()->company_id)->toBe($company->id);
 });
 
 it('still files a tenant\'s records under the tenant\'s company', function () {
@@ -82,6 +82,6 @@ it('still files a tenant\'s records under the tenant\'s company', function () {
     $this->actingAs($tenant)->postJson(route('admin.service-log.store'), aclServiceLogPayload($vehicle))->assertOk();
     $this->actingAs($tenant)->postJson(route('admin.maintenance-schedule.store'), aclSchedulePayload($vehicle))->assertOk();
 
-    expect(ServiceLog::sole()->company_id)->toBe($company->id)
-        ->and(MaintenanceSchedule::sole()->company_id)->toBe($company->id);
+    expect(ServiceLog::withoutTenancy()->sole()->company_id)->toBe($company->id)
+        ->and(MaintenanceSchedule::withoutTenancy()->sole()->company_id)->toBe($company->id);
 });

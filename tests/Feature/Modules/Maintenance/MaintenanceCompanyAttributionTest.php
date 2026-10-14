@@ -21,8 +21,8 @@ describe('MNT-03: records belong to their vehicle\'s company', function () {
         $this->actingAs(Actors::superAdmin())->postJson(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle))->assertOk();
         $this->actingAs(Actors::superAdmin())->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload($vehicle))->assertOk();
 
-        expect(ServiceLog::sole()->company_id)->toBe($vehicle->company_id)
-            ->and(MaintenanceSchedule::sole()->company_id)->toBe($vehicle->company_id);
+        expect(ServiceLog::withoutTenancy()->sole()->company_id)->toBe($vehicle->company_id)
+            ->and(MaintenanceSchedule::withoutTenancy()->sole()->company_id)->toBe($vehicle->company_id);
     });
 
     it('moves a service log to the new vehicle\'s company when a super-admin changes the vehicle', function () {

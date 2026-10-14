@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Driver extends Model
 {
     // Deleting hides the driver; the qualification file (child rows, documents, files) is kept.
-    use SoftDeletes;
+    use BelongsToCompany, SoftDeletes;
 
     protected $guarded = ['id'];
 

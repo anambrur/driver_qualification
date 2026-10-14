@@ -31,7 +31,7 @@ function fcmpUploadToAll($test, User $owner, DocumentType $type, string $assetTy
         ], FleetCompliance::json())
         ->assertOk()->assertJson(['success' => true, 'uploaded_count' => 3]);
 
-    return FleetCompliance::documentModel($assetType)::where('document_type_id', $type->id)->value('file_path');
+    return FleetCompliance::documentModel($assetType)::withoutTenancy()->where('document_type_id', $type->id)->value('file_path');
 }
 
 describe('FCMP-01: a file shared by "upload to all"', function () {
@@ -107,7 +107,7 @@ describe('FCMP-01: a file shared by "upload to all"', function () {
             ], FleetCompliance::json())
             ->assertOk()->assertJson(['updated_count' => 3]);
 
-        $paths = FleetCompliance::documentModel('vehicle')::pluck('file_path')->unique();
+        $paths = FleetCompliance::documentModel('vehicle')::withoutTenancy()->pluck('file_path')->unique();
         expect($paths)->toHaveCount(1)->and($paths->first())->not->toBe($first);
         Storage::disk('local')->assertExists($paths->first());
         Storage::disk('local')->assertMissing($first);

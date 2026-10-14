@@ -45,22 +45,22 @@ describe('FLT-03: update only saves the form fields', function () {
             ]))
             ->assertOk();
 
-        $fresh = FleetAssets::model($kind)::withTrashed()->findOrFail($asset->id);
+        $fresh = FleetAssets::model($kind)::withoutTenancy()->withTrashed()->findOrFail($asset->id);
         expect($fresh->company_id)->toBe($asset->company_id)
             ->and($fresh->created_at->toDateTimeString())->toBe($createdAt)
             ->and($fresh->deleted_at)->toBeNull()
             ->and($fresh->make)->toBe('Renamed');
     })->with('fleet assets');
 
-    it('refuses another tenant\'s asset', function (string $kind) {
+    it('returns 404 for another tenant\'s asset', function (string $kind) {
         $asset = FleetAssets::assetOf(Actors::companyOwner(), $kind);
         $intruder = Actors::companyOwner();
 
         $this->actingAs($intruder)
             ->putJson(route("admin.$kind.update", $asset->id), FleetAssets::formData($asset, ['make' => 'Hacked']))
-            ->assertForbidden();
-        $this->actingAs($intruder)->getJson(route("admin.$kind.edit", $asset->id))->assertForbidden();
-        $this->actingAs($intruder)->deleteJson(route("admin.$kind.destroy", $asset->id))->assertForbidden();
+            ->assertNotFound();
+        $this->actingAs($intruder)->getJson(route("admin.$kind.edit", $asset->id))->assertNotFound();
+        $this->actingAs($intruder)->deleteJson(route("admin.$kind.destroy", $asset->id))->assertNotFound();
 
         expect($asset->fresh()->make)->not->toBe('Hacked')->and($asset->fresh()->deleted_at)->toBeNull();
     })->with('fleet assets');
@@ -97,7 +97,7 @@ describe('FLT-03: a super-admin moving an asset to another company', function ()
 
         expect($vehicle->fresh()->company_id)->toBe($target->id)
             ->and($log->fresh()->company_id)->toBe($target->id)
-            ->and(ServiceLog::withTrashed()->find($deletedLog->id)->company_id)->toBe($target->id)
+            ->and(ServiceLog::withoutTenancy()->withTrashed()->find($deletedLog->id)->company_id)->toBe($target->id)
             ->and($schedule->fresh()->company_id)->toBe($target->id)
             ->and($document->fresh()->vehicle_id)->toBe($vehicle->id)
             ->and($otherLog->fresh()->company_id)->not->toBe($target->id);
@@ -113,7 +113,7 @@ describe('FLT-03: a super-admin moving an asset to another company', function ()
             ->putJson(route('admin.vehicle.update', $vehicle->id), FleetAssets::vehicleFormData($vehicle, ['company_id' => $target->id]))
             ->assertOk();
 
-        $ended = AssetGroup::withTrashed()->findOrFail($group->id);
+        $ended = AssetGroup::withoutTenancy()->withTrashed()->findOrFail($group->id);
         expect($ended->status)->toBe('inactive')
             ->and($ended->trashed())->toBeTrue()
             ->and($ended->company_id)->toBe($oldCompanyId)

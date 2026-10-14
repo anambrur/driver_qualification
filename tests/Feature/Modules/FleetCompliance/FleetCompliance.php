@@ -8,6 +8,7 @@ use App\Models\TrailerDocument;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleDocument;
+use App\Tenancy\TenantContext;
 use Database\Factories\DocumentTypeFactory;
 use Database\Factories\TrailerFactory;
 use Database\Factories\VehicleFactory;
@@ -89,12 +90,12 @@ final class FleetCompliance
         $assetType = self::typeOf($asset);
         $model = $assetType === 'vehicle' ? VehicleDocument::class : TrailerDocument::class;
 
-        $document = $model::create(array_merge([
+        $document = app(TenantContext::class)->run($asset->company_id, fn () => $model::create(array_merge([
             $assetType.'_id' => $asset->id,
             'document_type_id' => $type->id,
             'expiry_date' => now()->addYear()->toDateString(),
             'file_path' => 'documents/'.$assetType.'s/'.bin2hex(random_bytes(8)).'.pdf',
-        ], $attributes));
+        ], $attributes)));
 
         if ($document->file_path) {
             Storage::disk($disk)->put($document->file_path, "%PDF-1.4\nbytes-of-{$document->id}");

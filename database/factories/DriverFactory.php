@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Company;
 use App\Models\Driver;
+use Database\Factories\Concerns\CreatesInTenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class DriverFactory extends Factory
 {
+    use CreatesInTenant;
+
     protected $model = Driver::class;
 
     /**

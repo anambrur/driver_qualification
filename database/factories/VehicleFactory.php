@@ -4,13 +4,16 @@ namespace Database\Factories;
 
 use App\Models\Company;
 use App\Models\Vehicle;
+use Database\Factories\Concerns\CreatesInTenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Vehicle>
+ * @extends Factory<Vehicle>
  */
 class VehicleFactory extends Factory
 {
+    use CreatesInTenant;
+
     protected $model = Vehicle::class;
 
     /**

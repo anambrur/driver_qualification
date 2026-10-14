@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Driver;
 use App\Models\DocumentType;
+use App\Models\Driver;
 use App\Services\Compliance\DriverComplianceService;
 use App\Traits\CompanyFilterTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class DriverComplianceDashboardController extends Controller
 {
@@ -22,8 +23,7 @@ class DriverComplianceDashboardController extends Controller
 
     public function index()
     {
-        // Active drivers with company filtering
-        $driversQuery = $this->applyCompanyFilter(Driver::query())->where('status', 'active');
+        $driversQuery = Driver::query()->where('status', 'active');
 
         // Summary cards cover every driver, computed in SQL (DCMP-05)
         $summary = $this->complianceService->summary($driversQuery);
@@ -51,7 +51,7 @@ class DriverComplianceDashboardController extends Controller
 
             return [
                 'id' => $driver->id,
-                'full_name' => $driver->first_name . ' ' . $driver->last_name,
+                'full_name' => $driver->first_name.' '.$driver->last_name,
                 'first_name' => $driver->first_name,
                 'last_name' => $driver->last_name,
                 'email' => $driver->email,
@@ -64,7 +64,7 @@ class DriverComplianceDashboardController extends Controller
                 'company_id' => $driver->company_id,
                 'company_name' => $driver->company?->company_name,
                 'compliance_status' => $complianceData['status'],
-                'compliance_percentage' => $complianceData['percentage'] . '%',
+                'compliance_percentage' => $complianceData['percentage'].'%',
                 'compliant_docs' => $complianceData['compliant_docs'],
                 'total_docs' => $complianceData['total_docs'],
                 'missing_documents' => $complianceData['missing_documents'],
@@ -105,8 +105,7 @@ class DriverComplianceDashboardController extends Controller
             $driver = Driver::with(['documents.documentType', 'company'])
                 ->findOrFail($id);
 
-            // Check if user has access to this driver
-            $this->authorizeCompanyAccess($driver, 'You do not have permission to view this driver.');
+            Gate::authorize('view', $driver);
 
             $complianceData = $this->complianceService->forDriver($driver);
 
@@ -134,7 +133,7 @@ class DriverComplianceDashboardController extends Controller
                 'success' => true,
                 'driver' => [
                     'id' => $driver->id,
-                    'full_name' => $driver->first_name . ' ' . $driver->last_name,
+                    'full_name' => $driver->first_name.' '.$driver->last_name,
                     'first_name' => $driver->first_name,
                     'last_name' => $driver->last_name,
                     'email' => $driver->email,
@@ -147,19 +146,19 @@ class DriverComplianceDashboardController extends Controller
                     'company_id' => $driver->company_id,
                     'company_name' => $driver->company?->company_name,
                     'compliance_status' => $complianceData['status'],
-                    'compliance_percentage' => $complianceData['percentage'] . '%',
+                    'compliance_percentage' => $complianceData['percentage'].'%',
                     'compliant_docs' => $complianceData['compliant_docs'],
                     'total_docs' => $complianceData['total_docs'],
                     'missing_documents' => $complianceData['missing_documents'],
                     'expiring_documents' => $complianceData['expiring_documents'],
                     'document_details' => $complianceData['document_details'],
                     'documents' => $documents,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Driver not found or access denied'
+                'message' => 'Driver not found or access denied',
             ], 404);
         }
     }

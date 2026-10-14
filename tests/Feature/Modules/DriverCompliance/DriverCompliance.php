@@ -6,6 +6,7 @@ use App\Models\DocumentType;
 use App\Models\Driver;
 use App\Models\DriverComplianceDocument;
 use App\Models\User;
+use App\Tenancy\TenantContext;
 use Database\Factories\DocumentTypeFactory;
 use Database\Factories\DriverFactory;
 use Illuminate\Http\UploadedFile;
@@ -84,13 +85,13 @@ final class DriverCompliance
      */
     public static function document(Driver $driver, DocumentType $type, array $attributes = [], string $disk = 'local'): DriverComplianceDocument
     {
-        $document = DriverComplianceDocument::create(array_merge([
+        $document = app(TenantContext::class)->run($driver->company_id, fn () => DriverComplianceDocument::create(array_merge([
             'driver_id' => $driver->id,
             'document_type_id' => $type->id,
             'file_date' => now()->toDateString(),
             'expiry_date' => now()->addYear()->toDateString(),
             'file_path' => 'documents/drivers/'.bin2hex(random_bytes(8)).'.pdf',
-        ], $attributes));
+        ], $attributes)));
 
         if ($document->file_path) {
             Storage::disk($disk)->put($document->file_path, "%PDF-1.4\nbytes-of-{$document->id}");

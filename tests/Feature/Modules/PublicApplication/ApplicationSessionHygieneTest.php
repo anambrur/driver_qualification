@@ -42,7 +42,7 @@ describe('APP-09: application session hygiene', function () {
             ->post(route('public.application.submit.otp', $this->company->slug), ['otp' => '123456'])
             ->assertRedirect(route('public.application.step1', $this->company->slug));
 
-        $driver = Driver::query()->where('main_phone', '+12025550101')->firstOrFail();
+        $driver = Driver::withoutTenancy()->where('main_phone', '+12025550101')->firstOrFail();
 
         expect(session()->getId())->not->toBe($before)
             ->and(session('application_driver_id'))->toBe($driver->id)

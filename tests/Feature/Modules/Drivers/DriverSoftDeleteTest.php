@@ -30,8 +30,8 @@ describe('DRV-08: deleting a driver keeps the qualification file', function () {
         $this->actingAs($owner)->deleteJson(route('admin.driver.destroy', $driver->id))
             ->assertOk()->assertJson(['success' => true]);
 
-        expect(Driver::find($driver->id))->toBeNull()
-            ->and(Driver::withTrashed()->find($driver->id)->deleted_at)->not->toBeNull()
+        expect(Driver::withoutTenancy()->find($driver->id))->toBeNull()
+            ->and(Driver::withoutTenancy()->withTrashed()->find($driver->id)->deleted_at)->not->toBeNull()
             ->and(DB::table('violations')->where('driver_id', $driver->id)->count())->toBe(1)
             ->and(DB::table('driver_documents')->where('driver_id', $driver->id)->count())->toBe(1);
         Storage::disk('local')->assertExists('images/documents/f.png');
@@ -65,9 +65,9 @@ describe('DRV-08: deleting a driver keeps the qualification file', function () {
 
         $this->actingAs($owner)->deleteJson(route('admin.driver.destroy', $driver->id))->assertOk();
 
-        expect(AssetGroup::find($group->id))->toBeNull()
-            ->and(AssetGroup::withTrashed()->find($group->id))->not->toBeNull()
-            ->and(AssetGroup::find($other->id))->not->toBeNull();
+        expect(AssetGroup::withoutTenancy()->find($group->id))->toBeNull()
+            ->and(AssetGroup::withoutTenancy()->withTrashed()->find($group->id))->not->toBeNull()
+            ->and(AssetGroup::withoutTenancy()->find($other->id))->not->toBeNull();
     });
 
     it('does not let a deleted driver be put in an asset group', function () {
@@ -109,6 +109,6 @@ describe('DRV-08: deleting a driver keeps the qualification file', function () {
 
         $this->actingAs(Actors::superAdmin())->deleteJson(route('admin.driver.destroy', $driver->id))->assertOk();
 
-        expect(Driver::withTrashed()->find($driver->id)->trashed())->toBeTrue();
+        expect(Driver::withoutTenancy()->withTrashed()->find($driver->id)->trashed())->toBeTrue();
     });
 });

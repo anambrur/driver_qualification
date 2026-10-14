@@ -42,7 +42,7 @@ describe('Upload to all: which drivers', function () {
             ->post(route('admin.compliance.driver.documents.upload'), uploadToAllPayload($type), DriverCompliance::json())
             ->assertOk()->assertJson(['uploaded_count' => 1]);
 
-        expect(DriverComplianceDocument::pluck('driver_id')->all())->toBe([$active->id]);
+        expect(DriverComplianceDocument::withoutTenancy()->pluck('driver_id')->all())->toBe([$active->id]);
     });
 
     it('ignores a company_id sent by a tenant', function () {
@@ -58,7 +58,7 @@ describe('Upload to all: which drivers', function () {
             )
             ->assertOk()->assertJson(['uploaded_count' => 1]);
 
-        expect(DriverComplianceDocument::pluck('driver_id')->all())->toBe([$mine->id]);
+        expect(DriverComplianceDocument::withoutTenancy()->pluck('driver_id')->all())->toBe([$mine->id]);
     });
 
     it('uploads only to the chosen company\'s active drivers for a super-admin', function () {
@@ -76,7 +76,7 @@ describe('Upload to all: which drivers', function () {
             )
             ->assertOk()->assertJson(['uploaded_count' => 2]);
 
-        expect(DriverComplianceDocument::pluck('driver_id')->sort()->values()->all())->toBe([$a->id, $b->id]);
+        expect(DriverComplianceDocument::withoutTenancy()->pluck('driver_id')->sort()->values()->all())->toBe([$a->id, $b->id]);
     });
 
     it('requires a super-admin to choose a company, and stores nothing without one', function (array $overrides) {
@@ -88,7 +88,7 @@ describe('Upload to all: which drivers', function () {
             ->assertStatus(422)
             ->assertJson(['success' => false]);
 
-        expect(DriverComplianceDocument::count())->toBe(0)
+        expect(DriverComplianceDocument::withoutTenancy()->count())->toBe(0)
             ->and(Storage::disk('local')->allFiles())->toBe([]);
     })->with([
         'no company' => [[]],

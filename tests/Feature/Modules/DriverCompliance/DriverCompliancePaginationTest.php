@@ -52,8 +52,8 @@ describe('DCMP-05: paginated dashboard', function () {
             DriverCompliance::driverOf($owner, ['first_name' => 'Zed'.str_pad((string) $i, 2, '0', STR_PAD_LEFT)]);
         }
         // Only the last drivers alphabetically (page 2) are compliant / warning.
-        DriverCompliance::document(Driver::where('first_name', 'Zed26')->first(), $type);
-        DriverCompliance::document(Driver::where('first_name', 'Zed25')->first(), $type, ['expiry_date' => now()->addDays(5)->toDateString()]);
+        DriverCompliance::document(Driver::withoutTenancy()->where('first_name', 'Zed26')->first(), $type);
+        DriverCompliance::document(Driver::withoutTenancy()->where('first_name', 'Zed25')->first(), $type, ['expiry_date' => now()->addDays(5)->toDateString()]);
 
         $response = $this->actingAs($owner)->get(route('admin.compliance.drivers'))->assertOk();
 
@@ -118,19 +118,19 @@ describe('DCMP-05: paginated dashboard', function () {
         }
 
         $service = app(DriverComplianceService::class);
-        $rows = $service->withComplianceCounts(Driver::query())->get();
+        $rows = $service->withComplianceCounts(Driver::withoutTenancy())->get();
         $phpStatuses = ['compliant' => 0, 'warning' => 0, 'danger' => 0];
 
-        expect($rows)->toHaveCount(Driver::count());
+        expect($rows)->toHaveCount(Driver::withoutTenancy()->count());
         foreach ($rows as $row) {
-            $php = $service->forDriver(Driver::with('documents')->findOrFail($row->id));
+            $php = $service->forDriver(Driver::withoutTenancy()->with('documents')->findOrFail($row->id));
             $phpStatuses[$php['status']]++;
 
             expect([(int) $row->total_docs, (int) $row->valid_docs, (int) $row->expiring_docs])
                 ->toBe([$php['total_docs'], $php['compliant_docs'], count($php['expiring_documents'])]);
         }
 
-        $summary = $service->summary(Driver::query());
+        $summary = $service->summary(Driver::withoutTenancy());
         expect($summary)->toBe(['total' => array_sum($phpStatuses)] + $phpStatuses)
             ->and($phpStatuses['warning'])->toBeGreaterThan(0)
             ->and($phpStatuses['compliant'])->toBeGreaterThan(0)
@@ -154,6 +154,6 @@ describe('DCMP-05: paginated dashboard', function () {
         expect($documentQueries)->toHaveCount(1);
         preg_match('/"driver_id" in \(([^)]*)\)/', $documentQueries->first()['query'], $ids);
         expect(explode(',', $ids[1]))->toHaveCount(25);
-        expect(DriverComplianceDocument::count())->toBe(30);
+        expect(DriverComplianceDocument::withoutTenancy()->count())->toBe(30);
     });
 });

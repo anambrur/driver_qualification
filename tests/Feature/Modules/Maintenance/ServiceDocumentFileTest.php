@@ -3,6 +3,7 @@
 use App\Models\ServiceDocument;
 use App\Models\ServiceLog;
 use App\Models\Vehicle;
+use App\Tenancy\TenantContext;
 use Database\Factories\ServiceLogFactory;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\Maintenance\Maintenance;
@@ -27,10 +28,10 @@ function mntLogWithDocument(Vehicle $vehicle, string $disk = 'local'): ServiceDo
     $path = 'service-documents/'.$log->id.'/abc.pdf';
     Storage::disk($disk)->put($path, '%PDF-1.4 test');
 
-    return ServiceDocument::create([
+    return app(TenantContext::class)->run($log->company_id, fn () => ServiceDocument::create([
         'service_log_id' => $log->id, 'original_name' => 'invoice.pdf', 'file_name' => 'abc.pdf',
         'file_path' => $path, 'mime_type' => 'application/pdf', 'file_size' => 13,
-    ]);
+    ]));
 }
 
 describe('MNT-05: storage', function () {
@@ -41,8 +42,8 @@ describe('MNT-05: storage', function () {
             ->post(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle, ['documents' => [Maintenance::pdf('invoice.pdf')]]), ['Accept' => 'application/json'])
             ->assertOk();
 
-        $document = ServiceDocument::sole();
-        expect($document->file_path)->toStartWith('service-documents/'.ServiceLog::sole()->id.'/')
+        $document = ServiceDocument::withoutTenancy()->sole();
+        expect($document->file_path)->toStartWith('service-documents/'.ServiceLog::withoutTenancy()->sole()->id.'/')
             ->and($document->file_path)->toEndWith('.pdf')
             ->and(basename($document->file_path))->not->toContain('invoice')
             ->and($document->original_name)->toBe('invoice.pdf');
@@ -58,7 +59,7 @@ describe('MNT-05: storage', function () {
             ->post(route('admin.service-log.update', $log->id), Maintenance::serviceLogPayload($vehicle, ['_method' => 'PUT', 'new_documents' => [Maintenance::pdf()]]), ['Accept' => 'application/json'])
             ->assertOk();
 
-        Storage::disk('local')->assertExists(ServiceDocument::sole()->file_path);
+        Storage::disk('local')->assertExists(ServiceDocument::withoutTenancy()->sole()->file_path);
         expect(Storage::disk('public')->allFiles())->toBe([]);
     });
 
@@ -69,7 +70,7 @@ describe('MNT-05: storage', function () {
             ->post(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle, ['documents' => [Maintenance::pdf('x.html')]]), ['Accept' => 'application/json'])
             ->assertOk();
 
-        expect(ServiceDocument::sole()->file_path)->toEndWith('.pdf');
+        expect(ServiceDocument::withoutTenancy()->sole()->file_path)->toEndWith('.pdf');
     });
 
     it('rejects files whose content is not an allowed type', function (string $name, string $bytes, string $mime) {
@@ -79,7 +80,7 @@ describe('MNT-05: storage', function () {
             ->post(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle, ['documents' => [Maintenance::fileWith($name, $bytes, $mime)]]), ['Accept' => 'application/json'])
             ->assertUnprocessable();
 
-        expect(ServiceDocument::count())->toBe(0);
+        expect(ServiceDocument::withoutTenancy()->count())->toBe(0);
     })->with([
         'html' => ['x.html', '<html><script>alert(1)</script></html>', 'text/html'],
         'svg named .pdf' => ['x.pdf', '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>', 'application/pdf'],
@@ -120,13 +121,13 @@ describe('MNT-05: download', function () {
         $this->actingAs(Actors::superAdmin())->get(route('admin.service-log.download-document', $document->id))->assertOk();
     });
 
-    it('refuses another tenant', function () {
+    it('returns 404 to another tenant', function () {
         [$owner] = Maintenance::tenantWithVehicle();
         [, $foreign] = Maintenance::tenantWithVehicle();
         $document = mntLogWithDocument($foreign);
 
-        $this->actingAs($owner)->get(route('admin.service-log.download-document', $document->id))->assertForbidden();
-        $this->actingAs($owner)->deleteJson(route('admin.service-log.delete-document', $document->id))->assertForbidden();
+        $this->actingAs($owner)->get(route('admin.service-log.download-document', $document->id))->assertNotFound();
+        $this->actingAs($owner)->deleteJson(route('admin.service-log.delete-document', $document->id))->assertNotFound();
 
         Storage::disk('local')->assertExists($document->file_path);
     });
@@ -157,7 +158,7 @@ describe('MNT-05: delete', function () {
         $this->actingAs($owner)->deleteJson(route('admin.service-log.delete-document', $document->id))->assertOk();
 
         Storage::disk('local')->assertMissing($document->file_path);
-        expect(ServiceDocument::count())->toBe(0);
+        expect(ServiceDocument::withoutTenancy()->count())->toBe(0);
     });
 
     it('deletes legacy files from the public disk too', function () {

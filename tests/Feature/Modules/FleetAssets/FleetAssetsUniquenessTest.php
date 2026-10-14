@@ -23,7 +23,7 @@ describe('FLT-02: unit no and VIN are unique per company', function () {
             ->postJson(route("admin.$kind.store"), FleetAssets::payload($kind, ['unit_no' => '101', 'vin' => '1HGCM82633A004352']))
             ->assertOk()->assertJson(['success' => true]);
 
-        expect(FleetAssets::model($kind)::where('unit_no', '101')->pluck('company_id')->sort()->values()->all())
+        expect(FleetAssets::model($kind)::withoutTenancy()->where('unit_no', '101')->pluck('company_id')->sort()->values()->all())
             ->toBe(collect([$existing->company_id, Actors::companyOf($other)->id])->sort()->values()->all());
     })->with('fleet assets');
 
@@ -47,7 +47,7 @@ describe('FLT-02: unit no and VIN are unique per company', function () {
             ->postJson(route("admin.$kind.store"), FleetAssets::payload($kind, ['unit_no' => '101', 'company_id' => $target->id]))
             ->assertOk();
 
-        expect(FleetAssets::model($kind)::where('company_id', $target->id)->where('unit_no', '101')->exists())->toBeTrue();
+        expect(FleetAssets::model($kind)::withoutTenancy()->where('company_id', $target->id)->where('unit_no', '101')->exists())->toBeTrue();
     })->with('fleet assets');
 
     it('still rejects a duplicate unit no or VIN within the company', function (string $kind, string $field) {

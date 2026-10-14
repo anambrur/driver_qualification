@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Company;
 use App\Models\EquipmentType;
 use App\Models\Trailer;
+use Database\Factories\Concerns\CreatesInTenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class TrailerFactory extends Factory
 {
+    use CreatesInTenant;
+
     protected $model = Trailer::class;
 
     /**

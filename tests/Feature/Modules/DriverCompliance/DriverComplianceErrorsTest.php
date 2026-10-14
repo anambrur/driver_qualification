@@ -11,7 +11,7 @@ use Tests\Support\Actors;
 | DCMP-06: the list, upload and delete endpoints returned `$e->getMessage()` in their JSON
 | (SQL errors, model class names, file paths). Their catch-all also turned the tenant check's
 | 403 into a 500. Failures are now logged and answered with a generic message; a missing
-| record is 404 and another tenant's record is 403, as on the view/download routes.
+| record is 404, and so is another tenant's record (WP5: foreign ids are 404).
 */
 
 beforeEach(function () {
@@ -78,27 +78,27 @@ describe('DCMP-06: no exception text in responses', function () {
         expect(Storage::disk('local')->allFiles())->toBe([]);
     });
 
-    it('returns 403 and keeps the document when another tenant deletes it', function () {
+    it('returns 404 and keeps the document when another tenant deletes it', function () {
         [, $driver] = DriverCompliance::tenantWithDriver();
         $document = DriverCompliance::document($driver, DriverCompliance::documentType());
 
         $this->actingAs(Actors::companyOwner())
             ->deleteJson(route('admin.compliance.driver.documents.delete'), ['document_id' => $document->id])
-            ->assertForbidden();
+            ->assertNotFound();
 
         expect($document->fresh())->not->toBeNull();
         Storage::disk('local')->assertExists($document->file_path);
     });
 
-    it('returns 403 and stores nothing when uploading for another tenant\'s driver', function () {
+    it('returns 404 and stores nothing when uploading for another tenant\'s driver', function () {
         [, $driver] = DriverCompliance::tenantWithDriver();
         $type = DriverCompliance::documentType();
 
         $this->actingAs(Actors::companyOwner())
             ->post(route('admin.compliance.driver.documents.upload'), DriverCompliance::payload($driver, $type), DriverCompliance::json())
-            ->assertForbidden();
+            ->assertNotFound();
 
-        expect(DriverComplianceDocument::count())->toBe(0)
+        expect(DriverComplianceDocument::withoutTenancy()->count())->toBe(0)
             ->and(Storage::disk('local')->allFiles())->toBe([]);
     });
 
@@ -116,7 +116,7 @@ describe('DCMP-06: no exception text in responses', function () {
             ], DriverCompliance::json())
             ->assertOk()->assertJson(['uploaded_count' => 1]);
 
-        expect(DriverComplianceDocument::pluck('driver_id')->all())->toBe([$mine->id]);
+        expect(DriverComplianceDocument::withoutTenancy()->pluck('driver_id')->all())->toBe([$mine->id]);
     });
 });
 

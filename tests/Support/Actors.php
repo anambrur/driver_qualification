@@ -107,9 +107,22 @@ final class Actors
         return $user;
     }
 
+    public static function companyOf(User $user): Company
+    {
+        return $user->company;
+    }
+
+    /**
+     * A company member without any role or permission.
+     */
+    public static function plainUser(?Company $company = null, array $attributes = []): User
+    {
+        return UserFactory::new()->create(['company_id' => ($company ?? self::company())->id] + $attributes);
+    }
+
     public static function driverOf(User $driverUser): Driver
     {
-        return Driver::where('user_id', $driverUser->id)->firstOrFail();
+        return Driver::withoutTenancy()->where('user_id', $driverUser->id)->firstOrFail();
     }
 
     /**

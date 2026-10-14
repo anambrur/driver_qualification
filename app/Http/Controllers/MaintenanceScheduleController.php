@@ -1,16 +1,18 @@
 <?php
+
 // app/Http/Controllers/MaintenanceScheduleController.php
 
 namespace App\Http\Controllers;
 
+use App\Models\MaintenanceCategory;
 use App\Models\MaintenanceSchedule;
 use App\Models\ServiceLog;
 use App\Models\Vehicle;
-use App\Models\MaintenanceCategory;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -26,9 +28,6 @@ class MaintenanceScheduleController extends Controller
         if ($request->ajax()) {
             $query = MaintenanceSchedule::with(['vehicle', 'maintenanceCategory', 'company'])
                 ->select(['maintenance_schedules.*']);
-
-            // Apply company filter
-            $query = $this->applyCompanyFilter($query);
 
             // Apply filters
             if ($request->filled('vehicle_id')) {
@@ -54,16 +53,17 @@ class MaintenanceScheduleController extends Controller
 
                     return '
                     <div class="text-sm">
-                        <div class="font-medium text-gray-900 dark:text-white">' . e($row->title ?: $category) . '</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">' . $row->schedule_type_label . '</div>
+                        <div class="font-medium text-gray-900 dark:text-white">'.e($row->title ?: $category).'</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">'.$row->schedule_type_label.'</div>
                     </div>';
                 })
                 ->addColumn('vehicle_info', function ($row) {
-                    if (!$row->vehicle) {
+                    if (! $row->vehicle) {
                         return '<span class="text-sm text-gray-500 dark:text-gray-400">All Vehicles</span>';
                     }
 
                     $vehicle = $row->vehicle;
+
                     return '
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-8 w-8">
@@ -73,10 +73,10 @@ class MaintenanceScheduleController extends Controller
                         </div>
                         <div class="ml-3">
                             <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                ' . e($vehicle->unit_no) . '
+                                '.e($vehicle->unit_no).'
                             </div>
                             <div class="text-xs text-gray-500 dark:text-gray-400">
-                                ' . e($vehicle->year . ' ' . $vehicle->make . ' ' . $vehicle->model) . '
+                                '.e($vehicle->year.' '.$vehicle->make.' '.$vehicle->model).'
                             </div>
                         </div>
                     </div>';
@@ -84,7 +84,7 @@ class MaintenanceScheduleController extends Controller
                 ->addColumn('interval', function ($row) {
                     return '
                     <div class="text-sm">
-                        <div class="font-medium text-gray-900 dark:text-white">' . $row->interval_text . '</div>
+                        <div class="font-medium text-gray-900 dark:text-white">'.$row->interval_text.'</div>
                     </div>';
                 })
                 ->addColumn('next_due', function ($row) {
@@ -93,33 +93,33 @@ class MaintenanceScheduleController extends Controller
 
                     return '
                     <div class="text-sm">
-                        <div class="' . $dueClass . ' dark:text-white">' . $row->next_due_text . '</div>
-                        ' . ($isDue ? '<span class="text-xs text-red-500">Due now!</span>' : '') . '
+                        <div class="'.$dueClass.' dark:text-white">'.$row->next_due_text.'</div>
+                        '.($isDue ? '<span class="text-xs text-red-500">Due now!</span>' : '').'
                     </div>';
                 })
                 ->addColumn('status', function ($row) {
                     return $row->status_badge;
                 })
                 ->addColumn('action', function ($row) {
-                    $viewBtn = '<button onclick="viewSchedule(' . $row->id . ')" 
+                    $viewBtn = '<button onclick="viewSchedule('.$row->id.')" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors mr-1"
                                 title="View Details">
                                 <i class="fas fa-eye"></i>
                             </button>';
 
-                    $editBtn = '<button onclick="editSchedule(' . $row->id . ')" 
+                    $editBtn = '<button onclick="editSchedule('.$row->id.')" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-indigo-600 bg-indigo-100 rounded-md hover:bg-indigo-200 transition-colors mr-1"
                                 title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>';
 
-                    $deleteBtn = '<button onclick="deleteSchedule(' . $row->id . ')" 
+                    $deleteBtn = '<button onclick="deleteSchedule('.$row->id.')" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
                                 title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>';
 
-                    return '<div class="flex justify-center space-x-1">' . $viewBtn . $editBtn . $deleteBtn . '</div>';
+                    return '<div class="flex justify-center space-x-1">'.$viewBtn.$editBtn.$deleteBtn.'</div>';
                 })
                 ->addColumn('created_at_formatted', function ($row) {
                     return $row->created_at->format('M d, Y');
@@ -129,7 +129,7 @@ class MaintenanceScheduleController extends Controller
         }
 
         // Get dropdown data for filters
-        $vehicles = $this->applyCompanyFilter(Vehicle::orderBy('unit_no'))->get();
+        $vehicles = Vehicle::orderBy('unit_no')->get();
         $maintenanceCategories = MaintenanceCategory::orderBy('name')->get();
         $companies = $this->getCompaniesForUser();
 
@@ -140,7 +140,7 @@ class MaintenanceScheduleController extends Controller
     {
         $companyId = $this->getAllUserCompanyId();
 
-        if (!Auth::user()->hasRole('super-admin')) {
+        if (! Auth::user()->hasRole('super-admin')) {
             $request->merge(['company_id' => $companyId]);
         }
 
@@ -171,7 +171,7 @@ class MaintenanceScheduleController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -208,14 +208,15 @@ class MaintenanceScheduleController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Maintenance schedule created successfully!',
-                'data' => $schedule->load(['vehicle', 'maintenanceCategory'])
+                'data' => $schedule->load(['vehicle', 'maintenanceCategory']),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Schedule store error: ' . $e->getMessage());
+            Log::error('Schedule store error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create schedule. Please try again.'
+                'message' => 'Failed to create schedule. Please try again.',
             ], 500);
         }
     }
@@ -224,11 +225,11 @@ class MaintenanceScheduleController extends Controller
     {
         $schedule = MaintenanceSchedule::with(['vehicle', 'maintenanceCategory'])->findOrFail($id);
 
-        $this->authorizeCompanyAccess($schedule, 'You do not have permission to edit this schedule.');
+        Gate::authorize('update', $schedule);
 
         return response()->json([
             'success' => true,
-            'data' => $schedule
+            'data' => $schedule,
         ]);
     }
 
@@ -237,7 +238,7 @@ class MaintenanceScheduleController extends Controller
         $schedule = MaintenanceSchedule::with(['vehicle', 'maintenanceCategory', 'company'])
             ->findOrFail($id);
 
-        $this->authorizeCompanyAccess($schedule, 'You do not have permission to view this schedule.');
+        Gate::authorize('view', $schedule);
 
         // The details modal shows these computed values
         $schedule->append(['schedule_type_label', 'interval_text', 'next_due_text', 'status_badge']);
@@ -245,7 +246,7 @@ class MaintenanceScheduleController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => array_merge($schedule->toArray(), ['is_due' => $schedule->isDue()])
+            'data' => array_merge($schedule->toArray(), ['is_due' => $schedule->isDue()]),
         ]);
     }
 
@@ -253,9 +254,9 @@ class MaintenanceScheduleController extends Controller
     {
         $schedule = MaintenanceSchedule::findOrFail($id);
 
-        $this->authorizeCompanyAccess($schedule, 'You do not have permission to update this schedule.');
+        Gate::authorize('update', $schedule);
 
-        if (!Auth::user()->hasRole('super-admin')) {
+        if (! Auth::user()->hasRole('super-admin')) {
             $request->merge(['company_id' => $schedule->company_id]);
         }
 
@@ -284,7 +285,7 @@ class MaintenanceScheduleController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -317,14 +318,15 @@ class MaintenanceScheduleController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Maintenance schedule updated successfully!',
-                'data' => $schedule->load(['vehicle', 'maintenanceCategory'])
+                'data' => $schedule->load(['vehicle', 'maintenanceCategory']),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Schedule update error: ' . $e->getMessage());
+            Log::error('Schedule update error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update schedule. Please try again.'
+                'message' => 'Failed to update schedule. Please try again.',
             ], 500);
         }
     }
@@ -333,7 +335,7 @@ class MaintenanceScheduleController extends Controller
     {
         $schedule = MaintenanceSchedule::findOrFail($id);
 
-        $this->authorizeCompanyAccess($schedule, 'You do not have permission to delete this schedule.');
+        Gate::authorize('delete', $schedule);
 
         DB::beginTransaction();
 
@@ -344,14 +346,15 @@ class MaintenanceScheduleController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Maintenance schedule deleted successfully!'
+                'message' => 'Maintenance schedule deleted successfully!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Schedule delete error: ' . $e->getMessage());
+            Log::error('Schedule delete error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete schedule. Please try again.'
+                'message' => 'Failed to delete schedule. Please try again.',
             ], 500);
         }
     }
@@ -359,9 +362,8 @@ class MaintenanceScheduleController extends Controller
     public function getDropdownData()
     {
         $vehiclesQuery = Vehicle::orderBy('unit_no');
-        $vehiclesQuery = $this->applyCompanyFilter($vehiclesQuery);
         $vehicles = $vehiclesQuery->get(['id', 'unit_no', 'make', 'model', 'year']);
-        
+
         $maintenanceCategories = MaintenanceCategory::orderBy('name')->get(['id', 'name']);
         $companies = $this->getCompaniesForUser();
 
@@ -373,13 +375,13 @@ class MaintenanceScheduleController extends Controller
             'scheduleTypes' => [
                 'date' => 'By Date',
                 'mileage' => 'By Mileage',
-                'engine_hours' => 'By Engine Hours'
+                'engine_hours' => 'By Engine Hours',
             ],
             'statusOptions' => [
                 'active' => 'Active',
                 'paused' => 'Paused',
-                'completed' => 'Completed'
-            ]
+                'completed' => 'Completed',
+            ],
         ]);
     }
 
@@ -388,7 +390,7 @@ class MaintenanceScheduleController extends Controller
         try {
             $vehicle = Vehicle::findOrFail($id);
 
-            $this->authorizeCompanyAccess($vehicle, 'You do not have permission to view this vehicle.');
+            Gate::authorize('view', $vehicle);
 
             return response()->json([
                 'success' => true,
@@ -399,12 +401,12 @@ class MaintenanceScheduleController extends Controller
                     'current_odometer' => $vehicle->odometer,
                     'engine_hours' => ServiceLog::currentEngineHoursFor($vehicle->id),
                     'vin' => $vehicle->vin,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Vehicle not found'
+                'message' => 'Vehicle not found',
             ], 404);
         }
     }
@@ -413,7 +415,7 @@ class MaintenanceScheduleController extends Controller
     {
         $schedule = MaintenanceSchedule::findOrFail($id);
 
-        $this->authorizeCompanyAccess($schedule, 'You do not have permission to update this schedule.');
+        Gate::authorize('update', $schedule);
 
         DB::beginTransaction();
 
@@ -443,14 +445,15 @@ class MaintenanceScheduleController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Schedule marked as completed!'
+                'message' => 'Schedule marked as completed!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Schedule complete error: ' . $e->getMessage());
+            Log::error('Schedule complete error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to mark schedule as completed.'
+                'message' => 'Failed to mark schedule as completed.',
             ], 500);
         }
     }
@@ -488,7 +491,7 @@ class MaintenanceScheduleController extends Controller
     {
         $rule = Rule::exists('vehicles', 'id')->whereNull('deleted_at');
 
-        if (!Auth::user()->hasRole('super-admin')) {
+        if (! Auth::user()->hasRole('super-admin')) {
             $rule->where('company_id', $this->getUserCompanyId() ?? -1);
         }
 

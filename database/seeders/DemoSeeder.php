@@ -10,7 +10,9 @@ use App\Models\PlanPrice;
 use App\Models\PlatformUser;
 use App\Models\Role;
 use App\Models\Subscription;
+use App\Models\User;
 use App\Services\Company\CompanyProvisioner;
+use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -98,6 +100,11 @@ class DemoSeeder extends Seeder
             'current_period_end' => now()->addYear(),
         ]);
 
+        app(TenantContext::class)->run($company->id, fn () => $this->drivers($company, $owner, $slug, $state));
+    }
+
+    private function drivers(Company $company, User $owner, string $slug, string $state): void
+    {
         foreach ([['John', 'Smith'], ['Maria', 'Garcia'], ['David', 'Lee']] as $i => [$first, $last]) {
             $driver = Driver::create([
                 'company_id' => $company->id,

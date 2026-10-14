@@ -9,6 +9,7 @@ use App\Models\DriverComplianceDocument;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -46,14 +47,13 @@ class DriverDocumentUploadController extends Controller
             // driver the modal was opened for, and only sees that company's drivers.
             $company = $this->uploadCompany($request->integer('driver_id') ?: null);
 
-            // Apply company filter and load has_document in one query (avoid N+1 exists)
+            // Load has_document in one query (avoid N+1 exists); the tenant scope limits the rows
             $driversQuery = Driver::select('drivers.id', 'drivers.first_name', 'drivers.last_name')
                 ->withExists([
                     'documents as has_document' => function ($query) use ($documentTypeId) {
                         $query->where('document_type_id', $documentTypeId);
                     },
                 ]);
-            $driversQuery = $this->applyCompanyFilter($driversQuery);
             if ($this->isSuperAdmin() && $company) {
                 $driversQuery->where('drivers.company_id', $company->id);
             }
@@ -147,7 +147,7 @@ class DriverDocumentUploadController extends Controller
             // Upload to selected driver (validate company access first)
             $driver = Driver::whereKey($request->selected_asset)->first();
             abort_unless($driver instanceof Driver, 404, 'Driver not found.');
-            $this->authorizeCompanyAccess($driver, 'You do not have permission to upload documents for this driver.');
+            Gate::authorize('update', $driver);
             $drivers = collect([$driver]);
         }
 
@@ -235,9 +235,7 @@ class DriverDocumentUploadController extends Controller
 
         // Double-check driver belongs to user's company
         $driver = Driver::findOrFail($driverId);
-        if (! $this->userHasAccess($driver)) {
-            throw new \Exception('Unauthorized access to driver');
-        }
+        Gate::authorize('update', $driver);
 
         $existingDocument = DriverComplianceDocument::where('driver_id', $driverId)
             ->where('document_type_id', $documentTypeId)
@@ -288,7 +286,7 @@ class DriverDocumentUploadController extends Controller
             ], 422);
         }
 
-        $document = $this->findAuthorizedDocument($request->document_id, 'You do not have permission to delete documents for this driver.');
+        $document = $this->findAuthorizedDocument($request->document_id, 'update');
 
         try {
             $filePath = $document->file_path;
@@ -320,7 +318,7 @@ class DriverDocumentUploadController extends Controller
      */
     public function downloadDocument(Request $request, $documentId)
     {
-        $document = $this->findAuthorizedDocument($documentId, 'You do not have permission to download documents for this driver.');
+        $document = $this->findAuthorizedDocument($documentId, 'view');
         $disk = $this->diskHolding($document->file_path);
 
         $fileName = $document->documentType->name.'_'.basename($document->file_path);
@@ -333,7 +331,7 @@ class DriverDocumentUploadController extends Controller
      */
     public function viewDocument($documentId)
     {
-        $document = $this->findAuthorizedDocument($documentId, 'You do not have permission to view documents for this driver.');
+        $document = $this->findAuthorizedDocument($documentId, 'view');
         $disk = $this->diskHolding($document->file_path);
 
         return Storage::disk($disk)->response($document->file_path, null, self::FILE_HEADERS);
@@ -362,14 +360,14 @@ class DriverDocumentUploadController extends Controller
 
     /**
      * Load a document the user may act on: 404 if it or its driver is gone (a soft-deleted
-     * driver loads as null, DCMP-07), 403 if the driver belongs to another company.
+     * driver loads as null, DCMP-07) or belongs to another company.
      */
-    private function findAuthorizedDocument($documentId, string $message): DriverComplianceDocument
+    private function findAuthorizedDocument($documentId, string $ability): DriverComplianceDocument
     {
         $document = DriverComplianceDocument::with(['documentType', 'driver'])->whereKey($documentId)->first();
         abort_unless($document?->driver !== null, 404, 'Document not found');
 
-        $this->authorizeCompanyAccess($document->driver, $message);
+        Gate::authorize($ability, $document->driver);
 
         return $document;
     }

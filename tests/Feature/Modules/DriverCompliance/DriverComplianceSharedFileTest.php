@@ -27,7 +27,7 @@ function uploadToAll($test, $owner, $type): string
         ], DriverCompliance::json())
         ->assertOk()->assertJson(['success' => true, 'uploaded_count' => 3]);
 
-    return DriverComplianceDocument::where('document_type_id', $type->id)->value('file_path');
+    return DriverComplianceDocument::withoutTenancy()->where('document_type_id', $type->id)->value('file_path');
 }
 
 describe('DCMP-02: a file shared by "upload to all"', function () {
@@ -43,9 +43,9 @@ describe('DCMP-02: a file shared by "upload to all"', function () {
             ->assertOk();
 
         Storage::disk('local')->assertExists($shared);
-        expect(DriverComplianceDocument::where('driver_id', $b->id)->value('file_path'))->toBe($shared);
+        expect(DriverComplianceDocument::withoutTenancy()->where('driver_id', $b->id)->value('file_path'))->toBe($shared);
         $this->actingAs($owner)
-            ->get(route('admin.compliance.driver.documents.view', DriverComplianceDocument::where('driver_id', $b->id)->value('id')))
+            ->get(route('admin.compliance.driver.documents.view', DriverComplianceDocument::withoutTenancy()->where('driver_id', $b->id)->value('id')))
             ->assertOk();
     });
 
@@ -58,12 +58,12 @@ describe('DCMP-02: a file shared by "upload to all"', function () {
 
         $this->actingAs($owner)
             ->deleteJson(route('admin.compliance.driver.documents.delete'), [
-                'document_id' => DriverComplianceDocument::where('driver_id', $a->id)->value('id'),
+                'document_id' => DriverComplianceDocument::withoutTenancy()->where('driver_id', $a->id)->value('id'),
             ])
             ->assertOk();
 
         Storage::disk('local')->assertExists($shared);
-        expect(DriverComplianceDocument::where('file_path', $shared)->count())->toBe(2);
+        expect(DriverComplianceDocument::withoutTenancy()->where('file_path', $shared)->count())->toBe(2);
     });
 
     it('is deleted once the last document using it is replaced', function () {
@@ -98,7 +98,7 @@ describe('DCMP-02: a file shared by "upload to all"', function () {
             ], DriverCompliance::json())
             ->assertOk()->assertJson(['updated_count' => 3]);
 
-        $second = DriverComplianceDocument::where('document_type_id', $type->id)->pluck('file_path')->unique();
+        $second = DriverComplianceDocument::withoutTenancy()->where('document_type_id', $type->id)->pluck('file_path')->unique();
         expect($second)->toHaveCount(1)->and($second->first())->not->toBe($first);
         Storage::disk('local')->assertMissing($first);
         Storage::disk('local')->assertExists($second->first());
@@ -113,6 +113,6 @@ describe('DCMP-02: a file shared by "upload to all"', function () {
             ->assertOk();
 
         Storage::disk('local')->assertMissing($document->file_path);
-        expect(DriverComplianceDocument::count())->toBe(0);
+        expect(DriverComplianceDocument::withoutTenancy()->count())->toBe(0);
     });
 });

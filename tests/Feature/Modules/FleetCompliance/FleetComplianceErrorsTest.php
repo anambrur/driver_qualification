@@ -10,7 +10,7 @@ use Tests\Support\Actors;
 | FCMP-05: the list, upload and delete endpoints returned `$e->getMessage()` in their JSON
 | (SQL errors, model class names, file paths). Their catch-all also turned the tenant check's
 | 403 into a 500. Failures are now logged and answered with a generic message; a missing
-| record is 404 and another tenant's record is 403, as on the view/download routes.
+| record is 404, and so is another tenant's record (WP5: foreign ids are 404).
 |
 | FCMP-07 (found 2026-10-10): view, download and delete ran the tenant check only
 | `if ($document->vehicle)` / `if ($document->trailer)`. Vehicles and trailers are soft-deleted,
@@ -85,28 +85,28 @@ describe('FCMP-05: no exception text in responses', function () {
             ->and(Storage::disk('public')->allFiles())->toBe([]);
     })->with(['vehicle', 'trailer']);
 
-    it('returns 403 and keeps the document when another tenant deletes it', function (string $assetType) {
+    it('returns 404 and keeps the document when another tenant deletes it', function (string $assetType) {
         [, $asset] = FleetCompliance::tenantWithAsset($assetType);
         $document = FleetCompliance::document($asset, FleetCompliance::documentType($assetType));
 
         $response = $this->actingAs(Actors::companyOwner())
             ->deleteJson(route('admin.compliance.documents.delete'), ['document_id' => $document->id, 'asset_type' => $assetType])
-            ->assertForbidden();
+            ->assertNotFound();
 
         expect($document->fresh())->not->toBeNull()
             ->and((string) $response->getContent())->not->toContain('Failed to delete document:');
         Storage::disk('local')->assertExists($document->file_path);
     })->with(['vehicle', 'trailer']);
 
-    it('returns 403 and stores nothing when uploading for another tenant\'s asset', function (string $assetType) {
+    it('returns 404 and stores nothing when uploading for another tenant\'s asset', function (string $assetType) {
         [, $asset] = FleetCompliance::tenantWithAsset($assetType);
         $type = FleetCompliance::documentType($assetType);
 
         $this->actingAs(Actors::companyOwner())
             ->post(route('admin.compliance.documents.upload'), FleetCompliance::payload($asset, $type), FleetCompliance::json())
-            ->assertForbidden();
+            ->assertNotFound();
 
-        expect(FleetCompliance::documentModel($assetType)::count())->toBe(0)
+        expect(FleetCompliance::documentModel($assetType)::withoutTenancy()->count())->toBe(0)
             ->and(Storage::disk('local')->allFiles())->toBe([])
             ->and(Storage::disk('public')->allFiles())->toBe([]);
     })->with(['vehicle', 'trailer']);

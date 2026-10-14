@@ -3,8 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Mail\DriverComplianceDigestMail;
+use App\Models\Company;
 use App\Models\DocumentType;
 use App\Models\Driver;
+use App\Tenancy\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
@@ -34,44 +36,51 @@ class SendComplianceDigestReminders extends Command
         $sent = 0;
         $disabledTypeIds = DocumentType::disabledIdsByCompany();
 
-        Driver::query()
-            ->with(['documents', 'company'])
-            ->where('status', 'active')
-            ->whereNotNull('email')
-            ->where('email', '!=', '')
-            ->orderBy('id')
-            ->chunkById(100, function ($drivers) use ($documentTypes, $disabledTypeIds, &$sent) {
-                foreach ($drivers as $driver) {
-                    $issues = $this->collectIssues(
-                        $driver,
-                        $documentTypes->whereNotIn('id', $disabledTypeIds[$driver->company_id] ?? [])
-                    );
+        // Drivers are tenant rows: each company runs in its own context (03 §6)
+        $companyIds = Company::query()->where('status', 'active')->orderBy('id')->pluck('id');
 
-                    if ($issues === []) {
-                        continue;
-                    }
+        foreach ($companyIds as $companyId) {
+            app(TenantContext::class)->run($companyId, function () use ($documentTypes, $disabledTypeIds, &$sent) {
+                Driver::query()
+                    ->with(['documents', 'company'])
+                    ->where('employment_status', 'active')
+                    ->whereNotNull('email')
+                    ->where('email', '!=', '')
+                    ->orderBy('id')
+                    ->chunkById(100, function ($drivers) use ($documentTypes, $disabledTypeIds, &$sent) {
+                        foreach ($drivers as $driver) {
+                            $issues = $this->collectIssues(
+                                $driver,
+                                $documentTypes->whereNotIn('id', $disabledTypeIds[$driver->company_id] ?? [])
+                            );
 
-                    $cacheKey = 'compliance_digest:driver:'.$driver->id.':'.now()->toDateString();
-                    if (! Cache::add($cacheKey, true, now()->endOfDay())) {
-                        continue;
-                    }
+                            if ($issues === []) {
+                                continue;
+                            }
 
-                    try {
-                        Mail::to($driver->email)->send(new DriverComplianceDigestMail(
-                            driver: $driver,
-                            issues: $issues,
-                            companyName: $driver->company?->company_name,
-                        ));
-                        $sent++;
-                    } catch (Throwable $e) {
-                        Cache::forget($cacheKey);
-                        Log::error('Failed to queue compliance digest email.', [
-                            'driver_id' => $driver->id,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
+                            $cacheKey = 'compliance_digest:driver:'.$driver->id.':'.now()->toDateString();
+                            if (! Cache::add($cacheKey, true, now()->endOfDay())) {
+                                continue;
+                            }
+
+                            try {
+                                Mail::to($driver->email)->send(new DriverComplianceDigestMail(
+                                    driver: $driver,
+                                    issues: $issues,
+                                    companyName: $driver->company?->company_name,
+                                ));
+                                $sent++;
+                            } catch (Throwable $e) {
+                                Cache::forget($cacheKey);
+                                Log::error('Failed to queue compliance digest email.', [
+                                    'driver_id' => $driver->id,
+                                    'error' => $e->getMessage(),
+                                ]);
+                            }
+                        }
+                    });
             });
+        }
 
         $this->info("Compliance digests queued: {$sent}");
 

@@ -4,11 +4,14 @@ namespace App\Traits;
 
 use App\Models\Company;
 use App\Tenancy\TenantContext;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
+/**
+ * Interim helpers for the company of new records and the company dropdowns. Row filtering and
+ * the access check moved to the tenant scope and policies (WP5); the super-admin branches go
+ * with WP8 (03 §7).
+ */
 trait CompanyFilterTrait
 {
     /**
@@ -69,64 +72,6 @@ trait CompanyFilterTrait
         }
 
         return $this->tenantCompanyId();
-    }
-
-    /**
-     * Apply company filter to a query.
-     *
-     * @template TModel of \Illuminate\Database\Eloquent\Model
-     *
-     * @param  Builder<TModel>  $query
-     * @return Builder<TModel>
-     */
-    protected function applyCompanyFilter($query, string $companyColumn = 'company_id')
-    {
-        if ($this->isSuperAdmin()) {
-            return $query;
-        }
-
-        $companyId = $this->tenantCompanyId();
-
-        if ($companyId !== null) {
-            return $query->where($companyColumn, $companyId);
-        }
-
-        // Non-super-admin with no company assigned should see no records.
-        return $query->where($companyColumn, -1);
-    }
-
-    /**
-     * Check if user has access to a specific company resource.
-     *
-     * @param  mixed  $resource
-     */
-    protected function userHasAccess($resource, string $companyColumn = 'company_id'): bool
-    {
-        if ($this->isSuperAdmin()) {
-            return true;
-        }
-
-        $companyId = $this->tenantCompanyId();
-
-        if ($companyId === null) {
-            return false;
-        }
-
-        return (int) $resource->$companyColumn === $companyId;
-    }
-
-    /**
-     * Authorize user action on a resource.
-     *
-     * @param  mixed  $resource
-     *
-     * @throws AccessDeniedHttpException
-     */
-    protected function authorizeCompanyAccess($resource, string $message = 'Unauthorized access.', string $companyColumn = 'company_id'): void
-    {
-        if (! $this->userHasAccess($resource, $companyColumn)) {
-            abort(403, $message);
-        }
     }
 
     /**

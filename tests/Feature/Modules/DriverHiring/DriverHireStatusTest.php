@@ -45,8 +45,8 @@ describe('HIRE-01: the pending check is atomic with the status change', function
     it('does not hire twice when two requests hold the same stale pending driver', function () {
         Mail::fake();
         [$owner, $driver] = hiringTenantWithDriver();
-        $first = Driver::findOrFail($driver->id);
-        $second = Driver::findOrFail($driver->id); // loaded before the first request commits
+        $first = Driver::withoutTenancy()->findOrFail($driver->id);
+        $second = Driver::withoutTenancy()->findOrFail($driver->id); // loaded before the first request commits
 
         $service = app(DriverHireService::class);
         $service->hire($first, hirePayload(), $owner->id);
@@ -60,8 +60,8 @@ describe('HIRE-01: the pending check is atomic with the status change', function
     it('does not flip a hired driver to rejected from a stale request', function () {
         Mail::fake();
         [$owner, $driver] = hiringTenantWithDriver();
-        $first = Driver::findOrFail($driver->id);
-        $second = Driver::findOrFail($driver->id);
+        $first = Driver::withoutTenancy()->findOrFail($driver->id);
+        $second = Driver::withoutTenancy()->findOrFail($driver->id);
 
         $service = app(DriverHireService::class);
         $service->hire($first, hirePayload(), $owner->id);
@@ -117,7 +117,7 @@ describe('HIRE-02: validator rejection reasons match the drivers.rejection_reaso
 });
 
 describe('HIRE-03: hire/reject is tenant-scoped and permission-gated', function () {
-    it('returns 403 when another tenant hires or rejects my driver', function (string $action) {
+    it('returns 404 when another tenant hires or rejects my driver', function (string $action) {
         Mail::fake();
         [, $driver] = hiringTenantWithDriver();
         $intruder = Actors::companyOwner();
@@ -125,7 +125,7 @@ describe('HIRE-03: hire/reject is tenant-scoped and permission-gated', function 
         $payload = $action === 'hire' ? hirePayload() : rejectPayload();
         $this->actingAs($intruder)
             ->postJson(route('admin.driver.hire-status', $driver->id), $payload)
-            ->assertForbidden();
+            ->assertNotFound();
 
         expect($driver->fresh())->status->toBe('pending')->action_by->toBeNull();
         Mail::assertNothingQueued();

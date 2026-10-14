@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\FuelType;
-use Illuminate\Support\Facades\DB;
+use App\Tenancy\CompanyScope;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -20,11 +21,11 @@ class FuelTypeController extends Controller
                 ->addColumn('action', function ($row) {
                     return '
                     <div class="flex justify-center space-x-1">
-                        <button onclick="editFuelType(' . $row->id . ')" 
+                        <button onclick="editFuelType('.$row->id.')" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors">
                             <i class="fas fa-edit mr-1"></i> Edit
                         </button>
-                        <button data-action="delete" data-id="' . $row->id . '" data-name="' . e($row->name) . '" 
+                        <button data-action="delete" data-id="'.$row->id.'" data-name="'.e($row->name).'" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
                             <i class="fas fa-trash mr-1"></i> Delete
                         </button>
@@ -52,7 +53,7 @@ class FuelTypeController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -68,13 +69,14 @@ class FuelTypeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Fuel type created successfully!',
-                'data' => $fuelType
+                'data' => $fuelType,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create fuel type. Please try again.'
+                'message' => 'Failed to create fuel type. Please try again.',
             ], 500);
         }
     }
@@ -82,9 +84,10 @@ class FuelTypeController extends Controller
     public function edit($id)
     {
         $fuelType = FuelType::findOrFail($id);
+
         return response()->json([
             'success' => true,
-            'data' => $fuelType
+            'data' => $fuelType,
         ]);
     }
 
@@ -93,13 +96,13 @@ class FuelTypeController extends Controller
         $fuelType = FuelType::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:fuel_types,name,' . $id,
+            'name' => 'required|string|max:255|unique:fuel_types,name,'.$id,
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -115,13 +118,14 @@ class FuelTypeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Fuel type updated successfully!',
-                'data' => $fuelType
+                'data' => $fuelType,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update fuel type. Please try again.'
+                'message' => 'Failed to update fuel type. Please try again.',
             ], 500);
         }
     }
@@ -130,10 +134,10 @@ class FuelTypeController extends Controller
     {
         $fuelType = FuelType::findOrFail($id);
 
-        if ($fuelType->vehicles()->withTrashed()->exists()) {
+        if ($fuelType->vehicles()->withoutGlobalScope(CompanyScope::class)->withTrashed()->exists()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete fuel type because it is assigned to vehicles.'
+                'message' => 'Cannot delete fuel type because it is assigned to vehicles.',
             ], 400);
         }
 
@@ -145,13 +149,14 @@ class FuelTypeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Fuel type deleted successfully!'
+                'message' => 'Fuel type deleted successfully!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete fuel type. Please try again.'
+                'message' => 'Failed to delete fuel type. Please try again.',
             ], 500);
         }
     }

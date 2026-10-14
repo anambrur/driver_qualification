@@ -4,13 +4,14 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ServiceDocument extends Model
 {
-    use HasFactory;
+    use BelongsToCompany, HasFactory;
 
     protected $table = 'service_documents';
 

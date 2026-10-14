@@ -13,6 +13,7 @@ use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -32,9 +33,6 @@ class VehicleController extends Controller
         if ($request->ajax()) {
             $query = Vehicle::with(['vehicleType', 'vehicleGroup', 'fuelType', 'company'])
                 ->select(['vehicles.*']);
-
-            // Apply company filter
-            $query = $this->applyCompanyFilter($query);
 
             // "All Status" lists deleted vehicles too (with Restore), "Active" only live ones and
             // "Deleted" only deleted ones (PO-09)
@@ -61,6 +59,7 @@ class VehicleController extends Controller
                 })
                 ->addColumn('vehicle_info', function ($row) {
                     $notesIcon = $row->notes ? '<i class="fas fa-sticky-note ml-2 text-blue-500 text-xs" title="Has notes"></i>' : '';
+
                     return '
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-10 w-10">
@@ -70,11 +69,11 @@ class VehicleController extends Controller
                         </div>
                         <div class="ml-4">
                             <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center">
-                                ' . e($row->unit_no) . ' - ' . e($row->year) . ' ' . e($row->make) . ' ' . e($row->model) . '
-                                ' . $notesIcon . '
+                                '.e($row->unit_no).' - '.e($row->year).' '.e($row->make).' '.e($row->model).'
+                                '.$notesIcon.'
                             </div>
                             <div class="text-sm text-gray-500 dark:text-gray-400">
-                                VIN: ' . e($row->vin) . '
+                                VIN: '.e($row->vin).'
                             </div>
                         </div>
                     </div>';
@@ -82,18 +81,20 @@ class VehicleController extends Controller
                 ->addColumn('type_group', function ($row) {
                     $type = $row->vehicleType ? e($row->vehicleType->name) : '<span class="text-gray-400">N/A</span>';
                     $group = $row->vehicleGroup ? e($row->vehicleGroup->name) : '<span class="text-gray-400">N/A</span>';
+
                     return '
                     <div class="text-sm">
-                        <div><span class="font-medium">Type:</span> ' . $type . '</div>
-                        <div><span class="font-medium">Group:</span> ' . $group . '</div>
+                        <div><span class="font-medium">Type:</span> '.$type.'</div>
+                        <div><span class="font-medium">Group:</span> '.$group.'</div>
                     </div>';
                 })
                 ->addColumn('fuel_odometer', function ($row) {
                     $fuel = $row->fuelType ? e($row->fuelType->name) : '<span class="text-gray-400">N/A</span>';
+
                     return '
                     <div class="text-sm">
-                        <div><span class="font-medium">Fuel:</span> ' . $fuel . '</div>
-                        <div><span class="font-medium">Odometer:</span> ' . number_format($row->odometer) . ' mi</div>
+                        <div><span class="font-medium">Fuel:</span> '.$fuel.'</div>
+                        <div><span class="font-medium">Odometer:</span> '.number_format($row->odometer).' mi</div>
                     </div>';
                 })
                 ->addColumn('status', function ($row) {
@@ -101,33 +102,33 @@ class VehicleController extends Controller
                     $badgeClass = $status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
                     $statusText = $status === 'active' ? 'Active' : 'Deleted';
 
-                    return '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' . $badgeClass . '">
-                        ' . $statusText . '
+                    return '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full '.$badgeClass.'">
+                        '.$statusText.'
                     </span>';
                 })
                 ->addColumn('action', function ($row) {
                     // The page binds these with a delegated listener on .js-vehicle-action
-                    $data = 'data-id="' . (int) $row->id . '" data-unit-no="' . e($row->unit_no) . '"';
+                    $data = 'data-id="'.(int) $row->id.'" data-unit-no="'.e($row->unit_no).'"';
 
                     if ($row->deleted_at) {
                         // A deleted vehicle can't be edited (edit() 404s), only restored
-                        return '<div class="flex justify-center space-x-1"><button type="button" data-action="restore" ' . $data . '
+                        return '<div class="flex justify-center space-x-1"><button type="button" data-action="restore" '.$data.'
                                     class="js-vehicle-action inline-flex items-center px-3 py-1 text-sm text-green-600 bg-green-100 rounded-md hover:bg-green-200 transition-colors">
                                     <i class="fas fa-trash-restore mr-1"></i> Restore
                                 </button></div>';
                     }
 
-                    $editBtn = '<button type="button" data-action="edit" ' . $data . '
+                    $editBtn = '<button type="button" data-action="edit" '.$data.'
                                 class="js-vehicle-action inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors mr-2">
                                 <i class="fas fa-edit mr-1"></i> Edit
                             </button>';
 
-                    $deleteBtn = '<button type="button" data-action="delete" ' . $data . '
+                    $deleteBtn = '<button type="button" data-action="delete" '.$data.'
                                 class="js-vehicle-action inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
                                 <i class="fas fa-trash mr-1"></i> Delete
                             </button>';
 
-                    return '<div class="flex justify-center space-x-1">' . $editBtn . $deleteBtn . '</div>';
+                    return '<div class="flex justify-center space-x-1">'.$editBtn.$deleteBtn.'</div>';
                 })
                 ->addColumn('created_at_formatted', function ($row) {
                     return $row->created_at->format('M d, Y');
@@ -156,7 +157,7 @@ class VehicleController extends Controller
             'company_id' => 'required|exists:companies,id',
             'unit_no' => ['required', 'string', 'max:50', $this->uniqueInCompany('unit_no', $request->input('company_id'))],
             'vin' => ['required', 'string', 'size:17', 'not_regex:/[IOQ]/i', $this->uniqueInCompany('vin', $request->input('company_id'))],
-            'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
+            'year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
             'vehicle_type_id' => 'nullable|exists:vehicle_types,id',
@@ -179,11 +180,10 @@ class VehicleController extends Controller
             'notes' => 'nullable|string|max:2000',
         ], self::VALIDATION_MESSAGES);
 
-
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -222,14 +222,15 @@ class VehicleController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Vehicle created successfully!',
-                'data' => $vehicle
+                'data' => $vehicle,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Vehicle store error: ' . $e->getMessage());
+            Log::error('Vehicle store error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create vehicle. Please try again.'
+                'message' => 'Failed to create vehicle. Please try again.',
             ], 500);
         }
     }
@@ -239,11 +240,11 @@ class VehicleController extends Controller
         $vehicle = Vehicle::with(['vehicleType', 'vehicleGroup', 'fuelType', 'company'])->findOrFail($id);
 
         // Check if user has access to this vehicle
-        $this->authorizeCompanyAccess($vehicle, 'You do not have permission to edit this vehicle.');
+        Gate::authorize('update', $vehicle);
 
         return response()->json([
             'success' => true,
-            'data' => $vehicle
+            'data' => $vehicle,
         ]);
     }
 
@@ -252,10 +253,10 @@ class VehicleController extends Controller
         $vehicle = Vehicle::findOrFail($id);
 
         // Check if user has access to this vehicle
-        $this->authorizeCompanyAccess($vehicle, 'You do not have permission to update this vehicle.');
+        Gate::authorize('update', $vehicle);
 
         // Ensure user can't change company if not super-admin
-        if (!Auth::user()->hasRole('super-admin')) {
+        if (! Auth::user()->hasRole('super-admin')) {
             $request->merge(['company_id' => $vehicle->company_id]);
         }
 
@@ -266,7 +267,7 @@ class VehicleController extends Controller
             ],
             'unit_no' => ['required', 'string', 'max:50', $this->uniqueInCompany('unit_no', $request->input('company_id'), $vehicle->id)],
             'vin' => ['required', 'string', 'size:17', 'not_regex:/[IOQ]/i', $this->uniqueInCompany('vin', $request->input('company_id'), $vehicle->id)],
-            'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
+            'year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
             'vehicle_type_id' => 'nullable|exists:vehicle_types,id',
@@ -292,7 +293,7 @@ class VehicleController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -313,14 +314,15 @@ class VehicleController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Vehicle updated successfully!',
-                'data' => $vehicle
+                'data' => $vehicle,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Vehicle update error: ' . $e->getMessage());
+            Log::error('Vehicle update error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update vehicle. Please try again.'
+                'message' => 'Failed to update vehicle. Please try again.',
             ], 500);
         }
     }
@@ -330,7 +332,7 @@ class VehicleController extends Controller
         $vehicle = Vehicle::findOrFail($id);
 
         // Check if user has access to this vehicle
-        $this->authorizeCompanyAccess($vehicle, 'You do not have permission to delete this vehicle.');
+        Gate::authorize('delete', $vehicle);
 
         DB::beginTransaction();
 
@@ -344,14 +346,15 @@ class VehicleController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Vehicle deleted successfully!'
+                'message' => 'Vehicle deleted successfully!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Vehicle delete error: ' . $e->getMessage());
+            Log::error('Vehicle delete error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete vehicle. Please try again.'
+                'message' => 'Failed to delete vehicle. Please try again.',
             ], 500);
         }
     }
@@ -361,7 +364,7 @@ class VehicleController extends Controller
         $vehicle = Vehicle::withTrashed()->findOrFail($id);
 
         // Check if user has access to this vehicle
-        $this->authorizeCompanyAccess($vehicle, 'You do not have permission to restore this vehicle.');
+        Gate::authorize('restore', $vehicle);
 
         DB::beginTransaction();
 
@@ -371,14 +374,15 @@ class VehicleController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Vehicle restored successfully!'
+                'message' => 'Vehicle restored successfully!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Vehicle restore error: ' . $e->getMessage());
+            Log::error('Vehicle restore error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to restore vehicle. Please try again.'
+                'message' => 'Failed to restore vehicle. Please try again.',
             ], 500);
         }
     }
@@ -397,7 +401,7 @@ class VehicleController extends Controller
             'fuelTypes' => $fuelTypes,
             'companies' => $companies,
             'configurations' => Vehicle::getConfigurationOptions(),
-            'ownedByOptions' => Vehicle::getOwnedByOptions()
+            'ownedByOptions' => Vehicle::getOwnedByOptions(),
         ]);
     }
 
@@ -407,7 +411,7 @@ class VehicleController extends Controller
             $vehicle = Vehicle::findOrFail($id);
 
             // Check if user has access to this vehicle
-            $this->authorizeCompanyAccess($vehicle, 'You do not have permission to view this vehicle.');
+            Gate::authorize('view', $vehicle);
 
             return response()->json([
                 'success' => true,
@@ -417,12 +421,12 @@ class VehicleController extends Controller
                     'make' => $vehicle->make,
                     'model' => $vehicle->model,
                     'vin' => $vehicle->vin,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Vehicle not found'
+                'message' => 'Vehicle not found',
             ], 404);
         }
     }

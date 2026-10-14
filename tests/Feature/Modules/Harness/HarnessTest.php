@@ -58,7 +58,7 @@ describe('factories', function () {
 
 describe('helpers', function () {
     it('counts queries', function () {
-        expect(Perf::countQueries(fn () => Driver::query()->count()))->toBe(1);
+        expect(Perf::countQueries(fn () => Driver::withoutTenancy()->count()))->toBe(1);
     });
 
     it('signs Stripe webhooks the way Stripe verifies them', function () {
