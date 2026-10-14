@@ -32,6 +32,41 @@ return new class extends Migration
             $table->string('tawk_property_id')->nullable();
             $table->string('tawk_widget_id')->nullable();
             $table->longText('tawk_widget_code')->nullable();
+
+            // Platform defaults and billing
+            $table->string('default_alcohol_drug_test_policy_pdf')->nullable();
+            $table->string('default_general_work_policy_pdf')->nullable();
+            $table->foreignId('trial_plan_id')->nullable()->constrained('plans')->restrictOnDelete();
+            $table->unsignedSmallInteger('trial_days')->default(14);
+            $table->unsignedSmallInteger('grace_days')->default(7);
+            $table->unsignedSmallInteger('support_session_max_minutes')->default(240);
+
+            // Platform identity
+            $table->string('legal_name')->nullable();
+            $table->string('support_email')->nullable();
+            $table->string('support_phone')->nullable();
+            $table->text('footer_text')->nullable();
+            $table->string('terms_url')->nullable();
+            $table->string('privacy_url')->nullable();
+            $table->string('timezone')->default('America/Chicago');
+
+            // Theme
+            $table->string('primary_color', 7)->nullable();
+            $table->string('accent_color', 7)->nullable();
+            $table->enum('default_color_mode', ['light', 'dark', 'system'])->default('system');
+            $table->string('logo_dark')->nullable();
+            $table->string('email_logo')->nullable();
+
+            // SEO defaults
+            $table->string('og_image')->nullable();
+            $table->string('twitter_card')->default('summary_large_image');
+            $table->string('canonical_base_url')->nullable();
+            $table->boolean('robots_noindex_default')->default(false);
+            $table->string('search_console_verification')->nullable();
+
+            // Mail sender
+            $table->string('mail_from_name')->nullable();
+            $table->string('mail_from_address')->nullable();
             $table->timestamps();
         });
     }

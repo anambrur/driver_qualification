@@ -5,18 +5,25 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class VehicleDocument extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
+        'company_id',
         'vehicle_id',
         'document_type_id',
+        'file_id',
+        'file_date',
         'expiry_date',
         'description',
-        'file_path',
+        'uploaded_by_user_id',
     ];
 
     protected $casts = [
+        'file_date' => 'date',
         'expiry_date' => 'date',
     ];
 
@@ -41,7 +48,7 @@ class VehicleDocument extends Model
      */
     public function isExpired()
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return false;
         }
 
@@ -53,7 +60,7 @@ class VehicleDocument extends Model
      */
     public function isExpiringSoon()
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return false;
         }
 
@@ -68,7 +75,7 @@ class VehicleDocument extends Model
      */
     public function getDaysUntilExpiryAttribute()
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return null;
         }
 
@@ -80,7 +87,7 @@ class VehicleDocument extends Model
      */
     public function getStatusAttribute()
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return 'valid';
         }
 

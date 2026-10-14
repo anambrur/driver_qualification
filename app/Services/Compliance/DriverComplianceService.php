@@ -15,14 +15,15 @@ class DriverComplianceService
     /** A document expiring within this many days is "expiring", not "valid". */
     private const EXPIRING_WITHIN_DAYS = 30;
 
+    /** Key of the synthetic requirement read from the driver's current licence (F17). */
+    public const CDL_KEY = 'cdl';
+
     /**
-     * Calculate compliance for a driver using active driver document types.
+     * Calculate compliance for a driver using active driver document types plus the CDL.
      */
     public function forDriver(Driver $driver): array
     {
-        if (!$driver->relationLoaded('documents')) {
-            $driver->load('documents.documentType');
-        }
+        $driver->loadMissing(['documents.documentType', 'currentLicense']);
 
         $documentTypes = DocumentType::where('module', 'driver')
             ->enabledForCompany($driver->company_id)
@@ -33,13 +34,14 @@ class DriverComplianceService
     }
 
     /**
-     * Calculate compliance for a driver against a set of document types.
+     * Calculate compliance for a driver against a set of document types. The current licence's
+     * expiry always counts as one more requirement [L] 49 CFR 391.41, 391.51.
      *
      * @param  Collection<int, DocumentType>  $documentTypes
      */
     public function calculateCompliance(Driver $driver, Collection $documentTypes): array
     {
-        $totalDocs = $documentTypes->count();
+        $totalDocs = $documentTypes->count() + 1;
         $compliantDocs = 0;
         $missingDocs = [];
         $expiringDocs = [];
@@ -53,13 +55,14 @@ class DriverComplianceService
 
             $docStatus = [
                 'type_id' => $docType->id,
+                'type_key' => $docType->system_key,
                 'type_name' => $docType->name,
                 'status' => 'missing',
                 'file_date' => null,
                 'expiry_date' => null,
                 'days_until_expiry' => null,
                 'document_id' => null,
-                'file_path' => null,
+                'file_id' => null,
                 'description' => null,
                 'updated_at' => null,
                 'created_at' => null,
@@ -69,42 +72,41 @@ class DriverComplianceService
                 $docStatus['file_date'] = $document->file_date;
                 $docStatus['expiry_date'] = $document->expiry_date;
                 $docStatus['document_id'] = $document->id;
-                $docStatus['file_path'] = $document->file_path;
+                $docStatus['file_id'] = $document->file_id;
                 $docStatus['description'] = $document->description;
                 $docStatus['updated_at'] = $document->updated_at;
                 $docStatus['created_at'] = $document->created_at;
-
-                if ($document->expiry_date) {
-                    $expiryDate = Carbon::parse($document->expiry_date);
-                    $today = Carbon::today();
-                    $daysUntilExpiry = $today->diffInDays($expiryDate, false);
-
-                    $docStatus['days_until_expiry'] = $daysUntilExpiry;
-
-                    if ($expiryDate->isFuture()) {
-                        if ($daysUntilExpiry <= 30) {
-                            $docStatus['status'] = 'expiring';
-                            $expiringDocs[] = $docType->name . ' (expires in ' . $daysUntilExpiry . ' days)';
-                        } else {
-                            $docStatus['status'] = 'valid';
-                            $compliantDocs++;
-                        }
-                    } else {
-                        $docStatus['status'] = 'expired';
-                        $missingDocs[] = $docType->name . ' (expired)';
-                    }
-                } else {
-                    $docStatus['status'] = 'valid';
-                    $compliantDocs++;
-                }
-            } else {
-                $missingDocs[] = $docType->name;
             }
 
-            $documentDetails[] = $docStatus;
+            $documentDetails[] = $this->applyStatus(
+                $docStatus,
+                $docType->name,
+                $document !== null,
+                (bool) $docType->requires_expiry,
+                $compliantDocs,
+                $missingDocs,
+                $expiringDocs
+            );
         }
 
-        $percentage = $totalDocs > 0 ? round(($compliantDocs / $totalDocs) * 100, 1) : 0;
+        $license = $driver->currentLicense;
+        $cdlName = "Commercial Driver's License";
+        $documentDetails[] = $this->applyStatus([
+            'type_id' => null,
+            'type_key' => self::CDL_KEY,
+            'type_name' => $cdlName,
+            'status' => 'missing',
+            'file_date' => $license?->issued,
+            'expiry_date' => $license?->expires,
+            'days_until_expiry' => null,
+            'document_id' => null,
+            'file_id' => null,
+            'description' => $license ? "{$license->state_code} {$license->license_number}" : null,
+            'updated_at' => $license?->updated_at,
+            'created_at' => $license?->created_at,
+        ], $cdlName, $license !== null, true, $compliantDocs, $missingDocs, $expiringDocs);
+
+        $percentage = round(($compliantDocs / $totalDocs) * 100, 1);
 
         // Missing/expired = danger; only expiring soon = warning; all valid = compliant.
         // The percentage counts only fully valid docs, so it can't decide the status.
@@ -127,9 +129,62 @@ class DriverComplianceService
     }
 
     /**
+     * Sets status and days_until_expiry on one requirement and tallies it. A requirement with
+     * $requiresExpiry and no expiry date is missing: its validity can't be shown.
+     *
+     * @param  array<string, mixed>  $docStatus
+     * @param  list<string>  $missingDocs
+     * @param  list<string>  $expiringDocs
+     *
+     * @param-out list<string>  $missingDocs
+     * @param-out list<string>  $expiringDocs
+     *
+     * @return array<string, mixed>
+     */
+    private function applyStatus(array $docStatus, string $name, bool $present, bool $requiresExpiry, int &$compliantDocs, array &$missingDocs, array &$expiringDocs): array
+    {
+        if (! $present) {
+            $missingDocs[] = $name;
+
+            return $docStatus;
+        }
+
+        if (! $docStatus['expiry_date']) {
+            if ($requiresExpiry) {
+                $missingDocs[] = $name.' (no expiry date)';
+
+                return $docStatus;
+            }
+
+            $docStatus['status'] = 'valid';
+            $compliantDocs++;
+
+            return $docStatus;
+        }
+
+        $expiryDate = Carbon::parse($docStatus['expiry_date']);
+        $daysUntilExpiry = Carbon::today()->diffInDays($expiryDate, false);
+        $docStatus['days_until_expiry'] = $daysUntilExpiry;
+
+        if (! $expiryDate->isFuture()) {
+            $docStatus['status'] = 'expired';
+            $missingDocs[] = $name.' (expired)';
+        } elseif ($daysUntilExpiry <= self::EXPIRING_WITHIN_DAYS) {
+            $docStatus['status'] = 'expiring';
+            $expiringDocs[] = $name.' (expires in '.$daysUntilExpiry.' days)';
+        } else {
+            $docStatus['status'] = 'valid';
+            $compliantDocs++;
+        }
+
+        return $docStatus;
+    }
+
+    /**
      * Add total_docs, valid_docs and expiring_docs to a driver query, computed in SQL with the
      * same rules as calculateCompliance(): required = active driver types the driver's company
-     * hasn't switched off; expired = expiry today or earlier; expiring = within 30 days.
+     * hasn't switched off, plus the current licence; expired = expiry today or earlier;
+     * expiring = within 30 days; a type that requires an expiry date and has none is missing.
      *
      * @param  Builder<Driver>  $drivers
      * @return Builder<Driver>
@@ -142,13 +197,25 @@ class DriverComplianceService
         $validFrom = Carbon::today()->addDays(self::EXPIRING_WITHIN_DAYS + 1)->toDateString();
 
         return $drivers->addSelect([
-            'total_docs' => $this->requiredTypes()->selectRaw('count(*)'),
-            'valid_docs' => $this->requiredTypesWithDocument()->selectRaw('count(*)')
-                ->where(fn ($q) => $q->whereNull('dcd.expiry_date')->orWhere('dcd.expiry_date', '>=', $validFrom)),
-            'expiring_docs' => $this->requiredTypesWithDocument()->selectRaw('count(*)')
+            'total_docs' => $this->requiredTypes()->selectRaw('count(*) + 1'),
+            'valid_docs' => $this->requiredTypesWithDocument()
+                ->selectRaw('count(*) + '.$this->currentLicenseCount('l.expires >= ?'), [$validFrom])
+                ->where(fn ($q) => $q
+                    ->where(fn ($q) => $q->whereNull('dcd.expiry_date')->where('document_types.requires_expiry', false))
+                    ->orWhere('dcd.expiry_date', '>=', $validFrom)),
+            'expiring_docs' => $this->requiredTypesWithDocument()
+                ->selectRaw('count(*) + '.$this->currentLicenseCount('l.expires >= ? and l.expires < ?'), [$tomorrow, $validFrom])
                 ->where('dcd.expiry_date', '>=', $tomorrow)
                 ->where('dcd.expiry_date', '<', $validFrom),
         ]);
+    }
+
+    /**
+     * 0 or 1: whether the outer driver's current licence matches $condition.
+     */
+    private function currentLicenseCount(string $condition): string
+    {
+        return "(select count(*) from licenses as l where l.driver_id = drivers.id and l.is_current = 1 and {$condition})";
     }
 
     /**

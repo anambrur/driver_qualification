@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('code', 10)->nullable();
             $table->timestamps();
 
-            $table->index('country_id');
+            $table->unique(['country_id', 'code']);
         });
     }
 

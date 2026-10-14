@@ -43,7 +43,7 @@ class MaintenaneCategoySeeder extends Seeder
         ];
 
         foreach ($maintenanceCategories as $category) {
-            DB::table('maintenance_categories')->insert([
+            DB::table('maintenance_categories')->insertOrIgnore([
                 'name' => $category['name'],
                 'created_at' => now(),
                 'updated_at' => now(),

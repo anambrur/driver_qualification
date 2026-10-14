@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('drivers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('company_id')->constrained()->onDelete('cascade');
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
+            $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('user_id')->nullable()->unique(); // the driver's own login
 
             // Personal Information
             $table->string('first_name')->nullable();
@@ -22,12 +23,11 @@ return new class extends Migration
             $table->string('last_name')->nullable();
             $table->string('suffix')->nullable();
             $table->date('date_of_birth')->nullable();
-            $table->string('ssn')->nullable(); // Encrypted in real application
+            $table->text('ssn')->nullable(); // encrypted cast
             $table->string('main_phone')->nullable();
             $table->string('alt_phone')->nullable();
             $table->string('email')->nullable();
-            $table->date('medical_certificate_expiration_date')->nullable();
-            $table->text('photo')->nullable();
+            $table->unsignedBigInteger('photo_file_id')->nullable();
 
             // Business Information
             $table->string('business_name')->nullable();
@@ -36,28 +36,31 @@ return new class extends Migration
                 'individual_sole_proprietor',
                 'c_corporation',
                 's_corporation',
-                'llc'
+                'llc',
             ])->nullable();
 
             // Address Information
             $table->string('address')->nullable();
             $table->string('city')->nullable();
-            $table->string('state')->nullable();
-            $table->string('country')->default('US');
+            $table->char('state_code', 2)->nullable();
+            $table->char('country_code', 2)->default('US');
             $table->string('postal_code')->nullable();
             $table->boolean('twic_card')->default(false);
             $table->boolean('passport')->default(false);
+            $table->boolean('hazmat')->default(false);
+            $table->boolean('lcv_certificate')->default(false);
 
+            // Pay classification (Phase 4)
+            $table->enum('worker_type', ['employee', 'contractor'])->default('employee');
+            $table->boolean('overtime_exempt')->default(false);
+            $table->enum('overtime_exempt_basis', ['motor_carrier_act', 'other'])->nullable();
 
-            // Status
-            $table->enum('status', ['draft', 'active', 'inactive', 'pending', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn'])->default('draft');
+            // Application and employment are separate lifecycles (F15).
+            // application_status is null for drivers created directly by staff.
+            $table->enum('application_status', ['draft', 'pending', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn'])->nullable();
+            $table->enum('employment_status', ['applicant', 'active', 'inactive', 'terminated'])->default('applicant');
+            $table->enum('source', ['admin', 'public_application'])->default('admin');
             $table->timestamp('withdrawn_at')->nullable();
-
-
-            $table->enum('hazmat', ['yes', 'no'])->nullable();
-            $table->enum('lcv_certificate', ['yes', 'no'])->nullable();
-
-            // Add fields for rejection details
             $table->enum('rejection_reason', [
                 'not_good_fit',
                 'failed_drug_test',
@@ -65,26 +68,27 @@ return new class extends Migration
                 'cdl_issues',
                 'mvr_issues',
                 'psp_issues',
-                'other'
+                'other',
             ])->nullable();
             $table->text('rejection_notes')->nullable();
-            $table->date('rejection_date')->nullable();
-
-            // Optional: Add timestamps for hire actions
-            $table->timestamp('hired_at')->nullable();
-            $table->date('hire_date')->nullable();
             $table->timestamp('rejected_at')->nullable();
-            $table->foreignId('action_by')->nullable()->constrained('users')->after('rejected_at');
-
-            $table->string('source')->default('admin')->comment('admin, public_application');
+            $table->timestamp('hired_at')->nullable(); // when the hire was recorded
+            $table->date('hire_date')->nullable(); // employment start
+            $table->timestamp('terminated_at')->nullable();
+            $table->date('termination_date')->nullable();
+            $table->foreignId('decided_by_user_id')->nullable()->constrained('users')->nullOnDelete();
 
             $table->timestamps();
             $table->softDeletes();
 
-            // Indexes
-            $table->index(['company_id', 'status']);
-            $table->index(['user_id', 'company_id']);
+            $table->unique(['company_id', 'id']);
             $table->unique(['company_id', 'email']);
+            $table->index(['company_id', 'employment_status']);
+            $table->index(['company_id', 'application_status']);
+            $table->index(['company_id', 'main_phone']);
+            $table->index(['company_id', 'last_name', 'first_name']);
+            $table->foreign(['company_id', 'user_id'])->references(['company_id', 'id'])->on('users')->restrictOnDelete();
+            $table->foreign(['company_id', 'photo_file_id'])->references(['company_id', 'id'])->on('stored_files')->restrictOnDelete();
         });
     }
 

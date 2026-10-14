@@ -1,5 +1,4 @@
 <?php
-// database/migrations/2024_01_01_000003_create_service_documents_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -12,18 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // File metadata lives in stored_files (F13d).
         Schema::create('service_documents', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('service_log_id')->constrained()->onDelete('cascade');
-            $table->string('original_name');
-            $table->string('file_name');
-            $table->string('file_path');
-            $table->string('mime_type');
-            $table->integer('file_size');
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
+            $table->unsignedBigInteger('service_log_id');
+            $table->unsignedBigInteger('file_id');
             $table->timestamps();
 
-            // Indexes
-            $table->index('service_log_id');
+            $table->foreign(['company_id', 'service_log_id'])->references(['company_id', 'id'])->on('service_logs')->cascadeOnDelete();
+            $table->foreign(['company_id', 'file_id'])->references(['company_id', 'id'])->on('stored_files')->restrictOnDelete();
         });
     }
 

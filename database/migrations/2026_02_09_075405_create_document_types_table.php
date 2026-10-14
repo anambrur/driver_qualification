@@ -15,13 +15,14 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('module');
+            $table->string('system_key')->nullable()->unique();
+            $table->boolean('requires_expiry')->default(false);
             $table->boolean('status')->default(true);
             $table->timestamps();
             $table->softDeletes();
-            
-            // Add indexes for better performance
+
+            $table->unique(['module', 'name']);
             $table->index(['module', 'status']);
-            $table->index('name');
         });
     }
 

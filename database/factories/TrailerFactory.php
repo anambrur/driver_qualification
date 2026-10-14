@@ -8,7 +8,7 @@ use App\Models\Trailer;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Trailer>
+ * @extends Factory<Trailer>
  */
 class TrailerFactory extends Factory
 {
@@ -27,7 +27,7 @@ class TrailerFactory extends Factory
             'year' => (int) fake()->numberBetween(2005, (int) date('Y')),
             'make' => fake()->randomElement(['Utility', 'Wabash', 'Great Dane']),
             'model' => fake()->bothify('Van-##'),
-            'equipment_types_id' => fn () => EquipmentType::query()->firstOrCreate(['name' => 'Dry Van'])->id,
+            'equipment_type_id' => fn () => EquipmentType::query()->firstOrCreate(['name' => 'Dry Van'])->id,
         ];
     }
 

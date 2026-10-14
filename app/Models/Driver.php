@@ -19,15 +19,37 @@ class Driver extends Model
     {
         return [
             'ssn' => 'encrypted',
+            'date_of_birth' => 'date',
+            'twic_card' => 'boolean',
+            'passport' => 'boolean',
+            'hazmat' => 'boolean',
+            'lcv_certificate' => 'boolean',
+            'overtime_exempt' => 'boolean',
+            'withdrawn_at' => 'datetime',
+            'rejected_at' => 'datetime',
+            'hired_at' => 'datetime',
+            'hire_date' => 'date',
+            'terminated_at' => 'datetime',
+            'termination_date' => 'date',
         ];
+    }
+
+    /**
+     * The driver's own login, if invited.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function login(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
      * @return BelongsTo<User, $this>
      */
-    public function user(): BelongsTo
+    public function createdBy(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
     /**
@@ -52,6 +74,14 @@ class Driver extends Model
     public function licenses(): HasMany
     {
         return $this->hasMany(License::class);
+    }
+
+    /**
+     * @return HasOne<License, $this>
+     */
+    public function currentLicense(): HasOne
+    {
+        return $this->hasOne(License::class)->where('is_current', true);
     }
 
     /**

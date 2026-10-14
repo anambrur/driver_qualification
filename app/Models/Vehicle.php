@@ -22,6 +22,9 @@ class Vehicle extends Model
         'model',
         'vehicle_type_id',
         'owned_by',
+        'plate_number',
+        'plate_state_code',
+        'photo_file_id',
         'color',
         'title_no',
         'tire_size',
@@ -37,7 +40,7 @@ class Vehicle extends Model
         'configuration',
         'wheel_base',
         'size_dimension',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
@@ -46,7 +49,7 @@ class Vehicle extends Model
         'engine_hours' => 'integer',
         'gvw' => 'integer',
         'no_axles' => 'integer',
-        'wheel_base' => 'integer'
+        'wheel_base' => 'integer',
     ];
 
     // Relationships
@@ -121,7 +124,7 @@ class Vehicle extends Model
     {
         return [
             'conventional' => 'Conventional',
-            'cabover' => 'Cabover'
+            'cabover' => 'Cabover',
         ];
     }
 
@@ -131,7 +134,7 @@ class Vehicle extends Model
         return [
             'company' => 'Company Owned',
             'lease' => 'Leased',
-            'rental' => 'Rental'
+            'rental' => 'Rental',
         ];
     }
 
@@ -189,7 +192,7 @@ class Vehicle extends Model
                 })
                 ->exists();
 
-            if (!$hasDoc) {
+            if (! $hasDoc) {
                 $missing[] = $docType->name;
             }
         }

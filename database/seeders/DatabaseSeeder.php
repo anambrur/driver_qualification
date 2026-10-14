@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -13,26 +11,21 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-
-        $this->call(PermissionSeeder::class);
-        $this->call(DemoUserSeeder::class);
-        $this->call(CompanySeeder::class);
+        // Every environment: reference data, the permission catalogue and plans.
         $this->call(CountryStateSeeder::class);
-        $this->call(DriverSeeder::class);
         $this->call(DocumentTypeSeeder::class);
         $this->call(VehicleTypesSeeder::class);
         $this->call(FuelTypesSeeder::class);
         $this->call(VehicleGroupsSeeder::class);
         $this->call(MaintenaneCategoySeeder::class);
         $this->call(EquipmentTypesSeeder::class);
-        $this->call(VehiclesSeeder::class);
-        $this->call(TrailersSeeder::class);
+        $this->call(PermissionSeeder::class);
         $this->call(PlanSeeder::class);
+
+        if (app()->environment(DemoSeeder::ENVIRONMENTS)) {
+            $this->call(DemoSeeder::class);
+            $this->call(VehiclesSeeder::class);
+            $this->call(TrailersSeeder::class);
+        }
     }
 }

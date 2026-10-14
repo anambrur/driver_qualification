@@ -13,14 +13,17 @@ return new class extends Migration
     {
         Schema::create('driver_documents', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
+            $table->foreignId('driver_id')->unique()->constrained()->cascadeOnDelete();
 
             // Document uploads
-            $table->text('license_front')->nullable();
-            $table->text('license_back')->nullable();
-            $table->text('medical_card')->nullable();
-            $table->text('forfeiture_document')->nullable();
-            $table->string('document_path')->nullable();
+            $table->foreignId('license_front_file_id')->nullable()->constrained('stored_files')->restrictOnDelete();
+            $table->foreignId('license_back_file_id')->nullable()->constrained('stored_files')->restrictOnDelete();
+            $table->foreignId('medical_card_file_id')->nullable()->constrained('stored_files')->restrictOnDelete();
+            $table->foreignId('forfeiture_document_file_id')->nullable()->constrained('stored_files')->restrictOnDelete();
+
+            // Declarations: accident and violation rows exist only for real events (F19c)
+            $table->boolean('has_accidents')->nullable();
+            $table->boolean('has_violations')->nullable();
 
             // Violation Record Section
             $table->string('violation_record_signature')->nullable();

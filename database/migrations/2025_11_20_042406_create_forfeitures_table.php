@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('forfeitures', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
-            $table->enum('denied_license', ['no', 'yes'])->default('no');
-            $table->enum('license_revoked', ['no', 'yes'])->default('no');
+            $table->foreignId('driver_id')->constrained()->cascadeOnDelete();
+            $table->boolean('denied_license')->default(false);
+            $table->boolean('license_revoked')->default(false);
             $table->text('forfeitures')->nullable();
             $table->timestamps();
         });

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -29,7 +28,7 @@ class VehicleGroupsSeeder extends Seeder
         ];
 
         foreach ($vehicleGroups as $group) {
-            DB::table('vehicle_groups')->insert([
+            DB::table('vehicle_groups')->insertOrIgnore([
                 'name' => $group['name'],
                 'created_at' => now(),
                 'updated_at' => now(),

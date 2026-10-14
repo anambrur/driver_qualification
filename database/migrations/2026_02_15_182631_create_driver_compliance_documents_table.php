@@ -13,13 +13,21 @@ return new class extends Migration
     {
         Schema::create('driver_compliance_documents', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
-            $table->foreignId('document_type_id')->constrained('document_types')->restrictOnDelete();
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
+            $table->unsignedBigInteger('driver_id');
+            $table->foreignId('document_type_id')->constrained()->restrictOnDelete();
+            $table->unsignedBigInteger('file_id');
             $table->date('file_date')->nullable();
             $table->date('expiry_date')->nullable();
             $table->string('description')->nullable();
-            $table->string('file_path')->nullable();
+            $table->foreignId('uploaded_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index(['driver_id', 'document_type_id', 'expiry_date'], 'dcd_driver_type_expiry_index');
+            $table->index(['company_id', 'expiry_date']);
+            $table->foreign(['company_id', 'driver_id'])->references(['company_id', 'id'])->on('drivers')->cascadeOnDelete();
+            $table->foreign(['company_id', 'file_id'])->references(['company_id', 'id'])->on('stored_files')->restrictOnDelete();
         });
     }
 

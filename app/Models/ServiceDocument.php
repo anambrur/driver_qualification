@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/ServiceDocument.php
 
 namespace App\Models;
@@ -14,16 +15,9 @@ class ServiceDocument extends Model
     protected $table = 'service_documents';
 
     protected $fillable = [
+        'company_id',
         'service_log_id',
-        'original_name',
-        'file_name',
-        'file_path',
-        'mime_type',
-        'file_size'
-    ];
-
-    protected $casts = [
-        'file_size' => 'integer'
+        'file_id',
     ];
 
     // Relationships
@@ -35,10 +29,18 @@ class ServiceDocument extends Model
         return $this->belongsTo(ServiceLog::class);
     }
 
+    /**
+     * @return BelongsTo<StoredFile, $this>
+     */
+    public function file(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'file_id');
+    }
+
     // Accessors
     public function getFormattedFileSizeAttribute()
     {
-        $bytes = $this->file_size;
+        $bytes = $this->file->size_bytes;
         $units = ['B', 'KB', 'MB', 'GB'];
         $i = 0;
 
@@ -47,7 +49,7 @@ class ServiceDocument extends Model
             $i++;
         }
 
-        return round($bytes, 2) . ' ' . $units[$i];
+        return round($bytes, 2).' '.$units[$i];
     }
 
     public function getFileUrlAttribute()
@@ -58,7 +60,7 @@ class ServiceDocument extends Model
 
     public function getFileIconAttribute()
     {
-        $extension = pathinfo($this->original_name, PATHINFO_EXTENSION);
+        $extension = pathinfo($this->file->original_name, PATHINFO_EXTENSION);
 
         $icons = [
             'pdf' => 'fa-file-pdf text-red-500',

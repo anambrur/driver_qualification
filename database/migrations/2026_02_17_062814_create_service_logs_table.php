@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('service_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
-            $table->foreignId('vehicle_id')->constrained('vehicles')->onDelete('cascade');
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
+            $table->unsignedBigInteger('vehicle_id');
+            $table->unsignedBigInteger('maintenance_schedule_id')->nullable(); // the schedule this service completed
             $table->date('service_date');
             $table->text('maintenance_notes')->nullable();
 
@@ -33,10 +34,11 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            // Indexes
-            $table->index('vehicle_id');
-            $table->index('service_date');
-            $table->index('status');
+            $table->unique(['company_id', 'id']);
+            $table->index(['company_id', 'service_date']);
+            $table->index(['vehicle_id', 'service_date']);
+            $table->foreign(['company_id', 'vehicle_id'])->references(['company_id', 'id'])->on('vehicles')->restrictOnDelete();
+            $table->foreign(['company_id', 'maintenance_schedule_id'])->references(['company_id', 'id'])->on('maintenance_schedules')->restrictOnDelete();
         });
     }
 

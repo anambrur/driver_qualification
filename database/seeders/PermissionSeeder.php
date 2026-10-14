@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -41,10 +40,6 @@ class PermissionSeeder extends Seeder
         'fleets' => ['dashboard'],
     ];
 
-    public const COMPANY_MODULES = ['drivers', 'fleets', 'vehicles', 'trailers', 'asset-groups', 'maintenance', 'scheduled'];
-
-    public const COMPANY_EXTRA_PERMISSIONS = ['companies.edit'];
-
     /**
      * All permission names, e.g. "drivers.create", "drivers.hire".
      *
@@ -68,9 +63,10 @@ class PermissionSeeder extends Seeder
     }
 
     /**
-     * Sync permissions and roles. Non-destructive and idempotent, so it is safe to run in
-     * production to add new permissions: it never deletes users, companies, roles or permissions.
-     * The demo super-admin login lives in DemoUserSeeder (local only).
+     * Sync tenant permissions (web guard). Non-destructive and idempotent, so it is safe to run
+     * in production: it only adds permissions and never touches roles or their grants. Roles are
+     * per company (Spatie teams) and come from the role templates (WP3); the legacy global
+     * super-admin, company and user roles are not created (06 §10).
      *
      * php artisan db:seed --class=PermissionSeeder
      */
@@ -81,23 +77,6 @@ class PermissionSeeder extends Seeder
         foreach (self::permissionNames() as $name) {
             Permission::findOrCreate($name, 'web');
         }
-
-        // super-admin always holds every permission (RoleController enforces the same rule).
-        Role::findOrCreate('super-admin', 'web')->syncPermissions(Permission::all());
-
-        // Additive only: permissions an admin added to the company role in the Roles UI are kept.
-        Role::findOrCreate('company', 'web')->givePermissionTo(
-            Permission::where(function ($query) {
-                foreach (self::COMPANY_MODULES as $module) {
-                    $query->orWhere('name', 'like', $module . '.%');
-                }
-            })->get()
-        );
-
-        // Allow company users to edit their own company profile (My Account)
-        Role::findByName('company', 'web')->givePermissionTo(self::COMPANY_EXTRA_PERMISSIONS);
-
-        Role::findOrCreate('user', 'web');
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\DocumentType;
+use Illuminate\Database\Seeder;
 
 class DocumentTypeSeeder extends Seeder
 {
@@ -17,6 +17,7 @@ class DocumentTypeSeeder extends Seeder
             ['name' => 'Authorization for Direct Deposit - Employee Form', 'module' => 'driver', 'status' => true],
             ['name' => 'Clearinghouse Annual Query', 'module' => 'driver', 'status' => true],
             ['name' => 'DInquiry Into Driving Record', 'module' => 'driver', 'status' => true],
+            ['name' => "Medical Examiner's Certificate", 'module' => 'driver', 'status' => true, 'system_key' => 'medical_examiner_certificate', 'requires_expiry' => true],
             ['name' => 'Medical Examiner National Registry Verification', 'module' => 'driver', 'status' => true],
             ['name' => 'Motor Vehicle Reports (MVR)', 'module' => 'driver', 'status' => true],
             ['name' => 'Pre-Employment Drug Test', 'module' => 'driver', 'status' => true],
@@ -27,7 +28,7 @@ class DocumentTypeSeeder extends Seeder
             ['name' => 'Preceding 7 Days Time On Duty', 'module' => 'driver', 'status' => true],
             ['name' => 'Form W-9', 'module' => 'driver', 'status' => true],
             ['name' => 'Safety Performance History Investigation', 'module' => 'driver', 'status' => true],
-            
+
             // Vehicle Module
             ['name' => 'Insurance Certificate', 'module' => 'vehicle', 'status' => true],
             ['name' => 'MC Authority', 'module' => 'vehicle', 'status' => true],
@@ -37,7 +38,7 @@ class DocumentTypeSeeder extends Seeder
             ['name' => '(ELD) Manual', 'module' => 'vehicle', 'status' => true],
             ['name' => 'ELD DOT Card and Instructions', 'module' => 'vehicle', 'status' => true],
             ['name' => 'Master Agreement', 'module' => 'vehicle', 'status' => true],
-            
+
             // Trailer Module
             ['name' => 'Proof of Coverage', 'module' => 'trailer', 'status' => true],
             ['name' => 'Vehicle Registration Certificate', 'module' => 'trailer', 'status' => true],
@@ -48,7 +49,10 @@ class DocumentTypeSeeder extends Seeder
         ];
 
         foreach ($documentTypes as $documentType) {
-            DocumentType::create($documentType);
+            DocumentType::withTrashed()->updateOrCreate(
+                ['module' => $documentType['module'], 'name' => $documentType['name']],
+                $documentType
+            );
         }
     }
 }

@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('experiences', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
+            $table->foreignId('driver_id')->constrained()->cascadeOnDelete();
             $table->string('equipment_class');
-            $table->enum('experience', ['no', 'yes'])->default('no');
+            $table->boolean('experience')->default(false);
             $table->date('from_date')->nullable();
             $table->date('to_date')->nullable();
-            $table->string('approx_miles')->nullable();
+            $table->unsignedInteger('approx_miles')->nullable();
             $table->timestamps();
         });
     }

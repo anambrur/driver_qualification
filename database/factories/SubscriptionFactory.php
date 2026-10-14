@@ -2,14 +2,14 @@
 
 namespace Database\Factories;
 
+use App\Models\Company;
 use App\Models\Subscription;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * Default state is an accessible (active, paid) Stripe subscription.
  *
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Subscription>
+ * @extends Factory<Subscription>
  */
 class SubscriptionFactory extends Factory
 {
@@ -21,11 +21,11 @@ class SubscriptionFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => User::factory(),
-            'plan_id' => PlanFactory::new(),
+            'company_id' => CompanyFactory::new(),
+            'plan_price_id' => PlanPriceFactory::new(),
+            'interval' => 'month',
             'stripe_subscription_id' => 'sub_test_'.fake()->unique()->bothify('????########'),
-            'stripe_status' => 'active',
-            'billing_cycle' => 'monthly',
+            'status' => 'active',
             'amount' => 49.00,
             'currency' => 'USD',
             'current_period_start' => now()->subDays(5),
@@ -36,12 +36,16 @@ class SubscriptionFactory extends Factory
         ];
     }
 
+    public function forCompany(Company $company): static
+    {
+        return $this->state(fn () => ['company_id' => $company->id, 'actor_user_id' => $company->owner_user_id]);
+    }
+
     public function trial(int $daysLeft = 7): static
     {
         return $this->state(fn () => [
             'stripe_subscription_id' => null,
-            'stripe_status' => 'trialing',
-            'billing_cycle' => 'trial',
+            'status' => 'trialing',
             'amount' => 0,
             'trial_ends_at' => now()->addDays($daysLeft),
             'current_period_end' => now()->addDays($daysLeft),
@@ -54,15 +58,16 @@ class SubscriptionFactory extends Factory
     public function expired(): static
     {
         return $this->state(fn () => [
-            'stripe_status' => 'canceled',
+            'status' => 'canceled',
             'current_period_end' => now()->subDay(),
             'ends_at' => now()->subDay(),
+            'ended_at' => now()->subDay(),
         ]);
     }
 
     public function pastDue(): static
     {
-        return $this->state(fn () => ['stripe_status' => 'past_due']);
+        return $this->state(fn () => ['status' => 'past_due']);
     }
 
     public function cancelingAtPeriodEnd(): static

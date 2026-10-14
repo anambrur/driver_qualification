@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('plan_id')->nullable()->constrained('plans')->nullOnDelete();
-            $table->foreignId('subscription_id')->nullable()->constrained('subscriptions')->nullOnDelete();
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
+            $table->foreignId('plan_id')->nullable()->constrained()->restrictOnDelete();
+            $table->foreignId('subscription_id')->nullable()->constrained()->restrictOnDelete();
             $table->string('stripe_checkout_session_id')->nullable()->unique();
             $table->string('stripe_invoice_id')->nullable()->unique();
             $table->string('stripe_payment_intent_id')->nullable()->unique();
@@ -26,7 +26,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['status', 'paid_at']);
-            $table->index('user_id');
+            $table->index(['company_id', 'paid_at']);
         });
     }
 

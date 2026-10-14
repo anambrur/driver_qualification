@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class VehiclesSeeder extends Seeder
 {
@@ -22,7 +22,7 @@ class VehiclesSeeder extends Seeder
         $companies = DB::table('companies')->pluck('id');
 
         // Default to first company if specific companies not found
-        $defaultCompanyId = !empty($companies) ? reset($companies) : null;
+        $defaultCompanyId = ! empty($companies) ? reset($companies) : null;
 
         $vehicles = [
             [
@@ -153,7 +153,7 @@ class VehiclesSeeder extends Seeder
         ];
 
         foreach ($vehicles as $vehicle) {
-            DB::table('vehicles')->insert(array_merge($vehicle, [
+            DB::table('vehicles')->insertOrIgnore(array_merge($vehicle, [
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ]));

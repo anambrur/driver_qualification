@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/MaintenanceSchedule.php
 
 namespace App\Models;
@@ -22,29 +23,27 @@ class MaintenanceSchedule extends Model
         'interval_days',
         'interval_miles',
         'interval_hours',
-        'last_due_date',
-        'last_due_mileage',
-        'last_due_hours',
+        'last_service_date',
+        'last_service_mileage',
+        'last_service_hours',
         'next_due_date',
         'next_due_mileage',
         'next_due_hours',
         'description',
         'notes',
-        'is_active',
-        'status'
+        'status',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
-        'last_due_date' => 'date',
+        'last_service_date' => 'date',
         'next_due_date' => 'date',
         'interval_days' => 'integer',
         'interval_miles' => 'integer',
         'interval_hours' => 'integer',
-        'last_due_mileage' => 'integer',
-        'last_due_hours' => 'integer',
+        'last_service_mileage' => 'integer',
+        'last_service_hours' => 'integer',
         'next_due_mileage' => 'integer',
-        'next_due_hours' => 'integer'
+        'next_due_hours' => 'integer',
     ];
 
     // Relationships
@@ -86,8 +85,9 @@ class MaintenanceSchedule extends Model
         $labels = [
             'date' => 'By Date',
             'mileage' => 'By Mileage',
-            'engine_hours' => 'By Engine Hours'
+            'engine_hours' => 'By Engine Hours',
         ];
+
         return $labels[$this->schedule_type] ?? $this->schedule_type;
     }
 
@@ -97,9 +97,9 @@ class MaintenanceSchedule extends Model
             case 'date':
                 return $this->interval_days ? "Every {$this->interval_days} days" : 'Not set';
             case 'mileage':
-                return $this->interval_miles ? "Every " . number_format($this->interval_miles) . " miles" : 'Not set';
+                return $this->interval_miles ? 'Every '.number_format($this->interval_miles).' miles' : 'Not set';
             case 'engine_hours':
-                return $this->interval_hours ? "Every " . number_format($this->interval_hours) . " hours" : 'Not set';
+                return $this->interval_hours ? 'Every '.number_format($this->interval_hours).' hours' : 'Not set';
             default:
                 return 'Not set';
         }
@@ -110,16 +110,16 @@ class MaintenanceSchedule extends Model
         $parts = [];
 
         if ($this->next_due_date) {
-            $parts[] = 'Date: ' . $this->next_due_date->format('M d, Y');
+            $parts[] = 'Date: '.$this->next_due_date->format('M d, Y');
         }
         if ($this->next_due_mileage) {
-            $parts[] = 'Mileage: ' . number_format($this->next_due_mileage) . ' mi';
+            $parts[] = 'Mileage: '.number_format($this->next_due_mileage).' mi';
         }
         if ($this->next_due_hours) {
-            $parts[] = 'Hours: ' . number_format($this->next_due_hours) . ' hrs';
+            $parts[] = 'Hours: '.number_format($this->next_due_hours).' hrs';
         }
 
-        return !empty($parts) ? implode(' | ', $parts) : 'Not scheduled';
+        return ! empty($parts) ? implode(' | ', $parts) : 'Not scheduled';
     }
 
     public function getStatusBadgeAttribute()
@@ -127,7 +127,7 @@ class MaintenanceSchedule extends Model
         $badges = [
             'active' => 'bg-green-100 text-green-800',
             'paused' => 'bg-yellow-100 text-yellow-800',
-            'completed' => 'bg-blue-100 text-blue-800'
+            'completed' => 'bg-blue-100 text-blue-800',
         ];
 
         $class = $badges[$this->status] ?? 'bg-gray-100 text-gray-800';
@@ -138,11 +138,11 @@ class MaintenanceSchedule extends Model
 
     public function getVehicleInfoAttribute()
     {
-        if (!$this->vehicle) {
+        if (! $this->vehicle) {
             return '<span class="text-gray-400">All Vehicles</span>';
         }
 
-        return e($this->vehicle->unit_no . ' - ' . $this->vehicle->year . ' ' . $this->vehicle->make . ' ' . $this->vehicle->model);
+        return e($this->vehicle->unit_no.' - '.$this->vehicle->year.' '.$this->vehicle->make.' '.$this->vehicle->model);
     }
 
     // Methods
@@ -159,8 +159,8 @@ class MaintenanceSchedule extends Model
 
         switch ($this->schedule_type) {
             case 'date':
-                if ($this->last_due_date && $this->interval_days) {
-                    $this->next_due_date = $this->last_due_date->addDays($this->interval_days);
+                if ($this->last_service_date && $this->interval_days) {
+                    $this->next_due_date = $this->last_service_date->addDays($this->interval_days);
                 } elseif ($this->interval_days) {
                     $this->next_due_date = now()->addDays($this->interval_days);
                 }
@@ -169,8 +169,8 @@ class MaintenanceSchedule extends Model
             case 'mileage':
                 if ($vehicle && $this->interval_miles) {
                     $currentMileage = $vehicle->odometer;
-                    if ($this->last_due_mileage) {
-                        $this->next_due_mileage = $this->last_due_mileage + $this->interval_miles;
+                    if ($this->last_service_mileage) {
+                        $this->next_due_mileage = $this->last_service_mileage + $this->interval_miles;
                     } else {
                         $this->next_due_mileage = $currentMileage + $this->interval_miles;
                     }
@@ -180,8 +180,8 @@ class MaintenanceSchedule extends Model
             case 'engine_hours':
                 if ($vehicle && $this->interval_hours) {
                     $currentHours = $this->currentEngineHours();
-                    if ($this->last_due_hours) {
-                        $this->next_due_hours = $this->last_due_hours + $this->interval_hours;
+                    if ($this->last_service_hours) {
+                        $this->next_due_hours = $this->last_service_hours + $this->interval_hours;
                     } else {
                         $this->next_due_hours = $currentHours + $this->interval_hours;
                     }
@@ -222,7 +222,7 @@ class MaintenanceSchedule extends Model
     // Scopes
     public function scopeActive($query)
     {
-        return $query->where('status', 'active')->where('is_active', true);
+        return $query->where('status', 'active');
     }
 
     public function scopeDue($query)

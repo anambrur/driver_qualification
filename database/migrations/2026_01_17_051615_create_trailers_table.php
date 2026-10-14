@@ -13,15 +13,18 @@ return new class extends Migration
     {
         Schema::create('trailers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
             // Trailer Information - Required
             $table->string('unit_no');
             $table->string('vin', 17);
             $table->year('year');
             $table->string('make');
             $table->string('model');
-            $table->foreignId('equipment_types_id')->constrained('equipment_types')->restrictOnDelete();
+            $table->foreignId('equipment_type_id')->constrained('equipment_types')->restrictOnDelete();
             $table->string('owned_by')->nullable();
+            $table->string('plate_number', 20)->nullable();
+            $table->char('plate_state_code', 2)->nullable();
+            $table->unsignedBigInteger('photo_file_id')->nullable();
 
             // Trailer Details - Optional
             $table->string('color')->nullable();
@@ -36,11 +39,10 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            // Indexes
-            $table->index('unit_no');
-            $table->index('vin');
+            $table->unique(['company_id', 'id']);
             $table->unique(['company_id', 'unit_no']);
             $table->unique(['company_id', 'vin']);
+            $table->foreign(['company_id', 'photo_file_id'])->references(['company_id', 'id'])->on('stored_files')->restrictOnDelete();
         });
     }
 

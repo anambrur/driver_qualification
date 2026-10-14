@@ -1,4 +1,5 @@
 <?php
+
 // database/migrations/2024_01_01_000002_create_service_log_category_table.php
 
 use Illuminate\Database\Migrations\Migration;
@@ -20,10 +21,6 @@ return new class extends Migration
 
             // Prevent duplicate entries
             $table->unique(['service_log_id', 'maintenance_category_id'], 'service_log_category_unique');
-
-            // Indexes
-            $table->index('service_log_id');
-            $table->index('maintenance_category_id');
         });
     }
 

@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -15,18 +17,21 @@ use Spatie\Permission\Traits\HasRoles;
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasRoles, HasFactory, Notifiable;
+    /** @use HasFactory<UserFactory> */
+    use HasFactory, HasRoles, Notifiable;
 
     /**
      * @var list<string>
      */
     protected $fillable = [
+        'company_id',
+        'user_type',
         'name',
         'email',
         'password',
+        'phone',
         'status',
-        'stripe_id',
+        'last_login_at',
     ];
 
     /**
@@ -45,15 +50,26 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_login_at' => 'datetime',
         ];
     }
 
     /**
-     * @return HasOne<Company, $this>
+     * Login emails are global and stored lowercase (D3).
+     *
+     * @return Attribute<string, string>
      */
-    public function company(): HasOne
+    protected function email(): Attribute
     {
-        return $this->hasOne(Company::class);
+        return Attribute::set(fn (string $value) => mb_strtolower(trim($value)));
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     /**

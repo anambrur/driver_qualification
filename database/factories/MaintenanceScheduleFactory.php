@@ -7,7 +7,7 @@ use App\Models\Vehicle;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\MaintenanceSchedule>
+ * @extends Factory<MaintenanceSchedule>
  */
 class MaintenanceScheduleFactory extends Factory
 {
@@ -32,7 +32,6 @@ class MaintenanceScheduleFactory extends Factory
             'interval_miles' => null,
             'interval_hours' => null,
             'status' => 'active',
-            'is_active' => true,
         ];
     }
 

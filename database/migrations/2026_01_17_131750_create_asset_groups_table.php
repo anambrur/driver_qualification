@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\CheckConstraints;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -11,40 +12,38 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // The default pairing of a driver with equipment. Every reference is a same-company
+        // composite FK with RESTRICT: they are also bases of generated columns or a CHECK.
         Schema::create('asset_groups', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained('companies')->cascadeOnDelete();
-
-            // Basic Information (from screenshot)
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
             $table->string('group_name');
-
-            // Primary Driver Information (from screenshot)
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
-            $table->string('primary_driver_name')->nullable();
-            $table->string('primary_driver_phone')->nullable();
-            $table->string('primary_driver_email')->nullable();
-
-            // Second Driver Information - Optional (from screenshot)
-            $table->string('second_driver_name')->nullable();
-            $table->string('second_driver_phone')->nullable();
-            $table->string('second_driver_email')->nullable();
-
-            // Vehicle Assignment (from screenshot)
-            $table->foreignId('vehicle_id')->constrained('vehicles')->onDelete('cascade');
-            $table->foreignId('trailer_id')->nullable()->constrained('trailers')->onDelete('cascade');
-
-            // Status and metadata
+            $table->unsignedBigInteger('driver_id');
+            $table->unsignedBigInteger('co_driver_id')->nullable(); // team driving is still PENDING (14 §3)
+            $table->unsignedBigInteger('vehicle_id');
+            $table->unsignedBigInteger('trailer_id')->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
-
-            // Timestamps
             $table->timestamps();
             $table->softDeletes();
 
-            // Indexes
-            $table->index('group_name');
-            $table->index('status');
-            $table->index(['company_id', 'group_name']);
+            // One active group per vehicle and per trailer (F7).
+            $table->unsignedBigInteger('active_vehicle_id')->nullable()
+                ->storedAs("CASE WHEN status = 'active' AND deleted_at IS NULL THEN vehicle_id END")->unique();
+            $table->unsignedBigInteger('active_trailer_id')->nullable()
+                ->storedAs("CASE WHEN status = 'active' AND deleted_at IS NULL THEN trailer_id END")->unique();
+
+            $table->unique(['company_id', 'id']);
+            $table->unique(['company_id', 'group_name']);
+            $table->index(['company_id', 'status']);
+            $table->foreign(['company_id', 'driver_id'])->references(['company_id', 'id'])->on('drivers')->restrictOnDelete();
+            $table->foreign(['company_id', 'co_driver_id'])->references(['company_id', 'id'])->on('drivers')->restrictOnDelete();
+            $table->foreign(['company_id', 'vehicle_id'])->references(['company_id', 'id'])->on('vehicles')->restrictOnDelete();
+            $table->foreign(['company_id', 'trailer_id'])->references(['company_id', 'id'])->on('trailers')->restrictOnDelete();
         });
+
+        CheckConstraints::add('asset_groups', [
+            'asset_groups_co_driver_check' => 'co_driver_id IS NULL OR co_driver_id <> driver_id',
+        ]);
     }
 
     /**

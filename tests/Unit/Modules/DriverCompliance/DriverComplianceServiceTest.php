@@ -3,7 +3,11 @@
 use App\Models\DocumentType;
 use App\Models\Driver;
 use App\Models\DriverComplianceDocument;
+use App\Models\License;
 use App\Services\Compliance\DriverComplianceService;
+use Database\Factories\DocumentTypeFactory;
+use Database\Factories\DriverComplianceDocumentFactory;
+use Database\Factories\DriverFactory;
 use Illuminate\Support\Carbon;
 
 /*
@@ -19,14 +23,15 @@ afterEach(fn () => Carbon::setTestNow());
 
 /**
  * @param  array<int, ?string>  $expiries  one entry per required type; null = no expiry, 'missing' = no document
+ * @param  ?string  $licenseExpires  the current licence's expiry; null = no current licence
  */
-function complianceFor(array $expiries): array
+function complianceFor(array $expiries, ?string $licenseExpires = '2028-01-01', bool $requiresExpiry = false): array
 {
     $types = collect();
     $documents = collect();
 
     foreach (array_values($expiries) as $i => $expiry) {
-        $type = (new DocumentType)->forceFill(['id' => $i + 1, 'name' => "Type {$i}", 'module' => 'driver', 'status' => true]);
+        $type = (new DocumentType)->forceFill(['id' => $i + 1, 'name' => "Type {$i}", 'module' => 'driver', 'status' => true, 'requires_expiry' => $requiresExpiry]);
         $types->push($type);
 
         if ($expiry !== 'missing') {
@@ -34,12 +39,14 @@ function complianceFor(array $expiries): array
                 'id' => $i + 1,
                 'document_type_id' => $type->id,
                 'expiry_date' => $expiry,
-                'file_path' => "documents/drivers/{$i}.pdf",
             ]));
         }
     }
 
-    $driver = (new Driver)->forceFill(['id' => 1, 'company_id' => 1])->setRelation('documents', $documents);
+    $license = $licenseExpires === null ? null : (new License)->forceFill(['expires' => $licenseExpires, 'is_current' => true]);
+    $driver = (new Driver)->forceFill(['id' => 1, 'company_id' => 1])
+        ->setRelation('documents', $documents)
+        ->setRelation('currentLicense', $license);
 
     return app(DriverComplianceService::class)->calculateCompliance($driver, $types);
 }
@@ -67,7 +74,79 @@ describe('DCMP-03: compliance status', function () {
         expect($result['status'])->toBe('compliant')->and($result['percentage'])->toEqual(100);
     });
 
-    it('still counts only fully valid documents in the percentage', function () {
-        expect(complianceFor(['2027-10-09', '2026-10-20'])['percentage'])->toEqual(50);
+    it('still counts only fully valid requirements in the percentage', function () {
+        // two documents plus the CDL; only one document and the CDL are fully valid
+        expect(complianceFor(['2027-10-09', '2026-10-20'])['percentage'])->toEqual(66.7);
+    });
+});
+
+describe('F17: medical certificate and CDL expiry', function () {
+    it('counts a document without an expiry date as missing when its type requires one', function () {
+        $result = complianceFor([null], requiresExpiry: true);
+
+        expect($result['status'])->toBe('danger')
+            ->and($result['missing_documents'])->toBe(['Type 0 (no expiry date)']);
+    });
+
+    it('treats an expired medical certificate like any expired document', function () {
+        $result = complianceFor(['2026-10-01'], requiresExpiry: true);
+
+        expect($result['status'])->toBe('danger')
+            ->and($result['missing_documents'])->toBe(['Type 0 (expired)']);
+    });
+
+    it('is danger when the driver has no current licence', function () {
+        $result = complianceFor(['2027-10-09'], licenseExpires: null);
+
+        expect($result['status'])->toBe('danger')
+            ->and($result['total_docs'])->toBe(2)
+            ->and($result['missing_documents'])->toBe(["Commercial Driver's License"]);
+    });
+
+    it('is danger when the current licence has expired', function () {
+        expect(complianceFor(['2027-10-09'], licenseExpires: '2026-10-09')['missing_documents'])
+            ->toBe(["Commercial Driver's License (expired)"]);
+    });
+
+    it('is warning when the current licence expires within 30 days', function () {
+        $result = complianceFor(['2027-10-09'], licenseExpires: '2026-11-01');
+
+        expect($result['status'])->toBe('warning')
+            ->and(collect($result['document_details'])->firstWhere('type_key', 'cdl')['status'])->toBe('expiring');
+    });
+
+    it('gives the same counts in SQL as in PHP', function () {
+        $medical = DocumentTypeFactory::new()->requiresExpiry()->create(['system_key' => 'medical_examiner_certificate']);
+        $other = DocumentTypeFactory::new()->create();
+
+        $drivers = [
+            'compliant' => DriverFactory::new()->withCurrentLicense('2028-01-01')->create(),
+            'no licence' => DriverFactory::new()->create(),
+            'licence expiring' => DriverFactory::new()->withCurrentLicense('2026-10-25')->create(),
+            'licence expired' => DriverFactory::new()->withCurrentLicense('2026-10-09')->create(),
+            'medical without expiry' => DriverFactory::new()->withCurrentLicense('2028-01-01')->create(),
+        ];
+
+        foreach ($drivers as $label => $driver) {
+            DriverComplianceDocumentFactory::new()->forDriver($driver, $other)->create(['expiry_date' => null]);
+            DriverComplianceDocumentFactory::new()->forDriver($driver, $medical)->create([
+                'expiry_date' => $label === 'medical without expiry' ? null : '2027-06-01',
+            ]);
+        }
+
+        $service = app(DriverComplianceService::class);
+        $rows = $service->withComplianceCounts(Driver::query())->get()->keyBy('id');
+
+        foreach ($drivers as $label => $driver) {
+            $php = $service->forDriver(Driver::findOrFail($driver->id));
+            $sql = $rows[$driver->id];
+            $sqlStatus = $sql->total_docs - $sql->valid_docs - $sql->expiring_docs > 0 ? 'danger' : ($sql->expiring_docs > 0 ? 'warning' : 'compliant');
+
+            expect([(int) $sql->total_docs, (int) $sql->valid_docs, $sqlStatus])
+                ->toBe([$php['total_docs'], $php['compliant_docs'], $php['status']], $label);
+        }
+
+        expect($service->summary(Driver::query()))
+            ->toBe(['total' => 5, 'compliant' => 1, 'warning' => 1, 'danger' => 3]);
     });
 });

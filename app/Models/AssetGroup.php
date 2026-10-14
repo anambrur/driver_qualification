@@ -15,19 +15,14 @@ class AssetGroup extends Model
         'company_id',
         'group_name',
         'driver_id',
-        'primary_driver_name',
-        'primary_driver_phone',
-        'primary_driver_email',
-        'second_driver_name',
-        'second_driver_phone',
-        'second_driver_email',
+        'co_driver_id',
         'vehicle_id',
         'trailer_id',
-        'status'
+        'status',
     ];
 
     protected $casts = [
-        'status' => 'string'
+        'status' => 'string',
     ];
 
     protected static function booted(): void
@@ -82,7 +77,7 @@ class AssetGroup extends Model
     {
         return [
             'active' => 'Active',
-            'inactive' => 'Inactive'
+            'inactive' => 'Inactive',
         ];
     }
 

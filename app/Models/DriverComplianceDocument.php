@@ -4,16 +4,22 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DriverComplianceDocument extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
+        'company_id',
         'driver_id',
         'document_type_id',
+        'file_id',
         'file_date',
         'expiry_date',
         'description',
-        'file_path',
+        'uploaded_by_user_id',
     ];
 
     protected $casts = [
@@ -21,14 +27,28 @@ class DriverComplianceDocument extends Model
         'file_date' => 'date',
     ];
 
-    public function documentType()
+    /**
+     * @return BelongsTo<DocumentType, $this>
+     */
+    public function documentType(): BelongsTo
     {
         return $this->belongsTo(DocumentType::class);
     }
 
-    public function driver()
+    /**
+     * @return BelongsTo<Driver, $this>
+     */
+    public function driver(): BelongsTo
     {
         return $this->belongsTo(Driver::class);
+    }
+
+    /**
+     * @return BelongsTo<StoredFile, $this>
+     */
+    public function file(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'file_id');
     }
 
     /**
@@ -36,7 +56,7 @@ class DriverComplianceDocument extends Model
      */
     public function isExpired()
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return false;
         }
 
@@ -48,7 +68,7 @@ class DriverComplianceDocument extends Model
      */
     public function isExpiringSoon()
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return false;
         }
 
@@ -63,7 +83,7 @@ class DriverComplianceDocument extends Model
      */
     public function getDaysUntilExpiryAttribute()
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return null;
         }
 
@@ -75,7 +95,7 @@ class DriverComplianceDocument extends Model
      */
     public function getStatusAttribute()
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return 'valid';
         }
 

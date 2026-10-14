@@ -10,8 +10,9 @@ return new class extends Migration
     {
         Schema::create('subscription_notification_logs', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
             $table->foreignId('subscription_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('recipient_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('type'); // expiring_soon|expired
             $table->string('channel'); // mail|database|sms
             $table->unsignedTinyInteger('days_before');

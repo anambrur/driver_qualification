@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -28,7 +27,7 @@ class FuelTypesSeeder extends Seeder
         ];
 
         foreach ($fuelTypes as $type) {
-            DB::table('fuel_types')->insert([
+            DB::table('fuel_types')->insertOrIgnore([
                 'name' => $type['name'],
                 'created_at' => now(),
                 'updated_at' => now(),

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Plan>
+ * @extends Factory<Plan>
  */
 class PlanFactory extends Factory
 {
@@ -24,26 +24,25 @@ class PlanFactory extends Factory
             'name' => $name,
             'slug' => Str::slug($name),
             'description' => fake()->sentence(),
-            'price' => 49.00,
-            'currency' => 'USD',
-            'billing_cycle' => 'monthly',
-            'duration_days' => 30,
-            'trial_days' => 0,
+            'is_public' => true,
             'is_active' => true,
-            'is_featured' => false,
             'sort_order' => 0,
-            'features' => ['Feature A', 'Feature B'],
+            'marketing_bullets' => ['Feature A', 'Feature B'],
         ];
     }
 
-    public function yearly(): static
+    /**
+     * Adds a current monthly price, and a yearly one when $yearly is given.
+     */
+    public function withPrices(float $monthly = 49.00, ?float $yearly = null): static
     {
-        return $this->state(fn () => ['billing_cycle' => 'yearly', 'duration_days' => 365, 'price' => 490.00]);
-    }
+        return $this->afterCreating(function (Plan $plan) use ($monthly, $yearly) {
+            PlanPriceFactory::new()->for($plan)->create(['interval' => 'month', 'amount' => $monthly]);
 
-    public function trial(int $days = 14): static
-    {
-        return $this->state(fn () => ['billing_cycle' => 'trial', 'price' => 0, 'trial_days' => $days, 'duration_days' => $days]);
+            if ($yearly !== null) {
+                PlanPriceFactory::new()->for($plan)->create(['interval' => 'year', 'amount' => $yearly]);
+            }
+        });
     }
 
     public function inactive(): static

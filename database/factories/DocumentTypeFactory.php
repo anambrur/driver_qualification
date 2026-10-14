@@ -6,7 +6,7 @@ use App\Models\DocumentType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\DocumentType>
+ * @extends Factory<DocumentType>
  */
 class DocumentTypeFactory extends Factory
 {
@@ -21,6 +21,7 @@ class DocumentTypeFactory extends Factory
             'name' => fake()->unique()->words(3, true),
             'module' => 'driver',
             'status' => true,
+            'requires_expiry' => false,
         ];
     }
 
@@ -30,6 +31,11 @@ class DocumentTypeFactory extends Factory
     public function module(string $module): static
     {
         return $this->state(fn () => ['module' => $module]);
+    }
+
+    public function requiresExpiry(): static
+    {
+        return $this->state(fn () => ['requires_expiry' => true]);
     }
 
     public function inactive(): static

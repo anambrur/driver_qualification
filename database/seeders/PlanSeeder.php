@@ -3,185 +3,63 @@
 namespace Database\Seeders;
 
 use App\Models\Plan;
+use App\Models\SiteSetting;
 use Illuminate\Database\Seeder;
 
+/**
+ * Plans are products; prices are immutable rows per interval (07 §3).
+ * The trial is a trialing subscription on the plan in site_settings.trial_plan_id (Q5: the top tier).
+ * Stripe Price ids are filled by plans:sync-stripe, never here.
+ */
 class PlanSeeder extends Seeder
 {
     public function run(): void
     {
         $plans = [
             [
-                'name' => 'Free Trial',
-                'stripe_plan_id' => null,
-                'stripe_price_id' => null,
-                'slug' => 'trial',
-                'description' => 'Try all features for 14 days. No credit card required.',
-                'price' => 0.00,
-                'currency' => 'USD',
-                'billing_cycle' => 'trial',
-                'duration_days' => 14,
-                'trial_days' => 14,
-                'is_active' => true,
-                'is_featured' => false,
-                'sort_order' => 0,
-                'features' => [
-                    'Access to all features',
-                    '14-day trial period',
-                    'No credit card required',
-                    'Email support',
-                ],
-            ],
-            [
-                'name' => 'Starter Monthly',
-                'stripe_plan_id' => null,
-                'stripe_price_id' => null,
-                'slug' => 'starter-monthly',
-                'description' => 'Perfect for individuals and small teams. Billed monthly.',
-                'price' => 29.00,
-                'currency' => 'USD',
-                'billing_cycle' => 'monthly',
-                'duration_days' => 30,
-                'trial_days' => 0,
-                'is_active' => true,
-                'is_featured' => false,
+                'name' => 'Starter',
+                'slug' => 'starter',
+                'description' => 'Perfect for individuals and small teams.',
                 'sort_order' => 1,
-                'features' => [
-                    'Up to 5 users',
-                    'Basic features',
-                    'Email support',
-                    '5 GB storage',
-                ],
+                'prices' => ['month' => 29.00, 'year' => 290.00],
+                'marketing_bullets' => ['Up to 5 users', 'Basic features', 'Email support', '5 GB storage'],
             ],
             [
-                'name' => 'Starter Yearly',
-                'stripe_plan_id' => null,
-                'stripe_price_id' => null,
-                'slug' => 'starter-yearly',
-                'description' => 'Perfect for individuals and small teams. Billed yearly.',
-                'price' => 290.00,
-                'currency' => 'USD',
-                'billing_cycle' => 'yearly',
-                'duration_days' => 365,
-                'trial_days' => 0,
-                'is_active' => true,
-                'is_featured' => false,
+                'name' => 'Company',
+                'slug' => 'company',
+                'description' => 'For growing businesses that need more power.',
                 'sort_order' => 2,
-                'features' => [
-                    'Up to 5 users',
-                    'Basic features',
-                    'Email support',
-                    '5 GB storage',
-                    '2 months free vs monthly',
-                ],
+                'prices' => ['month' => 99.00, 'year' => 990.00],
+                'marketing_bullets' => ['Up to 25 users', 'All features', 'Priority support', '50 GB storage', 'Advanced analytics', 'API access'],
             ],
             [
-                'name' => 'Company Monthly',
-                'stripe_plan_id' => null,
-                'stripe_price_id' => null,
-                'slug' => 'company-monthly',
-                'description' => 'For growing businesses that need more power. Billed monthly.',
-                'price' => 99.00,
-                'currency' => 'USD',
-                'billing_cycle' => 'monthly',
-                'duration_days' => 30,
-                'trial_days' => 0,
-                'is_active' => true,
-                'is_featured' => true,
+                'name' => 'Enterprise',
+                'slug' => 'enterprise',
+                'description' => 'Custom solutions for large organizations.',
                 'sort_order' => 3,
-                'features' => [
-                    'Up to 25 users',
-                    'All features',
-                    'Priority support',
-                    '50 GB storage',
-                    'Advanced analytics',
-                    'API access',
-                ],
-            ],
-            [
-                'name' => 'Company Yearly',
-                'stripe_plan_id' => null,
-                'stripe_price_id' => null,
-                'slug' => 'company-yearly',
-                'description' => 'For growing businesses that need more power. Billed yearly.',
-                'price' => 990.00,
-                'currency' => 'USD',
-                'billing_cycle' => 'yearly',
-                'duration_days' => 365,
-                'trial_days' => 0,
-                'is_active' => true,
-                'is_featured' => true,
-                'sort_order' => 4,
-                'features' => [
-                    'Up to 25 users',
-                    'All features',
-                    'Priority support',
-                    '50 GB storage',
-                    'Advanced analytics',
-                    'API access',
-                    '2 months free vs monthly',
-                ],
-            ],
-            [
-                'name' => 'Enterprise Monthly',
-                'stripe_plan_id' => null,
-                'stripe_price_id' => null,
-                'slug' => 'enterprise-monthly',
-                'description' => 'Custom solutions for large organizations. Billed monthly.',
-                'price' => 149.00,
-                'currency' => 'USD',
-                'billing_cycle' => 'monthly',
-                'duration_days' => 30,
-                'trial_days' => 0,
-                'is_active' => true,
-                'is_featured' => false,
-                'sort_order' => 5,
-                'features' => [
-                    'Unlimited users',
-                    'All features',
-                    'Dedicated support',
-                    'Unlimited storage',
-                    'Advanced analytics',
-                    'API access',
-                    'Custom integrations',
-                    'SLA guarantee',
-                ],
-            ],
-            [
-                'name' => 'Enterprise Yearly',
-                'stripe_plan_id' => null,
-                'stripe_price_id' => null,
-                'slug' => 'enterprise-yearly',
-                'description' => 'Custom solutions for large organizations. Billed yearly.',
-                'price' => 1490.00,
-                'currency' => 'USD',
-                'billing_cycle' => 'yearly',
-                'duration_days' => 365,
-                'trial_days' => 0,
-                'is_active' => true,
-                'is_featured' => false,
-                'sort_order' => 6,
-                'features' => [
-                    'Unlimited users',
-                    'All features',
-                    'Dedicated support',
-                    'Unlimited storage',
-                    'Advanced analytics',
-                    'API access',
-                    'Custom integrations',
-                    'SLA guarantee',
-                    '2 months free vs monthly',
-                ],
+                'prices' => ['month' => 149.00, 'year' => 1490.00],
+                'marketing_bullets' => ['Unlimited users', 'All features', 'Dedicated support', 'Unlimited storage', 'Advanced analytics', 'API access', 'Custom integrations', 'SLA guarantee'],
             ],
         ];
 
-        foreach ($plans as $plan) {
-            Plan::updateOrCreate(['slug' => $plan['slug']], $plan);
+        foreach ($plans as $data) {
+            $prices = $data['prices'];
+            unset($data['prices']);
+
+            $plan = Plan::updateOrCreate(['slug' => $data['slug']], $data + ['is_public' => true, 'is_active' => true]);
+
+            foreach ($prices as $interval => $amount) {
+                // Never rewrite a price: only add one when the interval has no current price.
+                if (! $plan->prices()->current()->where('interval', $interval)->where('currency', 'USD')->exists()) {
+                    $plan->prices()->create(['interval' => $interval, 'amount' => $amount, 'currency' => 'USD']);
+                }
+            }
         }
 
-        // Deactivate legacy Cashier-era slugs if present.
-        Plan::whereIn('slug', ['starter', 'company', 'enterprise'])
-            ->update(['is_active' => false]);
+        $settings = SiteSetting::query()->first() ?? new SiteSetting(['site_name' => 'My Application']);
+        $settings->trial_plan_id ??= Plan::where('slug', 'enterprise')->value('id');
+        $settings->save();
 
-        $this->command?->info('Plans seeded successfully (trial / monthly / yearly).');
+        $this->command?->info('Plans and prices seeded.');
     }
 }

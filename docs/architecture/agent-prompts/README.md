@@ -4,16 +4,16 @@ One package = one branch = one fresh Claude session. Run them in order.
 
 ## Workflow
 
+Only two manual steps: start `claude` in Plan mode, paste the prompt, approve the plan.
+Every prompt ends with an AUTO-FINISH block, so the agent creates the branch, runs pint, phpstan,
+the filtered and full tests, the code-review skill, commits, and merges into local `main` only if
+every gate is green. It never pushes.
+
 ```bash
-git checkout main && git checkout -b p0/wpN-<name>
-claude                      # fresh session; Shift+Tab for Plan mode
-# paste the prompt from wpN-*.md, review the plan, approve
-vendor/bin/pint --dirty
-vendor/bin/phpstan analyse --memory-limit=1G <changed paths>
-php artisan test --filter=<area>     # finally: composer test
-# in Claude: /code-review high
-git add -A && git commit && git checkout main && git merge p0/wpN-<name>
+claude        # Shift+Tab for Plan mode, paste wpN-*.md prompt, approve
 ```
+
+If a gate fails the agent stays on the branch and reports; fix with a follow-up prompt, then say "re-run AUTO-FINISH".
 
 ## Order
 

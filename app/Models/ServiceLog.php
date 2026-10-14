@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/ServiceLog.php
 
 namespace App\Models;
@@ -19,6 +20,7 @@ class ServiceLog extends Model
     protected $fillable = [
         'company_id',
         'vehicle_id',
+        'maintenance_schedule_id',
         'service_date',
         'maintenance_notes',
         'odometer_at_service',
@@ -26,7 +28,7 @@ class ServiceLog extends Model
         'engine_hours_at_service',
         'current_engine_hours',
         'total_cost',
-        'status'
+        'status',
     ];
 
     protected $casts = [
@@ -35,7 +37,7 @@ class ServiceLog extends Model
         'odometer_at_service' => 'integer',
         'current_odometer' => 'integer',
         'engine_hours_at_service' => 'integer',
-        'current_engine_hours' => 'integer'
+        'current_engine_hours' => 'integer',
     ];
 
     // Relationships
@@ -75,7 +77,7 @@ class ServiceLog extends Model
     // Accessors
     public function getFormattedTotalCostAttribute()
     {
-        return '$' . number_format($this->total_cost, 2);
+        return '$'.number_format((float) $this->total_cost, 2);
     }
 
     public function getMileageDifferenceAttribute()
@@ -88,6 +90,7 @@ class ServiceLog extends Model
         if ($this->engine_hours_at_service && $this->current_engine_hours) {
             return $this->current_engine_hours - $this->engine_hours_at_service;
         }
+
         return null;
     }
 
@@ -105,8 +108,9 @@ class ServiceLog extends Model
     {
         $html = '';
         foreach ($this->maintenanceCategories as $category) {
-            $html .= '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs mr-1">' . e($category->name) . '</span>';
+            $html .= '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs mr-1">'.e($category->name).'</span>';
         }
+
         return $html;
     }
 

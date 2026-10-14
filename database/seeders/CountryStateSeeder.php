@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Country;
 use App\Models\State;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Http;
 
 class CountryStateSeeder extends Seeder
@@ -31,9 +31,8 @@ class CountryStateSeeder extends Seeder
 
                 foreach ($countries as $countryData) {
                     // Create country
-                    $country = Country::create([
+                    $country = Country::firstOrCreate(['iso_code' => $countryData['cca2']], [
                         'name' => $countryData['name']['common'],
-                        'iso_code' => $countryData['cca2'],
                         'phone_code' => $this->extractPhoneCode($countryData['idd'] ?? []),
                         'currency_code' => $this->extractCurrencyCode($countryData['currencies'] ?? []),
                         'currency_name' => $this->extractCurrencyName($countryData['currencies'] ?? []),
@@ -53,7 +52,7 @@ class CountryStateSeeder extends Seeder
                 $this->seedStaticData();
             }
         } catch (\Exception $e) {
-            $this->command->error('API Error: ' . $e->getMessage());
+            $this->command->error('API Error: '.$e->getMessage());
             $this->command->info('Using static data instead...');
             $this->seedStaticData();
         }
@@ -108,7 +107,7 @@ class CountryStateSeeder extends Seeder
         ];
 
         foreach ($countries as $countryData) {
-            $country = Country::create($countryData);
+            $country = Country::firstOrCreate(['iso_code' => $countryData['iso_code']], $countryData);
             $this->command->info("Added country: {$country->name}");
 
             // Add states for specific countries
@@ -125,29 +124,26 @@ class CountryStateSeeder extends Seeder
     {
         try {
             $response = Http::post('https://countriesnow.space/api/v0.1/countries/states', [
-                'iso2' => $countryCode
+                'iso2' => $countryCode,
             ]);
 
             if ($response->successful()) {
                 $states = $response->json('data.states');
 
                 foreach ($states as $state) {
-                    State::create([
-                        'country_id' => $countryId,
-                        'name'       => $state['name'],
-                        'code'       => $state['state_code'] ?? null,
+                    State::firstOrCreate(['country_id' => $countryId, 'name' => $state['name']], [
+                        'code' => $state['state_code'] ?? null,
                     ]);
                 }
 
-                $this->command->info("Added " . count($states) . " states for {$countryCode}");
+                $this->command->info('Added '.count($states)." states for {$countryCode}");
             } else {
                 $this->command->error("Failed to fetch states for {$countryCode}");
             }
         } catch (\Exception $e) {
-            $this->command->error("State API error for {$countryCode}: " . $e->getMessage());
+            $this->command->error("State API error for {$countryCode}: ".$e->getMessage());
         }
     }
-
 
     /**
      * Extract phone code from API response
@@ -158,8 +154,9 @@ class CountryStateSeeder extends Seeder
             return null;
         }
 
-        $suffix = is_array($idd['suffixes']) && !empty($idd['suffixes']) ? $idd['suffixes'][0] : '';
-        return $idd['root'] . $suffix;
+        $suffix = is_array($idd['suffixes']) && ! empty($idd['suffixes']) ? $idd['suffixes'][0] : '';
+
+        return $idd['root'].$suffix;
     }
 
     /**
@@ -172,6 +169,7 @@ class CountryStateSeeder extends Seeder
         }
 
         $currency = reset($currencies);
+
         return $currency['code'] ?? null;
     }
 
@@ -185,6 +183,7 @@ class CountryStateSeeder extends Seeder
         }
 
         $currency = reset($currencies);
+
         return $currency['name'] ?? null;
     }
 }

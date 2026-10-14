@@ -3,14 +3,17 @@
 namespace Database\Factories;
 
 use App\Models\Company;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
  * Company has no HasFactory trait; use CompanyFactory::new().
  *
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Company>
+ * Creates the company the way production does: company without owner -> owner user in that
+ * company -> owner_user_id. Interim until CompanyProvisioner (WP2) becomes the only path.
+ *
+ * @extends Factory<Company>
  */
 class CompanyFactory extends Factory
 {
@@ -24,21 +27,45 @@ class CompanyFactory extends Factory
         $name = fake()->unique()->company();
 
         return [
-            'user_id' => User::factory(),
             'company_name' => $name,
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)),
             'email' => fake()->unique()->companyEmail(),
             'address' => fake()->streetAddress(),
             'city' => fake()->city(),
-            'state' => 'TX',
+            'state_code' => 'TX',
             'zip' => fake()->postcode(),
             'phone' => '2025550143',
             'status' => 'active',
         ];
     }
 
-    public function inactive(): static
+    public function configure(): static
     {
-        return $this->state(fn () => ['status' => 'inactive']);
+        return $this->afterCreating(function (Company $company) {
+            if ($company->owner_user_id === null) {
+                $owner = UserFactory::new()->create(['company_id' => $company->id]);
+                $company->forceFill(['owner_user_id' => $owner->id])->save();
+            }
+
+            $company->settings()->firstOrCreate([]);
+        });
+    }
+
+    /**
+     * Skips the owner and settings. Call before adding other afterCreating callbacks.
+     */
+    public function withoutOwner(): static
+    {
+        return $this->newInstance(['afterCreating' => new Collection]);
+    }
+
+    public function suspended(): static
+    {
+        return $this->state(fn () => ['status' => 'suspended', 'status_changed_at' => now()]);
+    }
+
+    public function deactivated(): static
+    {
+        return $this->state(fn () => ['status' => 'deactivated', 'status_changed_at' => now()]);
     }
 }

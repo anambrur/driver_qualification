@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('vehicles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
             // Vehicle Information - Required
             $table->string('unit_no');
             $table->string('vin', 17);
@@ -22,6 +22,9 @@ return new class extends Migration
             $table->string('model');
             $table->foreignId('vehicle_type_id')->nullable()->constrained('vehicle_types')->restrictOnDelete();
             $table->string('owned_by')->nullable();
+            $table->string('plate_number', 20)->nullable();
+            $table->char('plate_state_code', 2)->nullable();
+            $table->unsignedBigInteger('photo_file_id')->nullable();
 
             // Vehicle Details - Optional
             $table->string('color')->nullable();
@@ -50,11 +53,10 @@ return new class extends Migration
 
             $table->softDeletes();
 
-            // Indexes
-            $table->index('unit_no');
-            $table->index('vin');
+            $table->unique(['company_id', 'id']);
             $table->unique(['company_id', 'unit_no']);
             $table->unique(['company_id', 'vin']);
+            $table->foreign(['company_id', 'photo_file_id'])->references(['company_id', 'id'])->on('stored_files')->restrictOnDelete();
         });
     }
 

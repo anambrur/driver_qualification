@@ -3,35 +3,28 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Plan extends Model
 {
-    public const CYCLES = ['monthly', 'yearly', 'trial'];
+    use HasFactory;
 
     protected $fillable = [
         'name',
-        'stripe_plan_id',
-        'stripe_price_id',
         'slug',
         'description',
-        'price',
-        'currency',
-        'billing_cycle',
-        'duration_days',
-        'trial_days',
+        'is_public',
         'is_active',
-        'is_featured',
         'sort_order',
-        'features',
+        'marketing_bullets',
     ];
 
     protected $casts = [
-        'features' => 'array',
+        'marketing_bullets' => 'array',
+        'is_public' => 'boolean',
         'is_active' => 'boolean',
-        'is_featured' => 'boolean',
-        'price' => 'decimal:2',
     ];
 
     public function scopeActive(Builder $query): Builder
@@ -44,42 +37,19 @@ class Plan extends Model
         return $query->orderBy('sort_order')->orderBy('id');
     }
 
-    public function subscriptions(): HasMany
+    /**
+     * @return HasMany<PlanPrice, $this>
+     */
+    public function prices(): HasMany
     {
-        return $this->hasMany(Subscription::class);
+        return $this->hasMany(PlanPrice::class);
     }
 
-    public function isFree(): bool
+    /**
+     * @return HasMany<PlanFeature, $this>
+     */
+    public function features(): HasMany
     {
-        return (float) $this->price <= 0;
-    }
-
-    public function isTrial(): bool
-    {
-        return $this->billing_cycle === 'trial';
-    }
-
-    public function isMonthly(): bool
-    {
-        return $this->billing_cycle === 'monthly';
-    }
-
-    public function isYearly(): bool
-    {
-        return $this->billing_cycle === 'yearly';
-    }
-
-    public function stripeInterval(): ?string
-    {
-        return match ($this->billing_cycle) {
-            'monthly' => 'month',
-            'yearly' => 'year',
-            default => null,
-        };
-    }
-
-    public function amountInCents(): int
-    {
-        return (int) round(((float) $this->price) * 100);
+        return $this->hasMany(PlanFeature::class);
     }
 }

@@ -9,7 +9,10 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 /**
  * Driver has no HasFactory trait; use DriverFactory::new().
  *
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Driver>
+ * Defaults to a hired driver created by staff (no application). user_id (the driver's own
+ * login) stays null unless a test links one.
+ *
+ * @extends Factory<Driver>
  */
 class DriverFactory extends Factory
 {
@@ -22,21 +25,20 @@ class DriverFactory extends Factory
     {
         return [
             'company_id' => CompanyFactory::new(),
-            // Mirrors production: drivers.user_id is the owning company's user.
-            'user_id' => fn (array $attributes) => Company::find($attributes['company_id'])->user_id,
+            'created_by_user_id' => fn (array $attributes) => Company::find($attributes['company_id'])->owner_user_id,
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'date_of_birth' => fake()->dateTimeBetween('-60 years', '-21 years')->format('Y-m-d'),
             'ssn' => fake()->numerify('#########'),
             'main_phone' => '+1202555'.fake()->unique()->numerify('####'),
             'email' => fake()->unique()->safeEmail(),
-            'medical_certificate_expiration_date' => now()->addYear()->toDateString(),
             'address' => fake()->streetAddress(),
             'city' => fake()->city(),
-            'state' => 'Texas',
-            'country' => 'United States',
+            'state_code' => 'TX',
+            'country_code' => 'US',
             'postal_code' => fake()->postcode(),
-            'status' => 'active',
+            'application_status' => null,
+            'employment_status' => 'active',
             'source' => 'admin',
         ];
     }
@@ -45,28 +47,53 @@ class DriverFactory extends Factory
     {
         return $this->state(fn () => [
             'company_id' => $company->id,
-            'user_id' => $company->user_id,
+            'created_by_user_id' => $company->owner_user_id,
         ]);
     }
 
-    public function status(string $status): static
+    /**
+     * @param  'applicant'|'active'|'inactive'|'terminated'  $status
+     */
+    public function employment(string $status): static
     {
-        return $this->state(fn () => ['status' => $status]);
+        return $this->state(fn () => ['employment_status' => $status]);
     }
 
     /**
-     * A draft created by the public application OTP step (only phone is known).
+     * A public applicant at the given application stage.
+     *
+     * @param  'draft'|'pending'|'submitted'|'under_review'|'approved'|'rejected'|'withdrawn'  $status
      */
-    public function publicDraft(): static
+    public function application(string $status): static
     {
         return $this->state(fn () => [
+            'application_status' => $status,
+            'employment_status' => 'applicant',
+            'source' => 'public_application',
+            'created_by_user_id' => null,
+        ]);
+    }
+
+    public function publicDraft(): static
+    {
+        return $this->application('draft')->state(fn () => [
             'first_name' => null,
             'last_name' => null,
             'date_of_birth' => null,
             'ssn' => null,
             'email' => null,
-            'status' => 'draft',
-            'source' => 'public_application',
         ]);
+    }
+
+    /**
+     * Adds a current licence expiring on the given date (default: in two years).
+     */
+    public function withCurrentLicense(?string $expires = null): static
+    {
+        return $this->afterCreating(fn (Driver $driver) => LicenseFactory::new()->create([
+            'driver_id' => $driver->id,
+            'expires' => $expires ?? now()->addYears(2)->toDateString(),
+            'is_current' => true,
+        ]));
     }
 }

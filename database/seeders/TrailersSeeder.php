@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class TrailersSeeder extends Seeder
 {
@@ -21,7 +21,7 @@ class TrailersSeeder extends Seeder
         $companies = DB::table('companies')->pluck('id');
 
         // Default to first company if specific companies not found
-        $defaultCompanyId = !empty($companies) ? reset($companies) : null;
+        $defaultCompanyId = ! empty($companies) ? reset($companies) : null;
 
         $trailers = [
             [
@@ -31,7 +31,7 @@ class TrailersSeeder extends Seeder
                 'year' => 2022,
                 'make' => 'Great Dane',
                 'model' => 'EverDry',
-                'equipment_types_id' => $equipmentTypes['Trailer Hitch'] ?? null,
+                'equipment_type_id' => $equipmentTypes['Trailer Hitch'] ?? null,
                 'owned_by' => 'Company Owned',
                 'color' => 'White',
                 'title_no' => 'TT1234567',
@@ -47,7 +47,7 @@ class TrailersSeeder extends Seeder
                 'year' => 2021,
                 'make' => 'Utility',
                 'model' => '4000D',
-                'equipment_types_id' => $equipmentTypes['Trailer Hitch'] ?? null,
+                'equipment_type_id' => $equipmentTypes['Trailer Hitch'] ?? null,
                 'owned_by' => 'Company Owned',
                 'color' => 'Black',
                 'title_no' => 'TT2345678',
@@ -63,7 +63,7 @@ class TrailersSeeder extends Seeder
                 'year' => 2023,
                 'make' => 'Wabash',
                 'model' => 'National',
-                'equipment_types_id' => $equipmentTypes['Refrigeration Unit'] ?? null,
+                'equipment_type_id' => $equipmentTypes['Refrigeration Unit'] ?? null,
                 'owned_by' => 'Leased',
                 'color' => 'Blue',
                 'title_no' => 'TT3456789',
@@ -79,7 +79,7 @@ class TrailersSeeder extends Seeder
                 'year' => 2020,
                 'make' => 'MAC',
                 'model' => 'Platform',
-                'equipment_types_id' => $equipmentTypes['Trailer Hitch'] ?? null,
+                'equipment_type_id' => $equipmentTypes['Trailer Hitch'] ?? null,
                 'owned_by' => 'Company Owned',
                 'color' => 'Silver',
                 'title_no' => 'TT4567890',
@@ -95,7 +95,7 @@ class TrailersSeeder extends Seeder
                 'year' => 2022,
                 'make' => 'East',
                 'model' => 'End Dump',
-                'equipment_types_id' => $equipmentTypes['Trailer Hitch'] ?? null,
+                'equipment_type_id' => $equipmentTypes['Trailer Hitch'] ?? null,
                 'owned_by' => 'Company Owned',
                 'color' => 'Red',
                 'title_no' => 'TT5678901',
@@ -111,7 +111,7 @@ class TrailersSeeder extends Seeder
                 'year' => 2024,
                 'make' => 'Stoughton',
                 'model' => 'Contour',
-                'equipment_types_id' => $equipmentTypes['Refrigeration Unit'] ?? null,
+                'equipment_type_id' => $equipmentTypes['Refrigeration Unit'] ?? null,
                 'owned_by' => 'Leased',
                 'color' => 'White',
                 'title_no' => 'TT6789012',
@@ -123,7 +123,7 @@ class TrailersSeeder extends Seeder
         ];
 
         foreach ($trailers as $trailer) {
-            DB::table('trailers')->insert(array_merge($trailer, [
+            DB::table('trailers')->insertOrIgnore(array_merge($trailer, [
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ]));

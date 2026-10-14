@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('maintenance_schedules', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
-            $table->foreignId('vehicle_id')->nullable()->constrained('vehicles')->onDelete('cascade');
-            $table->foreignId('maintenance_category_id')->constrained('maintenance_categories')->restrictOnDelete();
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
+            $table->unsignedBigInteger('vehicle_id')->nullable();
+            $table->foreignId('maintenance_category_id')->constrained()->restrictOnDelete();
 
             // Basic Information
             $table->string('title')->nullable();
@@ -26,10 +26,10 @@ return new class extends Migration
             $table->integer('interval_miles')->nullable(); // For mileage-based schedules
             $table->integer('interval_hours')->nullable(); // For engine hours-based schedules
 
-            // Last and next due tracking
-            $table->date('last_due_date')->nullable();
-            $table->integer('last_due_mileage')->nullable();
-            $table->integer('last_due_hours')->nullable();
+            // Last completed service and next due (F14)
+            $table->date('last_service_date')->nullable();
+            $table->integer('last_service_mileage')->nullable();
+            $table->integer('last_service_hours')->nullable();
 
             $table->date('next_due_date')->nullable();
             $table->integer('next_due_mileage')->nullable();
@@ -39,19 +39,14 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->text('notes')->nullable();
 
-            // Status
-            $table->boolean('is_active')->default(true);
             $table->enum('status', ['active', 'paused', 'completed'])->default('active');
 
             $table->timestamps();
             $table->softDeletes();
 
-            // Indexes
-            $table->index('vehicle_id');
-            $table->index('maintenance_category_id');
-            $table->index('schedule_type');
-            $table->index('status');
-            $table->index('next_due_date');
+            $table->unique(['company_id', 'id']);
+            $table->index(['company_id', 'status', 'next_due_date']);
+            $table->foreign(['company_id', 'vehicle_id'])->references(['company_id', 'id'])->on('vehicles')->restrictOnDelete();
         });
     }
 

@@ -4,20 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
 class DocumentType extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
         'name',
         'module',
+        'system_key',
+        'requires_expiry',
         'status',
     ];
 
@@ -28,6 +31,7 @@ class DocumentType extends Model
      */
     protected $casts = [
         'status' => 'boolean',
+        'requires_expiry' => 'boolean',
     ];
 
     /**
@@ -124,6 +128,7 @@ class DocumentType extends Model
         if ($module) {
             return $query->where('module', $module);
         }
+
         return $query;
     }
 

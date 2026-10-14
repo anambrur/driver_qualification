@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('residence_addresses', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
+            $table->foreignId('driver_id')->constrained()->cascadeOnDelete();
             $table->string('address');
             $table->string('city');
-            $table->string('state');
-            $table->string('country');
+            $table->char('state_code', 2);
+            $table->char('country_code', 2);
             $table->string('zip');
             $table->boolean('is_current')->default(false);
             $table->timestamps();

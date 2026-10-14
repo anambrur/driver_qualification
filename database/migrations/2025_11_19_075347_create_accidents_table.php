@@ -11,15 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // One row per real accident; "no accidents" is driver_documents.has_accidents (F19c).
         Schema::create('accidents', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
-            $table->enum('accident', ['no', 'yes'])->default('no');
+            $table->foreignId('driver_id')->constrained()->cascadeOnDelete();
             $table->date('accident_date')->nullable();
             $table->string('accident_location')->nullable();
-            $table->string('number_of_injuries')->nullable();
-            $table->string('number_of_fatalities')->nullable();
-            $table->enum('hazmat_spill', ['no', 'yes'])->default('no');
+            $table->unsignedSmallInteger('number_of_injuries')->default(0);
+            $table->unsignedSmallInteger('number_of_fatalities')->default(0);
+            $table->boolean('hazmat_spill')->default(false);
             $table->timestamps();
         });
     }

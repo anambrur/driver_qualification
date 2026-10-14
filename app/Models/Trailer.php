@@ -20,19 +20,22 @@ class Trailer extends Model
         'year',
         'make',
         'model',
-        'equipment_types_id',
+        'equipment_type_id',
         'owned_by',
+        'plate_number',
+        'plate_state_code',
+        'photo_file_id',
         'color',
         'title_no',
         'tire_size',
         'gvw',
         'vehicle_group_id',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
         'year' => 'integer',
-        'gvw' => 'integer'
+        'gvw' => 'integer',
     ];
 
     // Relationships
@@ -41,7 +44,7 @@ class Trailer extends Model
      */
     public function equipmentType(): BelongsTo
     {
-        return $this->belongsTo(EquipmentType::class, 'equipment_types_id');
+        return $this->belongsTo(EquipmentType::class, 'equipment_type_id');
     }
 
     /**
@@ -100,7 +103,7 @@ class Trailer extends Model
         return [
             'company' => 'Company Owned',
             'lease' => 'Leased',
-            'rental' => 'Rental'
+            'rental' => 'Rental',
         ];
     }
 
@@ -158,7 +161,7 @@ class Trailer extends Model
                 })
                 ->exists();
 
-            if (!$hasDoc) {
+            if (! $hasDoc) {
                 $missing[] = $docType->name;
             }
         }

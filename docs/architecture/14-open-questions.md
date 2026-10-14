@@ -44,6 +44,8 @@ The product owner answered the questions from the 11 October draft on **13 Octob
 | C7 | The client's list has an empty bullet after "miles traveled and the distance to the destination". Investigated: the PDF text at that bullet contains only a zero-width space (`pdftotext` output, line 51). There is no hidden or cut-off text in the file. | **Ask the client** whether a requirement is missing. Nothing is added until then. |
 | Emergency support access | Q1 requires both parties' approval, so there is no access when the company Owner can't be reached. | Not built. If it's ever needed (for example, a legal request), it becomes a new decision. |
 | Retention periods [L] | See section 4 | Defaults in [08](08-database-schema.md) §15 until counsel confirms |
+| WP1 hand-offs (13 Oct 2026) | Who owns: the `stored_files` write path and the wizard's medical-card upload creating the `medical_examiner_certificate` compliance document (F17); `PolicyPdf::resolveFor()` falling back to the `site_settings` platform defaults; `asset_transfers` (08 §3); `company_invitations` (group N). | Proposed: WP9 for the file path, wizard and policy fallback; WP8 for `asset_transfers`; WP4 for `company_invitations`. **PENDING** |
+| MySQL 8.0.16 run | WP1 was verified on SQLite 3.45 and MySQL 9.3 only (no 8.0 server available locally). | Run `migrate:fresh --seed`, `integrity:check` and the Schema/Integrity tests on 8.0.16 before go-live. **PENDING** |
 | Scheduler and Octane (PO-20) | Is the scheduler running every minute in production? Will the app ever run on Octane? | The design is Octane-safe. The scheduler must be confirmed before go-live. |
 
 ## 4. Legal and compliance items for the client or counsel [L]

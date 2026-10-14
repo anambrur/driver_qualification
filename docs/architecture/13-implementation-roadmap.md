@@ -17,7 +17,7 @@ flowchart LR
 
 | # | Task | Depends on | Docs |
 |---|---|---|---|
-| 0.1 | Spike. **Permission scale: done** 13 Oct 2026 (06 §2; database-first chosen; composite FK isolation confirmed on MySQL 9.3). Remaining: CHECK and generated-column behaviour on MySQL 8.0.16+ and SQLite; companies owner FK on SQLite. | — | 06 §2, 08 §1 |
+| 0.1 | Spike. **Permission scale: done** 13 Oct 2026 (06 §2; database-first chosen; composite FK isolation confirmed on MySQL 9.3). **SQLite and MySQL 9.3: done** in WP1 (08 §1: CHECK helper, SQLite alter rule, owner FK placement). Remaining: one run on MySQL 8.0.16 (CI or staging). | — | 06 §2, 08 §1 |
 | 0.2 | Schema rebuild of groups A–J and O, plus `stored_files` ([11](11-migration-strategy.md) §3), with the ERD fixes F1–F29 | 0.1 | 08, 09 |
 | 0.3 | `CompanyProvisioner`, the registration change (company name), and the platform "create company" | 0.2 | 10 §1 |
 | 0.4 | `TenantContext`, `ResolveTenant` (middleware priority before bindings), `BelongsToCompany` scope, `TenantRule`, `TenantAware` job middleware; refactor `CompanyFilterTrait` | 0.2 | 03 |

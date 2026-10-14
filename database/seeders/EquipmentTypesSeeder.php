@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -35,7 +34,7 @@ class EquipmentTypesSeeder extends Seeder
         ];
 
         foreach ($equipmentTypes as $type) {
-            DB::table('equipment_types')->insert([
+            DB::table('equipment_types')->insertOrIgnore([
                 'name' => $type['name'],
                 'created_at' => now(),
                 'updated_at' => now(),

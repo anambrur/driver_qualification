@@ -11,16 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // One row per real violation; "no violations" is driver_documents.has_violations (F19c).
+        // The signature lives once, in driver_documents (F13b).
         Schema::create('violations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
-            $table->enum('violation', ['no', 'yes'])->default('no');
+            $table->foreignId('driver_id')->constrained()->cascadeOnDelete();
             $table->date('violation_date')->nullable();
             $table->string('violation_location')->nullable();
             $table->string('offense')->nullable();
-            $table->string('vehicle_type')->nullable();
-            $table->string('violation_record_signature')->nullable();
-            $table->date('violation_record_date_signed')->nullable();
+            $table->string('vehicle_type')->nullable(); // applicant's own wording
             $table->timestamps();
         });
     }

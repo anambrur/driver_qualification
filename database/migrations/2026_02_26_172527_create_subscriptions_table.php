@@ -11,25 +11,34 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Owned by the company (07 §2). Price and amount are snapshots of what was charged.
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('plan_id')->nullable()->constrained('plans')->nullOnDelete();
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
+            $table->foreignId('actor_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('plan_price_id')->constrained()->restrictOnDelete();
             $table->string('stripe_subscription_id')->nullable()->unique();
-            $table->string('stripe_status')->default('incomplete');
-            $table->string('billing_cycle')->default('monthly');
+            $table->string('stripe_price_id')->nullable();
+            $table->enum('interval', ['month', 'year']);
             $table->decimal('amount', 10, 2)->default(0);
-            $table->string('currency', 3)->default('USD');
+            $table->char('currency', 3)->default('USD');
+            $table->enum('status', ['trialing', 'active', 'past_due', 'unpaid', 'canceled', 'incomplete', 'incomplete_expired'])->default('incomplete');
+            $table->enum('source', ['stripe', 'trial', 'admin'])->default('stripe');
             $table->timestamp('trial_ends_at')->nullable();
             $table->timestamp('current_period_start')->nullable();
             $table->timestamp('current_period_end')->nullable();
             $table->boolean('cancel_at_period_end')->default(false);
             $table->timestamp('ends_at')->nullable();
-            $table->string('source')->default('stripe'); // stripe|trial|admin
+            $table->timestamp('ended_at')->nullable(); // set when finished; ended rows are history
+            $table->timestamp('last_stripe_event_at')->nullable(); // ordering guard
+            $table->boolean('needs_review')->default(false);
+            $table->unsignedTinyInteger('open_flag')->nullable()->storedAs('CASE WHEN ended_at IS NULL THEN 1 END');
             $table->timestamps();
 
-            $table->index(['user_id', 'stripe_status']);
-            $table->index(['billing_cycle', 'ends_at']);
+            // At most one open subscription per company (07 §4.1).
+            $table->unique(['company_id', 'open_flag']);
+            $table->index(['company_id', 'status']);
+            $table->index(['status', 'ends_at']);
         });
     }
 
