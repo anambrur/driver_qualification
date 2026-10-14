@@ -6,6 +6,7 @@ use App\Http\Controllers\AssetGroupController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\CompanyInvitationController;
 use App\Http\Controllers\ComplianceDashboardController;
 use App\Http\Controllers\ComplianceReminderController;
 use App\Http\Controllers\DashboardController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\TawkToSettingController;
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserPermissionController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleGroupController;
 use App\Http\Controllers\VehicleTypeController;
@@ -164,16 +166,31 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
 
 // ─── Subscription routes (auth required, no subscription check) ───────────────
 Route::middleware(['auth'])->group(function () {
-    // Legacy UserController is not tenant-safe (unscoped ids, raw role sync); closed to tenants until WP4 replaces it.
-    Route::prefix('users')->name('users.')->group(function () {
-        Route::get('/', [UserController::class, 'index'])->name('index')->middleware('permission:platform.staff.manage');
-        Route::get('/create', [UserController::class, 'create'])->name('create')->middleware('permission:platform.staff.manage');
-        Route::post('/', [UserController::class, 'store'])->name('store')->middleware('permission:platform.staff.manage');
-        Route::get('/{id}/edit', [UserController::class, 'edit'])->name('edit')->middleware('permission:platform.staff.manage');
-        Route::put('/{id}', [UserController::class, 'update'])->name('update')->middleware('permission:platform.staff.manage');
-        Route::post('/{id}/suspend', [UserController::class, 'suspend'])->name('suspend')->middleware('permission:platform.staff.manage');
-        Route::post('/{id}/unsuspend', [UserController::class, 'unsuspend'])->name('unsuspend')->middleware('permission:platform.staff.manage');
-        Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy')->middleware('permission:platform.staff.manage');
+    // Company users (06 §8, 10 §5): the services resolve every id inside the user's own company.
+    Route::prefix('users')->name('users.')->whereNumber(['user', 'invitation'])->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('index')->middleware('permission:users.view');
+        Route::get('/invite', [CompanyInvitationController::class, 'create'])->name('invite')->middleware('permission:users.create');
+        Route::post('/invitations', [CompanyInvitationController::class, 'store'])->name('invitations.store')->middleware(['permission:users.create', 'throttle:20,1']);
+        Route::post('/invitations/{invitation}/resend', [CompanyInvitationController::class, 'resend'])->name('invitations.resend')->middleware(['permission:users.create', 'throttle:20,1']);
+        Route::delete('/invitations/{invitation}', [CompanyInvitationController::class, 'destroy'])->name('invitations.destroy')->middleware('permission:users.create');
+        Route::get('/{user}/edit', [UserController::class, 'edit'])->name('edit')->middleware('permission:users.edit');
+        Route::put('/{user}', [UserController::class, 'update'])->name('update')->middleware('permission:users.edit');
+        Route::post('/{user}/deactivate', [UserController::class, 'deactivate'])->name('deactivate')->middleware('permission:users.deactivate');
+        Route::post('/{user}/reactivate', [UserController::class, 'reactivate'])->name('reactivate')->middleware('permission:users.deactivate');
+        // Direct grants: backend only, UI in Phase 1.6
+        Route::post('/{user}/permissions', [UserPermissionController::class, 'store'])->name('permissions.store')->middleware('permission:permissions.grant');
+        Route::delete('/{user}/permissions/{permission}', [UserPermissionController::class, 'destroy'])->name('permissions.destroy')->middleware('permission:permissions.grant');
+    });
+
+    // Company roles (10 §4): per team, so another company's role id is a 404
+    Route::prefix('roles')->name('admin.roles.')->whereNumber('role')->group(function () {
+        Route::get('/', [RoleController::class, 'index'])->name('index')->middleware('permission:roles.view');
+        Route::get('/create', [RoleController::class, 'create'])->name('create')->middleware('permission:roles.create');
+        Route::post('/', [RoleController::class, 'store'])->name('store')->middleware('permission:roles.create');
+        Route::get('/{role}', [RoleController::class, 'show'])->name('show')->middleware('permission:roles.view');
+        Route::get('/{role}/edit', [RoleController::class, 'edit'])->name('edit')->middleware('permission:roles.edit');
+        Route::put('/{role}', [RoleController::class, 'update'])->name('update')->middleware('permission:roles.edit');
+        Route::delete('/{role}', [RoleController::class, 'destroy'])->name('destroy')->middleware('permission:roles.delete');
     });
 
     // ─── Billing & Subscription ───────────────────────────────────────────────
@@ -435,22 +452,6 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
         // Company owners (companies.edit) manage their own company's policy PDFs (PO-14)
         Route::get('/policy-pdf', [CompanyController::class, 'policyPDF'])->name('admin.settings.policy.pdf')->middleware('permission:company.edit');
         Route::post('/policy-pdf', [CompanyController::class, 'policyPDFStore'])->name('admin.settings.policy.pdf.store')->middleware('permission:company.edit');
-
-        // Legacy RoleController is not team-scoped; closed to tenants until WP4 replaces it.
-        Route::get('/roles', [RoleController::class, 'index'])->name('admin.roles.index')
-            ->middleware('permission:platform.staff.manage');
-        Route::get('/roles/create', [RoleController::class, 'create'])->name('admin.roles.create')
-            ->middleware('permission:platform.staff.manage');
-        Route::post('/roles', [RoleController::class, 'store'])->name('admin.roles.store')
-            ->middleware('permission:platform.staff.manage');
-        Route::get('/roles/{id}', [RoleController::class, 'show'])->name('admin.roles.show')
-            ->middleware('permission:platform.staff.manage');
-        Route::get('/roles/{id}/edit', [RoleController::class, 'edit'])->name('admin.roles.edit')
-            ->middleware('permission:platform.staff.manage');
-        Route::put('/roles/{role}', [RoleController::class, 'update'])->name('admin.roles.update')
-            ->middleware('permission:platform.staff.manage');
-        Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('admin.roles.destroy')
-            ->middleware('permission:platform.staff.manage');
 
         // Document Types
         Route::prefix('document-types')->group(function () {

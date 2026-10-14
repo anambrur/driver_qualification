@@ -1,5 +1,6 @@
 <?php
 
+use App\Authorization\PermissionCatalogue;
 use App\Authorization\TeamScope;
 use App\Authorization\TenantPermissionResolver;
 use App\Models\AuditLog;
@@ -12,7 +13,6 @@ use App\Services\Authorization\RoleService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Route;
-use Spatie\Permission\Exceptions\UnauthorizedException;
 use Tests\Support\Actors;
 
 /*
@@ -269,34 +269,29 @@ describe('OwnershipService', function () {
     });
 });
 
-describe('legacy user and role screens (replaced in WP4)', function () {
-    it('stay closed to tenants, so another company\'s user cannot be changed', function () {
-        $a = Actors::company();
+describe('user and role screens (WP4)', function () {
+    it("return 404 for another company's user, so it cannot be changed", function () {
         $victim = Actors::officeUser(Actors::company());
-        $owner = $a->owner;
 
-        // The 403 page itself still hits a legacy relation (WP5), so assert the refusal directly.
-        $this->withoutExceptionHandling()->actingAs($owner);
-
-        expect(fn () => $this->get(route('users.index')))->toThrow(UnauthorizedException::class)
-            ->and(fn () => $this->put(route('users.update', $victim->id), [
-                'name' => 'Taken', 'email' => $victim->email, 'status' => 'active',
-                'password' => 'NewPassword123!', 'password_confirmation' => 'NewPassword123!',
-            ]))->toThrow(UnauthorizedException::class);
+        $this->actingAs(Actors::companyOwner())
+            ->put(route('users.update', $victim->id), ['name' => 'Taken', 'roles' => []])
+            ->assertNotFound();
 
         expect($victim->fresh()->name)->not->toBe('Taken');
     });
 
-    it('require a permission no tenant user can hold on every user and role route', function () {
+    it('require a tenant users, roles or grant permission on every user and role route', function () {
         $routes = collect(Route::getRoutes()->getRoutes())
             ->filter(fn ($route) => preg_match('/^(users|admin\.roles)\./', (string) $route->getName()));
 
         expect($routes)->not->toBeEmpty();
 
         foreach ($routes as $route) {
-            expect($route->gatherMiddleware())->toContain('permission:platform.staff.manage');
-        }
+            $permission = collect($route->gatherMiddleware())
+                ->first(fn ($middleware) => is_string($middleware) && str_starts_with($middleware, 'permission:'));
 
-        expect(Actors::actingAsTenant(Actors::companyOwner())->can('platform.staff.manage'))->toBeFalse();
+            expect($permission)->toMatch('/^permission:(users\.|roles\.|permissions\.grant$)/')
+                ->and(PermissionCatalogue::TENANT)->toHaveKey(substr($permission, strlen('permission:')));
+        }
     });
 });

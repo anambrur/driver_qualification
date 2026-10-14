@@ -9,7 +9,7 @@
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-white/90">Roles Management</h2>
-                    <p class="text-gray-600 dark:text-gray-400 mt-2">Manage user roles and permissions</p>
+                    <p class="text-gray-600 dark:text-gray-400 mt-2">Roles of your company. Changes apply to your company only.</p>
                 </div>
 
                 @can('roles.create')
@@ -82,6 +82,11 @@
                                         <td class="whitespace-nowrap px-6 py-4">
                                             <span
                                                 class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $role->name }}</span>
+                                            @if ($role->isLocked())
+                                                <span class="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">Locked</span>
+                                            @elseif ($role->is_system)
+                                                <span class="ml-2 inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">System</span>
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4">
                                             @if ($role->permissions && $role->permissions->count() > 0)
@@ -98,14 +103,14 @@
                                             @endif
                                         </td>
                                         <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium space-x-2">
-                                            @can('roles.edit')
+                                            @if (auth()->user()->can('roles.edit') && in_array($role->id, $manageable))
                                                 <a href="{{ route('admin.roles.edit', $role->id) }}"
                                                     class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                                                     <i class="fas fa-edit mr-1.5"></i>Edit
                                                 </a>
-                                            @endcan
+                                            @endif
 
-                                            @if (auth()->user()->can('roles.delete') && !in_array($role->name, $systemRoles, true))
+                                            @if (auth()->user()->can('roles.delete') && in_array($role->id, $manageable) && ! ($role->is_system && $role->in_use))
                                                 <button type="button" data-action="delete-role"
                                                     data-url="{{ route('admin.roles.destroy', $role->id) }}"
                                                     data-name="{{ $role->name }}"

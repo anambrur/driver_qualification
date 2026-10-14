@@ -9,7 +9,10 @@ use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Company roles (06 §8): same company only, grant only what you hold, locked roles untouched.
@@ -18,6 +21,73 @@ use Illuminate\Support\Facades\DB;
 class RoleService
 {
     public function __construct(private TenantPermissionResolver $resolver) {}
+
+    /**
+     * The company's roles, tenant-assignable ones only (Support roles belong to support sessions).
+     *
+     * @return Collection<int, Role>
+     */
+    public function list(User $actor): Collection
+    {
+        return $this->team($actor)
+            ->where(fn ($query) => $query->whereNull('system_key')->orWhereIn('system_key', ['owner', 'driver']))
+            ->addSelect(['in_use' => DB::table('model_has_roles')
+                ->selectRaw('1')
+                ->whereColumn('model_has_roles.role_id', 'roles.id')
+                ->whereColumn('model_has_roles.team_id', 'roles.team_id')
+                ->limit(1)])
+            ->with('permissions:id,name')
+            ->orderByDesc('is_system')
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function find(User $actor, int $roleId): Role
+    {
+        return $this->team($actor)->with('permissions:id,name')->findOrFail($roleId);
+    }
+
+    /**
+     * Whether the actor may edit or delete the role: unlocked, and they hold all its permissions.
+     */
+    public function manageable(User $actor, Role $role): bool
+    {
+        return ! $role->isLocked() && $this->resolver->holdsAll($actor, $role->permissions->pluck('name'));
+    }
+
+    /**
+     * Unlocked roles whose permissions the actor holds (06 §8 rule 3), for invite and edit forms.
+     *
+     * @return Collection<int, Role>
+     */
+    public function assignable(User $actor): Collection
+    {
+        return $this->team($actor)
+            ->whereNull('system_key')
+            ->with('permissions:id,name')
+            ->orderBy('name')
+            ->get()
+            ->filter(fn (Role $role) => $this->manageable($actor, $role))
+            ->values();
+    }
+
+    /**
+     * Catalogue permissions the actor holds, grouped by module, for the role form (rule 2).
+     *
+     * @return array<string, list<string>>
+     */
+    public function grantable(User $actor): array
+    {
+        $groups = [];
+
+        foreach (array_keys(PermissionCatalogue::TENANT) as $permission) {
+            if ($this->resolver->has($actor, $permission)) {
+                $groups[Str::before($permission, '.')][] = $permission;
+            }
+        }
+
+        return $groups;
+    }
 
     /**
      * @param  list<string>  $permissions
@@ -86,6 +156,14 @@ class RoleService
             $role->delete();
             $this->resolver->flush();
         }));
+    }
+
+    /**
+     * @return Builder<Role>
+     */
+    private function team(User $actor): Builder
+    {
+        return Role::query()->where('team_id', $actor->company_id)->where('guard_name', 'web');
     }
 
     private function editableRole(User $actor, int $roleId): Role

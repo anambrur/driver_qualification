@@ -10,16 +10,18 @@
                 <div class="flex justify-between items-center">
                     <div>
                         <h1 class="text-2xl font-semibold text-gray-900">Users</h1>
-                        <p class="mt-1 text-sm text-gray-600">Manage user accounts and roles.</p>
+                        <p class="mt-1 text-sm text-gray-600">Manage your company's users and their roles.</p>
                     </div>
-                    <a href="{{ route('users.create') }}"
+                    @can('users.create')
+                    <a href="{{ route('users.invite') }}"
                         class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        Add User
+                        Invite User
                     </a>
+                    @endcan
                 </div>
             </div>
 
@@ -47,8 +49,8 @@
                                 class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                                 <option value="">All Roles</option>
                                 @foreach ($roles as $role)
-                                    <option value="{{ $role->name }}"
-                                        {{ request('role') == $role->name ? 'selected' : '' }}>
+                                    <option value="{{ $role->id }}"
+                                        {{ request('role') == $role->id ? 'selected' : '' }}>
                                         {{ $role->name }}
                                     </option>
                                 @endforeach
@@ -60,7 +62,7 @@
                                 class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                                 <option value="">All Status</option>
                                 <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="suspended" {{ request('status') == 'suspended' ? 'selected' : '' }}>Suspended
+                                <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive
                                 </option>
                             </select>
                         </div>
@@ -153,7 +155,7 @@
                                                             stroke-width="2"
                                                             d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                                                     </svg>
-                                                    Suspended
+                                                    Inactive
                                                 </span>
                                             @else
                                                 <span
@@ -179,34 +181,22 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div class="flex justify-end space-x-3">
-                                                <a href="{{ route('users.edit', $listUser->id) }}"
-                                                    class="text-indigo-600 hover:text-indigo-900 transition-colors duration-200"
-                                                    title="Edit User">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                    </svg>
-                                                </a>
-
-                                                @if ($listUser->id !== auth()->id())
-                                                    <form action="{{ route('users.destroy', $listUser->id) }}"
-                                                        method="POST" class="inline">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit"
-                                                            class="text-red-600 hover:text-red-900 transition-colors duration-200"
-                                                            title="Delete User"
-                                                            onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">
-                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                                                viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2"
-                                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                            </svg>
-                                                        </button>
-                                                    </form>
+                                                @if ($listUser->id !== auth()->id() && $listUser->id !== $ownerId)
+                                                    @can('users.edit')
+                                                        <a href="{{ route('users.edit', $listUser->id) }}"
+                                                            class="text-indigo-600 hover:text-indigo-900 transition-colors duration-200"
+                                                            title="Edit User">Edit</a>
+                                                    @endcan
+                                                    @can('users.deactivate')
+                                                        <form action="{{ route($listUser->status === 'active' ? 'users.deactivate' : 'users.reactivate', $listUser->id) }}"
+                                                            method="POST" class="inline">
+                                                            @csrf
+                                                            <button type="submit"
+                                                                class="{{ $listUser->status === 'active' ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900' }} transition-colors duration-200">
+                                                                {{ $listUser->status === 'active' ? 'Deactivate' : 'Reactivate' }}
+                                                            </button>
+                                                        </form>
+                                                    @endcan
                                                 @endif
                                             </div>
                                         </td>
@@ -232,18 +222,66 @@
                             </svg>
                         </div>
                         <h3 class="text-lg font-medium text-gray-900 mb-1">No users found</h3>
-                        <p class="text-sm text-gray-500 mb-6">Get started by creating a new user.</p>
-                        <a href="{{ route('users.create') }}"
+                        <p class="text-sm text-gray-500 mb-6">Invite your team to get started.</p>
+                        @can('users.create')
+                        <a href="{{ route('users.invite') }}"
                             class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
-                            Add User
+                            Invite User
                         </a>
+                        @endcan
                     </div>
                 @endif
             </div>
+
+            @if ($invitations->isNotEmpty())
+                <!-- Pending Invitations -->
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden mt-6">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-900">Pending invitations</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expires</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach ($invitations as $invitation)
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $invitation->email }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $invitation->role->name }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm {{ $invitation->expires_at->isPast() ? 'text-red-600' : 'text-gray-500' }}">
+                                            {{ $invitation->expires_at->isPast() ? 'Expired' : $invitation->expires_at->format('M d, Y') }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div class="flex justify-end space-x-3">
+                                                <form action="{{ route('users.invitations.resend', $invitation->id) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="submit" class="text-indigo-600 hover:text-indigo-900">Resend</button>
+                                                </form>
+                                                <form action="{{ route('users.invitations.destroy', $invitation->id) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-red-600 hover:text-red-900"
+                                                        onclick="return confirm('Revoke this invitation?')">Revoke</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 @endsection

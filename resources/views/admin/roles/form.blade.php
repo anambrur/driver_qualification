@@ -1,6 +1,6 @@
 @extends('layouts.main-layout')
 
-@section('title', 'Create Role')
+@section('title', $role ? 'Edit Role' : 'Create Role')
 
 @section('content')
     <div class="p-4 mx-auto md:p-6">
@@ -8,8 +8,8 @@
         <div class="mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white/90">Create New Role</h2>
-                    <p class="text-gray-600 dark:text-gray-400 mt-2">Add a new role to your system</p>
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white/90">{{ $role ? 'Edit Role: '.$role->name : 'Create Role' }}</h2>
+                    <p class="text-gray-600 dark:text-gray-400 mt-2">You can grant only permissions you hold yourself.</p>
                 </div>
 
                 <a href="{{ route('admin.roles.index') }}"
@@ -18,6 +18,16 @@
                 </a>
             </div>
         </div>
+
+        <!-- Flash Messages -->
+        @if (session('success'))
+            <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                    <p class="text-green-700 dark:text-green-400">{{ session('success') }}</p>
+                </div>
+            </div>
+        @endif
 
         <!-- Error Messages -->
         @if ($errors->any())
@@ -36,8 +46,11 @@
             </div>
         @endif
 
-        <form action="{{ route('admin.roles.store') }}" method="POST">
+        <form action="{{ $role ? route('admin.roles.update', $role->id) : route('admin.roles.store') }}" method="POST">
             @csrf
+            @if ($role)
+                @method('PUT')
+            @endif
 
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <!-- Left Column -->
@@ -59,7 +72,10 @@
                                 </label>
                                 <input type="text" id="name" name="name" required
                                     class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-                                    placeholder="e.g., Content Manager, Editor" value="{{ old('name') }}" />
+                                    placeholder="e.g., Content Manager, Editor" value="{{ old('name', $role?->name) }}" @readonly($role?->is_system) />
+                                @if ($role?->is_system)
+                                    <p class="mt-1 text-sm text-gray-500">System roles keep their name.</p>
+                                @endif
                                 @error('name')
                                     <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
                                 @enderror
@@ -77,7 +93,9 @@
                             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
                                 <i class="fas fa-key mr-2"></i>Permissions
                             </h3>
-                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Select permissions for this role</p>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                Select permissions for this role
+                            </p>
                         </div>
                         <div class="border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
                             @error('permissions.*')
@@ -109,15 +127,15 @@
                                             @foreach ($groupPermissions as $permission)
                                                 <div class="flex items-center">
                                                     <input type="checkbox" name="permissions[]"
-                                                        id="perm-{{ $permission['id'] }}"
-                                                        value="{{ $permission['name'] }}"
+                                                        id="perm-{{ Str::slug($permission) }}"
+                                                        value="{{ $permission }}"
                                                         class="permission-checkbox h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-brand-600"
                                                         data-group="{{ Str::slug($group) }}"
-                                                        {{ in_array($permission['name'], old('permissions', [])) ? 'checked' : '' }}>
-                                                    <label for="perm-{{ $permission['id'] }}"
+                                                        @checked(in_array($permission, old('permissions', $role?->permissions->pluck('name')->all() ?? [])))>
+                                                    <label for="perm-{{ Str::slug($permission) }}"
                                                         class="ml-3 text-sm text-gray-700 dark:text-gray-400 cursor-pointer truncate"
-                                                        title="{{ $permission['name'] }}">
-                                                        {{ Str::after($permission['name'], $group . '.') }}
+                                                        title="{{ $permission }}">
+                                                        {{ Str::after($permission, $group . '.') }}
                                                     </label>
                                                 </div>
                                             @endforeach
@@ -148,7 +166,7 @@
                 </a>
                 <button type="submit"
                     class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2">
-                    <i class="fas fa-save mr-2"></i>Create Role
+                    <i class="fas fa-save mr-2"></i>{{ $role ? 'Update Role' : 'Create Role' }}
                 </button>
             </div>
         </form>
@@ -199,9 +217,6 @@
                 // Initial update
                 updateGroupToggle();
             });
-
-            // Debug: Log group toggle initialization
-            console.log('Group toggles initialized:', document.querySelectorAll('.group-toggle').length);
         });
     </script>
 @endpush

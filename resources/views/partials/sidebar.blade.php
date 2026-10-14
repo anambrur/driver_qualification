@@ -229,13 +229,13 @@
                                 :class="(selected === 'Settings') || isCurrentPath('admin/settings/site') || isCurrentPath(
                                         'admin/settings/tawk') || isCurrentPath('admin/settings/company') ||
                                     isCurrentPath('admin/settings/policy-pdf') ||
-                                    isCurrentPath('admin/settings/document-types') || isCurrentPath('admin/roles') ?
+                                    isCurrentPath('admin/settings/document-types') ?
                                     'menu-item-active' : 'menu-item-inactive'">
                                 <i class="fa-solid fa-gear"
                                     :class="(selected === 'Settings') || isCurrentPath('admin/settings/site') || isCurrentPath(
                                             'admin/settings/tawk') || isCurrentPath('admin/settings/company') ||
                                         isCurrentPath('admin/settings/policy-pdf') ||
-                                        isCurrentPath('admin/settings/document-types') || isCurrentPath('admin/roles') ?
+                                        isCurrentPath('admin/settings/document-types') ?
                                         'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
                                 <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">System
                                     Config</span>
@@ -291,15 +291,6 @@
                                                 :class="isCurrentPath('admin/settings/document-types') ?
                                                     'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
                                                 Document Types
-                                            </a>
-                                        </li>
-                                    @endcan
-                                    @can('platform.staff.manage')
-                                        <li>
-                                            <a href="{{ route('admin.roles.index') }}" class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/roles') ? 'menu-dropdown-item-active' :
-                                                    'menu-dropdown-item-inactive'">
-                                                Roles & Access
                                             </a>
                                         </li>
                                     @endcan
@@ -465,25 +456,40 @@
                                 </ul>
                             </div>
                         </li>
-
-                        <!-- User Management -->
-                        @can('platform.staff.manage')
-                            <li>
-                                <a href="{{ route('users.index') }}" @click="selected = (selected === 'Users' ? '':'Users')"
-                                    class="menu-item group"
-                                    :class="(selected === 'Users') && isCurrentPath('users*') ? 'menu-item-active' :
-                                        'menu-item-inactive'">
-                                    <i class="fas fa-users"
-                                        :class="(selected === 'Users') && isCurrentPath('users*') ?
-                                            'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
-                                    <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">All Users</span>
-                                </a>
-                            </li>
-                        @endcan
-
                     </ul>
                 </div>
             @endhasrole
+
+            <!-- GROUP: TEAM -->
+            @canany(['users.view', 'roles.view'])
+                <div>
+                    <h3 class="mb-4 text-xs uppercase leading-[20px] text-gray-400">
+                        <span class="menu-group-title" :class="sidebarToggle ? 'lg:hidden' : ''">TEAM</span>
+                    </h3>
+                    <ul class="flex flex-col gap-2 mb-6">
+                        @can('users.view')
+                            <li>
+                                <a href="{{ route('users.index') }}" class="menu-item group"
+                                    :class="isCurrentPath('users*') ? 'menu-item-active' : 'menu-item-inactive'">
+                                    <i class="fas fa-users"
+                                        :class="isCurrentPath('users*') ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
+                                    <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Users</span>
+                                </a>
+                            </li>
+                        @endcan
+                        @can('roles.view')
+                            <li>
+                                <a href="{{ route('admin.roles.index') }}" class="menu-item group"
+                                    :class="isCurrentPath('roles*') ? 'menu-item-active' : 'menu-item-inactive'">
+                                    <i class="fas fa-user-shield"
+                                        :class="isCurrentPath('roles*') ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
+                                    <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Roles</span>
+                                </a>
+                            </li>
+                        @endcan
+                    </ul>
+                </div>
+            @endcanany
 
             <!-- GROUP: ACCOUNT -->
             <div>

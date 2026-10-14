@@ -25,7 +25,7 @@ class RoleAssignmentService
 
     public function assign(User|PlatformUser $actor, User|PlatformUser $target, int $roleId): void
     {
-        $this->guard($actor, $target, $actor instanceof User ? 'users.edit' : 'platform.staff.manage');
+        $this->authorizeTarget($actor, $target, $actor instanceof User ? 'users.edit' : 'platform.staff.manage');
 
         DB::transaction(fn () => TeamScope::run($this->resolver->teamOf($actor), function () use ($actor, $target, $roleId) {
             $role = $this->assignableRole($actor, $roleId);
@@ -37,7 +37,7 @@ class RoleAssignmentService
 
     public function remove(User|PlatformUser $actor, User|PlatformUser $target, int $roleId): void
     {
-        $this->guard($actor, $target, $actor instanceof User ? 'users.edit' : 'platform.staff.manage');
+        $this->authorizeTarget($actor, $target, $actor instanceof User ? 'users.edit' : 'platform.staff.manage');
 
         DB::transaction(fn () => TeamScope::run($this->resolver->teamOf($actor), function () use ($actor, $target, $roleId) {
             $role = $this->assignableRole($actor, $roleId);
@@ -51,9 +51,47 @@ class RoleAssignmentService
         }));
     }
 
+    /**
+     * Makes the target's roles match $roleIds through assign() and remove(), so every change is
+     * checked and audited. Locked roles the target holds (Owner, Driver) and roles the actor
+     * can't assign are left alone.
+     *
+     * @param  list<int>  $roleIds
+     */
+    public function syncRoles(User $actor, User $target, array $roleIds): void
+    {
+        $this->authorizeTarget($actor, $target, 'users.edit');
+
+        DB::transaction(function () use ($actor, $target, $roleIds) {
+            $held = DB::table('model_has_roles')
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->where('model_has_roles.team_id', $target->company_id)
+                ->where('model_has_roles.model_type', $target->getMorphClass())
+                ->where('model_has_roles.model_id', $target->id)
+                ->pluck('roles.system_key', 'roles.id')
+                ->all();
+
+            foreach (array_diff($roleIds, array_keys($held)) as $roleId) {
+                $this->assign($actor, $target, $roleId);
+            }
+
+            // Roles above the actor (rule 3) are neither offered on the form nor removed.
+            $removable = Role::query()
+                ->whereKey(array_keys(array_filter($held, fn (?string $systemKey) => $systemKey === null)))
+                ->with('permissions:id,name')
+                ->get()
+                ->filter(fn (Role $role) => $this->resolver->holdsAll($actor, $role->permissions->pluck('name')))
+                ->modelKeys();
+
+            foreach (array_diff($removable, $roleIds) as $roleId) {
+                $this->remove($actor, $target, $roleId);
+            }
+        });
+    }
+
     public function grantDirect(User|PlatformUser $actor, User|PlatformUser $target, string $permission): void
     {
-        $this->guard($actor, $target, $actor instanceof User ? 'permissions.grant' : 'platform.staff.manage');
+        $this->authorizeTarget($actor, $target, $actor instanceof User ? 'permissions.grant' : 'platform.staff.manage');
         $this->requireHeld($actor, $permission);
 
         DB::transaction(fn () => TeamScope::run($this->resolver->teamOf($actor), function () use ($actor, $target, $permission) {
@@ -64,7 +102,7 @@ class RoleAssignmentService
 
     public function revokeDirect(User|PlatformUser $actor, User|PlatformUser $target, string $permission): void
     {
-        $this->guard($actor, $target, $actor instanceof User ? 'permissions.grant' : 'platform.staff.manage');
+        $this->authorizeTarget($actor, $target, $actor instanceof User ? 'permissions.grant' : 'platform.staff.manage');
         $this->requireHeld($actor, $permission);
 
         DB::transaction(fn () => TeamScope::run($this->resolver->teamOf($actor), function () use ($actor, $target, $permission) {
@@ -78,7 +116,7 @@ class RoleAssignmentService
      * may touch the Owner (who can't edit themselves, so the Owner role moves only through
      * OwnershipService).
      */
-    private function guard(User|PlatformUser $actor, User|PlatformUser $target, string $permission): void
+    public function authorizeTarget(User|PlatformUser $actor, User|PlatformUser $target, string $permission): void
     {
         $sameTeam = $actor::class === $target::class
             && $this->resolver->teamOf($actor) === $this->resolver->teamOf($target)
@@ -93,7 +131,7 @@ class RoleAssignmentService
         }
 
         if ($actor->is($target)) {
-            throw new AuthorizationException('You cannot change your own roles or permissions.');
+            throw new AuthorizationException('You cannot change your own account here.');
         }
 
         if ($target instanceof User && (int) Company::query()->whereKey($target->company_id)->value('owner_user_id') === (int) $target->id) {
@@ -105,7 +143,7 @@ class RoleAssignmentService
      * A role of the actor's team whose permissions the actor holds. Locked company roles are
      * never assigned or removed here; platform roles are all system roles and stay assignable.
      */
-    private function assignableRole(User|PlatformUser $actor, int $roleId): Role
+    public function assignableRole(User|PlatformUser $actor, int $roleId): Role
     {
         $role = Role::query()
             ->where('team_id', $this->resolver->teamOf($actor))

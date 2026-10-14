@@ -2,213 +2,88 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Company;
+use App\Http\Requests\Users\UpdateUserRequest;
 use App\Models\User;
+use App\Services\Authorization\RoleService;
+use App\Services\Users\InvitationService;
+use App\Services\Users\UserService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
-use Spatie\Permission\Models\Role;
+use Illuminate\View\View;
 
+/**
+ * Users of the logged-in user's own company (06 §8, 10 §5). Routes carry the permission
+ * middleware; the services re-check and resolve ids inside the company.
+ */
 class UserController extends Controller
 {
-    /**
-     * Display a listing of users.
-     */
-    public function index(Request $request)
+    public function __construct(
+        private UserService $users,
+        private RoleService $roles,
+    ) {}
+
+    public function index(Request $request, InvitationService $invitations): View
     {
-        $query = User::with('roles');
-
-        // Search
-        if ($search = $request->get('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
-
-        // Filter by role
-        if ($role = $request->get('role')) {
-            $query->whereHas('roles', function ($q) use ($role) {
-                $q->where('name', $role);
-            });
-        }
-
-        // Filter by status
-        if ($request->get('status') === 'suspended') {
-            $query->where('status', 'inactive');
-        } elseif ($request->get('status') === 'active') {
-            $query->where('status', 'active');
-        }
-
-        $users = $query->latest()->paginate(15)->withQueryString();
-        $roles = Role::all();
-
-        return view('admin.users.index', compact('users', 'roles'));
-    }
-
-    /**
-     * Show form for creating new user.
-     */
-    public function create()
-    {
-        $roles = Role::all();
-        return view('admin.users.create', compact('roles'));
-    }
-
-    /**
-     * Store a newly created user.
-     */
-    public function store(Request $request)
-    {
-        $this->authorizeSuperAdminChanges(null, (array) $request->input('roles', []));
-
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-            'roles' => ['array'],
-            'roles.*' => ['exists:roles,id'],
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'role' => ['nullable', 'integer'],
+            'status' => ['nullable', 'in:active,inactive'],
         ]);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'status' => 'active',
+        return view('admin.users.index', [
+            'users' => $this->users->list($this->actor($request), $filters),
+            'roles' => $this->roles->list($this->actor($request)),
+            'invitations' => $request->user()->can('users.create') ? $invitations->pending($this->actor($request)) : collect(),
+            'ownerId' => (int) $this->actor($request)->company->owner_user_id,
         ]);
-
-        if (!empty($validated['roles'])) {
-            $user->roles()->sync($validated['roles']);
-        }
-
-        toastr()->success('User created successfully!');
-        return redirect()->route('users.index');
     }
 
-    /**
-     * Show form for editing user.
-     */
-    public function edit($id)
+    public function edit(Request $request, int $user): View
     {
-        $user = User::with('roles')->findOrFail($id);
-        $roles = Role::all();
+        $target = $this->users->find($this->actor($request), $user);
 
-        return view('admin.users.edit', compact('user', 'roles'));
+        return view('admin.users.edit', [
+            'user' => $target->load('roles:id,name,system_key'),
+            'roles' => $this->roles->assignable($this->actor($request)),
+        ]);
     }
 
-    /**
-     * Update the specified user.
-     */
-    public function update(Request $request, $id)
+    public function update(UpdateUserRequest $request, int $user): RedirectResponse
     {
-        $user = User::findOrFail($id);
-        $this->authorizeSuperAdminChanges($user, (array) $request->input('roles', []));
+        $data = $request->validated();
+        $actor = $this->actor($request);
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'password' => ['nullable', 'confirmed', Password::defaults()],
-            'roles' => ['array'],
-            'roles.*' => ['exists:roles,id'],
-            'status' => ['required', 'in:active,inactive'],
-        ]);
-
-        if ($user->id === auth()->id() && $validated['status'] === 'inactive') {
-            toastr()->error('You cannot change your own status!');
-            return back()->withInput();
-        }
-
-        if ($user->id === auth()->id() && isset($validated['roles']) && $user->hasRole('super-admin')
-            && ! in_array((string) Role::where('name', 'super-admin')->value('id'), array_map('strval', $validated['roles']), true)) {
-            toastr()->error('You cannot remove your own super-admin role!');
-            return back()->withInput();
-        }
-
-        $user->name = $validated['name'];
-        $user->email = $validated['email'];
-        $user->status = $validated['status'];
-
-        if (!empty($validated['password'])) {
-            $user->password = Hash::make($validated['password']);
-        }
-
-        $user->save();
-
-        if (isset($validated['roles'])) {
-            $user->roles()->sync($validated['roles']);
-        }
+        $this->users->update($actor, $this->users->find($actor, $user), $data['name'], array_map('intval', $data['roles'] ?? []));
 
         toastr()->success('User updated successfully!');
+
         return redirect()->route('users.index');
     }
 
-    /**
-     * Remove the specified user.
-     */
-    public function destroy($id)
+    public function deactivate(Request $request, int $user): RedirectResponse
     {
-        $user = User::findOrFail($id);
-        $this->authorizeSuperAdminChanges($user);
-
-        // Prevent self-deletion
-        if ($user->id === auth()->id()) {
-            toastr()->error('You cannot delete yourself!');
-            return redirect()->route('users.index');
-        }
-
-        $user->delete();
-
-        toastr()->success('User deleted successfully!');
-        return redirect()->route('users.index');
+        return $this->setStatus($request, $user, 'inactive', 'User deactivated.');
     }
 
-    /**
-     * Suspend the specified user (same `inactive` status the edit form sets).
-     */
-    public function suspend($id)
+    public function reactivate(Request $request, int $user): RedirectResponse
     {
-        return $this->setStatus($id, 'inactive', 'User suspended successfully!');
+        return $this->setStatus($request, $user, 'active', 'User reactivated.');
     }
 
-    /**
-     * Reactivate the specified user.
-     */
-    public function unsuspend($id)
+    private function setStatus(Request $request, int $user, string $status, string $message): RedirectResponse
     {
-        return $this->setStatus($id, 'active', 'User reactivated successfully!');
-    }
+        $actor = $this->actor($request);
 
-    private function setStatus($id, string $status, string $message)
-    {
-        $user = User::findOrFail($id);
-        $this->authorizeSuperAdminChanges($user);
-
-        if ($user->id === auth()->id()) {
-            toastr()->error('You cannot change your own status!');
-            return redirect()->route('users.index');
-        }
-
-        $user->status = $status;
-        $user->save();
+        $this->users->setStatus($actor, $this->users->find($actor, $user), $status);
 
         toastr()->success($message);
+
         return redirect()->route('users.index');
     }
 
-    /**
-     * Only a super-admin may grant the super-admin role or change an existing super-admin.
-     */
-    private function authorizeSuperAdminChanges(?User $target, array $roleIds = []): void
+    private function actor(Request $request): User
     {
-        if (auth()->user()->hasRole('super-admin')) {
-            return;
-        }
-
-        $superAdminRoleId = Role::where('name', 'super-admin')->value('id');
-
-        abort_if(
-            ($target && $target->hasRole('super-admin')) || in_array((string) $superAdminRoleId, array_map('strval', $roleIds), true),
-            403
-        );
+        /** @var User */
+        return $request->user();
     }
 }

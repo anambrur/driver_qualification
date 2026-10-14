@@ -19,6 +19,7 @@ use Database\Factories\UserFactory;
 use Database\Seeders\PlatformRoleSeeder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
@@ -73,6 +74,20 @@ final class Actors
     public static function officeUser(?Company $company = null, array $attributes = []): User
     {
         return self::member($company, 'Office / Compliance', $attributes);
+    }
+
+    /**
+     * A user holding one custom role with exactly these permissions.
+     *
+     * @param  list<string>  $permissions
+     */
+    public static function memberWithPermissions(?Company $company, array $permissions, array $attributes = []): User
+    {
+        $company ??= self::company();
+        $role = Role::create(['name' => 'Custom '.Str::random(8), 'guard_name' => 'web', 'team_id' => $company->id]);
+        $role->syncPermissions($permissions);
+
+        return self::member($company, $role->name, $attributes);
     }
 
     /**

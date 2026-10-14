@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Models\Role;
 use Tests\Support\Actors;
@@ -12,7 +11,9 @@ use Tests\Support\Actors;
 | deleted; these tests prove access control survives an attempt to do either.
 */
 
-it('only uses role names in route middleware that are protected system roles', function () {
+// Only the legacy `role:super-admin` remains until the platform area replaces it (06 §10, WP8);
+// tenant routes use `permission:` checks, never role names.
+it('uses no role name in route middleware except the legacy super-admin', function () {
     $roles = collect(Route::getRoutes()->getRoutes())
         ->flatMap(fn ($route) => $route->gatherMiddleware())
         ->filter(fn ($m) => is_string($m) && str_starts_with($m, 'role:'))
@@ -20,7 +21,7 @@ it('only uses role names in route middleware that are protected system roles', f
         ->unique()->values()->all();
 
     expect($roles)->not->toBeEmpty()
-        ->and(array_diff($roles, RoleController::SYSTEM_ROLES))->toBe([]);
+        ->and(array_diff($roles, ['super-admin']))->toBe([]);
 });
 
 it('keeps super-admin access after an attempt to rename or delete the role', function () {

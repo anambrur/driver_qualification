@@ -2,8 +2,8 @@
 @auth
     @php
         $user = auth()->user();
-        $sub = $user?->activeSubscription() ?? $user?->subscriptions()->with('plan')->first();
-        $plan = $sub?->plan;
+        $sub = $user?->company?->subscriptions()->open()->with('planPrice.plan')->first();
+        $plan = $sub?->planPrice?->plan;
         $daysRemaining = $sub?->daysUntilAccessEnds();
         $isExpiringSoon = $sub && $sub->isEndingSoon();
         $onGrace = $sub && $sub->onGracePeriod();
