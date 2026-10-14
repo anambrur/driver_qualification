@@ -21,28 +21,29 @@ use App\Http\Controllers\MaintenanceScheduleController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SeoController;
 use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\SiteSettingController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\TawkToSettingController;
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleGroupController;
-use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\VehicleTypeController;
+use App\Models\Plan;
 use Illuminate\Support\Facades\Route;
 
 Route::post('stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
 
-Route::get('robots.txt', [\App\Http\Controllers\SeoController::class, 'robots'])->name('seo.robots');
-Route::get('sitemap.xml', [\App\Http\Controllers\SeoController::class, 'sitemap'])->name('seo.sitemap');
+Route::get('robots.txt', [SeoController::class, 'robots'])->name('seo.robots');
+Route::get('sitemap.xml', [SeoController::class, 'sitemap'])->name('seo.sitemap');
 
 Route::get('/', function () {
-    $plans = \App\Models\Plan::active()->ordered()->get();
+    $plans = Plan::active()->ordered()->get();
 
     return view('welcome', compact('plans'));
 })->name('home');
-
 
 // New and lapsed accounts are sent to pricing (PO-16); super-admins pass `Subscribed`
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -163,15 +164,16 @@ Route::prefix('{slug}/application')->name('public.application.')->group(function
 
 // ─── Subscription routes (auth required, no subscription check) ───────────────
 Route::middleware(['auth'])->group(function () {
+    // Legacy UserController is not tenant-safe (unscoped ids, raw role sync); closed to tenants until WP4 replaces it.
     Route::prefix('users')->name('users.')->group(function () {
-        Route::get('/', [UserController::class, 'index'])->name('index')->middleware('permission:users.view');
-        Route::get('/create', [UserController::class, 'create'])->name('create')->middleware('permission:users.create');
-        Route::post('/', [UserController::class, 'store'])->name('store')->middleware('permission:users.create');
-        Route::get('/{id}/edit', [UserController::class, 'edit'])->name('edit')->middleware('permission:users.edit');
-        Route::put('/{id}', [UserController::class, 'update'])->name('update')->middleware('permission:users.edit');
-        Route::post('/{id}/suspend', [UserController::class, 'suspend'])->name('suspend')->middleware('permission:users.edit');
-        Route::post('/{id}/unsuspend', [UserController::class, 'unsuspend'])->name('unsuspend')->middleware('permission:users.edit');
-        Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy')->middleware('permission:users.delete');
+        Route::get('/', [UserController::class, 'index'])->name('index')->middleware('permission:platform.staff.manage');
+        Route::get('/create', [UserController::class, 'create'])->name('create')->middleware('permission:platform.staff.manage');
+        Route::post('/', [UserController::class, 'store'])->name('store')->middleware('permission:platform.staff.manage');
+        Route::get('/{id}/edit', [UserController::class, 'edit'])->name('edit')->middleware('permission:platform.staff.manage');
+        Route::put('/{id}', [UserController::class, 'update'])->name('update')->middleware('permission:platform.staff.manage');
+        Route::post('/{id}/suspend', [UserController::class, 'suspend'])->name('suspend')->middleware('permission:platform.staff.manage');
+        Route::post('/{id}/unsuspend', [UserController::class, 'unsuspend'])->name('unsuspend')->middleware('permission:platform.staff.manage');
+        Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy')->middleware('permission:platform.staff.manage');
     });
 
     // ─── Billing & Subscription ───────────────────────────────────────────────
@@ -190,7 +192,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/subscription/my', fn () => redirect()->route('billing.index'));
     Route::get('/subscription/renew', fn () => redirect()->route('billing.portal'));
     Route::get('/subscription/expired', fn () => redirect()->route('pricing.plans'));
-    Route::get('/subscription/checkout/{plan}', fn (App\Models\Plan $plan) => redirect()->route('checkout', $plan->slug));
+    Route::get('/subscription/checkout/{plan}', fn (Plan $plan) => redirect()->route('checkout', $plan->slug));
 });
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────
@@ -275,47 +277,47 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
     // Vehicle types
     Route::prefix('vehicle-type')->group(function () {
         Route::get('/', [VehicleTypeController::class, 'index'])->name('admin.vehicle.type.index');
-        Route::get('/create', [VehicleTypeController::class, 'create'])->name('admin.vehicle.type.create')->middleware('permission:vehicle-types.create');
-        Route::post('/', [VehicleTypeController::class, 'store'])->name('admin.vehicle.type.store')->middleware('permission:vehicle-types.create');
-        Route::get('/{id}/edit', [VehicleTypeController::class, 'edit'])->name('admin.vehicle.type.edit')->middleware('permission:vehicle-types.edit');
-        Route::put('/{id}', [VehicleTypeController::class, 'update'])->name('admin.vehicle.type.update')->middleware('permission:vehicle-types.edit');
-        Route::delete('/{id}', [VehicleTypeController::class, 'destroy'])->name('admin.vehicle.type.destroy')->middleware('permission:vehicle-types.delete');
+        Route::get('/create', [VehicleTypeController::class, 'create'])->name('admin.vehicle.type.create')->middleware('permission:platform.settings.manage');
+        Route::post('/', [VehicleTypeController::class, 'store'])->name('admin.vehicle.type.store')->middleware('permission:platform.settings.manage');
+        Route::get('/{id}/edit', [VehicleTypeController::class, 'edit'])->name('admin.vehicle.type.edit')->middleware('permission:platform.settings.manage');
+        Route::put('/{id}', [VehicleTypeController::class, 'update'])->name('admin.vehicle.type.update')->middleware('permission:platform.settings.manage');
+        Route::delete('/{id}', [VehicleTypeController::class, 'destroy'])->name('admin.vehicle.type.destroy')->middleware('permission:platform.settings.manage');
     });
 
     // Vehicle groups
     Route::prefix('vehicle-group')->group(function () {
         Route::get('/', [VehicleGroupController::class, 'index'])->name('admin.vehicle.group.index');
-        Route::post('/', [VehicleGroupController::class, 'store'])->name('admin.vehicle.group.store')->middleware('permission:vehicle-groups.create');
-        Route::get('/{id}/edit', [VehicleGroupController::class, 'edit'])->name('admin.vehicle.group.edit')->middleware('permission:vehicle-groups.edit');
-        Route::put('/{id}', [VehicleGroupController::class, 'update'])->name('admin.vehicle.group.update')->middleware('permission:vehicle-groups.edit');
-        Route::delete('/{id}', [VehicleGroupController::class, 'destroy'])->name('admin.vehicle.group.destroy')->middleware('permission:vehicle-groups.delete');
+        Route::post('/', [VehicleGroupController::class, 'store'])->name('admin.vehicle.group.store')->middleware('permission:platform.settings.manage');
+        Route::get('/{id}/edit', [VehicleGroupController::class, 'edit'])->name('admin.vehicle.group.edit')->middleware('permission:platform.settings.manage');
+        Route::put('/{id}', [VehicleGroupController::class, 'update'])->name('admin.vehicle.group.update')->middleware('permission:platform.settings.manage');
+        Route::delete('/{id}', [VehicleGroupController::class, 'destroy'])->name('admin.vehicle.group.destroy')->middleware('permission:platform.settings.manage');
     });
 
     // Fuel types
     Route::prefix('fuel-type')->group(function () {
         Route::get('/', [FuelTypeController::class, 'index'])->name('admin.fuel.type.index');
-        Route::post('/', [FuelTypeController::class, 'store'])->name('admin.fuel.type.store')->middleware('permission:fuel-types.create');
-        Route::get('/{id}/edit', [FuelTypeController::class, 'edit'])->name('admin.fuel.type.edit')->middleware('permission:fuel-types.edit');
-        Route::put('/{id}', [FuelTypeController::class, 'update'])->name('admin.fuel.type.update')->middleware('permission:fuel-types.edit');
-        Route::delete('/{id}', [FuelTypeController::class, 'destroy'])->name('admin.fuel.type.destroy')->middleware('permission:fuel-types.delete');
+        Route::post('/', [FuelTypeController::class, 'store'])->name('admin.fuel.type.store')->middleware('permission:platform.settings.manage');
+        Route::get('/{id}/edit', [FuelTypeController::class, 'edit'])->name('admin.fuel.type.edit')->middleware('permission:platform.settings.manage');
+        Route::put('/{id}', [FuelTypeController::class, 'update'])->name('admin.fuel.type.update')->middleware('permission:platform.settings.manage');
+        Route::delete('/{id}', [FuelTypeController::class, 'destroy'])->name('admin.fuel.type.destroy')->middleware('permission:platform.settings.manage');
     });
 
     // Equipment types
     Route::prefix('equipment-type')->group(function () {
         Route::get('/', [EquipmentTypeController::class, 'index'])->name('admin.equipment.type.index');
-        Route::post('/', [EquipmentTypeController::class, 'store'])->name('admin.equipment.type.store')->middleware('permission:equipment-types.create');
-        Route::get('/{id}/edit', [EquipmentTypeController::class, 'edit'])->name('admin.equipment.type.edit')->middleware('permission:equipment-types.edit');
-        Route::put('/{id}', [EquipmentTypeController::class, 'update'])->name('admin.equipment.type.update')->middleware('permission:equipment-types.edit');
-        Route::delete('/{id}', [EquipmentTypeController::class, 'destroy'])->name('admin.equipment.type.destroy')->middleware('permission:equipment-types.delete');
+        Route::post('/', [EquipmentTypeController::class, 'store'])->name('admin.equipment.type.store')->middleware('permission:platform.settings.manage');
+        Route::get('/{id}/edit', [EquipmentTypeController::class, 'edit'])->name('admin.equipment.type.edit')->middleware('permission:platform.settings.manage');
+        Route::put('/{id}', [EquipmentTypeController::class, 'update'])->name('admin.equipment.type.update')->middleware('permission:platform.settings.manage');
+        Route::delete('/{id}', [EquipmentTypeController::class, 'destroy'])->name('admin.equipment.type.destroy')->middleware('permission:platform.settings.manage');
     });
 
     // Maintenance Categories
     Route::prefix('maintenance-category')->group(function () {
         Route::get('/', [MaintenanceCategoryController::class, 'index'])->name('admin.maintenance.category.index');
-        Route::post('/', [MaintenanceCategoryController::class, 'store'])->name('admin.maintenance.category.store')->middleware('permission:maintenance-categories.create');
-        Route::get('/{id}/edit', [MaintenanceCategoryController::class, 'edit'])->name('admin.maintenance.category.edit')->middleware('permission:maintenance-categories.edit');
-        Route::put('/{id}', [MaintenanceCategoryController::class, 'update'])->name('admin.maintenance.category.update')->middleware('permission:maintenance-categories.edit');
-        Route::delete('/{id}', [MaintenanceCategoryController::class, 'destroy'])->name('admin.maintenance.category.destroy')->middleware('permission:maintenance-categories.delete');
+        Route::post('/', [MaintenanceCategoryController::class, 'store'])->name('admin.maintenance.category.store')->middleware('permission:platform.settings.manage');
+        Route::get('/{id}/edit', [MaintenanceCategoryController::class, 'edit'])->name('admin.maintenance.category.edit')->middleware('permission:platform.settings.manage');
+        Route::put('/{id}', [MaintenanceCategoryController::class, 'update'])->name('admin.maintenance.category.update')->middleware('permission:platform.settings.manage');
+        Route::delete('/{id}', [MaintenanceCategoryController::class, 'destroy'])->name('admin.maintenance.category.destroy')->middleware('permission:platform.settings.manage');
     });
 
     // Vehicles
@@ -411,54 +413,54 @@ Route::middleware(['auth', 'Subscribed'])->prefix('admin')->group(function () {
     // Settings
     Route::prefix('settings')->group(function () {
         // Site Settings
-        Route::get('/site', [SiteSettingController::class, 'index'])->name('admin.settings.site.index')->middleware('permission:settings.view');
-        Route::put('/site', [SiteSettingController::class, 'update'])->name('admin.settings.site.update')->middleware('permission:settings.edit');
+        Route::get('/site', [SiteSettingController::class, 'index'])->name('admin.settings.site.index')->middleware('permission:platform.settings.manage');
+        Route::put('/site', [SiteSettingController::class, 'update'])->name('admin.settings.site.update')->middleware('permission:platform.settings.manage');
 
         // Tawk.to Chat Settings
         Route::get('/tawk', [TawkToSettingController::class, 'index'])
             ->name('admin.settings.tawk.index')
-            ->middleware('permission:settings.view');
+            ->middleware('permission:platform.settings.manage');
         Route::put('/tawk', [TawkToSettingController::class, 'update'])
             ->name('admin.settings.tawk.update')
-            ->middleware('permission:settings.edit');
+            ->middleware('permission:platform.settings.manage');
 
         // Company Route
-        Route::get('/company', [CompanyController::class, 'index'])->name('admin.settings.company')->middleware('permission:companies.view');
-        Route::get('/company/create', [CompanyController::class, 'create'])->name('admin.settings.company.create')->middleware('permission:companies.create');
-        Route::post('/company', [CompanyController::class, 'store'])->name('admin.settings.company.store')->middleware('permission:companies.create');
-        Route::get('/company/{id}/edit', [CompanyController::class, 'edit'])->name('admin.settings.company.edit')->middleware('permission:companies.edit');
-        Route::patch('/company/{id}', [CompanyController::class, 'update'])->name('admin.settings.company.update')->middleware('permission:companies.edit');
-        Route::delete('/company/{id}', [CompanyController::class, 'destroy'])->name('admin.settings.company.destroy')->middleware('permission:companies.delete');
+        Route::get('/company', [CompanyController::class, 'index'])->name('admin.settings.company')->middleware('permission:platform.companies.view');
+        Route::get('/company/create', [CompanyController::class, 'create'])->name('admin.settings.company.create')->middleware('permission:platform.companies.manage');
+        Route::post('/company', [CompanyController::class, 'store'])->name('admin.settings.company.store')->middleware('permission:platform.companies.manage');
+        Route::get('/company/{id}/edit', [CompanyController::class, 'edit'])->name('admin.settings.company.edit')->middleware('permission:company.edit');
+        Route::patch('/company/{id}', [CompanyController::class, 'update'])->name('admin.settings.company.update')->middleware('permission:company.edit');
+        Route::delete('/company/{id}', [CompanyController::class, 'destroy'])->name('admin.settings.company.destroy')->middleware('permission:platform.companies.lifecycle');
 
         // Company owners (companies.edit) manage their own company's policy PDFs (PO-14)
-        Route::get('/policy-pdf', [CompanyController::class, 'policyPDF'])->name('admin.settings.policy.pdf')->middleware('permission:policy-pdf.view|companies.edit');
-        Route::post('/policy-pdf', [CompanyController::class, 'policyPDFStore'])->name('admin.settings.policy.pdf.store')->middleware('permission:policy-pdf.edit|companies.edit');
+        Route::get('/policy-pdf', [CompanyController::class, 'policyPDF'])->name('admin.settings.policy.pdf')->middleware('permission:company.edit');
+        Route::post('/policy-pdf', [CompanyController::class, 'policyPDFStore'])->name('admin.settings.policy.pdf.store')->middleware('permission:company.edit');
 
-        // roles routes
+        // Legacy RoleController is not team-scoped; closed to tenants until WP4 replaces it.
         Route::get('/roles', [RoleController::class, 'index'])->name('admin.roles.index')
-            ->middleware('permission:roles.view');
+            ->middleware('permission:platform.staff.manage');
         Route::get('/roles/create', [RoleController::class, 'create'])->name('admin.roles.create')
-            ->middleware('permission:roles.create');
+            ->middleware('permission:platform.staff.manage');
         Route::post('/roles', [RoleController::class, 'store'])->name('admin.roles.store')
-            ->middleware('permission:roles.create');
+            ->middleware('permission:platform.staff.manage');
         Route::get('/roles/{id}', [RoleController::class, 'show'])->name('admin.roles.show')
-            ->middleware('permission:roles.view');
+            ->middleware('permission:platform.staff.manage');
         Route::get('/roles/{id}/edit', [RoleController::class, 'edit'])->name('admin.roles.edit')
-            ->middleware('permission:roles.edit');
+            ->middleware('permission:platform.staff.manage');
         Route::put('/roles/{role}', [RoleController::class, 'update'])->name('admin.roles.update')
-            ->middleware('permission:roles.edit');
+            ->middleware('permission:platform.staff.manage');
         Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('admin.roles.destroy')
-            ->middleware('permission:roles.delete');
+            ->middleware('permission:platform.staff.manage');
 
         // Document Types
         Route::prefix('document-types')->group(function () {
             Route::get('/', [DocumentTypeController::class, 'index'])->name('admin.settings.document-types.index');
-            Route::post('/', [DocumentTypeController::class, 'store'])->name('admin.settings.document-types.store')->middleware('permission:document-types.create');
+            Route::post('/', [DocumentTypeController::class, 'store'])->name('admin.settings.document-types.store')->middleware('permission:platform.settings.manage');
             Route::get('/{id}', [DocumentTypeController::class, 'show'])->name('admin.settings.document-types.show');
-            Route::put('/{id}', [DocumentTypeController::class, 'update'])->name('admin.settings.document-types.update')->middleware('permission:document-types.edit');
-            Route::delete('/{id}', [DocumentTypeController::class, 'destroy'])->name('admin.settings.document-types.destroy')->middleware('permission:document-types.delete');
-            Route::post('/{id}/toggle-status', [DocumentTypeController::class, 'toggleStatus'])->name('admin.settings.document-types.toggle-status')->middleware('permission:document-types.edit');
-            Route::post('/{id}/company-toggle', [DocumentTypeController::class, 'toggleForCompany'])->name('admin.settings.document-types.company-toggle')->middleware('permission:companies.edit');
+            Route::put('/{id}', [DocumentTypeController::class, 'update'])->name('admin.settings.document-types.update')->middleware('permission:platform.settings.manage');
+            Route::delete('/{id}', [DocumentTypeController::class, 'destroy'])->name('admin.settings.document-types.destroy')->middleware('permission:platform.settings.manage');
+            Route::post('/{id}/toggle-status', [DocumentTypeController::class, 'toggleStatus'])->name('admin.settings.document-types.toggle-status')->middleware('permission:platform.settings.manage');
+            Route::post('/{id}/company-toggle', [DocumentTypeController::class, 'toggleForCompany'])->name('admin.settings.document-types.company-toggle')->middleware('permission:document-types.toggle');
             Route::get('/by-module', [DocumentTypeController::class, 'getByModule'])->name('admin.settings.document-types.by-module');
         });
     });

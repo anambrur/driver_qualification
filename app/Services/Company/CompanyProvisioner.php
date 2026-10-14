@@ -4,13 +4,15 @@ namespace App\Services\Company;
 
 use App\Authorization\RoleTemplates;
 use App\Models\Company;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
+use RuntimeException;
 
 /**
  * The only code path that creates a company (10 §1, 11 §4): registration, platform
@@ -49,8 +51,18 @@ class CompanyProvisioner
             ]);
 
             $this->tenant->run($model->id, function () use ($ownerUser) {
+                $permissions = Permission::query()->where('guard_name', 'web')->pluck('id', 'name');
+
                 foreach (RoleTemplates::SYSTEM_ROLES as $name => $key) {
-                    Role::create(['name' => $name, 'guard_name' => 'web', 'system_key' => $key, 'is_system' => true]);
+                    $expected = RoleTemplates::permissionsFor($name);
+                    $grants = $permissions->only($expected);
+
+                    if ($grants->count() !== count($expected)) {
+                        throw new RuntimeException('The permission catalogue is not seeded (PermissionSeeder).');
+                    }
+
+                    Role::create(['name' => $name, 'guard_name' => 'web', 'system_key' => $key, 'is_system' => true])
+                        ->permissions()->attach($grants->values()->all());
                 }
 
                 $ownerUser->assignRole(RoleTemplates::OWNER);

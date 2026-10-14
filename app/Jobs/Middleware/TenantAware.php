@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Middleware;
 
+use App\Authorization\TenantPermissionResolver;
 use App\Models\Company;
 use App\Tenancy\TenantAwareJob;
 use App\Tenancy\TenantContext;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * Runs a tenant job inside its company's context and Spatie team, and resets both afterwards
  * so nothing leaks to the next job in the same worker (03 §4.6). Jobs of a company that is not
- * active are dropped.
+ * active are dropped. The permission memo is cleared before and after (06 §9).
  */
 class TenantAware
 {
@@ -34,6 +35,13 @@ class TenantAware
             return null;
         }
 
-        return app(TenantContext::class)->run($companyId, fn () => $next($job));
+        $resolver = app(TenantPermissionResolver::class);
+        $resolver->flush();
+
+        try {
+            return app(TenantContext::class)->run($companyId, fn () => $next($job));
+        } finally {
+            $resolver->flush();
+        }
     }
 }

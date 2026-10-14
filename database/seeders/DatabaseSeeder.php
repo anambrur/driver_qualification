@@ -11,7 +11,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Every environment: reference data, the permission catalogue and plans.
+        // Every environment: reference data, the permission catalogue, platform roles and plans.
         $this->call(CountryStateSeeder::class);
         $this->call(DocumentTypeSeeder::class);
         $this->call(VehicleTypesSeeder::class);
@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         $this->call(MaintenaneCategoySeeder::class);
         $this->call(EquipmentTypesSeeder::class);
         $this->call(PermissionSeeder::class);
+        $this->call(PlatformRoleSeeder::class);
         $this->call(PlanSeeder::class);
 
         if (app()->environment(DemoSeeder::ENVIRONMENTS)) {

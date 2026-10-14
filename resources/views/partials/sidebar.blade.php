@@ -106,7 +106,7 @@
                     @endcan
 
                     <!-- Fleet Management -->
-                    @can('fleets.view')
+                    @can('fleets.dashboard')
                         <li>
                             <a href="#" @click.prevent="selected = (selected === 'Fleet' ? '':'Fleet')"
                                 class="menu-item group"
@@ -215,7 +215,7 @@
             
 
             <!-- GROUP: SETTINGS -->
-            @can('settings.view')
+            @can('platform.settings.manage')
                 <div>
                     <h3 class="mb-4 text-xs uppercase leading-[20px] text-gray-400">
                         <span class="menu-group-title" :class="sidebarToggle ? 'lg:hidden' : ''">SETTINGS</span>
@@ -265,7 +265,7 @@
                                             Tawk.to Chat
                                         </a>
                                     </li>
-                                    @can('companies.view')
+                                    @can('platform.companies.view')
                                         <li>
                                             <a href="{{ route('admin.settings.company') }}" class="menu-dropdown-item group"
                                                 :class="isCurrentPath('admin/settings/company') ? 'menu-dropdown-item-active' :
@@ -274,7 +274,7 @@
                                             </a>
                                         </li>
                                     @endcan
-                                    @can('policy-pdf.view')
+                                    @can('company.edit')
                                         <li>
                                             <a href="{{ route('admin.settings.policy.pdf') }}"
                                                 class="menu-dropdown-item group"
@@ -284,7 +284,7 @@
                                             </a>
                                         </li>
                                     @endcan
-                                    @can('document-types.view')
+                                    @can('platform.settings.manage')
                                         <li>
                                             <a href="{{ route('admin.settings.document-types.index') }}"
                                                 class="menu-dropdown-item group"
@@ -294,7 +294,7 @@
                                             </a>
                                         </li>
                                     @endcan
-                                    @can('roles.view')
+                                    @can('platform.staff.manage')
                                         <li>
                                             <a href="{{ route('admin.roles.index') }}" class="menu-dropdown-item group"
                                                 :class="isCurrentPath('admin/roles') ? 'menu-dropdown-item-active' :
@@ -333,7 +333,7 @@
                                 style="display:none;" x-collapse>
                                 <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
                                     class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
-                                    @can('vehicle-types.view')
+                                    @can('platform.settings.manage')
                                         <li>
                                             <a href="{{ route('admin.vehicle.type.index') }}"
                                                 class="menu-dropdown-item group"
@@ -343,7 +343,7 @@
                                             </a>
                                         </li>
                                     @endcan
-                                    @can('vehicle-groups.view')
+                                    @can('platform.settings.manage')
                                         <li>
                                             <a href="{{ route('admin.vehicle.group.index') }}"
                                                 class="menu-dropdown-item group"
@@ -353,7 +353,7 @@
                                             </a>
                                         </li>
                                     @endcan
-                                    @can('fuel-types.view')
+                                    @can('platform.settings.manage')
                                         <li>
                                             <a href="{{ route('admin.fuel.type.index') }}" class="menu-dropdown-item group"
                                                 :class="isCurrentPath('admin/fuel-type') ? 'menu-dropdown-item-active' :
@@ -362,7 +362,7 @@
                                             </a>
                                         </li>
                                     @endcan
-                                    @can('equipment-types.view')
+                                    @can('platform.settings.manage')
                                         <li>
                                             <a href="{{ route('admin.equipment.type.index') }}"
                                                 class="menu-dropdown-item group"
@@ -372,7 +372,7 @@
                                             </a>
                                         </li>
                                     @endcan
-                                    @can('maintenance-categories.view')
+                                    @can('platform.settings.manage')
                                         <li>
                                             <a href="{{ route('admin.maintenance.category.index') }}"
                                                 class="menu-dropdown-item group"
@@ -467,7 +467,7 @@
                         </li>
 
                         <!-- User Management -->
-                        @can('users.view')
+                        @can('platform.staff.manage')
                             <li>
                                 <a href="{{ route('users.index') }}" @click="selected = (selected === 'Users' ? '':'Users')"
                                     class="menu-item group"
@@ -491,7 +491,7 @@
                     <span class="menu-group-title" :class="sidebarToggle ? 'lg:hidden' : ''">ACCOUNT</span>
                 </h3>
                 <ul class="flex flex-col gap-2 mb-6">
-                    @can('companies.edit')
+                    @can('company.edit')
                         @php
                             $companyId = Auth::user()->company?->id;
                         @endphp

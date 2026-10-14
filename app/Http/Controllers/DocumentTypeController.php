@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Exception;
 use App\Models\DocumentType;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use Yajra\DataTables\Facades\DataTables;
 
 class DocumentTypeController extends Controller
 {
@@ -24,15 +24,15 @@ class DocumentTypeController extends Controller
             if ($request->ajax()) {
                 $documentTypes = DocumentType::query();
                 $disabledIds = $company ? $company->disabledDocumentTypes()->pluck('document_types.id')->all() : [];
-                $canEdit = $user->can('document-types.edit');
-                $canDelete = $user->can('document-types.delete');
-                $canOptOut = $company && $user->can('companies.edit');
+                $canEdit = $user->can('platform.settings.manage');
+                $canDelete = $user->can('platform.settings.manage');
+                $canOptOut = $company && $user->can('document-types.toggle');
 
                 return DataTables::of($documentTypes)
                     ->addIndexColumn()
                     ->addColumn('module', function ($documentType) {
-                        return '<span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">' .
-                            e($documentType->module_label) . '</span>';
+                        return '<span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">'.
+                            e($documentType->module_label).'</span>';
                     })
                     ->addColumn('status', function ($documentType) {
                         if ($documentType->status) {
@@ -64,29 +64,29 @@ class DocumentTypeController extends Controller
 
                         if ($canOptOut) {
                             $enabled = ! in_array($documentType->id, $disabledIds, true);
-                            $buttons .= '<button type="button" data-action="company-toggle" data-id="' . $documentType->id . '"
-                                    class="inline-flex items-center px-3 py-1 text-sm rounded-md ' . ($enabled ? 'text-gray-700 bg-gray-100 hover:bg-gray-200' : 'text-green-700 bg-green-100 hover:bg-green-200') . '"
-                                    title="' . ($enabled ? 'Stop requiring this document for your company' : 'Require this document for your company') . '">
-                                    <i class="fas ' . ($enabled ? 'fa-toggle-on' : 'fa-toggle-off') . ' mr-1"></i> ' . ($enabled ? 'Switch off' : 'Switch on') . '
+                            $buttons .= '<button type="button" data-action="company-toggle" data-id="'.$documentType->id.'"
+                                    class="inline-flex items-center px-3 py-1 text-sm rounded-md '.($enabled ? 'text-gray-700 bg-gray-100 hover:bg-gray-200' : 'text-green-700 bg-green-100 hover:bg-green-200').'"
+                                    title="'.($enabled ? 'Stop requiring this document for your company' : 'Require this document for your company').'">
+                                    <i class="fas '.($enabled ? 'fa-toggle-on' : 'fa-toggle-off').' mr-1"></i> '.($enabled ? 'Switch off' : 'Switch on').'
                                 </button>';
                         }
 
-                        return '<div class="flex items-center space-x-2">' . $buttons . '
-                                ' . ($canEdit ? '<button type="button" onclick="editDocumentType(' . $documentType->id . ')" 
+                        return '<div class="flex items-center space-x-2">'.$buttons.'
+                                '.($canEdit ? '<button type="button" onclick="editDocumentType('.$documentType->id.')" 
                                     class="inline-flex items-center justify-center w-8 h-8 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30" 
                                     title="Edit">
                                     <i class="fas fa-edit text-xs"></i>
-                                </button>' : '') . '
-                                ' . ($canDelete ? '<button type="button" onclick="deleteDocumentType(' . $documentType->id . ')" 
+                                </button>' : '').'
+                                '.($canDelete ? '<button type="button" onclick="deleteDocumentType('.$documentType->id.')" 
                                     class="inline-flex items-center justify-center w-8 h-8 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30" 
                                     title="Delete">
                                     <i class="fas fa-trash text-xs"></i>
-                                </button>' : '') . '
-                                ' . ($canEdit ? '<button type="button" onclick="toggleStatus(' . $documentType->id . ', ' . ($documentType->status ? '0' : '1') . ')" 
-                                    class="inline-flex items-center justify-center w-8 h-8 ' . ($documentType->status ?  'text-green-600 border-green-200 dark:text-green-400 dark:border-green-800' : 'text-yellow-600 border-yellow-200 dark:text-yellow-400 dark:border-yellow-800') . ' border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800" 
-                                    title="' . ($documentType->status ? 'Activate' : 'Deactivate') . '">
-                                    <i class="fas ' . ($documentType->status ? 'fa-toggle-on' : 'fa-toggle-off') . ' text-xs"></i>
-                                </button>' : '') . '
+                                </button>' : '').'
+                                '.($canEdit ? '<button type="button" onclick="toggleStatus('.$documentType->id.', '.($documentType->status ? '0' : '1').')" 
+                                    class="inline-flex items-center justify-center w-8 h-8 '.($documentType->status ? 'text-green-600 border-green-200 dark:text-green-400 dark:border-green-800' : 'text-yellow-600 border-yellow-200 dark:text-yellow-400 dark:border-yellow-800').' border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800" 
+                                    title="'.($documentType->status ? 'Activate' : 'Deactivate').'">
+                                    <i class="fas '.($documentType->status ? 'fa-toggle-on' : 'fa-toggle-off').' text-xs"></i>
+                                </button>' : '').'
                             </div>';
                     })
                     ->rawColumns(['module', 'status', 'company_enabled', 'action'])
@@ -99,9 +99,9 @@ class DocumentTypeController extends Controller
 
             return view('admin.settings.document-types.index', compact('modules', 'showCompanyColumn'));
         } catch (Exception $e) {
-            Log::error('Error fetching document types: ' . $e->getMessage(), [
+            Log::error('Error fetching document types: '.$e->getMessage(), [
                 'exception' => $e,
-                'request' => $request->all()
+                'request' => $request->all(),
             ]);
 
             if ($request->ajax()) {
@@ -110,12 +110,12 @@ class DocumentTypeController extends Controller
                     'recordsTotal' => 0,
                     'recordsFiltered' => 0,
                     'data' => [],
-                    'error' => 'Failed to load document types.'
+                    'error' => 'Failed to load document types.',
                 ], 500);
             }
 
             return redirect()->back()->withErrors([
-                'system_error' => 'Failed to load document types. Please try again.'
+                'system_error' => 'Failed to load document types. Please try again.',
             ]);
         }
     }
@@ -128,7 +128,7 @@ class DocumentTypeController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255|unique:document_types,name',
-                'module' => 'required|string|in:' . implode(',', array_keys(DocumentType::getModules())),
+                'module' => 'required|string|in:'.implode(',', array_keys(DocumentType::getModules())),
                 'status' => 'required|boolean',
             ], [
                 'name.required' => 'Document type name is required.',
@@ -140,7 +140,7 @@ class DocumentTypeController extends Controller
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -157,19 +157,19 @@ class DocumentTypeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Document type created successfully!',
-                'data' => $documentType
+                'data' => $documentType,
             ]);
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error creating document type: ' . $e->getMessage(), [
+            Log::error('Error creating document type: '.$e->getMessage(), [
                 'exception' => $e,
-                'request_data' => $request->except('_token')
+                'request_data' => $request->except('_token'),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create document type. Please try again.'
+                'message' => 'Failed to create document type. Please try again.',
             ], 500);
         }
     }
@@ -184,17 +184,17 @@ class DocumentTypeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $documentType
+                'data' => $documentType,
             ]);
         } catch (Exception $e) {
-            Log::error('Error fetching document type: ' . $e->getMessage(), [
+            Log::error('Error fetching document type: '.$e->getMessage(), [
                 'exception' => $e,
-                'document_type_id' => $id
+                'document_type_id' => $id,
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Document type not found.'
+                'message' => 'Document type not found.',
             ], 404);
         }
     }
@@ -208,8 +208,8 @@ class DocumentTypeController extends Controller
             $documentType = DocumentType::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:255|unique:document_types,name,' . $id,
-                'module' => 'required|string|in:' . implode(',', array_keys(DocumentType::getModules())),
+                'name' => 'required|string|max:255|unique:document_types,name,'.$id,
+                'module' => 'required|string|in:'.implode(',', array_keys(DocumentType::getModules())),
                 'status' => 'required|boolean',
             ], [
                 'name.required' => 'Document type name is required.',
@@ -221,7 +221,7 @@ class DocumentTypeController extends Controller
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -238,20 +238,20 @@ class DocumentTypeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Document type updated successfully!',
-                'data' => $documentType
+                'data' => $documentType,
             ]);
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error updating document type: ' . $e->getMessage(), [
+            Log::error('Error updating document type: '.$e->getMessage(), [
                 'exception' => $e,
                 'document_type_id' => $id,
-                'request_data' => $request->except('_token')
+                'request_data' => $request->except('_token'),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update document type. Please try again.'
+                'message' => 'Failed to update document type. Please try again.',
             ], 500);
         }
     }
@@ -270,7 +270,7 @@ class DocumentTypeController extends Controller
                 || $documentType->trailerDocuments()->exists()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot delete document type because it has associated documents. Deactivate it instead.'
+                    'message' => 'Cannot delete document type because it has associated documents. Deactivate it instead.',
                 ], 400);
             }
 
@@ -282,19 +282,19 @@ class DocumentTypeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Document type deleted successfully!'
+                'message' => 'Document type deleted successfully!',
             ]);
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error deleting document type: ' . $e->getMessage(), [
+            Log::error('Error deleting document type: '.$e->getMessage(), [
                 'exception' => $e,
-                'document_type_id' => $id
+                'document_type_id' => $id,
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete document type. Please try again.'
+                'message' => 'Failed to delete document type. Please try again.',
             ], 500);
         }
     }
@@ -309,7 +309,7 @@ class DocumentTypeController extends Controller
 
             $documentType = DocumentType::findOrFail($id);
             $documentType->update([
-                'status' => !$documentType->status
+                'status' => ! $documentType->status,
             ]);
 
             DB::commit();
@@ -319,20 +319,20 @@ class DocumentTypeController extends Controller
                 'message' => 'Status updated successfully!',
                 'data' => [
                     'status' => $documentType->status,
-                    'status_label' => $documentType->status_label
-                ]
+                    'status_label' => $documentType->status_label,
+                ],
             ]);
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error toggling document type status: ' . $e->getMessage(), [
+            Log::error('Error toggling document type status: '.$e->getMessage(), [
                 'exception' => $e,
-                'document_type_id' => $id
+                'document_type_id' => $id,
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update status. Please try again.'
+                'message' => 'Failed to update status. Please try again.',
             ], 500);
         }
     }
@@ -361,7 +361,7 @@ class DocumentTypeController extends Controller
                 'data' => ['enabled' => $enabled],
             ]);
         } catch (Exception $e) {
-            Log::error('Error toggling document type for company: ' . $e->getMessage(), [
+            Log::error('Error toggling document type for company: '.$e->getMessage(), [
                 'exception' => $e,
                 'document_type_id' => $id,
                 'company_id' => $company->id,
@@ -369,7 +369,7 @@ class DocumentTypeController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update your company setting. Please try again.'
+                'message' => 'Failed to update your company setting. Please try again.',
             ], 500);
         }
     }
@@ -381,7 +381,7 @@ class DocumentTypeController extends Controller
     {
         try {
             $request->validate([
-                'module' => 'required|string'
+                'module' => 'required|string',
             ]);
 
             $documentTypes = DocumentType::active()
@@ -391,17 +391,17 @@ class DocumentTypeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $documentTypes
+                'data' => $documentTypes,
             ]);
         } catch (Exception $e) {
-            Log::error('Error fetching document types by module: ' . $e->getMessage(), [
+            Log::error('Error fetching document types by module: '.$e->getMessage(), [
                 'exception' => $e,
-                'module' => $request->module
+                'module' => $request->module,
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load document types.'
+                'message' => 'Failed to load document types.',
             ], 500);
         }
     }

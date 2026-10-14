@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use App\Authorization\TenantPermissionResolver;
+use BackedEnum;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Contracts\Permission as PermissionContract;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -30,6 +33,17 @@ class PlatformUser extends Authenticatable
         'two_factor_secret',
         'two_factor_recovery_codes',
     ];
+
+    /**
+     * Decided database-first in the user's own team (06 §4.3), never from Spatie's role cache.
+     * hasAnyPermission, hasAllPermissions and checkPermissionTo all call this.
+     *
+     * @param  string|int|PermissionContract|BackedEnum  $permission
+     */
+    public function hasPermissionTo($permission, ?string $guardName = null): bool
+    {
+        return app(TenantPermissionResolver::class)->allows($this, $permission, $guardName);
+    }
 
     protected function casts(): array
     {

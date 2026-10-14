@@ -16,6 +16,8 @@
         <exclude>
             <!-- Failing tests that prove an open bug. Run them with: composer test:known-issues -->
             <group>known-issue</group>
+            <!-- MySQL load test at 2,000 companies. Run it with the scale group option of php artisan test. -->
+            <group>scale</group>
         </exclude>
     </groups>
     <source>

@@ -2,25 +2,26 @@
 
 namespace Database\Seeders;
 
+use App\Authorization\RoleTemplates;
 use App\Models\Company;
 use App\Models\Driver;
 use App\Models\License;
 use App\Models\PlanPrice;
 use App\Models\PlatformUser;
+use App\Models\Role;
 use App\Models\Subscription;
 use App\Services\Company\CompanyProvisioner;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Demo data with known passwords: two Platform Owners and two companies. Replaces
  * DemoUserSeeder, CompanySeeder and DriverSeeder.
  *
- * Companies are built through CompanyProvisioner; permission grants on the roles follow in WP3.
+ * Companies are built through CompanyProvisioner, which grants the system roles their permissions.
  */
 class DemoSeeder extends Seeder
 {
@@ -33,6 +34,8 @@ class DemoSeeder extends Seeder
         if (! app()->environment(self::ENVIRONMENTS)) {
             throw new RuntimeException('DemoSeeder creates logins with a known password and only runs in local, testing and staging.');
         }
+
+        $this->call(PlatformRoleSeeder::class);
 
         DB::transaction(function () {
             $this->platformOwner('superadmin@gmail.com', 'Platform Owner');
@@ -53,9 +56,7 @@ class DemoSeeder extends Seeder
         );
 
         app(PermissionRegistrar::class)->setPermissionsTeamId(0);
-        $role = Role::findOrCreate('Platform Owner', 'platform');
-        $role->forceFill(['system_key' => 'platform_owner', 'is_system' => true])->save();
-        $owner->assignRole($role);
+        $owner->assignRole(Role::query()->where('team_id', 0)->where('system_key', RoleTemplates::PLATFORM_OWNER)->firstOrFail());
     }
 
     private function company(string $email, string $name, string $slug, string $state, string $city): void

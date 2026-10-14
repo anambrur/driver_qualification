@@ -517,7 +517,7 @@ class CompanyController extends Controller
         $companyId = $user->company?->id;
 
         if ($companyId === null) {
-            abort_unless($user->can('policy-pdf.edit'), 403);
+            abort_unless($user->can('company.edit'), 403);
         }
 
         return $companyId;

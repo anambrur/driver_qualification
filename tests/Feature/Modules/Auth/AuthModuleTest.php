@@ -2,12 +2,12 @@
 
 use App\Models\Company;
 use App\Models\Driver;
+use App\Models\Role;
 use App\Models\User;
 use Database\Factories\CompanyFactory;
 use Database\Factories\DriverFactory;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
 use Tests\Support\Actors;
 
 afterEach(function () {

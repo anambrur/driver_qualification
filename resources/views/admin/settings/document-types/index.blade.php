@@ -17,7 +17,7 @@
                         @endif
                     </p>
                 </div>
-                @can('document-types.create')
+                @can('platform.settings.manage')
                     <div class="flex items-center space-x-2">
                         <button type="button" onclick="openCreateModal()"
                             class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2">
