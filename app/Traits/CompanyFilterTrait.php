@@ -3,34 +3,28 @@
 namespace App\Traits;
 
 use App\Models\Company;
+use App\Tenancy\TenantContext;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 trait CompanyFilterTrait
 {
-    protected bool $companyContextResolved = false;
-
-    protected ?bool $resolvedSuperAdmin = null;
-
-    protected ?int $resolvedCompanyId = null;
+    /**
+     * Super-admins are not filtered. Interim until the platform area replaces them (03 §7).
+     */
+    protected function isSuperAdmin(): bool
+    {
+        return Auth::user()?->hasRole('super-admin') ?? false;
+    }
 
     /**
-     * Resolve and memoize company context once per request/controller instance.
+     * The tenant of this request, from TenantContext (set by ResolveTenant).
      */
-    protected function resolveCompanyContext(): void
+    protected function tenantCompanyId(): ?int
     {
-        if ($this->companyContextResolved) {
-            return;
-        }
-
-        $user = Auth::user();
-        $this->resolvedSuperAdmin = $user?->hasRole('super-admin') ?? false;
-
-        if (! $this->resolvedSuperAdmin && $user) {
-            $user->loadMissing('company');
-            $this->resolvedCompanyId = $user->company?->id;
-        }
-
-        $this->companyContextResolved = true;
+        return app(TenantContext::class)->companyId();
     }
 
     /**
@@ -39,13 +33,11 @@ trait CompanyFilterTrait
      */
     protected function getUserCompanyId(): ?int
     {
-        $this->resolveCompanyContext();
-
-        if ($this->resolvedSuperAdmin) {
+        if ($this->isSuperAdmin()) {
             return null;
         }
 
-        return $this->resolvedCompanyId;
+        return $this->tenantCompanyId();
     }
 
     /**
@@ -72,13 +64,11 @@ trait CompanyFilterTrait
      */
     protected function getOwningCompanyId(?int $resourceCompanyId): ?int
     {
-        $this->resolveCompanyContext();
-
-        if ($this->resolvedSuperAdmin) {
+        if ($this->isSuperAdmin()) {
             return $resourceCompanyId ?? $this->getAllUserCompanyId();
         }
 
-        return $this->resolvedCompanyId;
+        return $this->tenantCompanyId();
     }
 
     /**
@@ -86,20 +76,19 @@ trait CompanyFilterTrait
      *
      * @template TModel of \Illuminate\Database\Eloquent\Model
      *
-     * @param  \Illuminate\Database\Eloquent\Builder<TModel>  $query
-     * @param  string  $companyColumn
-     * @return \Illuminate\Database\Eloquent\Builder<TModel>
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
      */
     protected function applyCompanyFilter($query, string $companyColumn = 'company_id')
     {
-        $this->resolveCompanyContext();
-
-        if ($this->resolvedSuperAdmin) {
+        if ($this->isSuperAdmin()) {
             return $query;
         }
 
-        if ($this->resolvedCompanyId !== null) {
-            return $query->where($companyColumn, $this->resolvedCompanyId);
+        $companyId = $this->tenantCompanyId();
+
+        if ($companyId !== null) {
+            return $query->where($companyColumn, $companyId);
         }
 
         // Non-super-admin with no company assigned should see no records.
@@ -110,30 +99,28 @@ trait CompanyFilterTrait
      * Check if user has access to a specific company resource.
      *
      * @param  mixed  $resource
-     * @param  string  $companyColumn
      */
     protected function userHasAccess($resource, string $companyColumn = 'company_id'): bool
     {
-        $this->resolveCompanyContext();
-
-        if ($this->resolvedSuperAdmin) {
+        if ($this->isSuperAdmin()) {
             return true;
         }
 
-        if ($this->resolvedCompanyId === null) {
+        $companyId = $this->tenantCompanyId();
+
+        if ($companyId === null) {
             return false;
         }
 
-        return (int) $resource->$companyColumn === $this->resolvedCompanyId;
+        return (int) $resource->$companyColumn === $companyId;
     }
 
     /**
      * Authorize user action on a resource.
      *
      * @param  mixed  $resource
-     * @param  string  $message
-     * @param  string  $companyColumn
-     * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
+     *
+     * @throws AccessDeniedHttpException
      */
     protected function authorizeCompanyAccess($resource, string $message = 'Unauthorized access.', string $companyColumn = 'company_id'): void
     {
@@ -145,13 +132,11 @@ trait CompanyFilterTrait
     /**
      * Get companies for dropdown based on user role.
      *
-     * @return \Illuminate\Database\Eloquent\Collection|\Illuminate\Support\Collection
+     * @return \Illuminate\Database\Eloquent\Collection|Collection
      */
     protected function getCompaniesForUser()
     {
-        $this->resolveCompanyContext();
-
-        if ($this->resolvedSuperAdmin) {
+        if ($this->isSuperAdmin()) {
             return Company::where('status', 'active')->get();
         }
 

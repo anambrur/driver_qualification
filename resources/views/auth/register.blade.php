@@ -322,6 +322,26 @@
                         <x-input-error :messages="$errors->get('name')" class="mt-1.5" />
                     </div>
 
+                    {{-- Company name --}}
+                    <div>
+                        <label for="company_name"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Company name</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1m-1 4h1m4-4h1m-1 4h1M10 21v-4h4v4" />
+                                </svg>
+                            </div>
+                            <input id="company_name" type="text" name="company_name" value="{{ old('company_name') }}" required
+                                autocomplete="organization"
+                                class="auth-input w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0"
+                                placeholder="Acme Trucking LLC">
+                        </div>
+                        <x-input-error :messages="$errors->get('company_name')" class="mt-1.5" />
+                    </div>
+
                     {{-- Email --}}
                     <div>
                         <label for="email"

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 use Vonage\Client;
@@ -14,6 +15,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->scoped(TenantContext::class);
+
         $this->app->singleton(Client::class, function () {
             return new Client(new Basic(
                 (string) config('services.vonage.api_key', ''),

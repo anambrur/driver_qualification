@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AssetGroup;
 use App\Models\Driver;
 use App\Models\Trailer;
 use App\Models\Vehicle;
-use App\Models\AssetGroup;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Unique;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
+use Yajra\DataTables\Facades\DataTables;
 
 class AssetGroupController extends Controller
 {
@@ -55,11 +55,11 @@ class AssetGroupController extends Controller
                         </div>
                         <div class="ml-4">
                             <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center">
-                                ' . e($row->group_name) . '
-                                ' . $statusBadge . '
+                                '.e($row->group_name).'
+                                '.$statusBadge.'
                             </div>
                             <div class="text-sm text-gray-500 dark:text-gray-400">
-                                Primary Driver: ' . e($row->primary_driver_name ?: 'N/A') . '
+                                Primary Driver: '.e($row->primary_driver_name ?: 'N/A').'
                             </div>
                         </div>
                     </div>';
@@ -67,35 +67,35 @@ class AssetGroupController extends Controller
                 ->addColumn('drivers_info', function ($row) {
                     $primary = $row->primary_driver_name ?
                         '<div class="text-sm">
-                            <div><span class="font-medium">Primary:</span> ' . e($row->primary_driver_name) . '</div>
-                            <div><span class="font-medium">Phone:</span> ' . e($row->primary_driver_phone ?: 'N/A') . '</div>
+                            <div><span class="font-medium">Primary:</span> '.e($row->primary_driver_name).'</div>
+                            <div><span class="font-medium">Phone:</span> '.e($row->primary_driver_phone ?: 'N/A').'</div>
                         </div>' :
                         '<div class="text-sm text-gray-400">No primary driver</div>';
 
                     $secondary = $row->second_driver_name ?
                         '<div class="text-sm mt-2">
-                            <div><span class="font-medium">Secondary:</span> ' . e($row->second_driver_name) . '</div>
-                            <div><span class="font-medium">Phone:</span> ' . e($row->second_driver_phone ?: 'N/A') . '</div>
+                            <div><span class="font-medium">Secondary:</span> '.e($row->second_driver_name).'</div>
+                            <div><span class="font-medium">Phone:</span> '.e($row->second_driver_phone ?: 'N/A').'</div>
                         </div>' : '';
 
-                    return $primary . $secondary;
+                    return $primary.$secondary;
                 })
                 ->addColumn('assets_info', function ($row) {
                     $vehicle = $row->vehicle ?
                         '<div class="text-sm">
-                            <div><span class="font-medium">Vehicle:</span> ' . e($row->vehicle->unit_no) . '</div>
-                            <div><span class="font-medium">VIN:</span> ' . e($row->vehicle->vin) . '</div>
+                            <div><span class="font-medium">Vehicle:</span> '.e($row->vehicle->unit_no).'</div>
+                            <div><span class="font-medium">VIN:</span> '.e($row->vehicle->vin).'</div>
                         </div>' :
                         '<div class="text-sm text-gray-400">No vehicle assigned</div>';
 
                     $trailer = $row->trailer ?
                         '<div class="text-sm mt-2">
-                            <div><span class="font-medium">Trailer:</span> ' . e($row->trailer->unit_no) . '</div>
-                            <div><span class="font-medium">VIN:</span> ' . e($row->trailer->vin) . '</div>
+                            <div><span class="font-medium">Trailer:</span> '.e($row->trailer->unit_no).'</div>
+                            <div><span class="font-medium">VIN:</span> '.e($row->trailer->vin).'</div>
                         </div>' :
                         '<div class="text-sm text-gray-400 mt-2">No trailer assigned</div>';
 
-                    return $vehicle . $trailer;
+                    return $vehicle.$trailer;
                 })
                 ->addColumn('status', function ($row) {
                     $status = $row->deleted_at ? 'deleted' : $row->status;
@@ -110,30 +110,30 @@ class AssetGroupController extends Controller
                         $statusText = 'Inactive';
                     }
 
-                    return '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' . $badgeClass . '">
-                        ' . $statusText . '
+                    return '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full '.$badgeClass.'">
+                        '.$statusText.'
                     </span>';
                 })
                 ->addColumn('action', function ($row) {
                     // A deleted group can only be restored (edit/update look up non-deleted groups only)
                     if ($row->deleted_at) {
-                        return '<div class="flex justify-center space-x-1"><button data-action="restore" data-id="' . $row->id . '" data-name="' . e($row->group_name) . '"
+                        return '<div class="flex justify-center space-x-1"><button data-action="restore" data-id="'.$row->id.'" data-name="'.e($row->group_name).'"
                                     class="inline-flex items-center px-3 py-1 text-sm text-green-600 bg-green-100 rounded-md hover:bg-green-200 transition-colors">
                                     <i class="fas fa-trash-restore mr-1"></i> Restore
                                 </button></div>';
                     }
 
-                    $editBtn = '<button onclick="editAssetGroup(' . $row->id . ')" 
+                    $editBtn = '<button onclick="editAssetGroup('.$row->id.')" 
                                 class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors mr-2">
                                 <i class="fas fa-edit mr-1"></i> Edit
                             </button>';
 
-                    $deleteBtn = '<button data-action="delete" data-id="' . $row->id . '" data-name="' . e($row->group_name) . '"
+                    $deleteBtn = '<button data-action="delete" data-id="'.$row->id.'" data-name="'.e($row->group_name).'"
                                 class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
                                 <i class="fas fa-trash mr-1"></i> Delete
                             </button>';
 
-                    return '<div class="flex justify-center space-x-1">' . $editBtn . $deleteBtn . '</div>';
+                    return '<div class="flex justify-center space-x-1">'.$editBtn.$deleteBtn.'</div>';
                 })
                 ->addColumn('created_at_formatted', function ($row) {
                     return $row->created_at->format('M d, Y');
@@ -170,7 +170,7 @@ class AssetGroupController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -197,14 +197,15 @@ class AssetGroupController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Asset group created successfully!',
-                'data' => $assetGroup
+                'data' => $assetGroup,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('AssetGroup store error: ' . $e->getMessage());
+            Log::error('AssetGroup store error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create asset group. Please try again.'
+                'message' => 'Failed to create asset group. Please try again.',
             ], 500);
         }
     }
@@ -218,7 +219,7 @@ class AssetGroupController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $assetGroup
+            'data' => $assetGroup,
         ]);
     }
 
@@ -243,7 +244,7 @@ class AssetGroupController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -260,14 +261,15 @@ class AssetGroupController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Asset group updated successfully!',
-                'data' => $assetGroup
+                'data' => $assetGroup,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('AssetGroup update error: ' . $e->getMessage());
+            Log::error('AssetGroup update error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update asset group. Please try again.'
+                'message' => 'Failed to update asset group. Please try again.',
             ], 500);
         }
     }
@@ -284,14 +286,15 @@ class AssetGroupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Asset group deleted successfully!'
+                'message' => 'Asset group deleted successfully!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('AssetGroup delete error: ' . $e->getMessage());
+            Log::error('AssetGroup delete error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete asset group. Please try again.'
+                'message' => 'Failed to delete asset group. Please try again.',
             ], 500);
         }
     }
@@ -308,14 +311,15 @@ class AssetGroupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Asset group restored successfully!'
+                'message' => 'Asset group restored successfully!',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('AssetGroup restore error: ' . $e->getMessage());
+            Log::error('AssetGroup restore error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to restore asset group. Please try again.'
+                'message' => 'Failed to restore asset group. Please try again.',
             ], 500);
         }
     }
@@ -334,7 +338,7 @@ class AssetGroupController extends Controller
             'success' => true,
             'vehicles' => $vehicles,
             'trailers' => $trailers,
-            'statusOptions' => AssetGroup::getStatusOptions()
+            'statusOptions' => AssetGroup::getStatusOptions(),
         ]);
     }
 
@@ -353,7 +357,7 @@ class AssetGroupController extends Controller
     {
         $driver = Driver::query()->find($driverId, ['first_name', 'last_name']);
 
-        return $driver ? trim($driver->first_name . ' ' . $driver->last_name) : null;
+        return $driver ? trim($driver->first_name.' '.$driver->last_name) : null;
     }
 
     /**
@@ -370,7 +374,7 @@ class AssetGroupController extends Controller
 
         $vehicleId = $request->input('vehicle_id');
 
-        if (! $this->resolvedSuperAdmin || ! is_scalar($vehicleId)) {
+        if (! $this->isSuperAdmin() || ! is_scalar($vehicleId)) {
             return -1;
         }
 

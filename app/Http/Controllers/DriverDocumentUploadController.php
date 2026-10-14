@@ -3,15 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Company;
-use App\Models\Driver;
 use App\Models\DocumentType;
+use App\Models\Driver;
 use App\Models\DriverComplianceDocument;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class DriverDocumentUploadController extends Controller
@@ -64,7 +64,7 @@ class DriverDocumentUploadController extends Controller
                 ->map(function ($driver) {
                     return [
                         'id' => $driver->id,
-                        'full_name' => $driver->first_name . ' ' . $driver->last_name,
+                        'full_name' => $driver->first_name.' '.$driver->last_name,
                         'has_document' => (bool) $driver->has_document,
                     ];
                 });
@@ -76,7 +76,7 @@ class DriverDocumentUploadController extends Controller
                     'assets' => [],
                     'document_type_name' => $documentType ? $documentType->name : 'Document',
                     'company' => $this->companyPayload($company),
-                    'message' => 'No drivers found for your company'
+                    'message' => 'No drivers found for your company',
                 ]);
             }
 
@@ -85,14 +85,14 @@ class DriverDocumentUploadController extends Controller
                 'assets' => $drivers,
                 'document_type_name' => $documentType ? $documentType->name : 'Document',
                 'company' => $this->companyPayload($company),
-                'total' => $drivers->count()
+                'total' => $drivers->count(),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to load drivers for compliance upload', ['exception' => $e]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load drivers.'
+                'message' => 'Failed to load drivers.',
             ], 500);
         }
     }
@@ -125,7 +125,7 @@ class DriverDocumentUploadController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => $validator->errors()->first()
+                'message' => $validator->errors()->first(),
             ], 422);
         }
 
@@ -140,7 +140,7 @@ class DriverDocumentUploadController extends Controller
             if ($drivers->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'There are no active drivers to upload this document to.'
+                    'message' => 'There are no active drivers to upload this document to.',
                 ], 422);
             }
         } else {
@@ -205,7 +205,7 @@ class DriverDocumentUploadController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to upload document.'
+                'message' => 'Failed to upload document.',
             ], 500);
         }
 
@@ -221,7 +221,7 @@ class DriverDocumentUploadController extends Controller
             'success' => true,
             'message' => $message,
             'uploaded_count' => $uploadedCount,
-            'updated_count' => $updatedCount
+            'updated_count' => $updatedCount,
         ]);
     }
 
@@ -235,7 +235,7 @@ class DriverDocumentUploadController extends Controller
 
         // Double-check driver belongs to user's company
         $driver = Driver::findOrFail($driverId);
-        if (!$this->userHasAccess($driver)) {
+        if (! $this->userHasAccess($driver)) {
             throw new \Exception('Unauthorized access to driver');
         }
 
@@ -284,7 +284,7 @@ class DriverDocumentUploadController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => $validator->errors()->first()
+                'message' => $validator->errors()->first(),
             ], 422);
         }
 
@@ -303,14 +303,14 @@ class DriverDocumentUploadController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Document deleted successfully'
+                'message' => 'Document deleted successfully',
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to delete driver compliance document', ['exception' => $e, 'document_id' => $document->id]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete document.'
+                'message' => 'Failed to delete document.',
             ], 500);
         }
     }
@@ -323,7 +323,7 @@ class DriverDocumentUploadController extends Controller
         $document = $this->findAuthorizedDocument($documentId, 'You do not have permission to download documents for this driver.');
         $disk = $this->diskHolding($document->file_path);
 
-        $fileName = $document->documentType->name . '_' . basename($document->file_path);
+        $fileName = $document->documentType->name.'_'.basename($document->file_path);
 
         return Storage::disk($disk)->download($document->file_path, $fileName, self::FILE_HEADERS);
     }
@@ -337,13 +337,6 @@ class DriverDocumentUploadController extends Controller
         $disk = $this->diskHolding($document->file_path);
 
         return Storage::disk($disk)->response($document->file_path, null, self::FILE_HEADERS);
-    }
-
-    private function isSuperAdmin(): bool
-    {
-        $this->resolveCompanyContext();
-
-        return (bool) $this->resolvedSuperAdmin;
     }
 
     /**
@@ -419,13 +412,13 @@ class DriverDocumentUploadController extends Controller
 
         if ($uploadedCount > 0) {
             $messages[] = $uploadedCount === 1
-                ? "Document uploaded to 1 driver"
+                ? 'Document uploaded to 1 driver'
                 : "Documents uploaded to {$uploadedCount} drivers";
         }
 
         if ($updatedCount > 0) {
             $messages[] = $updatedCount === 1
-                ? "1 driver document updated"
+                ? '1 driver document updated'
                 : "{$updatedCount} driver documents updated";
         }
 

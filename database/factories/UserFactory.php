@@ -25,7 +25,7 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'company_id' => CompanyFactory::new()->withoutOwner(),
+            'company_id' => CompanyFactory::new(),
             'user_type' => 'member',
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),

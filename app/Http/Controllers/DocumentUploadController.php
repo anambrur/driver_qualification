@@ -409,13 +409,6 @@ class DocumentUploadController extends Controller
         return Storage::disk($disk)->response($document->file_path, null, self::FILE_HEADERS);
     }
 
-    private function isSuperAdmin(): bool
-    {
-        $this->resolveCompanyContext();
-
-        return (bool) $this->resolvedSuperAdmin;
-    }
-
     /**
      * The company the upload modal works on: a tenant's own company, or for a super-admin the
      * company of the given vehicle/trailer (null when there is none).

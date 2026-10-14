@@ -8,7 +8,7 @@ use App\Models\License;
 use App\Models\PlanPrice;
 use App\Models\PlatformUser;
 use App\Models\Subscription;
-use App\Models\User;
+use App\Services\Company\CompanyProvisioner;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -20,8 +20,7 @@ use Spatie\Permission\PermissionRegistrar;
  * Demo data with known passwords: two Platform Owners and two companies. Replaces
  * DemoUserSeeder, CompanySeeder and DriverSeeder.
  *
- * Interim (WP1): rows are written directly. CompanyProvisioner (WP2) and the role templates
- * (WP3) take over company creation, the remaining system roles and the support user.
+ * Companies are built through CompanyProvisioner; permission grants on the roles follow in WP3.
  */
 class DemoSeeder extends Seeder
 {
@@ -65,8 +64,7 @@ class DemoSeeder extends Seeder
             return;
         }
 
-        // Same order as production: company without owner -> owner in that company -> owner_user_id.
-        $company = Company::create([
+        $company = app(CompanyProvisioner::class)->provision([
             'company_name' => $name,
             'slug' => $slug,
             'email' => $email,
@@ -74,23 +72,13 @@ class DemoSeeder extends Seeder
             'city' => $city,
             'state_code' => $state,
             'phone' => '555-0101',
-            'status' => 'active',
-        ]);
-
-        $owner = User::create([
-            'company_id' => $company->id,
+        ], [
             'name' => "{$name} Owner",
             'email' => $email,
             'password' => Hash::make(self::PASSWORD),
-            'status' => 'active',
+            'email_verified_at' => now(),
         ]);
-        $owner->forceFill(['email_verified_at' => now()])->save();
-        $company->forceFill(['owner_user_id' => $owner->id])->save();
-        $company->settings()->create([]);
-
-        app(PermissionRegistrar::class)->setPermissionsTeamId($company->id);
-        $ownerRole = Role::create(['name' => 'Owner', 'guard_name' => 'web', 'system_key' => 'owner', 'is_system' => true]);
-        $owner->assignRole($ownerRole);
+        $owner = $company->owner;
 
         $price = PlanPrice::query()->current()->where('interval', 'month')
             ->whereHas('plan', fn ($q) => $q->where('slug', 'company'))
