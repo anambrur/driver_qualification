@@ -34,11 +34,17 @@ class PlanPrice extends Model
         return $query->whereNull('archived_at');
     }
 
+    /**
+     * @return BelongsTo<Plan, $this>
+     */
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
     }
 
+    /**
+     * @return HasMany<Subscription, $this>
+     */
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);

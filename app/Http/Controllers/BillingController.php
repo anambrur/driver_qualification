@@ -2,33 +2,33 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Billing\AccessState;
 use App\Services\Stripe\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
+/**
+ * The company's billing (07 §6.3): one subscription shared by every user of the company.
+ */
 class BillingController extends Controller
 {
-    public function index(Request $request): View|RedirectResponse
+    public function index(Request $request): View
     {
-        $user = $request->user();
-        $subscription = $user->activeSubscription() ?? $user->subscriptions()->with('plan')->first();
-        $plan = $subscription?->plan;
-        $payments = $user->payments()->with('plan')->limit(25)->get();
+        $company = $request->user()->company;
+        $subscription = $company->subscriptions()->with('planPrice.plan')->latest('id')->first();
+        $plan = $subscription?->planPrice?->plan;
+        $payments = $company->payments()->with('plan')->latest('paid_at')->limit(25)->get();
+        $accessState = AccessState::for($company);
 
-        return view('billing.index', compact('subscription', 'plan', 'payments'));
+        return view('billing.index', compact('subscription', 'plan', 'payments', 'accessState', 'company'));
     }
 
     public function portal(Request $request, SubscriptionService $subscriptions): RedirectResponse
     {
         try {
-            $session = $subscriptions->createBillingPortalSession(
-                $request->user(),
-                route('billing.index')
-            );
-
-            return redirect()->away($session->url);
+            return redirect()->away($subscriptions->createBillingPortalSession($request->user()->company, route('billing.index'))->url);
         } catch (\Throwable $e) {
             Log::warning('Billing portal failed', ['error' => $e->getMessage()]);
             toastr()->error('Unable to open the billing portal right now.');
@@ -39,9 +39,9 @@ class BillingController extends Controller
 
     public function cancel(Request $request, SubscriptionService $subscriptions): RedirectResponse
     {
-        $subscription = $request->user()->activeSubscription();
+        $subscription = $request->user()->company->subscriptions()->open()->first();
 
-        if (! $subscription) {
+        if (! $subscription?->isAccessible() || $subscription->cancel_at_period_end) {
             return redirect()->route('billing.index')->with('error', 'No active subscription to cancel.');
         }
 
@@ -58,9 +58,9 @@ class BillingController extends Controller
 
     public function resume(Request $request, SubscriptionService $subscriptions): RedirectResponse
     {
-        $subscription = $request->user()->subscriptions()->latest()->first();
+        $subscription = $request->user()->company->subscriptions()->open()->first();
 
-        if (! $subscription || ! $subscription->onGracePeriod()) {
+        if (! $subscription?->canResume()) {
             return redirect()->route('billing.index')->with('error', 'Subscription cannot be resumed.');
         }
 

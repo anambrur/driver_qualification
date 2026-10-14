@@ -62,6 +62,7 @@ This document set describes how DriverFilesHub becomes a company-based, multi-te
 | Policy PDFs are per company, with a platform default as fallback. | PO-14 |
 | One free trial per verified email. | PO-15 |
 | The Stripe account is shared with another app, so events with a foreign `app_host` are ignored. | PO-18 |
+| WP6 billing defaults: a lapsed company stays `read_only` (`none` only if it never had a subscription); read-only denies `is_write` permissions except `billing.*`; one trial per email is enforced by unique `companies.trial_email`; past-due grace runs from `current_period_start`; company plan changes go through the Stripe Billing Portal (downgrades scheduled at period end in its settings), the platform "move to price" is immediate; checkout and trial are POST. Platform billing screens move to `/platform` in WP8. | WP6 plan approval, 14 Oct 2026; [07](07-subscription-billing.md) |
 | Every other answered item in [../testing/PRODUCT_DECISIONS.md](../testing/PRODUCT_DECISIONS.md) | PO-01 … PO-22 |
 
 ### Rules this document set supersedes

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Authorization\CatalogueRegistrar;
 use App\Authorization\PermissionGate;
 use App\Authorization\TenantPermissionResolver;
+use App\Services\Billing\AccessStateResolver;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
@@ -22,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(TenantContext::class);
         $this->app->scoped(TenantPermissionResolver::class);
+        $this->app->scoped(AccessStateResolver::class);
 
         $this->app->singleton(Client::class, function () {
             return new Client(new Basic(

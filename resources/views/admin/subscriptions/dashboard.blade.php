@@ -128,8 +128,7 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3">
-                                    <a href="{{ route('admin.subscriptions.show', $sub->user) }}"
-                                        class="text-blue-600 hover:underline text-xs">Manage</a>
+                                    <span class="text-gray-400 text-xs">Managed in /platform (WP8)</span>
                                 </td>
                             </tr>
                         @endforeach

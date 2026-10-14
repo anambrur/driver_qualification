@@ -1,48 +1,50 @@
 <?php
 
 use App\Models\Subscription;
+use App\Services\Billing\AccessState;
 use Database\Factories\SubscriptionFactory;
 use Illuminate\Console\Scheduling\Schedule;
 use Tests\Support\Actors;
 
 /*
-| PO-22 (2026-10-11): ended free trials stayed stripe_status = 'trialing' forever. A daily job
-| marks them canceled; access was already refused by the end date.
+| PO-22 (2026-10-11) and 07 §4.1: an ended free trial has nothing in Stripe to end it. A daily
+| job closes it (status canceled, ended_at); access already stopped at trial_ends_at.
 */
 
 function expiredTrial(): Subscription
 {
-    return SubscriptionFactory::new()->trial()->create([
-        'user_id' => Actors::companyOwner(subscribed: false)->id,
+    return SubscriptionFactory::new()->forCompany(Actors::company(subscribed: false))->trial()->create([
         'trial_ends_at' => now()->subDay(),
         'current_period_end' => now()->subDay(),
         'ends_at' => now()->subDay(),
     ]);
 }
 
-it('marks ended trials canceled and leaves running trials and paid subscriptions alone', function () {
+it('closes ended trials and leaves running trials and paid subscriptions alone', function () {
     $ended = expiredTrial();
-    $running = SubscriptionFactory::new()->trial(5)->create(['user_id' => Actors::companyOwner(subscribed: false)->id]);
-    $paid = Actors::subscribe(Actors::companyOwner(subscribed: false), ['ends_at' => now()->subDay(), 'stripe_subscription_id' => 'sub_paid']);
-    $paidStatus = $paid->stripe_status;
+    $running = SubscriptionFactory::new()->forCompany(Actors::company(subscribed: false))->trial(5)->create();
+    $paid = SubscriptionFactory::new()->forCompany(Actors::company(subscribed: false))->create(['current_period_end' => now()->subDay()]);
 
     $this->artisan('subscriptions:close-expired-trials')->assertSuccessful();
 
-    expect($ended->fresh()->stripe_status)->toBe('canceled')
-        ->and($running->fresh()->stripe_status)->toBe('trialing')
-        ->and($paid->fresh()->stripe_status)->toBe($paidStatus)
-        ->and($ended->user->fresh()->hasActiveSubscription())->toBeFalse()
-        ->and($ended->user->fresh()->hasUsedTrial())->toBeTrue();
+    expect($ended->fresh()->status)->toBe('canceled')
+        ->and($ended->fresh()->ended_at)->not->toBeNull()
+        ->and($running->fresh()->status)->toBe('trialing')
+        ->and($running->fresh()->ended_at)->toBeNull()
+        ->and($paid->fresh()->status)->toBe('active')
+        ->and($paid->fresh()->ended_at)->toBeNull()
+        ->and(AccessState::for($ended->company))->toBe(AccessState::ReadOnly)
+        ->and($ended->company->fresh()->trial_used_at === null)->toBeTrue();
 });
 
 it('changes nothing with --dry-run', function () {
     $ended = expiredTrial();
 
     $this->artisan('subscriptions:close-expired-trials', ['--dry-run' => true])
-        ->expectsOutputToContain('1 expired trial(s) would be marked canceled.')
+        ->expectsOutputToContain('1 expired trial(s) would be closed.')
         ->assertSuccessful();
 
-    expect($ended->fresh()->stripe_status)->toBe('trialing');
+    expect($ended->fresh()->status)->toBe('trialing');
 });
 
 it('is scheduled daily', function () {

@@ -9,7 +9,6 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Contracts\Permission as PermissionContract;
@@ -84,43 +83,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
-    }
-
-    /**
-     * @return HasMany<Subscription, $this>
-     */
-    public function subscriptions(): HasMany
-    {
-        return $this->hasMany(Subscription::class, 'user_id')
-            ->orderByDesc('created_at');
-    }
-
-    public function payments(): HasMany
-    {
-        return $this->hasMany(Payment::class)->orderByDesc('paid_at');
-    }
-
-    public function activeSubscription(): ?Subscription
-    {
-        return $this->subscriptions()
-            ->accessible()
-            ->get()
-            ->first(fn (Subscription $subscription) => $subscription->isAccessible());
-    }
-
-    public function hasActiveSubscription(): bool
-    {
-        return $this->activeSubscription() !== null;
-    }
-
-    public function hasUsedTrial(): bool
-    {
-        return $this->subscriptions()
-            ->where(function ($query) {
-                $query->where('source', 'trial')
-                    ->orWhere('billing_cycle', 'trial');
-            })
-            ->exists();
     }
 
     public function notificationPhone(): ?string

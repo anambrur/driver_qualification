@@ -39,6 +39,8 @@ return new class extends Migration
 
             $table->string('stripe_customer_id')->nullable()->unique();
             $table->timestamp('trial_used_at')->nullable();
+            // The owner email that claimed the trial: unique, so one trial per email (PO-15)
+            $table->string('trial_email')->nullable()->unique();
             $table->unsignedInteger('entitlements_version')->default(1);
             $table->unsignedBigInteger('storage_bytes')->default(0);
             $table->timestamps();

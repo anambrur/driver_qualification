@@ -39,7 +39,7 @@ class SubscriptionExpirySmsNotification extends Notification implements ShouldQu
             return null;
         }
 
-        $planName = $this->subscription->plan?->name ?? 'subscription';
+        $planName = $this->subscription->planName();
 
         if ($this->daysRemaining <= 0) {
             return "Your {$planName} on ".config('app.name').' has expired. Renew: '.route('pricing.plans');

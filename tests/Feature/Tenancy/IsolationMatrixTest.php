@@ -34,8 +34,6 @@ const ISO_EXCLUDED = [
     'GET admin/settings/document-types/{id}' => 'global lookup',
     'POST admin/settings/document-types/{id}/company-toggle' => 'global lookup; the opt-out row is the tenant\'s own',
     // Plan slugs: public catalogue
-    'GET checkout/{name}' => 'plan slug',
-    'GET subscription/checkout/{plan}' => 'plan slug',
     // Signed link of the logged-in user's own email
     'GET verify-email/{id}/{hash}' => 'signed own-user link',
 ];

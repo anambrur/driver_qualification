@@ -32,7 +32,8 @@
                     @php
                         $isAccessible = $subscription->isAccessible();
                         $onTrial = $subscription->onTrial();
-                        $onGrace = $subscription->onGracePeriod();
+                        $onGrace = $subscription->canResume();
+                        $pastDue = $accessState === \App\Services\Billing\AccessState::Grace;
                     @endphp
                     <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
@@ -45,12 +46,16 @@
                                     {{ !$isAccessible ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' : '' }}">
                                     @if ($onTrial)
                                         Trial
+                                    @elseif ($pastDue)
+                                        Payment failed
+                                    @elseif ($accessState === \App\Services\Billing\AccessState::ReadOnly)
+                                        Read-only
                                     @elseif ($onGrace)
                                         Cancelling
                                     @elseif ($isAccessible)
                                         Active
                                     @else
-                                        {{ ucfirst($subscription->stripe_status) }}
+                                        {{ ucfirst(str_replace('_', ' ', $subscription->status)) }}
                                     @endif
                                 </span>
                             </div>
@@ -61,7 +66,7 @@
                                     <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ $plan->name }}</h3>
                                     <p class="text-gray-500 dark:text-gray-400 mt-1">{{ $plan->description }}</p>
                                     <div class="mt-4 space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                                        <p>Billing: <strong class="capitalize">{{ $subscription->billing_cycle }}</strong>
+                                        <p>Billing: <strong>{{ $subscription->source === 'stripe' ? ($subscription->interval === 'year' ? 'Yearly' : 'Monthly') : ucfirst($subscription->source) }}</strong>
                                             @if ((float) $subscription->amount > 0)
                                                 — ${{ number_format($subscription->amount, 2) }} {{ $subscription->currency }}
                                             @endif
@@ -71,7 +76,7 @@
                                         @endif
                                         @if ($subscription->accessEndsAt())
                                             <p>
-                                                @if ($onGrace || $subscription->billing_cycle === 'trial')
+                                                @if ($onGrace || $subscription->source !== 'stripe')
                                                     Access until
                                                 @else
                                                     Current period ends
@@ -82,12 +87,16 @@
                                     </div>
                                 </div>
                                 <div class="flex flex-wrap gap-3">
-                                    @if ($subscription->stripe_subscription_id || auth()->user()->stripe_id)
-                                        <a href="{{ route('billing.portal') }}"
-                                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors">
-                                            <i class="fas fa-external-link-alt"></i>
-                                            Manage in Stripe
-                                        </a>
+                                    @can('billing.manage')
+                                    @if ($company->stripe_customer_id)
+                                        <form action="{{ route('billing.portal') }}" method="POST" class="inline">
+                                            @csrf
+                                            <button type="submit"
+                                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors">
+                                                <i class="fas fa-external-link-alt"></i>
+                                                Manage in Stripe
+                                            </button>
+                                        </form>
                                     @endif
                                     @if ($onGrace && $subscription->stripe_subscription_id)
                                         <form action="{{ route('billing.resume') }}" method="POST" class="inline">
@@ -98,7 +107,7 @@
                                                 Resume Subscription
                                             </button>
                                         </form>
-                                    @elseif ($isAccessible && !$onTrial)
+                                    @elseif ($isAccessible && !$onTrial && !$subscription->cancel_at_period_end)
                                         <form action="{{ route('billing.cancel') }}" method="POST" class="inline"
                                             onsubmit="return confirm('Are you sure? Your subscription will remain active until the end of the billing period.');">
                                             @csrf
@@ -109,6 +118,7 @@
                                             </button>
                                         </form>
                                     @endif
+                                    @endcan
                                 </div>
                             </div>
                         </div>
@@ -182,9 +192,11 @@
                                 <p class="text-xs text-gray-500 dark:text-gray-400">Upgrade or renew</p>
                             </div>
                         </a>
-                        @if (auth()->user()->stripe_id)
-                            <a href="{{ route('billing.portal') }}"
-                                class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                        @if ($company->stripe_customer_id && auth()->user()->can('billing.manage'))
+                            <form action="{{ route('billing.portal') }}" method="POST">
+                            @csrf
+                            <button type="submit"
+                                class="w-full text-left flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
                                 <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                                     <i class="fas fa-credit-card text-green-600 dark:text-green-400"></i>
                                 </div>
@@ -192,7 +204,8 @@
                                     <p class="font-medium text-gray-900 dark:text-white">Update Payment</p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Manage card & billing</p>
                                 </div>
-                            </a>
+                            </button>
+                            </form>
                         @endif
                     </div>
                 </div>

@@ -118,7 +118,7 @@
                             </td>
                             <td class="px-4 py-4">
                                 @if($sub->user)
-                                    <a href="{{ route('admin.subscriptions.show', $sub->user) }}" class="text-blue-600 hover:text-blue-800 font-medium text-sm">Manage</a>
+                                    <span class="text-gray-400 text-sm">Managed in /platform (WP8)</span>
                                 @else
                                     <span class="text-gray-400 text-sm">Unavailable</span>
                                 @endif

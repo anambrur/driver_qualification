@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Subscription;
+use App\Notifications\Concerns\BillingRecipient;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -10,24 +11,19 @@ use Illuminate\Notifications\Notification;
 
 class SubscriptionExpiredNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use BillingRecipient, Queueable;
 
     public function __construct(public Subscription $subscription) {}
 
-    public function via(object $notifiable): array
-    {
-        return ['mail', 'database'];
-    }
-
     public function toMail(object $notifiable): MailMessage
     {
-        $planName = $this->subscription->plan?->name ?? 'your plan';
+        $planName = $this->subscription->planName();
 
         return (new MailMessage)
             ->subject('Your Subscription Has Expired')
-            ->greeting("Hello {$notifiable->name},")
+            ->greeting($this->greetingFor($notifiable))
             ->line("Your {$planName} subscription has expired.")
-            ->line('You no longer have access to the system.')
+            ->line('Your company can still view and export its records, but cannot add or change them until you renew.')
             ->action('Renew Your Subscription', route('pricing.plans'))
             ->line('If you have any questions, please contact our support team.')
             ->salutation('Best regards, '.config('app.name'));
@@ -37,7 +33,7 @@ class SubscriptionExpiredNotification extends Notification implements ShouldQueu
     {
         return [
             'type' => 'subscription_expired',
-            'plan' => $this->subscription->plan?->name,
+            'plan' => $this->subscription->planName(),
             'message' => 'Your subscription has expired.',
             'action' => route('pricing.plans'),
         ];

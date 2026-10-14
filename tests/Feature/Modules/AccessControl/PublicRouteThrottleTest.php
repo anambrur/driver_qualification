@@ -24,7 +24,8 @@ const ACL_THROTTLE_EXEMPT_PATTERN = '#^POST \{slug\}/application/(step-\d+|withd
 it('rate limits every POST a guest can send', function () {
     $unthrottled = collect(Route::getRoutes()->getRoutes())
         ->filter(fn (RoutingRoute $route) => in_array('POST', $route->methods(), true))
-        ->reject(fn (RoutingRoute $route) => in_array('auth', $route->gatherMiddleware(), true))
+        // `auth` or `auth:<guard>` (e.g. auth:platform): a guest cannot send these
+        ->reject(fn (RoutingRoute $route) => collect($route->gatherMiddleware())->contains(fn ($m) => $m === 'auth' || (is_string($m) && str_starts_with($m, 'auth:'))))
         ->map(fn (RoutingRoute $route) => [
             'key' => 'POST '.$route->uri(),
             'throttled' => collect($route->gatherMiddleware())->contains(fn ($m) => is_string($m) && str_starts_with($m, 'throttle:')),

@@ -1,13 +1,13 @@
 <?php
 
-use App\Models\Plan;
+use Database\Factories\PlanFactory;
 
 beforeEach(function () {
     config(['seo.index_environments' => ['testing'], 'app.url' => 'https://example.com']);
 });
 
 it('serves the home page as indexable with canonical, og and json-ld', function () {
-    Plan::create(['name' => 'Starter', 'slug' => 'starter', 'is_active' => true, 'price' => 49, 'currency' => 'usd', 'billing_cycle' => 'monthly']);
+    PlanFactory::new()->withPrices(49.00)->create(['name' => 'Starter', 'slug' => 'starter']);
 
     $response = $this->get('/?utm_source=x')->assertOk();
 
@@ -16,6 +16,7 @@ it('serves the home page as indexable with canonical, og and json-ld', function 
     $response->assertSee('<link rel="canonical" href="https://example.com/">', false);
     $response->assertSee('property="og:title"', false);
     $response->assertSee('application/ld+json', false);
+    $response->assertSee('"price":"49.00"', false);
     $response->assertSee('"priceCurrency":"USD"', false);
     expect(substr_count($response->getContent(), '<h1'))->toBe(1);
 });

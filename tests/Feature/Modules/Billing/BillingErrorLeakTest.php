@@ -14,15 +14,15 @@ use Tests\Support\StripeFake;
 
 it('does not show the Stripe error message when resuming fails', function () {
     Log::spy();
-    $user = Actors::companyOwner(subscribed: false);
-    SubscriptionFactory::new()->cancelingAtPeriodEnd()->create(['user_id' => $user->id]);
+    $company = Actors::company(subscribed: false);
+    SubscriptionFactory::new()->forCompany($company)->cancelingAtPeriodEnd()->create();
 
     $client = StripeFake::bindClient();
     $client->subscriptions = Mockery::mock(SubscriptionService::class);
     $client->subscriptions->shouldReceive('update')
         ->andThrow(InvalidRequestException::factory('No such subscription: sub_internal_secret; request req_abc123'));
 
-    $this->actingAs($user)->post(route('billing.resume'))->assertRedirect(route('billing.index'));
+    $this->actingAs($company->owner)->post(route('billing.resume'))->assertRedirect(route('billing.index'));
 
     $session = json_encode(session()->all());
     expect($session)->not->toContain('sub_internal_secret')
@@ -30,11 +30,25 @@ it('does not show the Stripe error message when resuming fails', function () {
     Log::shouldHaveReceived('warning')->once();
 });
 
-it('resumes a subscription on its grace period', function () {
-    $user = Actors::companyOwner(subscribed: false);
-    $subscription = SubscriptionFactory::new()->trial()->create(['user_id' => $user->id]);
+it('resumes a cancelling local subscription and keeps its end date', function () {
+    $company = Actors::company(subscribed: false);
+    $grant = SubscriptionFactory::new()->forCompany($company)->create([
+        'source' => 'admin',
+        'stripe_subscription_id' => null,
+        'cancel_at_period_end' => true,
+        'ends_at' => now()->addDays(10),
+        'current_period_end' => now()->addDays(10),
+    ]);
 
-    $this->actingAs($user)->post(route('billing.resume'))->assertRedirect(route('billing.index'));
+    $this->actingAs($company->owner)->post(route('billing.resume'))->assertRedirect(route('billing.index'));
 
-    expect($subscription->fresh()->cancel_at_period_end)->toBeFalse();
+    // A grant never renews: it keeps its flag and end date, so it can never become lifetime access.
+    expect($grant->fresh()->ends_at->isSameDay(now()->addDays(10)))->toBeTrue()
+        ->and($grant->fresh()->cancel_at_period_end)->toBeTrue();
 });
+
+it('forbids cancel and resume without billing.manage', function (string $route) {
+    $company = Actors::company();
+
+    $this->actingAs(Actors::companyAdmin($company))->post(route($route))->assertForbidden();
+})->with(['billing.cancel', 'billing.resume', 'billing.portal']);

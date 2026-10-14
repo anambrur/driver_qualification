@@ -2,11 +2,15 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Billing\AccessState;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Tenant pages need an access state other than none or blocked (07 §8). Read-only passes:
+ * the company can still view and export; Gate::before denies its writes.
+ */
 class Subscribed
 {
     /**
@@ -14,21 +18,21 @@ class Subscribed
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $user = Auth::user();
+        $company = $request->user()?->company;
+        $state = $company ? AccessState::for($company) : AccessState::None;
 
-        if ($user && $user->hasRole('super-admin')) {
+        if ($state->allowsTenantPages()) {
             return $next($request);
         }
 
-        // Interim until WP6: access follows the company's open subscription
-        if (! $request->user()?->company?->subscriptions()->open()->first()?->isAccessible()) {
-            if (function_exists('toastr')) {
-                toastr()->warning('An active subscription is required. Please choose a plan.');
-            }
-
-            return redirect()->route('pricing.plans');
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'An active subscription is required.', 'access_state' => $state->value], 402);
         }
 
-        return $next($request);
+        if (function_exists('toastr')) {
+            toastr()->warning('An active subscription is required. Please choose a plan.');
+        }
+
+        return redirect()->route('pricing.plans');
     }
 }

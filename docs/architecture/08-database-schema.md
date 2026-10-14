@@ -172,10 +172,10 @@ See section 10.
   - Identity: `id`, `owner_user_id` (null), `company_name`, `slug` (NOT NULL), `dot_number` (null) [R], `mc_number` (null) [R].
   - Contact: `email` (company contact, no longer unique and no longer synced from the owner's login, decided D3b), `billing_email`, `phone`, `fax`, `address`, `city`, `state_code`, `zip`, `timezone` (default `America/Chicago` [A]), `logo_path`.
   - Status: `status` enum(active, suspended, deactivated), `status_changed_at`, `status_reason`.
-  - Billing and limits: `stripe_customer_id` (null), `trial_used_at`, `entitlements_version` int unsigned (default 1), `storage_bytes` bigint unsigned (default 0).
+  - Billing and limits: `stripe_customer_id` (null), `trial_used_at`, `trial_email` (the owner email that claimed the trial), `entitlements_version` int unsigned (default 1), `storage_bytes` bigint unsigned (default 0).
   - timestamps.
 - **FK:** `(id, owner_user_id)` → `users(company_id, id)`, RESTRICT. The owner must belong to the company. This replaces `user_id` and its CASCADE [V].
-- **Unique:** `slug`, `stripe_customer_id`.
+- **Unique:** `slug`, `stripe_customer_id`, `trial_email`.
 - **Index:** `status`.
 - **Creation order** (one transaction): insert the company with no owner → insert the user → set `owner_user_id`. [A] On SQLite, adding this FK after both tables exist relies on Laravel's table rebuild. Verify in the Phase 0 spike, or fall back to an app check plus an integrity test.
 

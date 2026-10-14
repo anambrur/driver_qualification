@@ -10,7 +10,7 @@
             </div>
 
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                @if (($subscription?->billing_cycle ?? null) === 'trial' || ($plan?->billing_cycle ?? null) === 'trial')
+                @if ($subscription?->source === 'trial')
                     Trial Activated!
                 @else
                     You're all set!
@@ -28,9 +28,9 @@
             @if ($subscription && (float) $subscription->amount > 0)
                 <p class="text-lg font-semibold text-gray-900 dark:text-white mt-3">
                     ${{ number_format($subscription->amount, 2) }}
-                    <span class="text-sm font-normal text-gray-500 capitalize">/ {{ $subscription->billing_cycle }}</span>
+                    <span class="text-sm font-normal text-gray-500">/ {{ $subscription->interval }}</span>
                 </p>
-            @elseif (($plan?->billing_cycle ?? null) === 'trial')
+            @elseif ($subscription?->source === 'trial')
                 <p class="text-sm text-gray-500 mt-3">No credit card was required. Enjoy your trial!</p>
             @endif
 

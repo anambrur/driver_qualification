@@ -2,8 +2,14 @@
 
 namespace Tests\Feature\Modules\Billing;
 
-use App\Models\Plan;
-use App\Models\User;
+use App\Models\Company;
+use App\Models\PlanPrice;
+use App\Models\SiteSetting;
+use Database\Factories\PlanFactory;
+use Database\Factories\PlanPriceFactory;
+use Illuminate\Foundation\Testing\TestCase;
+use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Mockery;
 use Mockery\MockInterface;
 use Stripe\Checkout\Session;
@@ -15,62 +21,97 @@ use Stripe\Subscription as StripeSubscription;
 use Tests\Support\StripeFake;
 
 /**
- * Stripe object fixtures for the billing module. Everything is built locally; no request
+ * Stripe object fixtures for company billing (07). Everything is built locally; no request
  * ever leaves the test process.
  */
 final class Billing
 {
-    public static function stripeSubscription(User $user, Plan $plan, array $overrides = []): array
+    /**
+     * A current monthly price with a Stripe Price id, on a fresh public plan.
+     */
+    public static function price(array $attributes = []): PlanPrice
+    {
+        return PlanPriceFactory::new()->create($attributes + [
+            'stripe_price_id' => 'price_test_'.Str::lower(Str::random(10)),
+        ]);
+    }
+
+    /**
+     * The trial plan in site_settings (Q5: the top tier), with a current monthly price.
+     */
+    public static function trialPlan(int $days = 14): PlanPrice
+    {
+        $price = PlanPriceFactory::new()->for(PlanFactory::new()->state(['name' => 'Enterprise Trial']))->create();
+        $settings = SiteSetting::getSettings();
+        $settings->update(['trial_plan_id' => $price->plan_id, 'trial_days' => $days]);
+
+        return $price;
+    }
+
+    public static function customerId(Company $company): string
+    {
+        return 'cus_test_'.$company->id;
+    }
+
+    public static function stripeSubscription(Company $company, PlanPrice $price, array $overrides = []): array
     {
         return array_replace_recursive([
-            'id' => 'sub_test_billing',
+            'id' => 'sub_test_'.$company->id,
             'object' => 'subscription',
-            'customer' => 'cus_test_billing',
+            'customer' => self::customerId($company),
             'status' => 'active',
             'current_period_start' => now()->subDay()->timestamp,
             'current_period_end' => now()->addDays(29)->timestamp,
             'cancel_at_period_end' => false,
             'metadata' => [
-                'user_id' => (string) $user->id,
-                'plan_id' => (string) $plan->id,
-                'plan_slug' => $plan->slug,
-                'billing_cycle' => $plan->billing_cycle,
+                'company_id' => (string) $company->id,
+                'plan_price_id' => (string) $price->id,
             ],
             'items' => [
                 'object' => 'list',
-                'data' => [['object' => 'subscription_item', 'price' => ['unit_amount' => 4900, 'currency' => 'usd']]],
+                'data' => [[
+                    'id' => 'si_test_'.$company->id,
+                    'object' => 'subscription_item',
+                    'price' => [
+                        'id' => $price->stripe_price_id,
+                        'object' => 'price',
+                        'unit_amount' => 4900,
+                        'currency' => 'usd',
+                        'recurring' => ['interval' => 'month'],
+                    ],
+                ]],
             ],
         ], $overrides);
     }
 
-    public static function checkoutSession(User $user, Plan $plan, array $overrides = []): array
+    public static function checkoutSession(Company $company, PlanPrice $price, array $overrides = []): array
     {
         return array_replace_recursive([
-            'id' => 'cs_test_billing',
+            'id' => 'cs_test_'.$company->id,
             'object' => 'checkout.session',
-            'customer' => 'cus_test_billing',
-            'subscription' => 'sub_test_billing',
-            'invoice' => 'in_test_billing',
+            'customer' => self::customerId($company),
+            'subscription' => 'sub_test_'.$company->id,
+            'invoice' => 'in_test_'.$company->id,
             'status' => 'complete',
             'payment_status' => 'paid',
-            'client_reference_id' => (string) $user->id,
+            'client_reference_id' => (string) $company->id,
             'metadata' => [
-                'user_id' => (string) $user->id,
-                'plan_id' => (string) $plan->id,
-                'plan_slug' => $plan->slug,
-                'billing_cycle' => $plan->billing_cycle,
+                'company_id' => (string) $company->id,
+                'plan_price_id' => (string) $price->id,
+                'actor_user_id' => (string) $company->owner_user_id,
             ],
         ], $overrides);
     }
 
-    public static function invoice(array $overrides = []): array
+    public static function invoice(Company $company, array $overrides = []): array
     {
         return array_replace_recursive([
-            'id' => 'in_test_billing',
+            'id' => 'in_test_'.$company->id,
             'object' => 'invoice',
-            'customer' => 'cus_test_billing',
-            'subscription' => 'sub_test_billing',
+            'customer' => self::customerId($company),
+            'subscription' => 'sub_test_'.$company->id,
             'amount_paid' => 4900,
+            'amount_due' => 4900,
             'currency' => 'usd',
             'billing_reason' => 'subscription_create',
             'status_transitions' => ['paid_at' => now()->timestamp],
@@ -107,9 +148,12 @@ final class Billing
         return $client;
     }
 
-    public static function postWebhook(\Illuminate\Foundation\Testing\TestCase $test, string $type, array $object, ?string $eventId = null): \Illuminate\Testing\TestResponse
+    /**
+     * Posts a signed event; $created sets the event time for the ordering guard.
+     */
+    public static function postWebhook(TestCase $test, string $type, array $object, ?string $eventId = null, ?int $created = null): TestResponse
     {
-        $payload = StripeFake::event($type, $object, $eventId);
+        $payload = StripeFake::event($type, $object, $eventId, $created);
 
         return $test->call('POST', route('stripe.webhook'), [], [], [], [
             'HTTP_STRIPE_SIGNATURE' => StripeFake::signature($payload),
