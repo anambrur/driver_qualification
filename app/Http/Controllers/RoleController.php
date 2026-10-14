@@ -2,191 +2,90 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Str;
+use App\Http\Requests\Roles\RoleRequest;
+use App\Models\User;
+use App\Services\Authorization\RoleService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
+use Illuminate\View\View;
 
-use function Flasher\Toastr\Prime\toastr;
-
+/**
+ * Roles of the logged-in user's company (10 §4). Every role lives in the company's team, so
+ * another company's role id is a 404 and editing a role never affects another company.
+ */
 class RoleController extends Controller
 {
-    /**
-     * Roles the code checks by name (hasRole / role: middleware / registration). Renaming or
-     * deleting them locks users out.
-     */
-    public const SYSTEM_ROLES = ['super-admin', 'company'];
+    public function __construct(private RoleService $roles) {}
 
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request): View
     {
-        $roles = Role::with('permissions')->get();
-        return view('admin.roles.index', ['roles' => $roles, 'systemRoles' => self::SYSTEM_ROLES]);
-    }
+        $roles = $this->roles->list($this->actor($request));
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        $permissions = Permission::all()->groupBy(function ($permission) {
-            return Str::before($permission->name, '.');
-        });
-        return view('admin.roles.create', ['permissions' => $permissions]);
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-
-    public function store(Request $request)
-    {
-
-        // Validate the request
-        $validated = $request->validate([
-            'name' => 'required|string|min:2|unique:roles,name',
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,name'
-        ]);
-
-        DB::beginTransaction();
-
-        try {
-            // Create the role
-            $role = Role::create(['name' => $validated['name'], 'guard_name' => 'web']);
-
-            // Sync permissions if any were selected
-            if (!empty($validated['permissions'])) {
-                $permissions = Permission::whereIn('name', $validated['permissions'])->pluck('id');
-                $role->syncPermissions($permissions);
-            }
-
-            DB::commit();
-
-            toastr()->success('Role created successfully');
-
-            return redirect()->route('admin.roles.index');
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            Log::error('Failed to create role', ['exception' => $e]);
-            toastr()->error('Failed to create role. Please try again.');
-
-            return back()->withInput();
-        }
-    }
-
-
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        return redirect()->route('admin.roles.edit', $id);
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        $role = Role::with('permissions')->findOrFail($id);
-
-        $permissions = Permission::all()
-            ->groupBy(function ($permission) {
-                return Str::before($permission->name, '.');
-            })
-            ->map(function ($group) {
-                return $group->map(function ($permission) {
-                    return [
-                        'id' => $permission->id,
-                        'name' => $permission->name,
-                        'guard_name' => $permission->guard_name,
-                        'created_at' => $permission->created_at->toDateTimeString(),
-                        'updated_at' => $permission->updated_at->toDateTimeString(),
-                    ];
-                });
-            });
-
-        return view('admin.roles.edit', [
-            'role' => [
-                'id' => $role->id,
-                'name' => $role->name,
-                'permissions' => $role->permissions->pluck('name'), // Just get permission names
-            ],
-            'permissions' => $permissions,
-            'permissionsLocked' => $role->name === 'super-admin',
+        return view('admin.roles.index', [
+            'roles' => $roles,
+            'manageable' => $roles->filter(fn ($role) => $this->roles->manageable($this->actor($request), $role))->modelKeys(),
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function create(Request $request): View
     {
-        // Validate the request
-        $validated = $request->validate([
-            'name' => 'required|string|min:2|unique:roles,name,' . $id,
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,name'
+        return view('admin.roles.form', [
+            'role' => null,
+            'permissions' => $this->roles->grantable($this->actor($request)),
         ]);
-
-        $role = Role::findOrFail($id);
-
-        if (in_array($role->name, self::SYSTEM_ROLES, true) && $validated['name'] !== $role->name) {
-            toastr()->error('System roles cannot be renamed.');
-            return back()->withInput();
-        }
-
-        DB::beginTransaction();
-
-        try {
-            // Update role name
-            $role->name = $validated['name'];
-            $role->save();
-
-            // Sync permissions (empty array will remove all permissions).
-            // super-admin always keeps every permission, otherwise admins can lock themselves out.
-            $permissions = $role->name === 'super-admin'
-                ? Permission::pluck('id')
-                : Permission::whereIn('name', $validated['permissions'] ?? [])->pluck('id');
-            $role->syncPermissions($permissions);
-
-            DB::commit();
-
-            toastr()->success('Role updated successfully');
-
-            return redirect()->route('admin.roles.index');
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            Log::error('Failed to update role', ['role_id' => $role->id, 'exception' => $e]);
-            toastr()->error('Failed to update role. Please try again.');
-
-            return back()->withInput();
-        }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function store(RoleRequest $request): RedirectResponse
     {
-        $role = Role::findOrFail($id);
+        $data = $request->validated();
 
-        if (in_array($role->name, self::SYSTEM_ROLES, true)) {
-            toastr()->error('System roles cannot be deleted.');
-            return redirect()->route('admin.roles.index');
-        }
+        $this->roles->create($this->actor($request), $data['name'], array_values($data['permissions'] ?? []));
 
-        $role->delete();
+        toastr()->success('Role created successfully');
+
+        return redirect()->route('admin.roles.index');
+    }
+
+    public function show(int $role): RedirectResponse
+    {
+        return redirect()->route('admin.roles.edit', $role);
+    }
+
+    public function edit(Request $request, int $role): View
+    {
+        $model = $this->roles->find($this->actor($request), $role);
+
+        abort_unless($this->roles->manageable($this->actor($request), $model), 403, 'This role cannot be changed.');
+
+        return view('admin.roles.form', [
+            'role' => $model,
+            'permissions' => $this->roles->grantable($this->actor($request)),
+        ]);
+    }
+
+    public function update(RoleRequest $request, int $role): RedirectResponse
+    {
+        $data = $request->validated();
+
+        $this->roles->update($this->actor($request), $role, $data['name'], array_values($data['permissions'] ?? []));
+
+        toastr()->success('Role updated successfully');
+
+        return redirect()->route('admin.roles.index');
+    }
+
+    public function destroy(Request $request, int $role): RedirectResponse
+    {
+        $this->roles->delete($this->actor($request), $role);
 
         toastr()->success('Role deleted successfully');
+
         return redirect()->route('admin.roles.index');
+    }
+
+    private function actor(Request $request): User
+    {
+        /** @var User */
+        return $request->user();
     }
 }

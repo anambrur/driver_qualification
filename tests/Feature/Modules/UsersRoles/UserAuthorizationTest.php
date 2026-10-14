@@ -1,187 +1,246 @@
 <?php
 
+use App\Models\Company;
+use App\Models\CompanyInvitation;
+use App\Models\Role;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
+use Database\Factories\UserFactory;
+use Illuminate\Support\Facades\DB;
 use Tests\Support\Actors;
 
 /*
-| USR-01: /users/* used to be guarded by `auth` only. Any logged-in tenant could list every
-| user, edit anyone's email/password/roles, and make themselves super-admin.
-| The `users.*` permissions belong to super-admin only (PermissionSeeder).
+| USR-01, changed by design (11 §5): Owners and Administrators manage the users of their own
+| company. Another company's ids are 404, and the 06 §8 rules hold over HTTP.
 */
 
-function superAdminRoleId(): int
+function teamRoleId(Company $company, string $name): int
 {
-    Actors::seedAccessControl();
-
-    return Role::findByName('super-admin', 'web')->id;
+    return (int) Role::query()->where('team_id', $company->id)->where('name', $name)->value('id');
 }
 
-function userPayload(User $user, array $overrides = []): array
+function heldRoleNames(User $user): array
 {
-    return array_merge([
-        'name' => $user->name,
-        'email' => $user->email,
-        'status' => 'active',
-    ], $overrides);
+    return DB::table('model_has_roles')
+        ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+        ->where('model_has_roles.model_id', $user->id)
+        ->where('model_has_roles.team_id', $user->company_id)
+        ->orderBy('roles.name')
+        ->pluck('roles.name')
+        ->all();
 }
 
-describe('USR-01: only users with users.* permissions can manage users', function () {
-    it('does not let a tenant make themselves super-admin', function () {
-        $tenant = Actors::companyOwner();
+describe('own company', function () {
+    it('lets the Owner and an Administrator list their own users only', function () {
+        $company = Actors::company();
+        $dispatcher = Actors::dispatcher($company);
+        $other = Actors::dispatcher();
+        $support = UserFactory::new()->create(['company_id' => $company->id, 'user_type' => 'support']);
 
-        $this->actingAs($tenant)
-            ->put(route('users.update', $tenant->id), userPayload($tenant, ['roles' => [superAdminRoleId()]]))
-            ->assertForbidden();
-
-        expect($tenant->fresh()->hasRole('super-admin'))->toBeFalse();
+        foreach ([$company->owner, Actors::companyAdmin($company)] as $actor) {
+            $this->actingAs($actor)->get(route('users.index'))
+                ->assertOk()
+                ->assertSee($dispatcher->email)
+                ->assertDontSee($other->email)
+                ->assertDontSee($support->email);
+        }
     });
 
-    it("does not let a tenant change another user's email or password", function () {
-        $victim = Actors::superAdmin(['email' => 'boss@example.com']);
-        $oldHash = $victim->password;
+    it('lets an Administrator rename a user and change their roles', function () {
+        $company = Actors::company();
+        $target = Actors::dispatcher($company);
+
+        $this->actingAs(Actors::companyAdmin($company))
+            ->put(route('users.update', $target->id), [
+                'name' => 'Renamed',
+                'roles' => [teamRoleId($company, 'Office / Compliance')],
+            ])
+            ->assertRedirect(route('users.index'));
+
+        expect($target->fresh()->name)->toBe('Renamed')
+            ->and(heldRoleNames($target))->toBe(['Office / Compliance']);
+    });
+
+    it('keeps locked roles the target holds when syncing roles', function () {
+        $company = Actors::company();
+        $driver = Actors::driverUser($company);
+
+        $this->actingAs($company->owner)
+            ->put(route('users.update', $driver->id), [
+                'name' => $driver->name,
+                'roles' => [teamRoleId($company, 'Dispatcher')],
+            ])
+            ->assertRedirect(route('users.index'));
+
+        expect(heldRoleNames($driver))->toBe(['Dispatcher', 'Driver']);
+    });
+
+    it('lets the Owner deactivate and reactivate a user', function () {
+        $company = Actors::company();
+        $target = Actors::dispatcher($company);
+
+        $this->actingAs($company->owner)->post(route('users.deactivate', $target->id))->assertRedirect(route('users.index'));
+        expect($target->fresh()->status)->toBe('inactive');
+
+        $this->actingAs($company->owner)->post(route('users.reactivate', $target->id))->assertRedirect(route('users.index'));
+        expect($target->fresh()->status)->toBe('active');
+    });
+});
+
+describe('cross-company access', function () {
+    it('returns 404 for another company\'s user on every user route', function (string $method, string $route) {
+        $target = Actors::dispatcher();
 
         $this->actingAs(Actors::companyOwner())
-            ->put(route('users.update', $victim->id), userPayload($victim, [
-                'email' => 'attacker@example.com',
-                'password' => 'NewPassword123!',
-                'password_confirmation' => 'NewPassword123!',
-            ]))
-            ->assertForbidden();
+            ->call($method, route($route, $target->id), ['name' => 'Hacked', 'roles' => [], 'permission' => 'drivers.view'])
+            ->assertNotFound();
 
-        $victim->refresh();
-        expect($victim->email)->toBe('boss@example.com')
-            ->and($victim->password)->toBe($oldHash);
-    });
-
-    it('forbids a user without users permissions from every users route', function (string $method, string $route, bool $needsId) {
-        $target = Actors::companyOwner();
-        $url = $needsId ? route($route, $target->id) : route($route);
-
-        foreach ([Actors::companyOwner(), Actors::plainUser()] as $actor) {
-            $this->actingAs($actor)->call($method, $url, userPayload($target))->assertForbidden();
-        }
-
-        expect(User::query()->whereKey($target->id)->exists())->toBeTrue();
+        expect($target->fresh()->name)->not->toBe('Hacked')
+            ->and($target->fresh()->status)->toBe('active');
     })->with([
-        'index' => ['GET', 'users.index', false],
-        'create' => ['GET', 'users.create', false],
-        'store' => ['POST', 'users.store', false],
-        'edit' => ['GET', 'users.edit', true],
-        'update' => ['PUT', 'users.update', true],
-        'destroy' => ['DELETE', 'users.destroy', true],
-        'suspend' => ['POST', 'users.suspend', true],
-        'unsuspend' => ['POST', 'users.unsuspend', true],
+        'edit' => ['GET', 'users.edit'],
+        'update' => ['PUT', 'users.update'],
+        'deactivate' => ['POST', 'users.deactivate'],
+        'reactivate' => ['POST', 'users.reactivate'],
+        'grant' => ['POST', 'users.permissions.store'],
     ]);
 
-    it('does not let a non-super-admin with users.edit grant the super-admin role', function () {
-        $manager = Actors::plainUser(['users.view', 'users.edit', 'users.create']);
-        $target = Actors::companyOwner();
+    it('returns 404 when revoking a permission of another company\'s user', function () {
+        $target = Actors::dispatcher();
 
-        $this->actingAs($manager)
-            ->put(route('users.update', $manager->id), userPayload($manager, ['roles' => [superAdminRoleId()]]))
-            ->assertForbidden();
-
-        $this->actingAs($manager)
-            ->put(route('users.update', $target->id), userPayload($target, ['roles' => [superAdminRoleId()]]))
-            ->assertForbidden();
-
-        $this->actingAs($manager)
-            ->post(route('users.store'), [
-                'name' => 'Sneaky',
-                'email' => 'sneaky@example.com',
-                'password' => 'Password123!',
-                'password_confirmation' => 'Password123!',
-                'roles' => [superAdminRoleId()],
-            ])
-            ->assertForbidden();
-
-        expect($manager->fresh()->hasRole('super-admin'))->toBeFalse()
-            ->and($target->fresh()->hasRole('super-admin'))->toBeFalse()
-            ->and(User::query()->where('email', 'sneaky@example.com')->exists())->toBeFalse();
+        $this->actingAs(Actors::companyOwner())
+            ->delete(route('users.permissions.destroy', [$target->id, 'trips.view']))
+            ->assertNotFound();
     });
 
-    it('does not let a non-super-admin with users.edit change or delete a super-admin', function () {
-        $manager = Actors::plainUser(['users.view', 'users.edit', 'users.delete']);
-        $boss = Actors::superAdmin(['email' => 'boss@example.com']);
+    it('returns 404 for another company\'s invitation', function (string $method, string $route) {
+        $other = Actors::company();
+        $this->actingAs($other->owner)->post(route('users.invitations.store'), [
+            'email' => 'new@example.com',
+            'role_id' => teamRoleId($other, 'Dispatcher'),
+        ]);
+        $invitation = CompanyInvitation::withoutTenancy()->firstOrFail();
 
-        $this->actingAs($manager)
-            ->put(route('users.update', $boss->id), userPayload($boss, ['email' => 'attacker@example.com']))
-            ->assertForbidden();
+        $this->actingAs(Actors::companyOwner())->call($method, route($route, $invitation->id))->assertNotFound();
 
-        $this->actingAs($manager)->delete(route('users.destroy', $boss->id))->assertForbidden();
+        expect($invitation->fresh()->revoked_at)->toBeNull();
+    })->with([
+        'resend' => ['POST', 'users.invitations.resend'],
+        'revoke' => ['DELETE', 'users.invitations.destroy'],
+    ]);
 
-        expect($boss->fresh()->email)->toBe('boss@example.com');
+    it('returns 404 when assigning another company\'s role', function () {
+        $company = Actors::company();
+        $target = Actors::dispatcher($company);
+        $foreignRole = teamRoleId(Actors::company(), 'Administrator');
+
+        $this->actingAs($company->owner)
+            ->put(route('users.update', $target->id), ['name' => $target->name, 'roles' => [$foreignRole]])
+            ->assertNotFound();
+
+        expect(heldRoleNames($target))->toBe(['Dispatcher']);
     });
 });
 
-describe('USR-01: a super-admin cannot remove their own super-admin role', function () {
-    it('refuses to drop super-admin from your own roles', function () {
-        $admin = Actors::superAdmin();
-        $companyRoleId = Role::findByName('company', 'web')->id;
+describe('escalation over HTTP (06 §8)', function () {
+    it('forbids a user without users permissions from every users route', function (string $method, string $route, bool $needsId) {
+        $company = Actors::company();
+        $target = Actors::officeUser($company);
+        $url = $needsId ? route($route, $target->id) : route($route);
+
+        $this->actingAs(Actors::dispatcher($company))
+            ->call($method, $url, ['name' => 'Hacked', 'email' => 'x@example.com', 'role_id' => 1])
+            ->assertForbidden();
+
+        expect($target->fresh()->name)->not->toBe('Hacked');
+    })->with([
+        'index' => ['GET', 'users.index', false],
+        'invite form' => ['GET', 'users.invite', false],
+        'invite' => ['POST', 'users.invitations.store', false],
+        'edit' => ['GET', 'users.edit', true],
+        'update' => ['PUT', 'users.update', true],
+        'deactivate' => ['POST', 'users.deactivate', true],
+        'grant' => ['POST', 'users.permissions.store', true],
+    ]);
+
+    it('does not let anyone change their own roles or status', function () {
+        $company = Actors::company();
+        $admin = Actors::companyAdmin($company);
 
         $this->actingAs($admin)
-            ->from(route('users.edit', $admin->id))
-            ->put(route('users.update', $admin->id), userPayload($admin, ['roles' => [$companyRoleId]]))
-            ->assertRedirect(route('users.edit', $admin->id));
+            ->put(route('users.update', $admin->id), ['name' => $admin->name, 'roles' => []])
+            ->assertForbidden();
+        $this->actingAs($admin)->post(route('users.deactivate', $admin->id))->assertForbidden();
 
-        expect($admin->fresh()->hasRole('super-admin'))->toBeTrue()
-            ->and($admin->fresh()->hasRole('company'))->toBeFalse();
+        expect(heldRoleNames($admin))->toBe(['Administrator'])
+            ->and($admin->fresh()->status)->toBe('active');
     });
 
-    it('lets you keep super-admin while adding other roles to yourself', function () {
-        $admin = Actors::superAdmin();
-        $companyRoleId = Role::findByName('company', 'web')->id;
+    it('does not let an Administrator change or deactivate the Owner', function () {
+        $company = Actors::company();
+        $owner = $company->owner;
 
-        $this->actingAs($admin)
-            ->put(route('users.update', $admin->id), userPayload($admin, ['roles' => [superAdminRoleId(), $companyRoleId]]))
-            ->assertRedirect(route('users.index'));
+        $this->actingAs(Actors::companyAdmin($company))
+            ->put(route('users.update', $owner->id), ['name' => 'Renamed', 'roles' => []])
+            ->assertForbidden();
+        $this->actingAs(Actors::companyAdmin($company))->post(route('users.deactivate', $owner->id))->assertForbidden();
 
-        expect($admin->fresh()->hasRole('super-admin'))->toBeTrue()
-            ->and($admin->fresh()->hasRole('company'))->toBeTrue();
+        expect($owner->fresh()->name)->not->toBe('Renamed')
+            ->and($owner->fresh()->status)->toBe('active')
+            ->and(heldRoleNames($owner))->toBe(['Owner']);
     });
 
-    it('still lets a super-admin demote another super-admin', function () {
-        $admin = Actors::superAdmin();
-        $other = Actors::superAdmin();
+    it('refuses to assign a locked role', function (string $locked) {
+        $company = Actors::company();
+        $target = Actors::dispatcher($company);
 
-        $this->actingAs($admin)
-            ->put(route('users.update', $other->id), userPayload($other, ['roles' => [Role::findByName('company', 'web')->id]]))
-            ->assertRedirect(route('users.index'));
+        $this->actingAs($company->owner)
+            ->put(route('users.update', $target->id), ['name' => $target->name, 'roles' => [teamRoleId($company, $locked)]])
+            ->assertForbidden();
 
-        expect($other->fresh()->hasRole('super-admin'))->toBeFalse();
+        expect(heldRoleNames($target))->toBe(['Dispatcher']);
+    })->with(['Owner', 'Driver', 'Support (read)']);
+
+    it('refuses to assign a role with permissions the actor does not hold', function () {
+        $company = Actors::company();
+        $manager = Actors::memberWithPermissions($company, ['users.view', 'users.edit']);
+        $target = Actors::dispatcher($company);
+
+        $this->actingAs($manager)
+            ->put(route('users.update', $target->id), ['name' => $target->name, 'roles' => [teamRoleId($company, 'Administrator')]])
+            ->assertForbidden();
+
+        expect(heldRoleNames($target))->toBe(['Dispatcher']);
     });
-});
 
-describe('USR-01: super-admin keeps full control (regression guard)', function () {
-    it('lets a super-admin list, create, update and delete users', function () {
-        $admin = Actors::superAdmin();
-        $tenant = Actors::companyOwner();
+    it('keeps roles the actor cannot assign when saving the edit form', function () {
+        $company = Actors::company();
+        $target = Actors::dispatcher($company);
 
-        $this->actingAs($admin)->get(route('users.index'))->assertOk();
-        $this->actingAs($admin)->get(route('users.create'))->assertOk();
-        $this->actingAs($admin)->get(route('users.edit', $tenant->id))->assertOk();
-
-        $this->actingAs($admin)
-            ->post(route('users.store'), [
-                'name' => 'New Admin',
-                'email' => 'new-admin@example.com',
-                'password' => 'Password123!',
-                'password_confirmation' => 'Password123!',
-                'roles' => [superAdminRoleId()],
-            ])
+        $this->actingAs(Actors::memberWithPermissions($company, ['users.view', 'users.edit']))
+            ->put(route('users.update', $target->id), ['name' => 'Renamed', 'roles' => []])
             ->assertRedirect(route('users.index'));
 
-        expect(User::query()->where('email', 'new-admin@example.com')->first()->hasRole('super-admin'))->toBeTrue();
+        expect($target->fresh()->name)->toBe('Renamed')
+            ->and(heldRoleNames($target))->toBe(['Dispatcher']);
+    });
 
-        $this->actingAs($admin)
-            ->put(route('users.update', $tenant->id), userPayload($tenant, ['name' => 'Renamed']))
-            ->assertRedirect(route('users.index'));
+    it('only offers roles the actor may assign on the edit form', function () {
+        $company = Actors::company();
+        $target = Actors::dispatcher($company);
+        $checkbox = fn (string $role) => 'name="roles[]" value="'.teamRoleId($company, $role).'"';
 
-        expect($tenant->fresh()->name)->toBe('Renamed');
+        $this->actingAs(Actors::companyAdmin($company))
+            ->get(route('users.edit', $target->id))
+            ->assertOk()
+            ->assertSee($checkbox('Dispatcher'), false)
+            ->assertSee($checkbox('Administrator'), false)
+            ->assertDontSee($checkbox('Owner'), false)
+            ->assertDontSee($checkbox('Driver'), false);
 
-        $this->actingAs($admin)->delete(route('users.destroy', $tenant->id))->assertRedirect(route('users.index'));
-
-        expect(User::query()->whereKey($tenant->id)->exists())->toBeFalse();
+        $this->actingAs(Actors::memberWithPermissions($company, ['users.view', 'users.edit', 'trips.view']))
+            ->get(route('users.edit', $target->id))
+            ->assertOk()
+            ->assertDontSee($checkbox('Dispatcher'), false)
+            ->assertDontSee($checkbox('Administrator'), false);
     });
 });

@@ -35,6 +35,9 @@ const ACL_PUBLIC_ROUTES = [
     'POST forgot-password',
     'GET reset-password/{token}',
     'POST reset-password',
+    // Company invitations: only usable with the emailed token, throttled (10 §5).
+    'GET invitations/{token}',
+    'POST invitations/{token}',
 ];
 
 // Public driver application: OTP-gated session (see PublicApplication module).
@@ -43,6 +46,7 @@ const ACL_PUBLIC_PREFIXES = ['{slug}/apply', '{slug}/application/'];
 const ACL_GUEST_ROUTES = [
     'GET register', 'POST register', 'GET login', 'POST login',
     'GET forgot-password', 'POST forgot-password', 'GET reset-password/{token}', 'POST reset-password',
+    'GET invitations/{token}', 'POST invitations/{token}',
 ];
 
 const ACL_NO_PERMISSION_ROUTES = [

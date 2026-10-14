@@ -1,16 +1,26 @@
 <?php
 
-use App\Models\User;
-use Spatie\Permission\Models\Role;
+use App\Models\Company;
+use App\Models\Role;
+use App\Services\Authorization\RoleService;
 use Tests\Support\Actors;
 
 /*
-| USR-03: RoleController::destroy returned an empty response and let anyone with roles.delete
-| delete the `super-admin` / `company` roles that the code checks by name (lockout).
-| show() was an empty method (blank 200).
+| USR-03, changed by design (11 §5): roles are per team. Editing company A's role never changes
+| company B's, locked roles can't be changed, and another company's role id is a 404.
 */
 
-function flashedMessages(): array
+function companyRole(Company $company, string $name): Role
+{
+    return Role::query()->where('team_id', $company->id)->where('name', $name)->firstOrFail();
+}
+
+function rolePermissionNames(Role $role): array
+{
+    return $role->fresh()->permissions()->pluck('name')->sort()->values()->all();
+}
+
+function roleFlashes(): array
 {
     return collect(session('flasher::envelopes', []))
         // php-flasher >= 2.6 stores each envelope serialized
@@ -18,114 +28,210 @@ function flashedMessages(): array
         ->all();
 }
 
-describe('USR-03: system roles are protected', function () {
-    it('refuses to delete a system role', function (string $name) {
-        Actors::seedAccessControl();
-        $role = Role::findByName($name, 'web');
-        $owner = Actors::companyOwner();
+describe('per-company roles', function () {
+    it('lets the Owner create a role in their own team', function () {
+        $company = Actors::company();
 
-        $this->actingAs(Actors::superAdmin())
-            ->delete(route('admin.roles.destroy', $role->id))
+        $this->actingAs($company->owner)
+            ->post(route('admin.roles.store'), ['name' => 'Yard', 'permissions' => ['vehicles.view', 'trailers.view']])
             ->assertRedirect(route('admin.roles.index'));
 
-        expect(Role::query()->whereKey($role->id)->exists())->toBeTrue()
-            ->and($owner->fresh()->hasRole('company'))->toBeTrue();
-    })->with(['super-admin', 'company']);
-
-    it('refuses to rename a system role', function (string $name) {
-        Actors::seedAccessControl();
-        $role = Role::findByName($name, 'web');
-        $permissions = $role->permissions->pluck('name')->all();
-
-        $this->actingAs(Actors::superAdmin())
-            ->put(route('admin.roles.update', $role->id), ['name' => 'renamed', 'permissions' => $permissions])
-            ->assertRedirect();
-
-        expect($role->fresh()->name)->toBe($name);
-    })->with(['super-admin', 'company']);
-
-    it('keeps every permission on the super-admin role whatever the form sends', function () {
-        $admin = Actors::superAdmin();
-        $role = Role::findByName('super-admin', 'web');
-
-        $this->actingAs($admin)
-            ->put(route('admin.roles.update', $role->id), ['name' => 'super-admin', 'permissions' => ['drivers.view']])
-            ->assertRedirect(route('admin.roles.index'));
-
-        $this->actingAs($admin)
-            ->put(route('admin.roles.update', $role->id), ['name' => 'super-admin'])
-            ->assertRedirect(route('admin.roles.index'));
-
-        expect($role->fresh()->permissions()->count())->toBe(\Spatie\Permission\Models\Permission::count());
-        $this->actingAs($admin->fresh())->get(route('admin.roles.index'))->assertOk();
+        expect(rolePermissionNames(companyRole($company, 'Yard')))->toBe(['trailers.view', 'vehicles.view']);
     });
 
-    it('still lets a super-admin change the permissions of the company role', function () {
-        $admin = Actors::superAdmin();
-        $role = Role::findByName('company', 'web');
+    it('lets two companies use the same role name', function () {
+        $a = Actors::company();
+        $b = Actors::company();
 
-        $this->actingAs($admin)
-            ->put(route('admin.roles.update', $role->id), ['name' => 'company', 'permissions' => ['drivers.view']])
-            ->assertRedirect(route('admin.roles.index'));
+        foreach ([$a, $b] as $company) {
+            $this->actingAs($company->owner)
+                ->post(route('admin.roles.store'), ['name' => 'Yard', 'permissions' => ['vehicles.view']])
+                ->assertRedirect(route('admin.roles.index'));
+        }
 
-        expect($role->fresh()->permissions->pluck('name')->all())->toBe(['drivers.view']);
+        expect(companyRole($a, 'Yard')->id)->not->toBe(companyRole($b, 'Yard')->id);
     });
 
-    it('shows the super-admin permissions as locked on the edit page', function () {
-        $admin = Actors::superAdmin();
+    it('rejects a duplicate role name within the same company', function () {
+        $company = Actors::company();
 
-        $this->actingAs($admin)
-            ->get(route('admin.roles.edit', Role::findByName('super-admin', 'web')->id))
+        $this->actingAs($company->owner)
+            ->post(route('admin.roles.store'), ['name' => 'Dispatcher', 'permissions' => []])
+            ->assertSessionHasErrors('name');
+    });
+
+    it("never changes another company's role when editing your own", function () {
+        $a = Actors::company();
+        $b = Actors::company();
+        $before = rolePermissionNames(companyRole($b, 'Dispatcher'));
+
+        $this->actingAs($a->owner)
+            ->put(route('admin.roles.update', companyRole($a, 'Dispatcher')->id), ['name' => 'Dispatcher', 'permissions' => ['trips.view']])
+            ->assertRedirect(route('admin.roles.index'));
+
+        expect(rolePermissionNames(companyRole($a, 'Dispatcher')))->toBe(['trips.view'])
+            ->and(rolePermissionNames(companyRole($b, 'Dispatcher')))->toBe($before);
+    });
+
+    it("returns 404 for another company's role on every role route", function (string $method, string $route) {
+        $foreign = companyRole(Actors::company(), 'Dispatcher');
+        $before = rolePermissionNames($foreign);
+
+        $this->actingAs(Actors::companyOwner())
+            ->call($method, route($route, $foreign->id), ['name' => 'Hacked', 'permissions' => []])
+            ->assertNotFound();
+
+        expect($foreign->fresh()?->name)->toBe('Dispatcher')
+            ->and(rolePermissionNames($foreign))->toBe($before);
+    })->with([
+        'edit' => ['GET', 'admin.roles.edit'],
+        'update' => ['PUT', 'admin.roles.update'],
+        'destroy' => ['DELETE', 'admin.roles.destroy'],
+    ]);
+
+    it('lists only the own company\'s roles and hides the support roles', function () {
+        $company = Actors::company();
+        $other = Actors::company();
+        $this->actingAs($other->owner)->post(route('admin.roles.store'), ['name' => 'Other Yard', 'permissions' => []]);
+
+        $this->actingAs($company->owner)
+            ->get(route('admin.roles.index'))
             ->assertOk()
-            ->assertSee('The super-admin role always has every permission.');
+            ->assertSee('Dispatcher')
+            ->assertDontSee('Other Yard')
+            ->assertDontSee('Support (read)');
+    });
+});
+
+describe('locked and system roles', function () {
+    it('refuses to edit or delete a locked role', function (string $name) {
+        $company = Actors::company();
+        $role = companyRole($company, $name);
+        $before = rolePermissionNames($role);
+
+        $this->actingAs($company->owner)->get(route('admin.roles.edit', $role->id))->assertForbidden();
+        $this->actingAs($company->owner)
+            ->put(route('admin.roles.update', $role->id), ['name' => $name, 'permissions' => ['trips.view']])
+            ->assertForbidden();
+        $this->actingAs($company->owner)->delete(route('admin.roles.destroy', $role->id))->assertForbidden();
+
+        expect(rolePermissionNames($role))->toBe($before);
+    })->with(['Owner', 'Driver']);
+
+    it('refuses to rename a system role but lets its permissions change', function () {
+        $company = Actors::company();
+        $role = companyRole($company, 'Dispatcher');
+
+        $this->actingAs($company->owner)
+            ->put(route('admin.roles.update', $role->id), ['name' => 'Renamed', 'permissions' => ['trips.view']])
+            ->assertForbidden();
+
+        expect($role->fresh()->name)->toBe('Dispatcher');
     });
 
-    it('deletes a custom role and redirects back with a success message', function () {
-        Actors::seedAccessControl();
-        $role = Role::create(['name' => 'dispatcher', 'guard_name' => 'web']);
+    it('refuses to delete a system role that is still assigned', function () {
+        $company = Actors::company();
+        Actors::dispatcher($company);
 
-        $this->actingAs(Actors::superAdmin())
+        $this->actingAs($company->owner)
+            ->delete(route('admin.roles.destroy', companyRole($company, 'Dispatcher')->id))
+            ->assertForbidden();
+
+        expect(Role::query()->where('team_id', $company->id)->where('name', 'Dispatcher')->exists())->toBeTrue();
+    });
+
+    it('deletes a custom role and redirects with a success message', function () {
+        $company = Actors::company();
+        $this->actingAs($company->owner)->post(route('admin.roles.store'), ['name' => 'Yard', 'permissions' => []]);
+        $role = companyRole($company, 'Yard');
+
+        $this->actingAs($company->owner)
             ->delete(route('admin.roles.destroy', $role->id))
             ->assertRedirect(route('admin.roles.index'));
 
         expect(Role::query()->whereKey($role->id)->exists())->toBeFalse()
-            ->and(flashedMessages())->toContain('Role deleted successfully');
+            ->and(roleFlashes())->toContain('Role deleted successfully');
     });
 
-    it('returns 404 when deleting an unknown role', function () {
-        $this->actingAs(Actors::superAdmin())
+    it('returns 404 for an unknown role', function () {
+        $this->actingAs(Actors::companyOwner())
             ->delete(route('admin.roles.destroy', 999999))
             ->assertNotFound();
     });
 
     it('does not let a user without roles.delete delete a role', function () {
-        Actors::seedAccessControl();
-        $role = Role::create(['name' => 'dispatcher', 'guard_name' => 'web']);
+        $company = Actors::company();
+        $this->actingAs($company->owner)->post(route('admin.roles.store'), ['name' => 'Yard', 'permissions' => []]);
+        $role = companyRole($company, 'Yard');
 
-        $this->actingAs(Actors::companyOwner())
+        $this->actingAs(Actors::dispatcher($company))
             ->delete(route('admin.roles.destroy', $role->id))
             ->assertForbidden();
 
         expect(Role::query()->whereKey($role->id)->exists())->toBeTrue();
     });
 
-    it('redirects the show route instead of rendering a blank page', function () {
-        Actors::seedAccessControl();
-        $role = Role::findByName('company', 'web');
+    it('redirects the show route to the edit page', function () {
+        $company = Actors::company();
+        $role = companyRole($company, 'Dispatcher');
 
-        $this->actingAs(Actors::superAdmin())
+        $this->actingAs($company->owner)
             ->get(route('admin.roles.show', $role->id))
             ->assertRedirect(route('admin.roles.edit', $role->id));
     });
 });
 
+describe('grant only what you hold (06 §8 rule 2)', function () {
+    it('refuses to create a role with a permission the actor lacks', function () {
+        $company = Actors::company();
+
+        $this->actingAs(Actors::companyAdmin($company))
+            ->post(route('admin.roles.store'), ['name' => 'Payer', 'permissions' => ['billing.manage']])
+            ->assertForbidden();
+
+        expect(Role::query()->where('team_id', $company->id)->where('name', 'Payer')->exists())->toBeFalse();
+    });
+
+    it('rejects a permission that is not in the tenant catalogue', function () {
+        $this->actingAs(Actors::companyOwner())
+            ->post(route('admin.roles.store'), ['name' => 'Platform', 'permissions' => ['platform.staff.manage']])
+            ->assertSessionHasErrors('permissions.0');
+    });
+
+    it('only shows held permissions on the role form', function () {
+        $company = Actors::company();
+
+        $this->actingAs(Actors::companyAdmin($company))
+            ->get(route('admin.roles.create'))
+            ->assertOk()
+            ->assertSee('value="billing.view"', false)
+            ->assertDontSee('value="billing.manage"', false);
+    });
+});
+
+describe('roles the actor cannot fully grant', function () {
+    it('refuses the edit page and hides Edit for a role with permissions the actor lacks', function () {
+        $company = Actors::company();
+        app(RoleService::class)->create($company->owner, 'Finance', ['billing.manage']);
+        $role = companyRole($company, 'Finance');
+        $admin = Actors::companyAdmin($company);
+
+        $this->actingAs($admin)->get(route('admin.roles.edit', $role->id))->assertForbidden();
+        $this->actingAs($admin)->get(route('admin.roles.index'))
+            ->assertOk()
+            ->assertDontSee('href="'.route('admin.roles.edit', $role->id).'"', false)
+            ->assertSee('href="'.route('admin.roles.edit', companyRole($company, 'Dispatcher')->id).'"', false);
+    });
+});
+
 describe('roles index: delete button', function () {
     it('renders role names as escaped data attributes, not inside an inline onclick', function () {
-        Actors::seedAccessControl();
+        $company = Actors::company();
         $payload = "x');alert(1);//<img src=x onerror=alert(2)>";
-        $role = Role::create(['name' => $payload, 'guard_name' => 'web']);
+        $this->actingAs($company->owner)->post(route('admin.roles.store'), ['name' => $payload, 'permissions' => []]);
+        $role = companyRole($company, $payload);
 
-        $html = $this->actingAs(Actors::superAdmin())
+        $html = $this->actingAs($company->owner)
             ->get(route('admin.roles.index'))
             ->assertOk()
             ->getContent();
@@ -136,15 +242,25 @@ describe('roles index: delete button', function () {
             ->and($html)->toContain('data-url="'.route('admin.roles.destroy', $role->id).'"');
     });
 
-    it('hides the delete button for system roles', function () {
-        Actors::seedAccessControl();
+    it('hides the delete button for a system role that is still assigned', function () {
+        $company = Actors::company();
+        Actors::dispatcher($company);
 
-        $html = $this->actingAs(Actors::superAdmin())
+        $html = $this->actingAs($company->owner)->get(route('admin.roles.index'))->getContent();
+
+        expect($html)->not->toContain('data-url="'.route('admin.roles.destroy', companyRole($company, 'Dispatcher')->id).'"')
+            ->and($html)->toContain('data-url="'.route('admin.roles.destroy', companyRole($company, 'Office / Compliance')->id).'"');
+    });
+
+    it('hides the delete button for locked roles', function () {
+        $company = Actors::company();
+
+        $html = $this->actingAs($company->owner)
             ->get(route('admin.roles.index'))
             ->getContent();
 
-        foreach (['super-admin', 'company'] as $name) {
-            expect($html)->not->toContain('data-url="'.route('admin.roles.destroy', Role::findByName($name, 'web')->id).'"');
+        foreach (['Owner', 'Driver'] as $name) {
+            expect($html)->not->toContain('data-url="'.route('admin.roles.destroy', companyRole($company, $name)->id).'"');
         }
     });
 });

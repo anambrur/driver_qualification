@@ -4,38 +4,36 @@ use Tests\Support\Actors;
 
 /*
 | USR-05: `status = inactive` was only checked at login, so a user who was already logged in
-| kept working after being suspended.
+| kept working after being deactivated.
 */
 
-describe('USR-05: suspending a user ends their existing session', function () {
+describe('USR-05: deactivating a user ends their existing session', function () {
     it('logs out a user who was deactivated after logging in', function () {
-        $user = Actors::superAdmin();
+        $company = Actors::company();
+        $admin = Actors::companyAdmin($company);
 
-        $this->actingAs($user)->get(route('users.index'))->assertOk();
+        $this->actingAs($admin)->get(route('users.index'))->assertOk();
 
-        $user->update(['status' => 'inactive']);
+        $admin->update(['status' => 'inactive']);
 
         $this->get(route('users.index'))->assertRedirect(route('login'));
         $this->assertGuest();
     });
 
-    it('logs out a user suspended by an admin on their next request', function () {
-        $victim = Actors::companyOwner();
+    it('logs out a user deactivated by the Owner on their next request', function () {
+        $company = Actors::company();
+        $victim = Actors::companyAdmin($company);
 
-        $this->actingAs(Actors::superAdmin())
-            ->put(route('users.update', $victim->id), [
-                'name' => $victim->name,
-                'email' => $victim->email,
-                'status' => 'inactive',
-            ])
+        $this->actingAs($company->owner)
+            ->post(route('users.deactivate', $victim->id))
             ->assertRedirect(route('users.index'));
 
-        $this->actingAs($victim->fresh())->get(route('billing.index'))->assertRedirect(route('login'));
+        $this->actingAs($victim->fresh())->get(route('users.index'))->assertRedirect(route('login'));
         $this->assertGuest();
     });
 
     it('leaves active users alone', function () {
-        $this->actingAs(Actors::superAdmin())->get(route('users.index'))->assertOk();
+        $this->actingAs(Actors::companyOwner())->get(route('users.index'))->assertOk();
         $this->assertAuthenticated();
     });
 });
