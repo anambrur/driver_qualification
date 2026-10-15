@@ -20,7 +20,7 @@ final class Companies
             'email' => $company->email,
             'address' => $company->address ?? '1 Main St',
             'city' => $company->city ?? 'Austin',
-            'state' => $company->state ?? 'TX',
+            'state' => $company->state_code ?? 'TX',
             'zip' => $company->zip ?? '73301',
             'phone' => $company->phone,
             'status' => $company->status,

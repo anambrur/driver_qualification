@@ -4,97 +4,64 @@ namespace App\Services\Driver;
 
 use App\Models\Country;
 use App\Models\Driver;
+use App\Models\DriverDocument;
 use App\Models\State;
+use App\Services\Files\StoredFileService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 class DriverCrudService
 {
+    public function __construct(private StoredFileService $files) {}
+
+    /**
+     * A driver created by staff: no application, an applicant until hired (F15).
+     */
     public function create(array $data, int $userId, ?UploadedFile $photo = null): Driver
     {
-        return DB::transaction(function () use ($data, $userId, $photo) {
-            $ssn = $this->stripSsn($data['ssn'] ?? '');
-            $countryName = $this->resolveCountryName($data['country'] ?? null);
-            $stateName = $this->resolveStateName($data['state'] ?? null);
-            $photoPath = $this->storePhoto($photo);
-
-            $driver = Driver::create([
-                'user_id' => $userId,
-                'company_id' => $data['company_id'] ?? null,
-                'first_name' => $data['first_name'] ?? null,
-                'middle_name' => $data['middle_name'] ?? null,
-                'last_name' => $data['last_name'] ?? null,
-                'suffix' => $data['suffix'] ?? null,
-                'date_of_birth' => $data['date_of_birth'] ?? null,
-                'ssn' => $ssn,
-                'main_phone' => $data['main_phone'] ?? null,
-                'alt_phone' => $data['alt_phone'] ?? null,
-                'email' => $data['email'] ?? null,
-                'medical_certificate_expiration_date' => $data['medical_certificate_expiration_date'] ?? null,
-                'photo' => $photoPath,
-                'business_name' => $data['business_name'] ?? null,
-                'employer_identification_number' => $data['employer_identification_number'] ?? null,
-                'federal_tax_classification' => $data['federal_tax_classification'] ?? null,
-                'address' => $data['address'] ?? null,
-                'city' => $data['city'] ?? null,
-                'state' => $stateName,
-                'country' => $countryName,
-                'postal_code' => $data['postal_code'] ?? null,
-                'twic_card' => filter_var($data['twic_card'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                'passport' => filter_var($data['passport'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                'status' => 'draft',
+        return $this->files->transaction(function () use ($data, $userId, $photo) {
+            $driver = Driver::create($this->driverAttributes($data) + [
+                'created_by_user_id' => $userId,
+                'photo_file_id' => $photo ? $this->files->store($photo, 'driver-photos')->id : null,
+                'application_status' => null,
+                'employment_status' => 'applicant',
+                'source' => 'admin',
             ]);
 
-            $this->syncResidences($driver, $data, resolvePlaceNames: true);
-            $this->insertLicense($driver, $data);
+            $this->syncResidences($driver, $data);
+            $this->upsertLicense($driver, $data);
             $this->syncExperiences($driver, $data);
             $this->syncAccidents($driver, $data);
             $this->syncViolations($driver, $data);
             $this->syncForfeitures($driver, $data);
-            $this->syncEmploymentRecords($driver, $data, resolvePlaceNames: true);
+            $this->syncEmploymentRecords($driver, $data);
 
             return $driver;
         });
     }
 
+    /**
+     * The edit form never changes the driver's statuses: hiring and rejecting go through
+     * DriverHireService (DRV-06).
+     */
     public function update(Driver $driver, array $data, ?UploadedFile $photo = null): Driver
     {
-        return DB::transaction(function () use ($driver, $data, $photo) {
-            $ssn = $this->stripSsn($data['ssn'] ?? '');
-            $photoPath = $this->storePhoto($photo, $driver->photo);
+        return $this->files->transaction(function () use ($driver, $data, $photo) {
+            $attributes = $this->driverAttributes($data);
 
-            $driver->update([
-                'company_id' => $data['company_id'] ?? $driver->company_id,
-                'first_name' => $data['first_name'] ?? null,
-                'middle_name' => $data['middle_name'] ?? null,
-                'last_name' => $data['last_name'] ?? null,
-                'suffix' => $data['suffix'] ?? null,
-                'date_of_birth' => $data['date_of_birth'] ?? null,
-                'ssn' => $ssn,
-                'main_phone' => $data['main_phone'] ?? null,
-                'alt_phone' => $data['alt_phone'] ?? null,
-                'email' => $data['email'] ?? null,
-                'business_name' => $data['business_name'] ?? null,
-                'employer_identification_number' => $data['employer_identification_number'] ?? null,
-                'federal_tax_classification' => $data['federal_tax_classification'] ?? null,
-                'address' => $data['address'] ?? null,
-                'city' => $data['city'] ?? null,
-                'state' => $this->resolveStateName($data['state'] ?? null),
-                'country' => $this->resolveCountryName($data['country'] ?? null),
-                'postal_code' => $data['postal_code'] ?? null,
-                'twic_card' => filter_var($data['twic_card'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                'passport' => filter_var($data['passport'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                'status' => $data['status'] ?? $driver->status,
-                'medical_certificate_expiration_date' => $data['medical_certificate_expiration_date'] ?? null,
-                'photo' => $photoPath ?? $driver->photo,
-            ]);
+            if ($photo) {
+                $this->files->purgeWhenUnreferenced($driver->photo_file_id);
+                $attributes['photo_file_id'] = $this->files->store($photo, 'driver-photos')->id;
+            }
 
-            if (!empty($data['license_number'])) {
+            $driver->update($attributes);
+
+            if (! empty($data['license_number'])) {
                 $this->upsertLicense($driver, $data);
             }
 
             $driver->residence_addresses()->delete();
-            $this->syncResidences($driver, $data, resolvePlaceNames: false);
+            $this->syncResidences($driver, $data);
 
             $driver->experiences()->delete();
             $this->syncExperiences($driver, $data);
@@ -102,50 +69,86 @@ class DriverCrudService
             $driver->accidents()->delete();
             $this->syncAccidents($driver, $data);
 
-            // The rows are re-created below; keep the applicant's step-5 signature on them (DRV-08).
-            $signature = $driver->violations()
-                ->whereNotNull('violation_record_signature')
-                ->first(['violation_record_signature', 'violation_record_date_signed'])
-                ?->only(['violation_record_signature', 'violation_record_date_signed']) ?? [];
-
             $driver->violations()->delete();
-            $this->syncViolations($driver, $data, $signature);
+            $this->syncViolations($driver, $data);
 
             $driver->forfeitures()->delete();
             $this->syncForfeitures($driver, $data);
 
             $driver->employment_records()->delete();
-            $this->syncEmploymentRecords($driver, $data, resolvePlaceNames: false);
+            $this->syncEmploymentRecords($driver, $data);
 
             return $driver->fresh();
         });
     }
 
-    private function resolvePlaceName($value, string $type = 'country'): ?string
+    /**
+     * @return array<string, mixed>
+     */
+    private function driverAttributes(array $data): array
+    {
+        return [
+            'first_name' => $data['first_name'] ?? null,
+            'middle_name' => $data['middle_name'] ?? null,
+            'last_name' => $data['last_name'] ?? null,
+            'suffix' => $data['suffix'] ?? null,
+            'date_of_birth' => $data['date_of_birth'] ?? null,
+            'ssn' => $this->stripSsn($data['ssn'] ?? ''),
+            'main_phone' => $data['main_phone'] ?? null,
+            'alt_phone' => $data['alt_phone'] ?? null,
+            'email' => $data['email'] ?? null,
+            'business_name' => $data['business_name'] ?? null,
+            'employer_identification_number' => $data['employer_identification_number'] ?? null,
+            'federal_tax_classification' => $data['federal_tax_classification'] ?? null,
+            'address' => $data['address'] ?? null,
+            'city' => $data['city'] ?? null,
+            'state_code' => $this->stateCode($data['state'] ?? null),
+            'country_code' => $this->countryCode($data['country'] ?? null) ?? 'US',
+            'postal_code' => $data['postal_code'] ?? null,
+            'twic_card' => $this->yes($data['twic_card'] ?? false),
+            'passport' => $this->yes($data['passport'] ?? false),
+        ];
+    }
+
+    /**
+     * Forms post a country id; the API and older forms post the ISO code or the name.
+     */
+    public function countryCode(mixed $value): ?string
     {
         if ($value === null || $value === '') {
             return null;
         }
 
         if (is_numeric($value)) {
-            if ($type === 'state') {
-                return State::find($value)?->name;
-            }
-
-            return Country::find($value)?->name ?? (string) $value;
+            return Country::find($value)?->iso_code;
         }
 
-        return (string) $value;
+        $value = trim((string) $value);
+
+        return strlen($value) === 2 ? strtoupper($value) : Country::where('name', $value)->value('iso_code');
     }
 
-    private function resolveCountryName($value): ?string
+    /**
+     * Forms post a state id; the API and older forms post the code or the name.
+     */
+    public function stateCode(mixed $value): ?string
     {
-        return $this->resolvePlaceName($value, 'country');
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            return State::find($value)?->code;
+        }
+
+        $value = trim((string) $value);
+
+        return strlen($value) === 2 ? strtoupper($value) : State::where('name', $value)->value('code');
     }
 
-    private function resolveStateName($value): ?string
+    private function yes(mixed $value): bool
     {
-        return $this->resolvePlaceName($value, 'state');
+        return $value === 'yes' || filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
     private function stripSsn(string $ssn): string
@@ -153,104 +156,52 @@ class DriverCrudService
         return preg_replace('/[^0-9]/', '', $ssn) ?? '';
     }
 
-    private function storePhoto(?UploadedFile $photo, ?string $oldPath = null): ?string
-    {
-        if (!$photo) {
-            return $oldPath;
-        }
-
-        DriverDocumentWizardService::deleteStoredFile($oldPath);
-
-        // hashName(): random name, extension taken from the file's content, never the client's.
-        $fileName = 'driver_photo_' . $photo->hashName();
-
-        return $photo->storeAs('images/drivers', $fileName, DriverDocumentWizardService::DISK);
-    }
-
-    private function insertLicense(Driver $driver, array $data): void
-    {
-        $licenseCountry = $this->resolveCountryName($data['license_country'] ?? null);
-        $licenseState = $this->resolveStateName($data['license_state'] ?? null);
-
-        DB::table('licenses')->insert([
-            'driver_id' => $driver->id,
-            'first_name' => $data['license_first_name'] ?? null,
-            'last_name' => $data['license_last_name'] ?? null,
-            'issued' => $data['license_issued'] ?? null,
-            'expires' => $data['license_expires'] ?? null,
-            'country' => $licenseCountry,
-            'state' => $licenseState,
-            'class' => $data['license_class'] ?? null,
-            'license_number' => $data['license_number'] ?? null,
-            'repeat_license_number' => $data['repeat_license_number'] ?? null,
-            'is_h_placarded_hazmat' => filter_var($data['is_h_placarded_hazmat'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'is_n_tank_vehicle' => filter_var($data['is_n_tank_vehicle'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'is_p_passengers' => filter_var($data['is_p_passengers'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'is_t_double_trailer' => filter_var($data['is_t_double_trailer'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'is_s_school_bus' => filter_var($data['is_s_school_bus'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'is_x_placarded_hazmat' => filter_var($data['is_x_placarded_hazmat'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-    }
-
+    /**
+     * The posted licence becomes (or updates) the driver's current one.
+     */
     private function upsertLicense(Driver $driver, array $data): void
     {
-        $licenseCountry = $this->resolveCountryName($data['license_country'] ?? null);
-        $licenseState = $this->resolveStateName($data['license_state'] ?? null);
-
-        $licensePayload = [
+        $payload = [
             'first_name' => $data['license_first_name'] ?? null,
             'last_name' => $data['license_last_name'] ?? null,
             'issued' => $data['license_issued'] ?? null,
             'expires' => $data['license_expires'] ?? null,
-            'country' => $licenseCountry,
-            'state' => $licenseState,
+            'country_code' => $this->countryCode($data['license_country'] ?? null),
+            'state_code' => $this->stateCode($data['license_state'] ?? null),
             'class' => $data['license_class'] ?? null,
             'license_number' => $data['license_number'] ?? null,
-            'repeat_license_number' => $data['repeat_license_number'] ?? null,
-            'is_h_placarded_hazmat' => filter_var($data['is_h_placarded_hazmat'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'is_n_tank_vehicle' => filter_var($data['is_n_tank_vehicle'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'is_p_passengers' => filter_var($data['is_p_passengers'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'is_t_double_trailer' => filter_var($data['is_t_double_trailer'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'is_s_school_bus' => filter_var($data['is_s_school_bus'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'is_x_placarded_hazmat' => filter_var($data['is_x_placarded_hazmat'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'is_h_placarded_hazmat' => $this->yes($data['is_h_placarded_hazmat'] ?? false),
+            'is_n_tank_vehicle' => $this->yes($data['is_n_tank_vehicle'] ?? false),
+            'is_p_passengers' => $this->yes($data['is_p_passengers'] ?? false),
+            'is_t_double_trailer' => $this->yes($data['is_t_double_trailer'] ?? false),
+            'is_s_school_bus' => $this->yes($data['is_s_school_bus'] ?? false),
+            'is_x_placarded_hazmat' => $this->yes($data['is_x_placarded_hazmat'] ?? false),
         ];
 
-        $driver->loadMissing('licenses');
+        $current = $driver->currentLicense()->first();
 
-        if ($driver->licenses->isNotEmpty()) {
-            $driver->licenses->first()->update($licensePayload);
+        if ($current) {
+            $current->update($payload);
         } else {
-            DB::table('licenses')->insert(array_merge($licensePayload, [
-                'driver_id' => $driver->id,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]));
+            $driver->licenses()->create($payload + ['is_current' => true]);
         }
     }
 
-    private function syncResidences(Driver $driver, array $data, bool $resolvePlaceNames): void
+    private function syncResidences(Driver $driver, array $data): void
     {
-        if (!isset($data['residence_address']) || !is_array($data['residence_address'])) {
-            return;
-        }
+        $rows = [];
 
-        $residences = [];
-        foreach ($data['residence_address'] as $index => $address) {
+        foreach ((array) ($data['residence_address'] ?? []) as $index => $address) {
             if (empty(trim($address ?? ''))) {
                 continue;
             }
 
-            $resCountry = $data['residence_country'][$index] ?? null;
-            $resState = $data['residence_state'][$index] ?? null;
-
-            $residences[] = [
+            $rows[] = [
                 'driver_id' => $driver->id,
                 'address' => $address,
                 'city' => $data['residence_city'][$index] ?? null,
-                'state' => $resolvePlaceNames ? $this->resolveStateName($resState) : $resState,
-                'country' => $resolvePlaceNames ? $this->resolveCountryName($resCountry) : $resCountry,
+                'state_code' => $this->stateCode($data['residence_state'][$index] ?? null),
+                'country_code' => $this->countryCode($data['residence_country'][$index] ?? null) ?? 'US',
                 'zip' => $data['residence_postal_code'][$index] ?? null,
                 'is_current' => $index === 0,
                 'created_at' => now(),
@@ -258,27 +209,24 @@ class DriverCrudService
             ];
         }
 
-        if (!empty($residences)) {
-            DB::table('residence_addresses')->insert($residences);
+        if ($rows !== []) {
+            DB::table('residence_addresses')->insert($rows);
         }
     }
 
     private function syncExperiences(Driver $driver, array $data): void
     {
-        if (!isset($data['equipment_class']) || !is_array($data['equipment_class'])) {
-            return;
-        }
+        $rows = [];
 
-        $experiences = [];
-        foreach ($data['equipment_class'] as $index => $equipmentClass) {
+        foreach ((array) ($data['equipment_class'] ?? []) as $index => $equipmentClass) {
             if (($data['experience'][$index] ?? 'no') !== 'yes') {
                 continue;
             }
 
-            $experiences[] = [
+            $rows[] = [
                 'driver_id' => $driver->id,
                 'equipment_class' => $equipmentClass,
-                'experience' => $data['experience'][$index] ?? 'no',
+                'experience' => true,
                 'from_date' => $data['experience_from_date'][$index] ?? null,
                 'to_date' => $data['experience_to_date'][$index] ?? null,
                 'approx_miles' => $data['approx_miles'][$index] ?? null,
@@ -287,121 +235,104 @@ class DriverCrudService
             ];
         }
 
-        if (!empty($experiences)) {
-            DB::table('experiences')->insert($experiences);
+        if ($rows !== []) {
+            DB::table('experiences')->insert($rows);
         }
     }
 
+    /**
+     * Rows exist only for real accidents; the yes/no answer is on driver_documents (F19c).
+     */
     private function syncAccidents(Driver $driver, array $data): void
     {
-        if (($data['accident'] ?? null) === 'yes' && !empty($data['accident_date'])) {
-            $accidents = [];
-            foreach ($data['accident_date'] as $index => $date) {
+        $rows = [];
+
+        if (($data['accident'] ?? null) === 'yes') {
+            foreach ((array) ($data['accident_date'] ?? []) as $index => $date) {
                 if (empty($date)) {
                     continue;
                 }
 
-                $accidents[] = [
+                $rows[] = [
                     'driver_id' => $driver->id,
-                    'accident' => 'yes',
                     'accident_date' => $date,
                     'accident_location' => $data['accident_location'][$index] ?? null,
-                    'number_of_injuries' => $data['number_of_injuries'][$index] ?? null,
-                    'number_of_fatalities' => $data['number_of_fatalities'][$index] ?? null,
-                    'hazmat_spill' => $data['hazmat_spill'][$index] ?? 'no',
+                    'number_of_injuries' => (int) ($data['number_of_injuries'][$index] ?? 0),
+                    'number_of_fatalities' => (int) ($data['number_of_fatalities'][$index] ?? 0),
+                    'hazmat_spill' => $this->yes($data['hazmat_spill'][$index] ?? false),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
             }
-
-            if (!empty($accidents)) {
-                DB::table('accidents')->insert($accidents);
-            }
-
-            return;
         }
 
-        DB::table('accidents')->insert([
-            'driver_id' => $driver->id,
-            'accident' => 'no',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        if ($rows !== []) {
+            DB::table('accidents')->insert($rows);
+        }
+
+        DriverDocument::updateOrCreate(['driver_id' => $driver->id], ['has_accidents' => $rows !== []]);
     }
 
     /**
-     * @param  array<string, mixed>  $signature  violation_record_signature/_date_signed to keep on every row
+     * Rows exist only for real violations; the yes/no answer is on driver_documents (F19c).
      */
-    private function syncViolations(Driver $driver, array $data, array $signature = []): void
+    private function syncViolations(Driver $driver, array $data): void
     {
-        if (($data['violation'] ?? null) === 'yes' && !empty($data['violation_date'])) {
-            $violations = [];
-            foreach ($data['violation_date'] as $index => $date) {
+        $rows = [];
+
+        if (($data['violation'] ?? null) === 'yes') {
+            foreach ((array) ($data['violation_date'] ?? []) as $index => $date) {
                 if (empty($date)) {
                     continue;
                 }
 
-                $violations[] = [
+                $rows[] = [
                     'driver_id' => $driver->id,
-                    'violation' => 'yes',
                     'violation_date' => $date,
                     'violation_location' => $data['violation_location'][$index] ?? null,
                     'offense' => $data['offense'][$index] ?? null,
                     'vehicle_type' => $data['vehicle_type'][$index] ?? null,
                     'created_at' => now(),
                     'updated_at' => now(),
-                ] + $signature;
+                ];
             }
-
-            if (!empty($violations)) {
-                DB::table('violations')->insert($violations);
-            }
-
-            return;
         }
 
-        DB::table('violations')->insert([
-            'driver_id' => $driver->id,
-            'violation' => 'no',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ] + $signature);
+        if ($rows !== []) {
+            DB::table('violations')->insert($rows);
+        }
+
+        DriverDocument::updateOrCreate(['driver_id' => $driver->id], ['has_violations' => $rows !== []]);
     }
 
     private function syncForfeitures(Driver $driver, array $data): void
     {
         DB::table('forfeitures')->insert([
             'driver_id' => $driver->id,
-            'denied_license' => $data['denied_license'] ?? null,
-            'license_revoked' => $data['license_revoked'] ?? null,
+            'denied_license' => $this->yes($data['denied_license'] ?? false),
+            'license_revoked' => $this->yes($data['license_revoked'] ?? false),
             'forfeitures' => $data['forfeitures'] ?? null,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
     }
 
-    private function syncEmploymentRecords(Driver $driver, array $data, bool $resolvePlaceNames): void
+    private function syncEmploymentRecords(Driver $driver, array $data): void
     {
-        if (!isset($data['employer_name']) || !is_array($data['employer_name'])) {
-            return;
-        }
+        $rows = [];
 
-        $employmentRecords = [];
-        foreach ($data['employer_name'] as $index => $employerName) {
+        foreach ((array) ($data['employer_name'] ?? []) as $index => $employerName) {
             if (empty(trim($employerName ?? ''))) {
                 continue;
             }
 
-            $empCountry = $data['employer_record_country'][$index] ?? null;
-            $empState = $data['employer_record_state'][$index] ?? null;
-
-            $employmentRecords[] = [
+            $rows[] = [
                 'driver_id' => $driver->id,
                 'employer_name' => $employerName,
                 'employer_record_address' => $data['employer_record_address'][$index] ?? null,
                 'employer_record_city' => $data['employer_record_city'][$index] ?? null,
-                'employer_record_country' => $resolvePlaceNames ? $this->resolveCountryName($empCountry) : $empCountry,
-                'employer_record_state' => $resolvePlaceNames ? $this->resolveStateName($empState) : $empState,
+                'employer_record_country_code' => $this->countryCode($data['employer_record_country'][$index] ?? null),
+                'employer_record_state_code' => $this->stateCode($data['employer_record_state'][$index] ?? null),
                 'employer_record_postal_code' => $data['employer_record_postal_code'][$index] ?? null,
                 'employer_record_phone' => $data['employer_record_phone'][$index] ?? null,
                 'employer_record_fax' => $data['employer_record_fax'][$index] ?? null,
@@ -410,15 +341,15 @@ class DriverCrudService
                 'employer_record_date_from' => $data['employer_record_date_from'][$index] ?? null,
                 'employer_record_date_to' => $data['employer_record_date_to'][$index] ?? null,
                 'employer_record_reason_for_leaving' => $data['employer_record_reason_for_leaving'][$index] ?? null,
-                'employed_regulations' => $data['employed_regulations'][$index] ?? 'no',
-                'safety_sensitive_function' => $data['safety_sensitive_function'][$index] ?? 'no',
+                'employed_regulations' => $this->yes($data['employed_regulations'][$index] ?? false),
+                'safety_sensitive_function' => $this->yes($data['safety_sensitive_function'][$index] ?? false),
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
 
-        if (!empty($employmentRecords)) {
-            DB::table('employment_records')->insert($employmentRecords);
+        if ($rows !== []) {
+            DB::table('employment_records')->insert($rows);
         }
     }
 }

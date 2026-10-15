@@ -328,7 +328,7 @@
                             </div>
 
                             <div id="section-photo" class="pt-4 border-t border-gray-100 dark:border-gray-800">
-                                <x-driver-photo-upload :existing-photo-url="$driver->photo ? route('admin.driver.file', [$driver->id, 'photo']) : null" />
+                                <x-driver-photo-upload :existing-photo-url="$driver->photo_file_id ? route('admin.driver.file', [$driver->id, 'photo']) : null" />
                             </div>
                         </div>
                     </div>
@@ -672,30 +672,6 @@
                                             Tank Vehicles.</span>
                                     </label>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <!-- Medical certificate Section -->
-                    <div
-                        class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                Medical Certificate
-                            </h3>
-                        </div>
-                        <div class="p-5 sm:p-6">
-                            <div>
-                                <label for="medical_certificate_expiration_date"
-                                    class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    Medical Certificate Expiration Date <span class="text-error-500">*</span>
-                                </label>
-                                <input type="date" id="medical_certificate_expiration_date"
-                                    name="medical_certificate_expiration_date"
-                                    value="{{ old('medical_certificate_expiration_date', $driver->medical_certificate_expiration_date ?? '') }}"
-                                    required
-                                    class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                             </div>
                         </div>
                     </div>

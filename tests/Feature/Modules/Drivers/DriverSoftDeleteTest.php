@@ -5,7 +5,6 @@ use App\Models\Driver;
 use App\Models\DriverDocument;
 use App\Models\Violation;
 use Database\Factories\AssetGroupFactory;
-use Database\Factories\DriverFactory;
 use Database\Factories\VehicleFactory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -104,11 +103,4 @@ describe('DRV-08: deleting a driver keeps the qualification file', function () {
             ->assertSessionHasErrors('email');
     });
 
-    it('lets a super-admin delete any company\'s driver, softly', function () {
-        $driver = DriverFactory::new()->create();
-
-        $this->actingAs(Actors::superAdmin())->deleteJson(route('admin.driver.destroy', $driver->id))->assertOk();
-
-        expect(Driver::withoutTenancy()->withTrashed()->find($driver->id)->trashed())->toBeTrue();
-    });
 });

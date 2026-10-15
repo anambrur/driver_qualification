@@ -13,9 +13,9 @@ use Tests\Support\Actors;
 
 function updateSiteSettings($test, array $files)
 {
-    return $test->actingAs(Actors::superAdmin())
-        ->from(route('admin.settings.site.index'))
-        ->put(route('admin.settings.site.update'), array_merge(['site_name' => 'DriverFilesHub'], $files));
+    return $test->actingAs(Actors::platformOwner(), 'platform')
+        ->from(route('platform.settings.site.index'))
+        ->put(route('platform.settings.site.update'), array_merge(['site_name' => 'DriverFilesHub', 'trial_days' => 14, 'grace_days' => 7, 'support_session_max_minutes' => 60], $files));
 }
 
 /**

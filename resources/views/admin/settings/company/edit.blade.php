@@ -64,41 +64,6 @@
                                 @enderror
                             </div>
 
-                            <!-- Password -->
-                            <div>
-                                <label for="password"
-                                    class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    Password (Leave blank to keep current)
-                                </label>
-                                <div x-data="{ showPassword: false }" class="relative">
-                                    <input :type="showPassword ? 'text' : 'password'" id="password" name="password"
-                                        class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-                                        placeholder="Enter new password" />
-                                    <span @click="showPassword = !showPassword"
-                                        class="absolute top-1/2 right-4 z-30 -translate-y-1/2 cursor-pointer text-gray-500 dark:text-gray-400">
-                                        <i x-show="!showPassword" class="fas fa-eye"></i>
-                                        <i x-show="showPassword" class="fas fa-eye-slash" x-cloak></i>
-                                    </span>
-                                </div>
-                                @error('password')
-                                    <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            <!-- Confirm Password -->
-                            <div>
-                                <label for="password_confirmation"
-                                    class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    Confirm Password
-                                </label>
-                                <input type="password" id="password_confirmation" name="password_confirmation"
-                                    class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-                                    placeholder="Confirm new password" />
-                                @error('password_confirmation')
-                                    <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                                @enderror
-                            </div>
-
                             <!-- Phone -->
                             <div>
                                 <label for="phone"
@@ -173,13 +138,13 @@
                         </div>
                         <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
                             <!-- Current Logo Preview -->
-                            @if ($company->logo)
+                            @if ($company->logo_path)
                                 <div>
                                     <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                         Current Logo
                                     </label>
                                     <div class="flex items-center space-x-4">
-                                        <img src="{{ asset('storage/' . $company->logo) }}"
+                                        <img src="{{ asset('storage/' . $company->logo_path) }}"
                                             alt="{{ $company->company_name }}" class="w-16 h-16 rounded-lg object-cover">
                                         <div>
                                             <label class="flex items-center">
@@ -197,7 +162,7 @@
                             <div>
                                 <label for="logo"
                                     class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    {{ $company->logo ? 'Upload New Logo' : 'Upload Logo' }}
+                                    {{ $company->logo_path ? 'Upload New Logo' : 'Upload Logo' }}
                                 </label>
                                 <div class="flex items-center justify-center w-full">
                                     <label for="logo"
@@ -269,7 +234,7 @@
                                 </label>
                                 <input type="text" id="state" name="state" required
                                     class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-                                    placeholder="NY" value="{{ old('state', $company->state) }}" />
+                                    placeholder="NY" value="{{ old('state', $company->state_code) }}" />
                                 @error('state')
                                     <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
                                 @enderror

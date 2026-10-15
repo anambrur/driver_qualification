@@ -6,6 +6,7 @@ use Database\Factories\MaintenanceScheduleFactory;
 use Database\Factories\ServiceLogFactory;
 use Tests\Feature\Modules\Maintenance\Maintenance;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /*
 | MNT-02: the DataTables raw columns concatenated vehicle fields (unit no, make, model, VIN),
@@ -27,7 +28,8 @@ describe('MNT-02: the list escapes tenant-controlled data', function () {
         [$owner, $vehicle] = Maintenance::tenantWithVehicle(mntVehicleFields());
         $log = ServiceLogFactory::new()->forVehicle($vehicle)->create();
         $log->maintenanceCategories()->attach(Maintenance::category(['name' => MNT_PAYLOAD.'c']));
-        app(TenantContext::class)->run($log->company_id, fn () => ServiceDocument::create(['service_log_id' => $log->id, 'original_name' => 'a.pdf', 'file_name' => 'a.pdf', 'file_path' => 'x/a.pdf', 'mime_type' => 'application/pdf', 'file_size' => 1]));
+        $file = Files::stored($log->company_id);
+        app(TenantContext::class)->run($log->company_id, fn () => ServiceDocument::create(['service_log_id' => $log->id, 'file_id' => $file->id]));
 
         $row = $this->actingAs($owner)->withHeaders(Maintenance::ajax())
             ->get(route('admin.service-log.index', ['draw' => 1]))
@@ -57,17 +59,6 @@ describe('MNT-02: the list escapes tenant-controlled data', function () {
             ->and($row['vehicle_info'])->toContain(e(MNT_PAYLOAD))
             ->and($row['vehicle_info'])->toContain(e(MNT_PAYLOAD.'o'));
     })->with(['title' => true, 'category name' => false]);
-
-    it('shows a super-admin another tenant\'s payload escaped too', function () {
-        [, $vehicle] = Maintenance::tenantWithVehicle(mntVehicleFields());
-        ServiceLogFactory::new()->forVehicle($vehicle)->create();
-
-        $row = $this->actingAs(Actors::superAdmin())->withHeaders(Maintenance::ajax())
-            ->get(route('admin.service-log.index', ['draw' => 1]))
-            ->assertOk()->json('data.0');
-
-        expect($row['vehicle_info'])->not->toContain('<img')->and($row['vehicle_info'])->toContain(e(MNT_PAYLOAD));
-    });
 
     it('escapes the HTML helpers on the models', function () {
         [$owner, $vehicle] = Maintenance::tenantWithVehicle(mntVehicleFields());

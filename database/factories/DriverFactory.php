@@ -77,6 +77,22 @@ class DriverFactory extends Factory
         ]);
     }
 
+    /**
+     * A driver in the given display status (Driver::status()): employment statuses as such,
+     * application stages on an applicant. A pending driver has no application unless public.
+     */
+    public function status(string $status): static
+    {
+        return match ($status) {
+            'active', 'inactive', 'terminated' => $this->employment($status),
+            'pending' => $this->state(fn (array $attributes) => [
+                'employment_status' => 'applicant',
+                'application_status' => ($attributes['source'] ?? 'admin') === 'public_application' ? 'pending' : null,
+            ]),
+            default => $this->state(fn () => ['employment_status' => 'applicant', 'application_status' => $status]),
+        };
+    }
+
     public function publicDraft(): static
     {
         return $this->application('draft')->state(fn () => [

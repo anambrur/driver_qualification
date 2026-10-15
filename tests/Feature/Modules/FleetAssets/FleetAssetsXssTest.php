@@ -16,7 +16,7 @@ use Tests\Support\Actors;
 */
 
 const FLT_PAYLOAD = '<img src=x onerror=alert(1)>';
-const FLT_QUOTE_PAYLOAD = "x&#39;);alert(1);//\" onmouseover=\"alert(2)";
+const FLT_QUOTE_PAYLOAD = 'x&#39;);alert(1);//" onmouseover="alert(2)';
 
 function fltFields(): array
 {
@@ -54,7 +54,7 @@ describe('FLT-01: the lists escape tenant-controlled data', function () {
     it('escapes trailer fields and equipment and group names in the trailer list', function () {
         $owner = Actors::companyOwner();
         FleetAssets::trailerOf($owner, fltFields() + [
-            'equipment_types_id' => EquipmentType::create(['name' => FLT_PAYLOAD.'e'])->id,
+            'equipment_type_id' => EquipmentType::create(['name' => FLT_PAYLOAD.'e'])->id,
             'vehicle_group_id' => VehicleGroup::create(['name' => FLT_PAYLOAD.'g'])->id,
         ]);
 
@@ -69,20 +69,8 @@ describe('FLT-01: the lists escape tenant-controlled data', function () {
             ->and($row['equipment_group'])->toContain(e(FLT_PAYLOAD.'g'));
     });
 
-    it('shows a super-admin another tenant\'s payload escaped too', function (string $route, string $column) {
-        $owner = Actors::companyOwner();
-        $route === 'admin.vehicle.index' ? FleetAssets::vehicleOf($owner, fltFields()) : FleetAssets::trailerOf($owner, fltFields());
-
-        $row = fltRow($this, Actors::superAdmin(), $route);
-
-        expect($row[$column])->not->toContain('<img')->and($row[$column])->toContain(e(FLT_PAYLOAD));
-    })->with([
-        'vehicles' => ['admin.vehicle.index', 'vehicle_info'],
-        'trailers' => ['admin.trailer.index', 'trailer_info'],
-    ]);
-
     it('escapes the company name and owner columns', function () {
-        $owner = Actors::companyOwner(companyAttributes: ['company_name' => FLT_PAYLOAD.'c']);
+        $owner = Actors::companyOwner(Actors::company(['company_name' => FLT_PAYLOAD.'c']));
         FleetAssets::trailerOf($owner, ['owned_by' => FLT_PAYLOAD.'b']);
         FleetAssets::vehicleOf($owner);
 

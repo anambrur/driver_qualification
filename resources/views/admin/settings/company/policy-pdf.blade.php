@@ -36,7 +36,7 @@
                     <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-2">Existing Policy PDFs</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         @foreach ($existingPolicies as $policy)
-                            @if ($policy->alcohol_drug_test_policy_pdf)
+                            @if ($policy->alcohol_drug_test_policy_file_id)
                                 <div
                                     class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                                     <div class="flex items-center">
@@ -45,10 +45,10 @@
                                             <p class="font-medium text-gray-800 dark:text-white/90">Alcohol & Drug Policy
                                             </p>
                                             <p class="text-sm text-gray-600 dark:text-gray-400">
-                                                {{ basename($policy->alcohol_drug_test_policy_pdf) }}</p>
+                                                {{ $policy->fileFor('alcohol_drug_test')?->original_name }}</p>
                                         </div>
                                     </div>
-                                    <a href="{{ asset('storage/' . $policy->alcohol_drug_test_policy_pdf) }}"
+                                    <a href="{{ route('admin.settings.policy.pdf.file', 'alcohol_drug_test') }}"
                                         target="_blank"
                                         class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                                         <i class="fas fa-eye"></i> View
@@ -56,7 +56,7 @@
                                 </div>
                             @endif
 
-                            @if ($policy->general_work_policy_pdf)
+                            @if ($policy->general_work_policy_file_id)
                                 <div
                                     class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                                     <div class="flex items-center">
@@ -64,10 +64,10 @@
                                         <div>
                                             <p class="font-medium text-gray-800 dark:text-white/90">General Work Policy</p>
                                             <p class="text-sm text-gray-600 dark:text-gray-400">
-                                                {{ basename($policy->general_work_policy_pdf) }}</p>
+                                                {{ $policy->fileFor('general_work')?->original_name }}</p>
                                         </div>
                                     </div>
-                                    <a href="{{ asset('storage/' . $policy->general_work_policy_pdf) }}" target="_blank"
+                                    <a href="{{ route('admin.settings.policy.pdf.file', 'general_work') }}" target="_blank"
                                         class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                                         <i class="fas fa-eye"></i> View
                                     </a>

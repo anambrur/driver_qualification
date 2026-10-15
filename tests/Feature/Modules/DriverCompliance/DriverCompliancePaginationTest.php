@@ -3,6 +3,7 @@
 use App\Models\Driver;
 use App\Models\DriverComplianceDocument;
 use App\Services\Compliance\DriverComplianceService;
+use App\Tenancy\TenantContext;
 use Database\Factories\DocumentTypeFactory;
 use Database\Factories\DriverFactory;
 use Illuminate\Support\Facades\DB;
@@ -63,21 +64,19 @@ describe('DCMP-05: paginated dashboard', function () {
             ->and($response->viewData('overallCompliance'))->toEqual(round(1 / 27 * 100, 1));
     });
 
-    it('applies each company\'s switched-off types for a super-admin', function () {
+    it('applies each company\'s own switched-off types', function () {
         $type = DriverCompliance::documentType();
         [$optedOut, $a] = DriverCompliance::tenantWithDriver();
-        [, $b] = DriverCompliance::tenantWithDriver();
+        [$other, $b] = DriverCompliance::tenantWithDriver();
         DB::table('company_document_type')->insert([
             'company_id' => Actors::companyOf($optedOut)->id,
             'document_type_id' => $type->id,
         ]);
 
-        $response = $this->actingAs(Actors::superAdmin())->get(route('admin.compliance.drivers'))->assertOk();
-
-        expect($response->viewData('totalCompliant'))->toBe(1)
-            ->and($response->viewData('totalCritical'))->toBe(1);
-        $statuses = collect($response->viewData('drivers')->items())->pluck('compliance_status', 'id');
-        expect($statuses[$a->id])->toBe('compliant')->and($statuses[$b->id])->toBe('danger');
+        foreach ([[$optedOut, $a, 'compliant'], [$other, $b, 'danger']] as [$owner, $driver, $status]) {
+            $response = $this->actingAs($owner)->get(route('admin.compliance.drivers'))->assertOk();
+            expect(collect($response->viewData('drivers')->items())->pluck('compliance_status', 'id')->all())->toBe([$driver->id => $status]);
+        }
     });
 
     it('gives the same counts in SQL as the PHP calculation, at every boundary', function () {
@@ -105,14 +104,14 @@ describe('DCMP-05: paginated dashboard', function () {
             DriverFactory::new()->forCompany($company)->create();
             foreach ($expiries as $expiry) {
                 foreach ($types as $type) {
-                    $driver = DriverFactory::new()->forCompany($company)->create();
+                    $driver = DriverFactory::new()->forCompany($company)->withCurrentLicense()->create();
                     DriverCompliance::document($driver, $type, ['expiry_date' => $expiry?->toDateString()]);
                     DriverCompliance::document($driver, $types['a'] === $type ? $types['b'] : $types['a'], ['expiry_date' => now()->addYear()->toDateString()]);
                     DriverCompliance::document($driver, $vehicleType, ['expiry_date' => now()->subYear()->toDateString()]);
                 }
             }
             // Two documents of one type: the oldest one counts, in PHP and in SQL.
-            $duplicate = DriverFactory::new()->forCompany($company)->create();
+            $duplicate = DriverFactory::new()->forCompany($company)->withCurrentLicense()->create();
             DriverCompliance::document($duplicate, $types['a'], ['expiry_date' => now()->subDay()->toDateString()]);
             DriverCompliance::document($duplicate, $types['a'], ['expiry_date' => now()->addYear()->toDateString()]);
         }
@@ -123,7 +122,7 @@ describe('DCMP-05: paginated dashboard', function () {
 
         expect($rows)->toHaveCount(Driver::withoutTenancy()->count());
         foreach ($rows as $row) {
-            $php = $service->forDriver(Driver::withoutTenancy()->with('documents')->findOrFail($row->id));
+            $php = app(TenantContext::class)->run($row->company_id, fn () => $service->forDriver(Driver::with('documents')->findOrFail($row->id)));
             $phpStatuses[$php['status']]++;
 
             expect([(int) $row->total_docs, (int) $row->valid_docs, (int) $row->expiring_docs])

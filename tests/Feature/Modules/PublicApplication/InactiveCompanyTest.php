@@ -16,7 +16,7 @@ beforeEach(function () {
     Storage::fake('public');
     Mail::fake();
     $this->otp = Applicant::fakeOtp();
-    $this->company = CompanyFactory::new()->inactive()->create();
+    $this->company = CompanyFactory::new()->deactivated()->create();
 });
 
 describe('APP-08: an inactive company accepts no applications', function () {
@@ -75,8 +75,9 @@ describe('APP-08: an inactive company accepts no applications', function () {
         Applicant::draft($this->company, ['main_phone' => '+12025550101']);
         $this->otp->expects('sendOTP')->never();
 
+        // ResolvePublicCompany turns an inactive company away before the controller (WP5)
         $this->postJson(route('public.application.check.resume', $this->company->slug), ['phone' => '2025550101'])
-            ->assertJson(['success' => false]);
+            ->assertNotFound();
     });
 
     it('does not resend an SMS code', function () {

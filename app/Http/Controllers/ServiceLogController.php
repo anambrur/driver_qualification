@@ -4,17 +4,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\LimitReached;
 use App\Models\MaintenanceCategory;
 use App\Models\ServiceDocument;
 use App\Models\ServiceLog;
 use App\Models\Vehicle;
+use App\Services\Files\StoredFileService;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
@@ -24,25 +25,15 @@ class ServiceLogController extends Controller
 {
     use CompanyFilterTrait;
 
-    // Service documents live on the private disk and are only served through downloadDocument()
-    private const DISK = 'local';
-
-    // Documents uploaded before 2026-10-10 were on the public disk until the migration moves them
-    private const LEGACY_DISK = 'public';
-
-    private const FILE_HEADERS = [
-        'X-Content-Type-Options' => 'nosniff',
-        'Cache-Control' => 'private, no-store',
-    ];
-
     /**
      * Display a listing of service logs.
      */
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = ServiceLog::with(['vehicle', 'company', 'documents'])
-                ->select(['service_logs.*']);
+            $query = ServiceLog::with(['vehicle', 'company', 'maintenanceCategories'])
+                ->select(['service_logs.*'])
+                ->withCount('documents');
 
             // Apply filters
             if ($request->filled('vehicle_id')) {
@@ -74,7 +65,7 @@ class ServiceLogController extends Controller
                         return '<span class="text-gray-400">Deleted Vehicle</span>';
                     }
 
-                    $documentIcon = $row->documents->count() > 0 ?
+                    $documentIcon = $row->documents_count > 0 ?
                         '<i class="fas fa-paperclip ml-2 text-blue-500 text-xs" title="Has documents"></i>' : '';
 
                     return '
@@ -188,7 +179,7 @@ class ServiceLogController extends Controller
      */
     public function edit($id)
     {
-        $serviceLog = ServiceLog::with(['vehicle', 'documents', 'maintenanceCategories'])->findOrFail($id);
+        $serviceLog = ServiceLog::with(['vehicle', 'documents.file', 'maintenanceCategories'])->findOrFail($id);
 
         // Check if user has access to this service log
         Gate::authorize('update', $serviceLog);
@@ -204,7 +195,7 @@ class ServiceLogController extends Controller
      */
     public function show($id)
     {
-        $serviceLog = ServiceLog::with(['vehicle', 'documents', 'maintenanceCategories', 'company'])
+        $serviceLog = ServiceLog::with(['vehicle', 'documents.file', 'maintenanceCategories', 'company'])
             ->findOrFail($id);
 
         // Check if user has access to this service log
@@ -224,7 +215,7 @@ class ServiceLogController extends Controller
     /**
      * Store a newly created service log.
      */
-    public function store(Request $request)
+    public function store(Request $request, StoredFileService $files)
     {
         $validator = Validator::make($request->all(), [
             'vehicle_id' => ['required', $this->vehicleRule()],
@@ -256,48 +247,43 @@ class ServiceLogController extends Controller
         // Always the tenant's own company
         $companyId = $this->tenantCompanyId();
 
-        $storedPaths = [];
-
-        DB::beginTransaction();
-
         try {
-            // Create service log
-            $serviceLog = ServiceLog::create([
-                'company_id' => $companyId,
-                'vehicle_id' => $request->vehicle_id,
-                'service_date' => $request->service_date,
-                'maintenance_notes' => $request->maintenance_notes,
-                'odometer_at_service' => $request->odometer_at_service,
-                'current_odometer' => $request->current_odometer,
-                'engine_hours_at_service' => $request->engine_hours_at_service,
-                'current_engine_hours' => $request->current_engine_hours,
-                'total_cost' => $request->total_cost,
-                'status' => $request->status,
-            ]);
+            $serviceLog = $files->transaction(function () use ($request, $companyId, $files) {
+                // Create service log
+                $serviceLog = ServiceLog::create([
+                    'company_id' => $companyId,
+                    'vehicle_id' => $request->vehicle_id,
+                    'service_date' => $request->service_date,
+                    'maintenance_notes' => $request->maintenance_notes,
+                    'odometer_at_service' => $request->odometer_at_service,
+                    'current_odometer' => $request->current_odometer,
+                    'engine_hours_at_service' => $request->engine_hours_at_service,
+                    'current_engine_hours' => $request->current_engine_hours,
+                    'total_cost' => $request->total_cost,
+                    'status' => $request->status,
+                ]);
 
-            // Attach maintenance categories (many-to-many)
-            $serviceLog->maintenanceCategories()->attach($request->maintenance_categories);
+                // Attach maintenance categories (many-to-many)
+                $serviceLog->maintenanceCategories()->attach($request->maintenance_categories);
 
-            // Handle document uploads
-            if ($request->hasFile('documents')) {
-                foreach ($request->file('documents') as $file) {
-                    $storedPaths[] = $this->storeDocument($serviceLog, $file);
+                foreach ($request->file('documents', []) as $file) {
+                    $this->storeDocument($files, $serviceLog, $file);
                 }
-            }
 
-            // Update vehicle metrics
-            $serviceLog->updateVehicleMetrics();
+                // Update vehicle metrics
+                $serviceLog->updateVehicleMetrics();
 
-            DB::commit();
+                return $serviceLog;
+            });
 
             return response()->json([
                 'success' => true,
                 'message' => 'Service log created successfully!',
-                'data' => $serviceLog->load(['documents', 'maintenanceCategories']),
+                'data' => $serviceLog->load(['documents.file', 'maintenanceCategories']),
             ]);
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (\Exception $e) {
-            DB::rollBack();
-            Storage::disk(self::DISK)->delete($storedPaths);
             Log::error('Service log store error: '.$e->getMessage());
 
             return response()->json([
@@ -310,7 +296,7 @@ class ServiceLogController extends Controller
     /**
      * Update the specified service log.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $id, StoredFileService $files)
     {
         $serviceLog = ServiceLog::findOrFail($id);
 
@@ -346,67 +332,56 @@ class ServiceLogController extends Controller
             ], 422);
         }
 
-        $storedPaths = [];
-        $deletedPaths = [];
-
-        DB::beginTransaction();
-
         try {
-            // Delete requested documents
-            if ($request->has('delete_documents')) {
-                $documentsToDelete = ServiceDocument::whereIn('id', $request->delete_documents)
-                    ->where('service_log_id', $serviceLog->id)
-                    ->get();
+            $files->transaction(function () use ($request, $serviceLog, $files) {
+                // Delete requested documents; their files go after commit if nothing else uses them
+                if ($request->has('delete_documents')) {
+                    $documentsToDelete = ServiceDocument::whereIn('id', $request->delete_documents)
+                        ->where('service_log_id', $serviceLog->id)
+                        ->get();
 
-                foreach ($documentsToDelete as $doc) {
-                    $deletedPaths[] = $doc->file_path;
-                    $doc->delete();
+                    foreach ($documentsToDelete as $doc) {
+                        $doc->delete();
+                        $files->purgeWhenUnreferenced($doc->file_id);
+                    }
                 }
-            }
 
-            // Upload new documents
-            if ($request->hasFile('new_documents')) {
-                foreach ($request->file('new_documents') as $file) {
-                    $storedPaths[] = $this->storeDocument($serviceLog, $file);
+                foreach ($request->file('new_documents', []) as $file) {
+                    $this->storeDocument($files, $serviceLog, $file);
                 }
-            }
 
-            // The values the vehicle may have taken from this log, to correct it downwards (PO-22)
-            $previousOdometer = $serviceLog->current_odometer;
-            $previousEngineHours = $serviceLog->current_engine_hours;
+                // The values the vehicle may have taken from this log, to correct it downwards (PO-22)
+                $previousOdometer = $serviceLog->current_odometer;
+                $previousEngineHours = $serviceLog->current_engine_hours;
 
-            // Update service log; it never changes company
-            $serviceLog->update([
-                'vehicle_id' => $request->vehicle_id,
-                'service_date' => $request->service_date,
-                'maintenance_notes' => $request->maintenance_notes,
-                'odometer_at_service' => $request->odometer_at_service,
-                'current_odometer' => $request->current_odometer,
-                'engine_hours_at_service' => $request->engine_hours_at_service,
-                'current_engine_hours' => $request->current_engine_hours,
-                'total_cost' => $request->total_cost,
-                'status' => $request->status,
-            ]);
+                // Update service log; it never changes company
+                $serviceLog->update([
+                    'vehicle_id' => $request->vehicle_id,
+                    'service_date' => $request->service_date,
+                    'maintenance_notes' => $request->maintenance_notes,
+                    'odometer_at_service' => $request->odometer_at_service,
+                    'current_odometer' => $request->current_odometer,
+                    'engine_hours_at_service' => $request->engine_hours_at_service,
+                    'current_engine_hours' => $request->current_engine_hours,
+                    'total_cost' => $request->total_cost,
+                    'status' => $request->status,
+                ]);
 
-            // Sync maintenance categories (many-to-many)
-            $serviceLog->maintenanceCategories()->sync($request->maintenance_categories);
+                // Sync maintenance categories (many-to-many)
+                $serviceLog->maintenanceCategories()->sync($request->maintenance_categories);
 
-            // Update vehicle metrics
-            $serviceLog->updateVehicleMetrics($previousOdometer, $previousEngineHours);
-
-            DB::commit();
-
-            // Removed files go only once the change is committed
-            $this->deleteFiles($deletedPaths);
+                // Update vehicle metrics
+                $serviceLog->updateVehicleMetrics($previousOdometer, $previousEngineHours);
+            });
 
             return response()->json([
                 'success' => true,
                 'message' => 'Service log updated successfully!',
-                'data' => $serviceLog->load(['documents', 'maintenanceCategories']),
+                'data' => $serviceLog->load(['documents.file', 'maintenanceCategories']),
             ]);
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (\Exception $e) {
-            DB::rollBack();
-            Storage::disk(self::DISK)->delete($storedPaths);
             Log::error('Service log update error: '.$e->getMessage());
 
             return response()->json([
@@ -419,7 +394,7 @@ class ServiceLogController extends Controller
     /**
      * Remove the specified service log.
      */
-    public function destroy($id)
+    public function destroy($id, StoredFileService $files)
     {
         $serviceLog = ServiceLog::findOrFail($id);
 
@@ -430,14 +405,13 @@ class ServiceLogController extends Controller
 
         try {
             // The log's documents go with it: rows now, files once committed (PO-22)
-            $filePaths = $serviceLog->documents->pluck('file_path')->all();
+            $fileIds = $serviceLog->documents()->pluck('file_id')->all();
             $serviceLog->documents()->delete();
+            $files->purgeWhenUnreferenced(...$fileIds);
 
             $serviceLog->delete();
 
             DB::commit();
-
-            $this->deleteFiles($filePaths);
 
             return response()->json([
                 'success' => true,
@@ -457,34 +431,25 @@ class ServiceLogController extends Controller
     /**
      * Download service document.
      */
-    public function downloadDocument($id)
+    public function downloadDocument($id, StoredFileService $files)
     {
         $document = $this->findAuthorizedDocument($id, 'view');
 
-        foreach ([self::DISK, self::LEGACY_DISK] as $disk) {
-            if (Storage::disk($disk)->exists($document->file_path)) {
-                return Storage::disk($disk)->download($document->file_path, $document->original_name, self::FILE_HEADERS);
-            }
-        }
-
-        return response()->json([
-            'success' => false,
-            'message' => 'File not found.',
-        ], 404);
+        return $files->response($document->file, $document->file?->original_name);
     }
 
     /**
      * Delete a specific document.
      */
-    public function deleteDocument($id)
+    public function deleteDocument($id, StoredFileService $files)
     {
         $document = $this->findAuthorizedDocument($id, 'update');
 
         DB::beginTransaction();
 
         try {
-            $this->deleteFiles([$document->file_path]);
             $document->delete();
+            $files->purgeWhenUnreferenced($document->file_id);
 
             DB::commit();
 
@@ -556,35 +521,12 @@ class ServiceLogController extends Controller
         }
     }
 
-    /**
-     * Store an uploaded document on the private disk under a random name with the extension of
-     * its content (hashName), never the client's.
-     */
-    private function storeDocument(ServiceLog $serviceLog, UploadedFile $file): string
+    private function storeDocument(StoredFileService $files, ServiceLog $serviceLog, UploadedFile $file): void
     {
-        $filePath = $file->store('service-documents/'.$serviceLog->id, self::DISK);
-
         ServiceDocument::create([
             'service_log_id' => $serviceLog->id,
-            'original_name' => $file->getClientOriginalName(),
-            'file_name' => basename($filePath),
-            'file_path' => $filePath,
-            'mime_type' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
+            'file_id' => $files->store($file, 'service-documents')->id,
         ]);
-
-        return $filePath;
-    }
-
-    /**
-     * @param  array<int, string|null>  $paths
-     */
-    private function deleteFiles(array $paths): void
-    {
-        $paths = array_values(array_filter($paths));
-
-        Storage::disk(self::DISK)->delete($paths);
-        Storage::disk(self::LEGACY_DISK)->delete($paths);
     }
 
     /**
@@ -593,7 +535,7 @@ class ServiceLogController extends Controller
      */
     private function findAuthorizedDocument($id, string $ability): ServiceDocument
     {
-        $document = ServiceDocument::with('serviceLog')->findOrFail($id);
+        $document = ServiceDocument::with(['serviceLog', 'file'])->findOrFail($id);
 
         if (! $document->serviceLog) {
             abort(404);

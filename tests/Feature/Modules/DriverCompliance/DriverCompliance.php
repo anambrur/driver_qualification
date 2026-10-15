@@ -10,8 +10,10 @@ use App\Tenancy\TenantContext;
 use Database\Factories\DocumentTypeFactory;
 use Database\Factories\DriverFactory;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /**
  * Fixtures for the driver compliance dashboard and its document upload/view/download/delete.
@@ -30,9 +32,19 @@ final class DriverCompliance
         return [$owner, self::driverOf($owner, $driverAttributes)];
     }
 
+    /**
+     * A 'status' attribute is the display status (DriverFactory::status()). Drivers have a
+     * current licence, so the CDL requirement (F17) is met and the document types decide.
+     */
     public static function driverOf(User $owner, array $attributes = []): Driver
     {
-        return DriverFactory::new()->forCompany(Actors::companyOf($owner))->create($attributes);
+        $factory = DriverFactory::new()->forCompany(Actors::companyOf($owner))->withCurrentLicense();
+
+        if (isset($attributes['status'])) {
+            $factory = $factory->status(Arr::pull($attributes, 'status'));
+        }
+
+        return $factory->create($attributes);
     }
 
     public static function documentType(array $attributes = []): DocumentType
@@ -81,21 +93,20 @@ final class DriverCompliance
     }
 
     /**
-     * A stored compliance document with its file on $disk.
+     * A stored compliance document with its stored file on $disk.
      */
     public static function document(Driver $driver, DocumentType $type, array $attributes = [], string $disk = 'local'): DriverComplianceDocument
     {
+        $file = Files::stored($driver->company_id, '%PDF-1.4', 'pdf', $disk);
         $document = app(TenantContext::class)->run($driver->company_id, fn () => DriverComplianceDocument::create(array_merge([
             'driver_id' => $driver->id,
             'document_type_id' => $type->id,
             'file_date' => now()->toDateString(),
             'expiry_date' => now()->addYear()->toDateString(),
-            'file_path' => 'documents/drivers/'.bin2hex(random_bytes(8)).'.pdf',
+            'file_id' => $file->id,
         ], $attributes)));
 
-        if ($document->file_path) {
-            Storage::disk($disk)->put($document->file_path, "%PDF-1.4\nbytes-of-{$document->id}");
-        }
+        Storage::disk($disk)->put($file->path, "%PDF-1.4\nbytes-of-{$document->id}");
 
         return $document;
     }

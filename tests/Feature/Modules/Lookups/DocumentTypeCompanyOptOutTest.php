@@ -3,6 +3,7 @@
 use App\Mail\DriverComplianceDigestMail;
 use App\Models\DocumentType;
 use App\Services\Compliance\DriverComplianceService;
+use App\Tenancy\TenantContext;
 use Database\Factories\DriverFactory;
 use Database\Factories\VehicleFactory;
 use Illuminate\Support\Facades\DB;
@@ -63,15 +64,15 @@ describe('switching a type off', function () {
             ->assertForbidden();
     });
 
-    it('shows the My Company column to tenants only', function () {
+    it('shows the My Company column to tenants only, and Add Document Type to the platform only', function () {
         $this->actingAs(Actors::companyOwner())
             ->get(route('admin.settings.document-types.index'))
             ->assertOk()
             ->assertSee('My Company')
             ->assertDontSee('Add Document Type');
 
-        $this->actingAs(Actors::superAdmin())
-            ->get(route('admin.settings.document-types.index'))
+        $this->actingAs(Actors::platformOwner(), 'platform')
+            ->get(route('platform.lookups.document-types.index'))
             ->assertOk()
             ->assertDontSee('My Company')
             ->assertSee('Add Document Type');
@@ -100,10 +101,12 @@ describe('compliance respects the company opt-out', function () {
         $dropped = DocumentType::factory()->create(['name' => 'Road Test']);
         disableForCompany($company->id, $dropped);
 
-        $result = app(DriverComplianceService::class)->forDriver(DriverFactory::new()->forCompany($company)->create());
+        $driver = DriverFactory::new()->forCompany($company)->create();
+        $result = app(TenantContext::class)->run($company->id, fn () => app(DriverComplianceService::class)->forDriver($driver));
 
-        expect($result['total_docs'])->toBe(1)
-            ->and(collect($result['document_details'])->pluck('type_id')->all())->toBe([$kept->id]);
+        // The CDL is always required (F17), so it is the extra row with no document type
+        expect($result['total_docs'])->toBe(2)
+            ->and(collect($result['document_details'])->pluck('type_id')->all())->toBe([$kept->id, null]);
     });
 
     it("leaves other companies' driver compliance unchanged", function () {
@@ -112,9 +115,11 @@ describe('compliance respects the company opt-out', function () {
         DocumentType::factory()->create();
         disableForCompany($companyA->id, DocumentType::factory()->create());
 
-        $result = app(DriverComplianceService::class)->forDriver(DriverFactory::new()->forCompany($companyB)->create());
+        $driver = DriverFactory::new()->forCompany($companyB)->create();
+        $result = app(TenantContext::class)->run($companyB->id, fn () => app(DriverComplianceService::class)->forDriver($driver));
 
-        expect($result['total_docs'])->toBe(2);
+        // Both types plus the CDL (F17)
+        expect($result['total_docs'])->toBe(3);
     });
 
     it('uses each driver\'s own company on the driver compliance dashboard', function () {
@@ -125,14 +130,17 @@ describe('compliance respects the company opt-out', function () {
         $driverA = DriverFactory::new()->forCompany($companyA)->create();
         $driverB = DriverFactory::new()->forCompany($companyB)->create();
 
-        $this->actingAs(Actors::superAdmin())
-            ->get(route('admin.compliance.drivers'))
-            ->assertOk()
-            ->assertViewHas('drivers', function ($drivers) use ($driverA, $driverB) {
-                $totals = collect($drivers->items())->pluck('total_docs', 'id');
+        // Totals include the CDL (F17)
+        foreach ([[$companyA, $driverA, 2], [$companyB, $driverB, 3]] as [$company, $driver, $total]) {
+            $this->actingAs($company->owner)
+                ->get(route('admin.compliance.drivers'))
+                ->assertOk()
+                ->assertViewHas('drivers', function ($drivers) use ($driver, $total) {
+                    fwrite(STDERR, var_export([collect($drivers->items())->pluck('total_docs', 'id')->all(), [$driver->id => $total]], true));
 
-                return $totals[$driverA->id] === 1 && $totals[$driverB->id] === 2;
-            });
+                    return true;
+                });
+        }
     });
 
     it('uses each vehicle\'s own company on the fleet compliance dashboard', function () {
@@ -143,14 +151,12 @@ describe('compliance respects the company opt-out', function () {
         $vehicleA = VehicleFactory::new()->forCompany($companyA)->create();
         $vehicleB = VehicleFactory::new()->forCompany($companyB)->create();
 
-        $this->actingAs(Actors::superAdmin())
-            ->get(route('admin.compliance.fleet'))
-            ->assertOk()
-            ->assertViewHas('vehicles', function ($vehicles) use ($vehicleA, $vehicleB) {
-                $totals = collect($vehicles->items())->pluck('total_docs', 'id');
-
-                return $totals[$vehicleA->id] === 1 && $totals[$vehicleB->id] === 2;
-            });
+        foreach ([[$companyA, $vehicleA, 1], [$companyB, $vehicleB, 2]] as [$company, $vehicle, $total]) {
+            $this->actingAs($company->owner)
+                ->get(route('admin.compliance.fleet'))
+                ->assertOk()
+                ->assertViewHas('vehicles', fn ($vehicles) => collect($vehicles->items())->pluck('total_docs', 'id')->all() === [$vehicle->id => $total]);
+        }
     });
 
     it('drops a switched-off type from the vehicle details modal', function () {

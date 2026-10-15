@@ -23,8 +23,8 @@
                             {{ $company->company_name }}
                         </span>
                     </div>
-                    @if($company->logo ?? false)
-                        <img src="{{ asset('storage/' . $company->logo) }}"
+                    @if($company->logo_path ?? false)
+                        <img src="{{ asset('storage/' . $company->logo_path) }}"
                              alt="{{ $company->company_name }}"
                              class="w-10 h-10 rounded-lg object-cover border border-gray-200 dark:border-gray-700">
                     @else

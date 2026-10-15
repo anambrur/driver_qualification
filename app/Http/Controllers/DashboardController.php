@@ -24,15 +24,16 @@ class DashboardController extends Controller
         // Drivers (tenant-scoped)
         $driversQuery = Driver::query();
 
-        // Drafts are hidden from the driver list, so keep the numbers consistent
-        $driversQuery->where('status', '!=', 'draft');
+        // Draft applications are hidden from the driver list, so keep the numbers consistent
+        $driversQuery->listed();
+        $status = Driver::STATUS_SQL;
 
         // One query per table: conditional aggregates instead of a COUNT per stat
         $driverCounts = $driversQuery->toBase()
             ->selectRaw('COUNT(*) as total')
-            ->selectRaw("SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active")
-            ->selectRaw("SUM(CASE WHEN status IN ('pending', 'submitted', 'under_review') THEN 1 ELSE 0 END) as pending")
-            ->selectRaw("SUM(CASE WHEN status IN ('inactive', 'rejected') THEN 1 ELSE 0 END) as inactive")
+            ->selectRaw("SUM(CASE WHEN {$status} = 'active' THEN 1 ELSE 0 END) as active")
+            ->selectRaw("SUM(CASE WHEN {$status} IN ('pending', 'submitted', 'under_review') THEN 1 ELSE 0 END) as pending")
+            ->selectRaw("SUM(CASE WHEN {$status} IN ('inactive', 'terminated', 'rejected') THEN 1 ELSE 0 END) as inactive")
             ->selectRaw("SUM(CASE WHEN source = 'public_application' AND created_at >= ? THEN 1 ELSE 0 END) as new_applicants", [now()->subDays(7)])
             ->first();
 

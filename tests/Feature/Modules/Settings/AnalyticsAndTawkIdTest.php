@@ -16,9 +16,9 @@ function storeGaId(?string $id): void
 
 describe('validation', function () {
     it('rejects GA ids that are not GA4 measurement ids', function (string $id) {
-        $this->actingAs(Actors::superAdmin())
-            ->from(route('admin.settings.site.index'))
-            ->put(route('admin.settings.site.update'), ['site_name' => 'DriverFilesHub', 'google_analytics_id' => $id])
+        $this->actingAs(Actors::platformOwner(), 'platform')
+            ->from(route('platform.settings.site.index'))
+            ->put(route('platform.settings.site.update'), ['site_name' => 'DriverFilesHub', 'trial_days' => 14, 'grace_days' => 7, 'support_session_max_minutes' => 60, 'google_analytics_id' => $id])
             ->assertSessionHasErrors('google_analytics_id');
 
         expect(SiteSetting::first()->google_analytics_id)->toBeNull();
@@ -31,15 +31,15 @@ describe('validation', function () {
     ]);
 
     it('accepts a GA4 measurement id and an empty value', function () {
-        $admin = Actors::superAdmin();
+        $admin = Actors::platformOwner();
 
-        $this->actingAs($admin)
-            ->put(route('admin.settings.site.update'), ['site_name' => 'DriverFilesHub', 'google_analytics_id' => 'G-AB12CD34EF'])
+        $this->actingAs($admin, 'platform')
+            ->put(route('platform.settings.site.update'), ['site_name' => 'DriverFilesHub', 'trial_days' => 14, 'grace_days' => 7, 'support_session_max_minutes' => 60, 'google_analytics_id' => 'G-AB12CD34EF'])
             ->assertSessionHasNoErrors();
         expect(SiteSetting::first()->google_analytics_id)->toBe('G-AB12CD34EF');
 
-        $this->actingAs($admin)
-            ->put(route('admin.settings.site.update'), ['site_name' => 'DriverFilesHub', 'google_analytics_id' => ''])
+        $this->actingAs($admin, 'platform')
+            ->put(route('platform.settings.site.update'), ['site_name' => 'DriverFilesHub', 'trial_days' => 14, 'grace_days' => 7, 'support_session_max_minutes' => 60, 'google_analytics_id' => ''])
             ->assertSessionHasNoErrors();
         expect(SiteSetting::first()->google_analytics_id)->toBeNull();
     });
@@ -67,8 +67,8 @@ describe('rendering', function () {
     it('JSON-encodes the GA id in the admin layout', function () {
         storeGaId('G-AB12CD34EF');
 
-        $this->actingAs(Actors::superAdmin())
-            ->get(route('admin.settings.site.index'))
+        $this->actingAs(Actors::companyOwner())
+            ->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('gtag(\'config\', "G-AB12CD34EF");', false);
     });
@@ -83,9 +83,9 @@ var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
 </script>
 HTML;
 
-        $this->actingAs(Actors::superAdmin())
-            ->from(route('admin.settings.tawk.index'))
-            ->put(route('admin.settings.tawk.update'), ['tawk_enabled' => '1', 'tawk_widget_code' => $code])
+        $this->actingAs(Actors::platformOwner(), 'platform')
+            ->from(route('platform.settings.tawk.index'))
+            ->put(route('platform.settings.tawk.update'), ['tawk_enabled' => '1', 'tawk_widget_code' => $code])
             ->assertSessionHasErrors('tawk_widget_code');
 
         expect(SiteSetting::first()->tawk_property_id)->toBeNull();

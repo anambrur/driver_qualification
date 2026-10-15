@@ -30,7 +30,7 @@ class StoreDriverRequest extends FormRequest
         $companyRule = ['required', Rule::in($companyId ? [$companyId] : [-1])];
 
         return array_merge(
-            self::step1FieldRules(requireMedicalFuture: true, requireLicense: true),
+            self::step1FieldRules(requireLicense: true),
             [
                 'company_id' => $companyRule,
                 'email' => self::emailRule($this->input('company_id')),
@@ -53,12 +53,8 @@ class StoreDriverRequest extends FormRequest
     /**
      * Shared step-1 field rules used by admin create and public application step 1.
      */
-    public static function step1FieldRules(bool $requireMedicalFuture = true, bool $requireLicense = true): array
+    public static function step1FieldRules(bool $requireLicense = true): array
     {
-        $medical = $requireMedicalFuture
-            ? 'required|date|after_or_equal:'.now()->format('Y-m-d')
-            : 'nullable|date';
-
         $license = $requireLicense ? [
             'license_first_name' => 'required|string|max:255',
             'license_last_name' => 'required|string|max:255',
@@ -111,7 +107,6 @@ class StoreDriverRequest extends FormRequest
             'main_phone' => 'required|string|max:20',
             'alt_phone' => 'nullable|string|max:20',
             'email' => 'required|email|max:255',
-            'medical_certificate_expiration_date' => $medical,
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'business_name' => 'nullable|string|max:255',
             'employer_identification_number' => 'nullable|string|max:20',

@@ -1,29 +1,17 @@
 <?php
 
 use App\Models\Company;
+use App\Models\PlatformUser;
 use App\Models\SiteSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+use Tests\Support\Actors;
 
-function createTawkAdminUser(): User
+// Site settings live in the platform area (/platform/settings)
+function createTawkAdminUser(): PlatformUser
 {
-    Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
-
-    Permission::firstOrCreate(['name' => 'settings.view', 'guard_name' => 'web']);
-    Permission::firstOrCreate(['name' => 'settings.edit', 'guard_name' => 'web']);
-
-    $user = User::factory()->create([
-        'status' => 'active',
-        'email_verified_at' => now(),
-    ]);
-
-    $user->assignRole('super-admin');
-    $user->givePermissionTo(['settings.view', 'settings.edit']);
-
-    return $user;
+    return Actors::platformOwner();
 }
 
 function validTawkWidgetCode(
@@ -84,8 +72,8 @@ function disableTawkSettings(): SiteSetting
 test('authorized admin can view tawk settings page', function () {
     $admin = createTawkAdminUser();
 
-    $this->actingAs($admin)
-        ->get(route('admin.settings.tawk.index'))
+    $this->actingAs($admin, 'platform')
+        ->get(route('platform.settings.tawk.index'))
         ->assertOk()
         ->assertSee('Tawk.to Chat Settings', false);
 });
@@ -94,7 +82,7 @@ test('authorized admin can update tawk settings', function () {
     $admin = createTawkAdminUser();
     $widgetCode = validTawkWidgetCode(widgetId: '1abc2def');
 
-    $response = $this->actingAs($admin)->put(route('admin.settings.tawk.update'), [
+    $response = $this->actingAs($admin, 'platform')->put(route('platform.settings.tawk.update'), [
         'tawk_enabled' => '1',
         'tawk_widget_code' => $widgetCode,
     ]);
@@ -121,12 +109,12 @@ test('tawk settings reject a non-tawk embed domain', function () {
     $admin = createTawkAdminUser();
     $widgetCode = str_replace('embed.tawk.to', 'malicious.example', validTawkWidgetCode());
 
-    $this->actingAs($admin)->from(route('admin.settings.tawk.index'))
-        ->put(route('admin.settings.tawk.update'), [
+    $this->actingAs($admin, 'platform')->from(route('platform.settings.tawk.index'))
+        ->put(route('platform.settings.tawk.update'), [
             'tawk_enabled' => '1',
             'tawk_widget_code' => $widgetCode,
         ])
-        ->assertRedirect(route('admin.settings.tawk.index'))
+        ->assertRedirect(route('platform.settings.tawk.index'))
         ->assertSessionHasErrors(['tawk_widget_code']);
 });
 
@@ -138,24 +126,24 @@ test('tawk settings reject multiple embed urls', function () {
         validTawkWidgetCode(),
     );
 
-    $this->actingAs($admin)->from(route('admin.settings.tawk.index'))
-        ->put(route('admin.settings.tawk.update'), [
+    $this->actingAs($admin, 'platform')->from(route('platform.settings.tawk.index'))
+        ->put(route('platform.settings.tawk.update'), [
             'tawk_enabled' => '1',
             'tawk_widget_code' => $widgetCode,
         ])
-        ->assertRedirect(route('admin.settings.tawk.index'))
+        ->assertRedirect(route('platform.settings.tawk.index'))
         ->assertSessionHasErrors(['tawk_widget_code']);
 });
 
 test('tawk settings reject incomplete widget markup', function () {
     $admin = createTawkAdminUser();
 
-    $this->actingAs($admin)->from(route('admin.settings.tawk.index'))
-        ->put(route('admin.settings.tawk.update'), [
+    $this->actingAs($admin, 'platform')->from(route('platform.settings.tawk.index'))
+        ->put(route('platform.settings.tawk.update'), [
             'tawk_enabled' => '1',
             'tawk_widget_code' => "<script>var src='https://embed.tawk.to/property/default';</script>",
         ])
-        ->assertRedirect(route('admin.settings.tawk.index'))
+        ->assertRedirect(route('platform.settings.tawk.index'))
         ->assertSessionHasErrors(['tawk_widget_code']);
 });
 
@@ -163,14 +151,14 @@ test('disabling chat preserves the encrypted widget code', function () {
     $admin = createTawkAdminUser();
     $widgetCode = validTawkWidgetCode();
 
-    $this->actingAs($admin)->put(route('admin.settings.tawk.update'), [
+    $this->actingAs($admin, 'platform')->put(route('platform.settings.tawk.update'), [
         'tawk_enabled' => '1',
         'tawk_widget_code' => $widgetCode,
     ])->assertSessionHasNoErrors();
 
     $encryptedValue = DB::table('site_settings')->value('tawk_widget_code');
 
-    $this->actingAs($admin)->put(route('admin.settings.tawk.update'), [
+    $this->actingAs($admin, 'platform')->put(route('platform.settings.tawk.update'), [
         'tawk_enabled' => '0',
         'tawk_widget_code' => '',
     ])->assertSessionHasNoErrors();
@@ -186,7 +174,7 @@ test('stored widget javascript is never rendered directly', function () {
     $admin = createTawkAdminUser();
     $widgetCode = validTawkWidgetCode(extraJavaScript: 'window.__stored_tawk_payload = true;');
 
-    $this->actingAs($admin)->put(route('admin.settings.tawk.update'), [
+    $this->actingAs($admin, 'platform')->put(route('platform.settings.tawk.update'), [
         'tawk_enabled' => '1',
         'tawk_widget_code' => $widgetCode,
     ])->assertSessionHasNoErrors();
@@ -285,9 +273,7 @@ test('authenticated email verification page does not render tawk widget', functi
 test('admin dashboard does not render tawk widget', function () {
     enableTawkSettings();
 
-    $admin = createTawkAdminUser();
-
-    $this->actingAs($admin)
+    $this->actingAs(Actors::companyOwner())
         ->get(route('admin.dashboard'))
         ->assertOk()
         ->assertDontSee('embed.tawk.to', false);

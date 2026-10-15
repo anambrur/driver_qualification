@@ -1,10 +1,10 @@
 <?php
 
 use Database\Factories\AssetGroupFactory;
+use Database\Factories\DriverFactory;
 use Database\Factories\TrailerFactory;
 use Database\Factories\VehicleFactory;
 use Tests\Feature\Modules\AssetGroups\AssetGroupActors;
-use Tests\Support\Actors;
 
 /*
 | AGR-04: group_info / drivers_info / assets_info / action are raw DataTables columns. The group
@@ -28,10 +28,8 @@ describe('AGR-04', function () {
             'vehicle_id' => $vehicle->id,
             'trailer_id' => $trailer->id,
             'group_name' => 'G'.$payload,
-            'primary_driver_name' => 'P'.$payload,
-            'primary_driver_phone' => 'PP'.$payload,
-            'second_driver_name' => 'S'.$payload,
-            'second_driver_phone' => 'SP'.$payload,
+            'driver_id' => DriverFactory::new()->forCompany($company)->create(['first_name' => 'P'.$payload, 'main_phone' => 'PP'.$payload])->id,
+            'co_driver_id' => DriverFactory::new()->forCompany($company)->create(['first_name' => 'S'.$payload, 'main_phone' => 'SP'.$payload])->id,
         ]);
 
         $row = $this->actingAs($tenant)
@@ -51,9 +49,10 @@ describe('AGR-04', function () {
     // The Restore button (Deleted filter) is covered in AssetGroupListFiltersTest.
     it('puts the group name in data attributes instead of inline onclick', function () {
         $name = "x' onmouseover=\"alert(1)";
-        $group = AssetGroupFactory::new()->create(['group_name' => $name]);
+        $tenant = AssetGroupActors::tenant();
+        $group = AssetGroupFactory::new()->forCompany(AssetGroupActors::company($tenant))->create(['group_name' => $name]);
 
-        $action = $this->actingAs(Actors::superAdmin())
+        $action = $this->actingAs($tenant)
             ->getJson(route('admin.asset-group.index'), ['X-Requested-With' => 'XMLHttpRequest'])
             ->assertOk()
             ->json('data.0.action');
@@ -66,7 +65,7 @@ describe('AGR-04', function () {
     });
 
     it('escapes vehicle and trailer details before inserting them into the form', function () {
-        $this->actingAs(Actors::superAdmin())
+        $this->actingAs(AssetGroupActors::tenant())
             ->get(route('admin.asset-group.index'))
             ->assertOk()
             ->assertDontSee('${vehicle.unit_no || vehicle.id}', false)

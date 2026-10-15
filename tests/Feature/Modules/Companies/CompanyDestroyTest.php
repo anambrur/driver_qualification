@@ -1,24 +1,29 @@
 <?php
 
 use App\Models\Driver;
-use App\Models\User;
-use Database\Factories\CompanyFactory;
 use Database\Factories\DriverFactory;
 use Database\Factories\VehicleFactory;
+use Illuminate\Support\Facades\Route;
 use Tests\Support\Actors;
 
 /*
 | CMP-03: destroy() hard-deleted the company and its owner user, and the FK cascades removed
 | every driver, vehicle, subscription and payment row while their files stayed on disk.
-| Decided PO-13 (2026-10-11): destroy() only deactivates the company and its owner, and a
-| super-admin can't deactivate their own company.
+| Decided PO-13 (2026-10-11): a company is only ever deactivated. That is a platform action
+| now (platform.companies.status, WP8a), and companies.status blocks every user of the company.
 */
 
-it('does not let a company owner delete a company', function () {
+function deactivate($test, $company): void
+{
+    $test->actingAs(Actors::platformOwner(), 'platform')
+        ->post(route('platform.companies.status', $company), ['status' => 'deactivated', 'reason' => 'Requested by the owner'])
+        ->assertSessionHasNoErrors();
+}
+
+it('does not let a company owner deactivate a company', function () {
     $owner = Actors::companyOwner();
     $company = Actors::companyOf($owner);
 
-    // Deactivation is a platform action now (/platform, WP8); tenants can't reach it.
     $this->actingAs($owner)
         ->postJson(route('platform.companies.status', $company->id), ['status' => 'deactivated', 'reason' => 'x'])
         ->assertUnauthorized();
@@ -26,70 +31,34 @@ it('does not let a company owner delete a company', function () {
     expect($company->fresh()->status)->toBe('active');
 });
 
-it('does not let a plain user with companies.view delete a company', function () {
-    $user = Actors::plainUser(['companies.view']);
-    $company = CompanyFactory::new()->create();
-
-    $this->actingAs($user)
-        ->deleteJson(route('admin.settings.company.destroy', $company->id))
-        ->assertForbidden();
-
-    expect($company->fresh())->not->toBeNull();
+it('has no tenant-side company delete route', function () {
+    expect(Route::has('admin.settings.company.destroy'))->toBeFalse();
 });
 
-it('deactivates the company and its owner and keeps every record (decided PO-13, 2026-10-11)', function () {
-    $admin = Actors::superAdmin();
+it('deactivates the company and keeps every record (decided PO-13, 2026-10-11)', function () {
     $owner = Actors::companyOwner();
     $company = Actors::companyOf($owner);
-    $driver = DriverFactory::new()->create(['company_id' => $company->id]);
+    $driver = DriverFactory::new()->forCompany($company)->create();
     $vehicle = VehicleFactory::new()->forCompany($company)->create();
 
-    $this->actingAs($admin)
-        ->deleteJson(route('admin.settings.company.destroy', $company->id))
-        ->assertOk()
-        ->assertJson(['success' => true]);
+    deactivate($this, $company);
 
-    expect($company->fresh()->status)->toBe('inactive')
-        ->and($owner->fresh()->status)->toBe('inactive')
+    expect($company->fresh()->status)->toBe('deactivated')
         ->and(Driver::withoutTenancy()->find($driver->id))->not->toBeNull()
         ->and($vehicle->fresh())->not->toBeNull()
-        ->and($owner->fresh()->subscriptions()->count())->toBe(1);
+        ->and($company->subscriptions()->count())->toBe(1);
 });
 
-it('locks the deactivated owner out', function () {
-    $owner = Actors::companyOwner(['password' => bcrypt('secret-password')]);
+it('locks the deactivated company\'s owner out', function () {
+    $owner = Actors::companyOwner();
+    $owner->update(['password' => bcrypt('secret-password')]);
 
-    $this->actingAs(Actors::superAdmin())
-        ->deleteJson(route('admin.settings.company.destroy', Actors::companyOf($owner)->id))
-        ->assertOk();
-    auth()->logout();
+    deactivate($this, Actors::companyOf($owner));
+    Auth::guard('platform')->logout();
+    Auth::shouldUse('web');
 
     $this->post(route('login'), ['email' => $owner->email, 'password' => 'secret-password']);
+    $this->get(route('dashboard'))->assertRedirect();
 
-    $this->assertGuest();
-});
-
-it('refuses to deactivate the super-admin\'s own company (decided PO-13)', function () {
-    $admin = Actors::superAdmin();
-    $company = Actors::companyOf($admin);
-
-    $this->actingAs($admin)
-        ->deleteJson(route('admin.settings.company.destroy', $company->id))
-        ->assertStatus(422);
-
-    expect($company->fresh()->status)->toBe('active')
-        ->and($admin->fresh()->status)->toBe('active');
-});
-
-it('offers Deactivate, not Delete, and not for the admin\'s own company', function () {
-    $admin = Actors::superAdmin();
-    $other = Actors::companyOf(Actors::companyOwner());
-
-    $rows = collect($this->actingAs($admin)
-        ->withHeaders(['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json'])
-        ->get(route('admin.settings.company', ['draw' => 1]))
-        ->assertOk()->json('data'))->keyBy('id');
-
-    expect($rows[$other->id]['action'])->toContain('deleteCompany('.$other->id.')')->toContain('title="Deactivate"')
-        ->and($rows[Actors::companyOf($admin)->id]['action'])->not->toContain('deleteCompany(');
+    expect(Auth::guard('web')->check())->toBeFalse();
 });

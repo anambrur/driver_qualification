@@ -7,7 +7,6 @@ use Database\Factories\CompanyFactory;
 use Database\Factories\DriverFactory;
 use Database\Factories\VehicleFactory;
 use Tests\Feature\Modules\AssetGroups\AssetGroupActors;
-use Tests\Support\Actors;
 
 /*
 | Follow-up: asset groups carry their own company_id. Tenant scoping and name uniqueness use it
@@ -30,36 +29,9 @@ describe('company_id', function () {
         expect(AssetGroup::withoutTenancy()->sole()->company_id)->toBe($company->id);
     });
 
-    it('stores the vehicle\'s company when a super-admin creates a group', function () {
-        $company = CompanyFactory::new()->create();
-
-        $this->actingAs(Actors::superAdmin())->postJson(route('admin.asset-group.store'), [
-            'group_name' => 'GR#1',
-            'driver_id' => DriverFactory::new()->forCompany($company)->create()->id,
-            'vehicle_id' => VehicleFactory::new()->forCompany($company)->create()->id,
-            'status' => 'active',
-        ])->assertOk();
-
-        expect(AssetGroup::withoutTenancy()->sole()->company_id)->toBe($company->id);
-    });
-
-    it('moves the group when a super-admin assigns another company\'s vehicle and driver', function () {
-        $group = AssetGroupFactory::new()->create();
-        $target = CompanyFactory::new()->create();
-
-        $this->actingAs(Actors::superAdmin())->putJson(route('admin.asset-group.update', $group->id), [
-            'group_name' => $group->group_name,
-            'driver_id' => DriverFactory::new()->forCompany($target)->create()->id,
-            'vehicle_id' => VehicleFactory::new()->forCompany($target)->create()->id,
-            'status' => 'active',
-        ])->assertOk();
-
-        expect($group->fresh()->company_id)->toBe($target->id);
-    });
-
     it('scopes tenants by the group\'s own company_id', function () {
         $tenant = AssetGroupActors::tenant();
-        $own = AssetGroupFactory::new()->create(['company_id' => AssetGroupActors::company($tenant)->id]);
+        $own = AssetGroupFactory::new()->forCompany(AssetGroupActors::company($tenant))->create();
         AssetGroupFactory::new()->create();
 
         $this->actingAs($tenant)

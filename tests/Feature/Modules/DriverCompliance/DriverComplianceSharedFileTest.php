@@ -3,6 +3,7 @@
 use App\Models\DriverComplianceDocument;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\DriverCompliance\DriverCompliance;
+use Tests\Support\Files;
 
 /*
 | DCMP-02: "upload to all" stores ONE file and points every driver's document at it.
@@ -27,7 +28,7 @@ function uploadToAll($test, $owner, $type): string
         ], DriverCompliance::json())
         ->assertOk()->assertJson(['success' => true, 'uploaded_count' => 3]);
 
-    return DriverComplianceDocument::withoutTenancy()->where('document_type_id', $type->id)->value('file_path');
+    return Files::pathOf(DriverComplianceDocument::withoutTenancy()->where('document_type_id', $type->id)->value('file_id'));
 }
 
 describe('DCMP-02: a file shared by "upload to all"', function () {
@@ -43,7 +44,7 @@ describe('DCMP-02: a file shared by "upload to all"', function () {
             ->assertOk();
 
         Storage::disk('local')->assertExists($shared);
-        expect(DriverComplianceDocument::withoutTenancy()->where('driver_id', $b->id)->value('file_path'))->toBe($shared);
+        expect(Files::pathOf(DriverComplianceDocument::withoutTenancy()->where('driver_id', $b->id)->value('file_id')))->toBe($shared);
         $this->actingAs($owner)
             ->get(route('admin.compliance.driver.documents.view', DriverComplianceDocument::withoutTenancy()->where('driver_id', $b->id)->value('id')))
             ->assertOk();
@@ -63,7 +64,7 @@ describe('DCMP-02: a file shared by "upload to all"', function () {
             ->assertOk();
 
         Storage::disk('local')->assertExists($shared);
-        expect(DriverComplianceDocument::withoutTenancy()->where('file_path', $shared)->count())->toBe(2);
+        expect(DriverComplianceDocument::withoutTenancy()->where('file_id', Files::idOf($shared))->count())->toBe(2);
     });
 
     it('is deleted once the last document using it is replaced', function () {
@@ -98,13 +99,14 @@ describe('DCMP-02: a file shared by "upload to all"', function () {
             ], DriverCompliance::json())
             ->assertOk()->assertJson(['updated_count' => 3]);
 
-        $second = DriverComplianceDocument::withoutTenancy()->where('document_type_id', $type->id)->pluck('file_path')->unique();
+        $second = DriverComplianceDocument::withoutTenancy()->where('document_type_id', $type->id)->pluck('file_id')->unique()->map(fn ($id) => Files::pathOf($id));
         expect($second)->toHaveCount(1)->and($second->first())->not->toBe($first);
         Storage::disk('local')->assertMissing($first);
         Storage::disk('local')->assertExists($second->first());
     });
 
-    it('still deletes the file of a document nobody else uses', function () {
+    // Documents are soft-deleted (01 §5): the row keeps its file so it can be restored
+    it('keeps the file of a deleted document nobody else uses, for restore', function () {
         [$owner, $driver] = DriverCompliance::tenantWithDriver();
         $document = DriverCompliance::document($driver, DriverCompliance::documentType());
 
@@ -112,7 +114,8 @@ describe('DCMP-02: a file shared by "upload to all"', function () {
             ->deleteJson(route('admin.compliance.driver.documents.delete'), ['document_id' => $document->id])
             ->assertOk();
 
-        Storage::disk('local')->assertMissing($document->file_path);
-        expect(DriverComplianceDocument::withoutTenancy()->count())->toBe(0);
+        Storage::disk('local')->assertExists(Files::pathOf($document->file_id));
+        expect(DriverComplianceDocument::withoutTenancy()->count())->toBe(0)
+            ->and(DriverComplianceDocument::withoutTenancy()->onlyTrashed()->count())->toBe(1);
     });
 });

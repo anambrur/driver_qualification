@@ -6,7 +6,6 @@ use Database\Factories\AssetGroupFactory;
 use Database\Factories\DriverFactory;
 use Database\Factories\VehicleFactory;
 use Tests\Feature\Modules\AssetGroups\AssetGroupActors;
-use Tests\Support\Actors;
 
 /*
 | AGR-05: `unique:asset_groups,group_name` was global, so tenant B could not use "GR#101" once
@@ -65,13 +64,4 @@ describe('AGR-05', function () {
         $this->putJson(route('admin.asset-group.update', $group->id), $payload + ['group_name' => 'Mine'])->assertOk();
     });
 
-    it('checks a super-admin\'s new group against the vehicle\'s company', function () {
-        $existing = AssetGroupFactory::new()->create(['group_name' => 'GR#101']);
-        $company = $existing->vehicle->company;
-
-        $this->actingAs(Actors::superAdmin())
-            ->postJson(route('admin.asset-group.store'), agrNewGroupPayload($company, 'GR#101'))
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('group_name');
-    });
 });

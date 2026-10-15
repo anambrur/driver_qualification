@@ -3,13 +3,11 @@
 use App\Models\AssetGroup;
 use App\Models\Company;
 use Database\Factories\AssetGroupFactory;
-use Database\Factories\CompanyFactory;
 use Database\Factories\DriverFactory;
 use Database\Factories\TrailerFactory;
 use Database\Factories\VehicleFactory;
 use Illuminate\Support\Arr;
 use Tests\Feature\Modules\AssetGroups\AssetGroupActors;
-use Tests\Support\Actors;
 
 /*
 | AGR-03: store/update validated driver_id/vehicle_id/trailer_id with bare `exists:`, so a tenant
@@ -75,25 +73,4 @@ describe('AGR-03', function () {
             ->toBe(Arr::only($payload, ['driver_id', 'vehicle_id', 'trailer_id']));
     });
 
-    it('makes a super-admin pick the driver and trailer from the vehicle\'s company', function (string $field) {
-        $vehicleCompany = CompanyFactory::new()->create();
-        $payload = agrStorePayload($vehicleCompany, [
-            $field => $field === 'driver_id'
-                ? DriverFactory::new()->create()->id
-                : TrailerFactory::new()->create()->id,
-        ]);
-
-        $this->actingAs(Actors::superAdmin())
-            ->postJson(route('admin.asset-group.store'), $payload)
-            ->assertStatus(422)
-            ->assertJsonValidationErrors($field);
-    })->with(['driver_id', 'trailer_id']);
-
-    it('lets a super-admin create a group for any company', function () {
-        $payload = agrStorePayload(CompanyFactory::new()->create());
-
-        $this->actingAs(Actors::superAdmin())->postJson(route('admin.asset-group.store'), $payload)->assertOk();
-
-        expect(AssetGroup::withoutTenancy()->count())->toBe(1);
-    });
 });

@@ -1,14 +1,18 @@
 <?php
 
+use App\Models\Company;
 use Database\Factories\AssetGroupFactory;
+use Database\Factories\DriverFactory;
+use Illuminate\Testing\TestResponse;
 use Tests\Feature\Modules\AssetGroups\AssetGroupActors;
+use Tests\Support\Actors;
 
 /*
 | Follow-up: the page sent `status` and `search_text`, but the server ignored both, so the
 | "Deleted" filter showed nothing and the Restore button could never appear.
 */
 
-function agrList(array $filters = []): \Illuminate\Testing\TestResponse
+function agrList(array $filters = []): TestResponse
 {
     return test()->getJson(route('admin.asset-group.index', $filters), ['X-Requested-With' => 'XMLHttpRequest'])->assertOk();
 }
@@ -61,9 +65,12 @@ describe('list filters', function () {
     it('applies the quick search within the tenant\'s own groups', function () {
         $tenant = AssetGroupActors::tenant();
         $company = AssetGroupActors::company($tenant);
-        $match = AssetGroupFactory::new()->forCompany($company)->create(['primary_driver_name' => 'Ada Lovelace']);
-        AssetGroupFactory::new()->forCompany($company)->create(['primary_driver_name' => 'Grace Hopper']);
-        AssetGroupFactory::new()->create(['primary_driver_name' => 'Ada Foreign']);
+        // The search matches the group's driver by name
+        $named = fn (Company $c, string $first, string $last) => ['driver_id' => DriverFactory::new()->forCompany($c)->create(['first_name' => $first, 'last_name' => $last])->id];
+        $match = AssetGroupFactory::new()->forCompany($company)->create($named($company, 'Ada', 'Lovelace'));
+        AssetGroupFactory::new()->forCompany($company)->create($named($company, 'Grace', 'Hopper'));
+        $foreign = Actors::company();
+        AssetGroupFactory::new()->forCompany($foreign)->create($named($foreign, 'Ada', 'Foreign'));
 
         $this->actingAs($tenant);
 

@@ -5,7 +5,6 @@ use App\Models\ServiceLog;
 use Database\Factories\MaintenanceScheduleFactory;
 use Database\Factories\ServiceLogFactory;
 use Tests\Feature\Modules\Maintenance\Maintenance;
-use Tests\Support\Actors;
 
 /*
 | MNT-01: store/update validated vehicle_id with a bare `exists:vehicles,id`, so a tenant could
@@ -106,15 +105,6 @@ describe('MNT-01: vehicle_id must belong to the tenant', function () {
         expect(MaintenanceSchedule::withoutTenancy()->sole()->vehicle_id)->toBeNull();
     });
 
-    it('still lets a super-admin use any company\'s vehicle', function () {
-        [, $vehicle] = Maintenance::tenantWithVehicle();
-
-        $this->actingAs(Actors::superAdmin())
-            ->postJson(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle))
-            ->assertOk();
-
-        expect(ServiceLog::withoutTenancy()->sole()->vehicle_id)->toBe($vehicle->id);
-    });
 });
 
 describe('MNT-06: the index filter lists only the tenant\'s vehicles', function () {
@@ -128,13 +118,4 @@ describe('MNT-06: the index filter lists only the tenant\'s vehicles', function 
             ->assertDontSee('THEIRS-001');
     })->with(['admin.service-log.index', 'admin.maintenance-schedule.index']);
 
-    it('still shows a super-admin every company\'s vehicles', function (string $route) {
-        Maintenance::tenantWithVehicle(['unit_no' => 'ONE-001']);
-        Maintenance::tenantWithVehicle(['unit_no' => 'TWO-001']);
-
-        $this->actingAs(Actors::superAdmin())->get(route($route))
-            ->assertOk()
-            ->assertSee('ONE-001')
-            ->assertSee('TWO-001');
-    })->with(['admin.service-log.index', 'admin.maintenance-schedule.index']);
 });

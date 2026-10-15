@@ -6,30 +6,19 @@ use App\Mail\DriverComplianceReminderMail;
 use App\Mail\DriverHiredMail;
 use App\Mail\DriverRejectedMail;
 use App\Mail\VehicleComplianceStatusReminderMail;
-use App\Models\Company;
 use App\Models\DocumentType;
-use App\Models\Driver;
-use App\Models\User;
+use Database\Factories\DriverFactory;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
+use Tests\Support\Actors;
 
 test('mailables include plain-text content parts', function () {
-    $user = User::factory()->create();
-    $company = Company::create([
-        'user_id' => $user->id,
-        'company_name' => 'Mail Co',
-        'slug' => 'mail-co-'.uniqid(),
-        'email' => 'mail@test.com',
-        'status' => 'active',
-    ]);
+    $company = Actors::company(['company_name' => 'Mail Co']);
 
-    $driver = Driver::create([
-        'user_id' => User::factory()->create()->id,
-        'company_id' => $company->id,
+    $driver = DriverFactory::new()->forCompany($company)->status('active')->create([
         'first_name' => 'Taylor',
         'last_name' => 'Driver',
         'email' => 'taylor@test.com',
-        'status' => 'active',
         'hire_date' => now()->toDateString(),
     ]);
 
@@ -76,22 +65,12 @@ test('mail config exposes reply_to settings', function () {
 });
 
 test('hired mailable renders multipart html and text', function () {
-    $user = User::factory()->create();
-    $company = Company::create([
-        'user_id' => $user->id,
-        'company_name' => 'Render Co',
-        'slug' => 'render-co-'.uniqid(),
-        'email' => 'render@test.com',
-        'status' => 'active',
-    ]);
+    $company = Actors::company(['company_name' => 'Render Co']);
 
-    $driver = Driver::create([
-        'user_id' => User::factory()->create()->id,
-        'company_id' => $company->id,
+    $driver = DriverFactory::new()->forCompany($company)->status('active')->create([
         'first_name' => 'Jordan',
         'last_name' => 'Driver',
         'email' => 'jordan@test.com',
-        'status' => 'active',
         'hire_date' => now()->toDateString(),
     ]);
 

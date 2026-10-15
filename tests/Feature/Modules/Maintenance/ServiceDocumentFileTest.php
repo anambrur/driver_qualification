@@ -7,14 +7,14 @@ use App\Tenancy\TenantContext;
 use Database\Factories\ServiceLogFactory;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\Maintenance\Maintenance;
-use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /*
 | MNT-05: service documents (invoices, receipts) were stored on the public disk, readable at
 | /storage/service-documents/... without logging in, under a name ending in the client's
-| extension, so PDF bytes uploaded as x.html were saved and served as HTML. They now go to the
-| private disk under a random name with the extension of their content, and are only served
-| through admin.service-log.download-document.
+| extension, so PDF bytes uploaded as x.html were saved and served as HTML. They are now stored
+| files on the private disk under a random name with the extension of their content, and are
+| only served through admin.service-log.download-document.
 */
 
 beforeEach(function () {
@@ -25,12 +25,10 @@ beforeEach(function () {
 function mntLogWithDocument(Vehicle $vehicle, string $disk = 'local'): ServiceDocument
 {
     $log = ServiceLogFactory::new()->forVehicle($vehicle)->create();
-    $path = 'service-documents/'.$log->id.'/abc.pdf';
-    Storage::disk($disk)->put($path, '%PDF-1.4 test');
+    $file = Files::stored($log->company_id, '%PDF-1.4 test', 'pdf', $disk, ['original_name' => 'invoice.pdf']);
 
     return app(TenantContext::class)->run($log->company_id, fn () => ServiceDocument::create([
-        'service_log_id' => $log->id, 'original_name' => 'invoice.pdf', 'file_name' => 'abc.pdf',
-        'file_path' => $path, 'mime_type' => 'application/pdf', 'file_size' => 13,
+        'service_log_id' => $log->id, 'file_id' => $file->id,
     ]));
 }
 
@@ -42,12 +40,12 @@ describe('MNT-05: storage', function () {
             ->post(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle, ['documents' => [Maintenance::pdf('invoice.pdf')]]), ['Accept' => 'application/json'])
             ->assertOk();
 
-        $document = ServiceDocument::withoutTenancy()->sole();
-        expect($document->file_path)->toStartWith('service-documents/'.ServiceLog::withoutTenancy()->sole()->id.'/')
-            ->and($document->file_path)->toEndWith('.pdf')
-            ->and(basename($document->file_path))->not->toContain('invoice')
-            ->and($document->original_name)->toBe('invoice.pdf');
-        Storage::disk('local')->assertExists($document->file_path);
+        $file = Files::find(ServiceDocument::withoutTenancy()->sole()->file_id);
+        expect($file->path)->toStartWith('companies/'.ServiceLog::withoutTenancy()->sole()->company_id.'/service-documents/')
+            ->and($file->path)->toEndWith('.pdf')
+            ->and(basename($file->path))->not->toContain('invoice')
+            ->and($file->original_name)->toBe('invoice.pdf');
+        Storage::disk('local')->assertExists($file->path);
         expect(Storage::disk('public')->allFiles())->toBe([]);
     });
 
@@ -59,7 +57,7 @@ describe('MNT-05: storage', function () {
             ->post(route('admin.service-log.update', $log->id), Maintenance::serviceLogPayload($vehicle, ['_method' => 'PUT', 'new_documents' => [Maintenance::pdf()]]), ['Accept' => 'application/json'])
             ->assertOk();
 
-        Storage::disk('local')->assertExists(ServiceDocument::withoutTenancy()->sole()->file_path);
+        Storage::disk('local')->assertExists(Files::pathOf(ServiceDocument::withoutTenancy()->sole()->file_id));
         expect(Storage::disk('public')->allFiles())->toBe([]);
     });
 
@@ -70,7 +68,7 @@ describe('MNT-05: storage', function () {
             ->post(route('admin.service-log.store'), Maintenance::serviceLogPayload($vehicle, ['documents' => [Maintenance::pdf('x.html')]]), ['Accept' => 'application/json'])
             ->assertOk();
 
-        expect(ServiceDocument::withoutTenancy()->sole()->file_path)->toEndWith('.pdf');
+        expect(Files::pathOf(ServiceDocument::withoutTenancy()->sole()->file_id))->toEndWith('.pdf');
     });
 
     it('rejects files whose content is not an allowed type', function (string $name, string $bytes, string $mime) {
@@ -107,19 +105,14 @@ describe('MNT-05: download', function () {
             ->and($response->headers->get('Content-Disposition'))->toContain('invoice.pdf');
     });
 
-    it('still serves documents uploaded before the move, from the public disk', function () {
+    it('serves a document from the disk its stored file is on', function () {
         [$owner, $vehicle] = Maintenance::tenantWithVehicle();
         $document = mntLogWithDocument($vehicle, 'public');
 
         $this->actingAs($owner)->get(route('admin.service-log.download-document', $document->id))->assertOk();
     });
 
-    it('lets a super-admin download any company\'s document', function () {
-        [, $vehicle] = Maintenance::tenantWithVehicle();
-        $document = mntLogWithDocument($vehicle);
-
-        $this->actingAs(Actors::superAdmin())->get(route('admin.service-log.download-document', $document->id))->assertOk();
-    });
+    it('lets platform support download any company\'s document inside a support session')->todo('WP8b: read_write support session');
 
     it('returns 404 to another tenant', function () {
         [$owner] = Maintenance::tenantWithVehicle();
@@ -129,13 +122,13 @@ describe('MNT-05: download', function () {
         $this->actingAs($owner)->get(route('admin.service-log.download-document', $document->id))->assertNotFound();
         $this->actingAs($owner)->deleteJson(route('admin.service-log.delete-document', $document->id))->assertNotFound();
 
-        Storage::disk('local')->assertExists($document->file_path);
+        Storage::disk('local')->assertExists(Files::pathOf($document->file_id));
     });
 
     it('returns 404 when the file is missing from both disks', function () {
         [$owner, $vehicle] = Maintenance::tenantWithVehicle();
         $document = mntLogWithDocument($vehicle);
-        Storage::disk('local')->delete($document->file_path);
+        Storage::disk('local')->delete(Files::pathOf($document->file_id));
 
         $this->actingAs($owner)->get(route('admin.service-log.download-document', $document->id))->assertNotFound();
     });
@@ -143,7 +136,7 @@ describe('MNT-05: download', function () {
     it('returns 404, not a 500, for a document of a deleted log', function () {
         [$owner, $vehicle] = Maintenance::tenantWithVehicle();
         $document = mntLogWithDocument($vehicle);
-        $document->serviceLog->delete();
+        app(TenantContext::class)->run($document->company_id, fn () => $document->serviceLog->delete());
 
         $this->actingAs($owner)->get(route('admin.service-log.download-document', $document->id))->assertNotFound();
         $this->actingAs($owner)->deleteJson(route('admin.service-log.delete-document', $document->id))->assertNotFound();
@@ -157,17 +150,17 @@ describe('MNT-05: delete', function () {
 
         $this->actingAs($owner)->deleteJson(route('admin.service-log.delete-document', $document->id))->assertOk();
 
-        Storage::disk('local')->assertMissing($document->file_path);
+        Storage::disk('local')->assertMissing(Files::pathOf($document->file_id));
         expect(ServiceDocument::withoutTenancy()->count())->toBe(0);
     });
 
-    it('deletes legacy files from the public disk too', function () {
+    it('deletes a log\'s files from the disk they are on', function () {
         [$owner, $vehicle] = Maintenance::tenantWithVehicle();
         $document = mntLogWithDocument($vehicle, 'public');
 
         $this->actingAs($owner)->deleteJson(route('admin.service-log.destroy', $document->service_log_id))->assertOk();
 
-        Storage::disk('public')->assertMissing($document->file_path);
+        Storage::disk('public')->assertMissing(Files::pathOf($document->file_id));
     });
 
     it('deletes the files removed on edit', function () {
@@ -178,6 +171,6 @@ describe('MNT-05: delete', function () {
             ->putJson(route('admin.service-log.update', $document->service_log_id), Maintenance::serviceLogPayload($vehicle, ['delete_documents' => [$document->id]]))
             ->assertOk();
 
-        Storage::disk('local')->assertMissing($document->file_path);
+        Storage::disk('local')->assertMissing(Files::pathOf($document->file_id));
     });
 });

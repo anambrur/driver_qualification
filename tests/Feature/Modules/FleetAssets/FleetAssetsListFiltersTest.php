@@ -129,10 +129,10 @@ describe('FLT-05: the quick search and type filter', function () {
     it('filters trailers by equipment type', function () {
         $owner = Actors::companyOwner();
         $flatbed = EquipmentType::create(['name' => 'Flatbed']);
-        $match = FleetAssets::trailerOf($owner, ['equipment_types_id' => $flatbed->id]);
+        $match = FleetAssets::trailerOf($owner, ['equipment_type_id' => $flatbed->id]);
         FleetAssets::trailerOf($owner);
 
-        expect(array_column(fltList($this, $owner, 'trailer', ['equipment_types_id' => $flatbed->id]), 'id'))->toBe([$match->id]);
+        expect(array_column(fltList($this, $owner, 'trailer', ['equipment_type_id' => $flatbed->id]), 'id'))->toBe([$match->id]);
     });
 
     it('lists everything when the filters are empty', function (string $kind) {
@@ -140,7 +140,7 @@ describe('FLT-05: the quick search and type filter', function () {
         FleetAssets::assetOf($owner, $kind);
         FleetAssets::assetOf($owner, $kind);
 
-        expect(fltList($this, $owner, $kind, ['search_text' => '', 'vehicle_type_id' => '', 'equipment_types_id' => '', 'status' => '']))->toHaveCount(2);
+        expect(fltList($this, $owner, $kind, ['search_text' => '', 'vehicle_type_id' => '', 'equipment_type_id' => '', 'status' => '']))->toHaveCount(2);
     })->with('fleet assets');
 });
 

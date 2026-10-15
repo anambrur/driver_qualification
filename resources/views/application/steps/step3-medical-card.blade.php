@@ -202,6 +202,20 @@
                                         @enderror
                                     </div>
 
+                                    <div class="mt-6">
+                                        <label for="medical_certificate_expiration_date"
+                                            class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            Medical Certificate Expiration Date <span class="text-error-500">*</span>
+                                        </label>
+                                        <input type="date" id="medical_certificate_expiration_date"
+                                            name="medical_certificate_expiration_date"
+                                            value="{{ old('medical_certificate_expiration_date', $driver->medical_certificate_expiration_date?->toDateString()) }}"
+                                            class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
+                                        @error('medical_certificate_expiration_date')
+                                            <p class="mt-1 text-sm text-error-500">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
                                     <!-- Medical Certificate Expiration Date -->
                                     @if ($driver->medical_certificate_expiration_date)
                                         <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">

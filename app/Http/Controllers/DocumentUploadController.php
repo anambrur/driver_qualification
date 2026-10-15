@@ -2,39 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\LimitReached;
 use App\Models\Company;
 use App\Models\DocumentType;
 use App\Models\Trailer;
 use App\Models\TrailerDocument;
 use App\Models\Vehicle;
 use App\Models\VehicleDocument;
+use App\Services\Compliance\ComplianceDocumentUploader;
+use App\Services\Files\StoredFileService;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class DocumentUploadController extends Controller
 {
     use CompanyFilterTrait;
-
-    /**
-     * FCMP-02: vehicle and trailer documents live on the private `local` disk under a random name
-     * and are only served by viewDocument()/downloadDocument(). Files uploaded before that are still
-     * on the `public` disk until the 2026_10_10_000100 migration moves them, so reads and deletes
-     * check both.
-     */
-    private const DISK = 'local';
-
-    private const LEGACY_DISK = 'public';
-
-    private const FILE_HEADERS = [
-        'X-Content-Type-Options' => 'nosniff',
-        'Cache-Control' => 'private, no-store',
-    ];
 
     private const ASSET_TYPES = ['vehicle', 'trailer'];
 
@@ -159,7 +145,7 @@ class DocumentUploadController extends Controller
     /**
      * Upload document(s) with company validation
      */
-    public function uploadDocument(Request $request)
+    public function uploadDocument(Request $request, ComplianceDocumentUploader $uploader)
     {
         $uploadToAll = $request->boolean('upload_to_all');
 
@@ -189,12 +175,12 @@ class DocumentUploadController extends Controller
         $assetModel = $assetType === 'vehicle' ? Vehicle::class : Trailer::class;
 
         if ($uploadToAll) {
-            // Upload to all live assets of the tenant's own company; the platform does this inside
-            // a read_write support session (PO-02, D11). Soft-deleted assets are excluded.
-            $companyId = $this->getUserCompanyId();
-            $assets = $assetModel::where('company_id', $companyId ?? -1)->get();
+            // Upload to all live assets of the tenant's own company (the tenant scope); the
+            // platform does this inside a read_write support session (PO-02, D11). Soft-deleted
+            // assets are excluded.
+            $assetIds = $assetModel::query()->pluck('id')->all();
 
-            if ($assets->isEmpty()) {
+            if ($assetIds === []) {
                 return response()->json([
                     'success' => false,
                     'message' => "There are no {$assetType}s to upload this document to.",
@@ -205,54 +191,18 @@ class DocumentUploadController extends Controller
             $asset = $assetModel::whereKey($request->selected_asset)->first();
             abort_unless($asset !== null, 404, ucfirst($assetType).' not found.');
             Gate::authorize('update', $asset);
-            $assets = collect([$asset]);
+            $assetIds = [$asset->id];
         }
 
-        $filePath = null;
-        $replacedPaths = [];
-        $uploadedCount = 0;
-        $updatedCount = 0;
-
         try {
-            DB::beginTransaction();
-
-            // Random name with the extension of the content (FCMP-02). One file is shared by
-            // every asset of an "upload to all" (FCMP-01: see deleteFileIfUnused()).
-            $filePath = $request->file('file')->store('documents/'.$assetType.'s', self::DISK);
-            if (! $filePath) {
-                throw new \RuntimeException('Could not store the uploaded file.');
-            }
-
-            foreach ($assets as $asset) {
-                $result = $this->createOrUpdateDocumentWithValidation(
-                    $assetType,
-                    $asset,
-                    $request->document_type_id,
-                    $request->expiry_date,
-                    $request->description,
-                    $filePath
-                );
-
-                if ($result['created']) {
-                    $uploadedCount++;
-                } else {
-                    $updatedCount++;
-                }
-
-                if ($result['replaced_path']) {
-                    $replacedPaths[] = $result['replaced_path'];
-                }
-            }
-
-            DB::commit();
+            // One stored file is shared by every asset of an "upload to all" (FCMP-01)
+            $result = $uploader->upload($this->documentModel($assetType), $assetType.'_id', $assetIds, (int) $request->document_type_id, [
+                'expiry_date' => $request->expiry_date,
+                'description' => $request->description,
+            ], $request->file('file'), $assetType.'-documents');
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (\Exception $e) {
-            DB::rollBack();
-
-            // Delete uploaded file if transaction fails
-            if ($filePath) {
-                Storage::disk(self::DISK)->delete($filePath);
-            }
-
             Log::error('Failed to upload fleet compliance document', ['exception' => $e]);
 
             return response()->json([
@@ -261,65 +211,12 @@ class DocumentUploadController extends Controller
             ], 500);
         }
 
-        // Old files are only removed once the new rows are committed, and only if no other
-        // asset's document still points at them.
-        foreach (array_unique($replacedPaths) as $path) {
-            $this->deleteFileIfUnused($assetType, $path);
-        }
-
-        $message = $this->generateSuccessMessage($uploadedCount, $updatedCount, $assetType);
-
         return response()->json([
             'success' => true,
-            'message' => $message,
-            'uploaded_count' => $uploadedCount,
-            'updated_count' => $updatedCount,
+            'message' => $this->generateSuccessMessage($result['created'], $result['updated'], $assetType),
+            'uploaded_count' => $result['created'],
+            'updated_count' => $result['updated'],
         ]);
-    }
-
-    /**
-     * Create or update document for an asset with validation
-     *
-     * @return array{created: bool, replaced_path: ?string}
-     */
-    private function createOrUpdateDocumentWithValidation(string $assetType, Vehicle|Trailer $asset, $documentTypeId, $expiryDate, $description, string $filePath): array
-    {
-        $created = false;
-        $replacedPath = null;
-
-        Gate::authorize('update', $asset);
-
-        $documentModel = $this->documentModel($assetType);
-
-        $existingDocument = $documentModel::where($assetType.'_id', $asset->id)
-            ->where('document_type_id', $documentTypeId)
-            ->first();
-
-        if ($existingDocument) {
-            // The old file is deleted by the caller after commit, if no other document uses it
-            if ($existingDocument->file_path && $existingDocument->file_path !== $filePath) {
-                $replacedPath = $existingDocument->file_path;
-            }
-
-            // Update existing document
-            $existingDocument->update([
-                'expiry_date' => $expiryDate,
-                'description' => $description,
-                'file_path' => $filePath,
-            ]);
-        } else {
-            // Create new document
-            $documentModel::create([
-                $assetType.'_id' => $asset->id,
-                'document_type_id' => $documentTypeId,
-                'expiry_date' => $expiryDate,
-                'description' => $description,
-                'file_path' => $filePath,
-            ]);
-            $created = true;
-        }
-
-        return ['created' => $created, 'replaced_path' => $replacedPath];
     }
 
     /**
@@ -343,15 +240,8 @@ class DocumentUploadController extends Controller
         $document = $this->findAuthorizedDocument($assetType, $request->document_id, 'update');
 
         try {
-            $filePath = $document->file_path;
-
-            // Delete document record
+            // Soft delete: the row keeps its file so it can be restored
             $document->delete();
-
-            // Delete file from storage, unless another asset's document shares it (FCMP-01)
-            if ($filePath) {
-                $this->deleteFileIfUnused($assetType, $filePath);
-            }
 
             return response()->json([
                 'success' => true,
@@ -370,25 +260,21 @@ class DocumentUploadController extends Controller
     /**
      * Download document with company validation
      */
-    public function downloadDocument(Request $request, $documentId, $assetType)
+    public function downloadDocument(Request $request, $documentId, $assetType, StoredFileService $files)
     {
         $document = $this->findAuthorizedDocument($assetType, $documentId, 'view');
-        $disk = $this->diskHolding($document->file_path);
 
-        $fileName = $document->documentType->name.'_'.basename($document->file_path);
-
-        return Storage::disk($disk)->download($document->file_path, $fileName, self::FILE_HEADERS);
+        return $files->response($document->file, $document->documentType->name.'_'.basename((string) $document->file?->path));
     }
 
     /**
      * View document with company validation
      */
-    public function viewDocument($documentId, $assetType)
+    public function viewDocument($documentId, $assetType, StoredFileService $files)
     {
         $document = $this->findAuthorizedDocument($assetType, $documentId, 'view');
-        $disk = $this->diskHolding($document->file_path);
 
-        return Storage::disk($disk)->response($document->file_path, null, self::FILE_HEADERS);
+        return $files->response($document->file);
     }
 
     /**
@@ -424,42 +310,13 @@ class DocumentUploadController extends Controller
     {
         abort_unless(in_array($assetType, self::ASSET_TYPES, true), 404, 'Document not found');
 
-        $document = $this->documentModel($assetType)::with(['documentType', $assetType])->whereKey($documentId)->first();
+        $document = $this->documentModel($assetType)::with(['documentType', $assetType, 'file'])->whereKey($documentId)->first();
         $asset = $document?->getRelationValue($assetType);
         abort_unless($asset !== null, 404, 'Document not found');
 
         Gate::authorize($ability, $asset);
 
         return $document;
-    }
-
-    /**
-     * The disk the file is on: the private disk, or the public one for files not yet moved.
-     */
-    private function diskHolding(?string $filePath): string
-    {
-        foreach ([self::DISK, self::LEGACY_DISK] as $disk) {
-            if ($filePath && Storage::disk($disk)->exists($filePath)) {
-                return $disk;
-            }
-        }
-
-        abort(404, 'File not found');
-    }
-
-    /**
-     * Delete a file from both disks once no document points at it any more. "Upload to all"
-     * gives every vehicle (or trailer) the same file (FCMP-01).
-     */
-    private function deleteFileIfUnused(string $assetType, string $filePath): void
-    {
-        if ($this->documentModel($assetType)::where('file_path', $filePath)->exists()) {
-            return;
-        }
-
-        foreach ([self::DISK, self::LEGACY_DISK] as $disk) {
-            Storage::disk($disk)->delete($filePath);
-        }
     }
 
     /**

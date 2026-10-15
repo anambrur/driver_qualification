@@ -7,12 +7,13 @@ use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\Drivers\DriverAdmin;
 use Tests\Feature\Modules\PublicApplication\Applicant;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /*
 | DRV-03: driver photos, licence front/back, medical cards and forfeiture documents were
 | stored on the *public* disk, so anyone with the URL could read them at /storage/... without
-| logging in. They now live on the private `local` disk and are served by authorized routes:
-| admin.driver.file (tenant of the driver, or super-admin) and public.application.file
+| logging in. They are now stored files (stored_files) on the private `local` disk, served by
+| authorized routes: admin.driver.file (tenant of the driver) and public.application.file
 | (the applicant's own session).
 | DRV-04: SVG photos. DRV-05: same-second photo names. Both were already closed by APP-10 and
 | Laravel 12's `image` rule; the tests below stay as regression guards.
@@ -27,22 +28,20 @@ function wizardUploads(Driver $driver): array
 {
     return [
         ['admin.driver.license.store', ['license_front' => DriverAdmin::png(), 'license_back' => DriverAdmin::png()], ['license_front', 'license_back']],
-        ['admin.driver.medical.card.store', ['medical_card' => DriverAdmin::png()], ['medical_card']],
+        ['admin.driver.medical.card.store', ['medical_card' => DriverAdmin::png(), 'medical_certificate_expiration_date' => now()->addYear()->toDateString()], ['medical_card']],
         ['admin.driver.forfeiture.store', ['forfeiture_document' => DriverAdmin::png()], ['forfeiture_document']],
     ];
 }
 
 function driverWithStoredFiles(Driver $driver): DriverDocument
 {
-    $paths = [];
-    foreach (['license_front', 'license_back', 'medical_card', 'forfeiture_document'] as $field) {
-        $paths[$field] = "images/documents/{$field}_{$driver->id}.png";
-        Storage::disk('local')->put($paths[$field], "bytes-of-{$field}");
+    $fileIds = [];
+    foreach (DriverDocument::FILE_FIELDS as $field) {
+        $fileIds["{$field}_file_id"] = Files::stored($driver->company_id, "bytes-of-{$field}", 'png')->id;
     }
-    $driver->update(['photo' => "images/drivers/driver_photo_{$driver->id}.png"]);
-    Storage::disk('local')->put($driver->photo, 'bytes-of-photo');
+    Driver::withoutTenancy()->whereKey($driver->id)->update(['photo_file_id' => Files::stored($driver->company_id, 'bytes-of-photo', 'png')->id]);
 
-    return DriverDocument::create(['driver_id' => $driver->id] + $paths);
+    return DriverDocument::create(['driver_id' => $driver->id] + $fileIds);
 }
 
 dataset('driver file fields', ['photo', 'license_front', 'license_back', 'medical_card', 'forfeiture_document']);
@@ -57,8 +56,8 @@ describe('DRV-03: driver documents are private', function () {
 
             $doc = DriverDocument::where('driver_id', $driver->id)->firstOrFail();
             foreach ($fields as $field) {
-                Storage::disk('local')->assertExists($doc->{$field});
-                Storage::disk('public')->assertMissing($doc->{$field});
+                Storage::disk('local')->assertExists(Files::pathOf($doc->{"{$field}_file_id"}));
+                Storage::disk('public')->assertMissing(Files::pathOf($doc->{"{$field}_file_id"}));
             }
         }
     });
@@ -70,7 +69,7 @@ describe('DRV-03: driver documents are private', function () {
             ->post(route('admin.driver.store'), DriverAdmin::payload(['photo' => DriverAdmin::png()]))
             ->assertSessionHasNoErrors();
 
-        $photo = Driver::withoutTenancy()->latest('id')->value('photo');
+        $photo = Files::pathOf(Driver::withoutTenancy()->latest('id')->value('photo_file_id'));
         Storage::disk('local')->assertExists($photo);
         Storage::disk('public')->assertMissing($photo);
     });
@@ -84,8 +83,8 @@ describe('DRV-03: driver documents are private', function () {
             ->assertSessionHasNoErrors();
 
         $doc = DriverDocument::where('driver_id', $me->id)->firstOrFail();
-        Storage::disk('local')->assertExists($doc->license_front);
-        Storage::disk('public')->assertMissing($doc->license_front);
+        Storage::disk('local')->assertExists(Files::pathOf($doc->license_front_file_id));
+        Storage::disk('public')->assertMissing(Files::pathOf($doc->license_front_file_id));
     });
 
     it('serves each file to the driver\'s tenant', function (string $field) {
@@ -98,12 +97,8 @@ describe('DRV-03: driver documents are private', function () {
             ->and($response->headers->get('X-Content-Type-Options'))->toBe('nosniff');
     })->with('driver file fields');
 
-    it('lets a super-admin open any company\'s file', function () {
-        [, $driver] = DriverAdmin::tenantWithDriver();
-        driverWithStoredFiles($driver);
-
-        $this->actingAs(Actors::superAdmin())->get(route('admin.driver.file', [$driver->id, 'license_front']))->assertOk();
-    });
+    it('lets platform support open any company\'s file inside a support session')
+        ->todo('WP8b: read_write support session');
 
     it('returns 404 to another tenant', function (string $field) {
         [, $driver] = DriverAdmin::tenantWithDriver();
@@ -127,10 +122,10 @@ describe('DRV-03: driver documents are private', function () {
         $this->actingAs($owner)->get(route('admin.driver.file', [$driver->id, 'license_front']))->assertNotFound();
     });
 
-    it('still serves files uploaded before the move, from the public disk', function () {
+    it('serves a file from the disk recorded on it', function () {
         [$owner, $driver] = DriverAdmin::tenantWithDriver();
-        Storage::disk('public')->put('images/documents/old.png', 'legacy');
-        DriverDocument::create(['driver_id' => $driver->id, 'license_front' => 'images/documents/old.png']);
+        $legacy = Files::stored($driver->company_id, 'legacy', 'png', 'public');
+        DriverDocument::create(['driver_id' => $driver->id, 'license_front_file_id' => $legacy->id]);
 
         $response = $this->actingAs($owner)->get(route('admin.driver.file', [$driver->id, 'license_front']))->assertOk();
         expect($response->streamedContent())->toBe('legacy');
@@ -205,7 +200,7 @@ describe('DRV-04/DRV-05: photo uploads (regression guards)', function () {
             ->post(route('admin.driver.store'), DriverAdmin::payload(['photo' => DriverAdmin::png('evil.svg')]))
             ->assertSessionHasNoErrors();
 
-        expect(Driver::withoutTenancy()->latest('id')->value('photo'))->toEndWith('.png')->not->toContain('evil');
+        expect(Files::pathOf(Driver::withoutTenancy()->latest('id')->value('photo_file_id')))->toEndWith('.png')->not->toContain('evil');
     });
 
     it('gives two photos uploaded in the same second different names', function () {
@@ -215,7 +210,7 @@ describe('DRV-04/DRV-05: photo uploads (regression guards)', function () {
         $this->actingAs($owner)->post(route('admin.driver.store'), DriverAdmin::payload(['photo' => DriverAdmin::png()]));
         $this->actingAs($owner)->post(route('admin.driver.store'), DriverAdmin::payload(['photo' => DriverAdmin::png()]));
 
-        $photos = Driver::withoutTenancy()->pluck('photo');
+        $photos = Driver::withoutTenancy()->pluck('photo_file_id')->map(fn ($id) => Files::pathOf($id));
         expect($photos)->toHaveCount(2)
             ->and($photos->unique())->toHaveCount(2);
     });

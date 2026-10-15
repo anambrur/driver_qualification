@@ -40,10 +40,10 @@ describe('MNT-04: date schedules', function () {
     });
 
     it('is due interval days after the last time it was done', function (string $last, int $days, string $next) {
-        $schedule = mntSchedule(['interval_days' => $days, 'last_due_date' => $last])->calculateNextDue();
+        $schedule = mntSchedule(['interval_days' => $days, 'last_service_date' => $last])->calculateNextDue();
 
         expect($schedule->next_due_date->toDateString())->toBe($next)
-            ->and($schedule->last_due_date->toDateString())->toBe($last);
+            ->and($schedule->last_service_date->toDateString())->toBe($last);
     })->with([
         'month end' => ['2026-01-31', 30, '2026-03-02'],
         'into a leap day' => ['2028-02-28', 1, '2028-02-29'],
@@ -77,7 +77,7 @@ describe('MNT-04: mileage schedules', function () {
     it('is due interval miles past the last service', function () {
         $vehicle = VehicleFactory::new()->create(['odometer' => 14000]);
 
-        $schedule = mntSchedule(['vehicle_id' => $vehicle->id, 'company_id' => $vehicle->company_id, 'last_due_mileage' => 12000], fn ($f) => $f->mileage(5000))->calculateNextDue();
+        $schedule = mntSchedule(['vehicle_id' => $vehicle->id, 'company_id' => $vehicle->company_id, 'last_service_mileage' => 12000], fn ($f) => $f->mileage(5000))->calculateNextDue();
 
         expect($schedule->next_due_mileage)->toBe(17000)
             ->and($schedule->isDue())->toBeFalse();

@@ -2,7 +2,6 @@
 
 use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Facades\Route;
-use Tests\Support\Actors;
 
 /*
 | ACL-03: every POST a guest can send must be rate limited, either by `throttle:` middleware or
@@ -39,7 +38,6 @@ it('rate limits every POST a guest can send', function () {
 });
 
 it('returns 429 after too many attempts from one client', function (string $uri) {
-    Actors::seedAccessControl();
 
     for ($i = 0; $i < 6; $i++) {
         expect($this->post($uri, [])->status())->not->toBe(429);

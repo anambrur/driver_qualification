@@ -97,18 +97,6 @@ describe('AGR-01', function () {
         expect($own->fresh()->trashed())->toBeFalse();
     });
 
-    it('lets a super-admin see and edit every company\'s groups', function () {
-        $foreign = agrOtherTenantGroup();
-        agrOtherTenantGroup();
-
-        $this->actingAs(Actors::superAdmin())
-            ->getJson(route('admin.asset-group.index'), AJAX)
-            ->assertOk()
-            ->assertJsonPath('recordsTotal', 2);
-
-        $this->getJson(route('admin.asset-group.edit', $foreign->id))->assertOk();
-    });
-
     it('gives the company role every asset-groups permission', function () {
         expect(Actors::companyOwner()->hasAllPermissions(AssetGroupActors::PERMISSIONS))->toBeTrue();
     });
@@ -165,14 +153,4 @@ describe('AGR-02', function () {
             ->and(collect($response->json('trailers'))->pluck('id')->all())->toBe([$ownTrailer->id]);
     })->with(['admin.asset-group.get-dropdown-data', 'admin.asset-group.dropdown.data']);
 
-    it('still shows a super-admin every company\'s active drivers', function () {
-        DriverFactory::new()->create();
-        DriverFactory::new()->create();
-        DriverFactory::new()->status('inactive')->create();
-
-        $this->actingAs(Actors::superAdmin())
-            ->get(route('admin.asset-group.index'))
-            ->assertOk()
-            ->assertViewHas('drivers', fn ($drivers) => $drivers->count() === 2);
-    });
 });

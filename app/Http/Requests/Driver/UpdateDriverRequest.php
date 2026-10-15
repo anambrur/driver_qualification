@@ -39,7 +39,7 @@ class UpdateDriverRequest extends FormRequest
         // No `status` rule: the edit form must not change the status. Hiring and rejecting go
         // through admin.driver.hire-status, which checks, audits and emails (DRV-06).
         return array_merge(
-            StoreDriverRequest::step1FieldRules(requireMedicalFuture: false, requireLicense: false),
+            StoreDriverRequest::step1FieldRules(requireLicense: false),
             [
                 'company_id' => $companyRule,
                 'email' => StoreDriverRequest::emailRule($this->input('company_id'), $this->route('id')),

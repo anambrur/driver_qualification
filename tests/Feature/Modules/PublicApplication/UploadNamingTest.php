@@ -4,6 +4,7 @@ use App\Models\DriverDocument;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\PublicApplication\Applicant;
+use Tests\Support\Files;
 
 /*
 | APP-10 (found during this run): uploads from the public, unauthenticated application were
@@ -44,10 +45,10 @@ describe('APP-10: public uploads are stored under a server-chosen name', functio
 
         $doc = DriverDocument::query()->where('driver_id', $me->id)->firstOrFail();
 
-        expect($doc->license_front)->toEndWith('.png')
-            ->and($doc->license_back)->toEndWith('.png')
-            ->and($doc->license_front)->not->toContain('evil');
-        Storage::disk('local')->assertExists($doc->license_front);
+        expect(Files::pathOf($doc->license_front_file_id))->toEndWith('.png')
+            ->and(Files::pathOf($doc->license_back_file_id))->toEndWith('.png')
+            ->and(Files::pathOf($doc->license_front_file_id))->not->toContain('evil');
+        Storage::disk('local')->assertExists(Files::pathOf($doc->license_front_file_id));
     })->with('dangerous client names');
 
     it('stores the medical card and forfeiture document with the extension of their content', function () {
@@ -55,7 +56,7 @@ describe('APP-10: public uploads are stored under a server-chosen name', functio
         $slug = $me->company->slug;
 
         $this->withSession(Applicant::session($me))
-            ->post(route('public.application.store.step3', $slug), ['driver_id' => $me->id, 'medical_card' => pngNamed('evil.html')])
+            ->post(route('public.application.store.step3', $slug), ['driver_id' => $me->id, 'medical_card' => pngNamed('evil.html'), 'medical_certificate_expiration_date' => now()->addYear()->toDateString()])
             ->assertSessionHasNoErrors();
         $this->withSession(Applicant::session($me))
             ->post(route('public.application.store.step4', $slug), ['driver_id' => $me->id, 'forfeiture_document' => pngNamed('evil.html')])
@@ -63,8 +64,8 @@ describe('APP-10: public uploads are stored under a server-chosen name', functio
 
         $doc = DriverDocument::query()->where('driver_id', $me->id)->firstOrFail();
 
-        expect($doc->medical_card)->toEndWith('.png')
-            ->and($doc->forfeiture_document)->toEndWith('.png');
+        expect(Files::pathOf($doc->medical_card_file_id))->toEndWith('.png')
+            ->and(Files::pathOf($doc->forfeiture_document_file_id))->toEndWith('.png');
     });
 
     it('stores the step 1 photo with the extension of its content', function () {
@@ -74,8 +75,9 @@ describe('APP-10: public uploads are stored under a server-chosen name', functio
             ->post(route('public.application.store.step1', $me->company->slug), Applicant::step1Payload($me, ['photo' => pngNamed('evil.html')]))
             ->assertSessionHasNoErrors();
 
-        expect($me->fresh()->photo)->toStartWith('images/drivers/')->toEndWith('.png');
-        Storage::disk('local')->assertExists($me->fresh()->photo);
+        $photo = Files::pathOf($me->fresh()->photo_file_id);
+        expect($photo)->toStartWith('companies/'.$me->company_id.'/driver-photos/')->toEndWith('.png');
+        Storage::disk('local')->assertExists($photo);
     });
 
     it('gives two uploads in the same second different names', function () {
@@ -91,6 +93,6 @@ describe('APP-10: public uploads are stored under a server-chosen name', functio
                 ]))->assertSessionHasNoErrors();
         }
 
-        expect($a->fresh()->photo)->not->toBe($b->fresh()->photo);
+        expect(Files::pathOf($a->fresh()->photo_file_id))->not->toBeNull()->not->toBe(Files::pathOf($b->fresh()->photo_file_id));
     });
 });

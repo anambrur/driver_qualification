@@ -162,9 +162,9 @@
                                                 <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90">
                                                     Company's General Work Policy Document
                                                 </h4>
-                                                @if ($policyPdf && $policyPdf->general_work_policy_pdf)
+                                                @if ($policyPdf && $policyPdf->general_work_policy_file_id)
                                                     <div class="flex gap-2">
-                                                        <a href="{{ asset('storage/' . $policyPdf->general_work_policy_pdf) }}"
+                                                        <a href="{{ route('public.application.policy', [$company->slug, 'general_work']) }}"
                                                             target="_blank"
                                                             class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
                                                             <i class="fas fa-download mr-2"></i>
@@ -174,11 +174,11 @@
                                                 @endif
                                             </div>
 
-                                            @if ($policyPdf && $policyPdf->general_work_policy_pdf)
+                                            @if ($policyPdf && $policyPdf->general_work_policy_file_id)
                                                 <div
                                                     class="border border-gray-300 rounded-lg dark:border-gray-700 overflow-hidden">
                                                     <iframe
-                                                        src="{{ asset('storage/' . $policyPdf->general_work_policy_pdf) }}"
+                                                        src="{{ route('public.application.policy', [$company->slug, 'general_work']) }}"
                                                         width="100%" height="600px" style="border: none;"
                                                         title="Company's General Work Policy PDF">
                                                     </iframe>
@@ -446,7 +446,7 @@
             const isEditMode = {{ $isEditMode ? 'true' : 'false' }};
             const hasExistingPolicyAck =
                 {{ $driverDocument && $driverDocument->general_work_policy_signature ? 'true' : 'false' }};
-            const hasPolicyPDF = {{ $policyPdf && $policyPdf->general_work_policy_pdf ? 'true' : 'false' }};
+            const hasPolicyPDF = {{ $policyPdf && $policyPdf->general_work_policy_file_id ? 'true' : 'false' }};
 
             // Form validation
             const form = document.querySelector('form');
