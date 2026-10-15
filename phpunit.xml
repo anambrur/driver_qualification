@@ -18,6 +18,8 @@
             <group>known-issue</group>
             <!-- MySQL load test at 2,000 companies. Run it with the scale group option of php artisan test. -->
             <group>scale</group>
+            <!-- Parallel processes on a real MySQL server. Run it with the mysql group option (CI mysql job). -->
+            <group>mysql</group>
         </exclude>
     </groups>
     <source>

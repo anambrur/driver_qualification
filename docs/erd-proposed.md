@@ -1,10 +1,10 @@
 # DriverFilesHub: proposed data model
 
-These diagrams show the **target** schema for the multi-tenant redesign. The current schema stays documented in [erd.md](erd.md), so the two can be compared side by side.
+These diagrams show the **target** schema for the multi-tenant redesign. The built schema is documented in [erd.md](erd.md), so the two can be compared side by side.
 
 - Full column, constraint and index specifications are in [architecture/08-database-schema.md](architecture/08-database-schema.md).
 - The reason for each change to an existing table is in [architecture/09-erd-audit.md](architecture/09-erd-audit.md).
-- Status: decisions applied 13 October 2026. Nothing here is implemented yet.
+- Status: decisions applied 13 October 2026. The Phase 0 tables are built (15 October 2026, see [erd.md](erd.md)); the tables of later phases are not.
 
 ## How it fits together
 

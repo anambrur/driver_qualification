@@ -11,6 +11,7 @@ use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
@@ -121,12 +122,22 @@ it('lets a user keep their own email and change only its case', function () {
 });
 
 it('holds the email lock across the check, so a second writer waits instead of passing', function () {
-    $lock = Cache::lock('lock:'.sha1('email:new@example.com'), 10);
-    $lock->get();
+    $name = 'lock:'.sha1('email:new@example.com');
+    if (DB::getDriverName() === 'mysql') {
+        // GET_LOCK is re-entrant per session, so the other writer holds it on its own connection
+        config(['database.connections.other_writer' => config('database.connections.'.DB::getDefaultConnection())]);
+        $other = DB::connection('other_writer');
+        $other->scalar('SELECT GET_LOCK(?, 0)', [$name]);
+        $release = fn () => $other->scalar('SELECT RELEASE_LOCK(?)', [$name]);
+    } else {
+        $lock = Cache::lock($name, 10);
+        $lock->get();
+        $release = fn () => $lock->release();
+    }
 
     expect(fn () => NamedLock::run('email:new@example.com', 0, fn () => null))->toThrow(LockTimeoutException::class);
 
-    $lock->release();
+    $release();
     expect(NamedLock::run('email:new@example.com', 0, fn () => 'ran'))->toBe('ran');
 });
 

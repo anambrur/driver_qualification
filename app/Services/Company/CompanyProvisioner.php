@@ -76,7 +76,8 @@ class CompanyProvisioner
 
     /**
      * Platform staff log in as this user during a support session (04 §4.3). It has no usable
-     * password and stays inactive outside sessions.
+     * password and stays inactive outside sessions. Its address can't receive mail, so it is
+     * created verified for the admin area's `verified` check.
      */
     private function createSupportUser(Company $company): void
     {
@@ -87,6 +88,7 @@ class CompanyProvisioner
             'name' => 'Support',
             'email' => "support-{$company->id}-".Str::lower(Str::random(12)).'@support.invalid',
             'password' => Hash::make(Str::random(64)),
+            'email_verified_at' => now(),
             'status' => 'inactive',
         ])->save();
     }

@@ -4,6 +4,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
+use Tests\Support\Actors;
 
 test('email verification screen can be rendered', function () {
     $user = User::factory()->unverified()->create();
@@ -43,4 +44,12 @@ test('email is not verified with invalid hash', function () {
     $this->actingAs($user)->get($verificationUrl);
 
     expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
+});
+
+test('an unverified user is sent to the verification notice from the admin area', function () {
+    $user = Actors::companyOwner();
+    $user->forceFill(['email_verified_at' => null])->save();
+
+    $this->actingAs($user)->get(route('dashboard'))->assertRedirect(route('verification.notice'));
+    $this->actingAs($user)->get(route('profile.edit'))->assertOk();
 });

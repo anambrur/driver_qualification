@@ -16,11 +16,13 @@ use Tests\Support\Actors;
 */
 
 const FLT_PAYLOAD = '<img src=x onerror=alert(1)>';
+// Fits vehicles.vin / trailers.vin (17 characters)
+const FLT_VIN_PAYLOAD = '<img src=x>v';
 const FLT_QUOTE_PAYLOAD = 'x&#39;);alert(1);//" onmouseover="alert(2)';
 
 function fltFields(): array
 {
-    return ['unit_no' => FLT_PAYLOAD, 'make' => FLT_PAYLOAD.'m', 'model' => FLT_PAYLOAD.'o', 'vin' => FLT_PAYLOAD.'v'];
+    return ['unit_no' => FLT_PAYLOAD, 'make' => FLT_PAYLOAD.'m', 'model' => FLT_PAYLOAD.'o', 'vin' => FLT_VIN_PAYLOAD];
 }
 
 function fltRow($test, $user, string $route): array
@@ -45,7 +47,7 @@ describe('FLT-01: the lists escape tenant-controlled data', function () {
             ->and($row['vehicle_info'])->toContain(e(FLT_PAYLOAD))
             ->and($row['vehicle_info'])->toContain(e(FLT_PAYLOAD.'m'))
             ->and($row['vehicle_info'])->toContain(e(FLT_PAYLOAD.'o'))
-            ->and($row['vehicle_info'])->toContain(e(FLT_PAYLOAD.'v'))
+            ->and($row['vehicle_info'])->toContain(e(FLT_VIN_PAYLOAD))
             ->and($row['type_group'])->toContain(e(FLT_PAYLOAD.'t'))
             ->and($row['type_group'])->toContain(e(FLT_PAYLOAD.'g'))
             ->and($row['fuel_odometer'])->toContain(e(FLT_PAYLOAD.'f'));
@@ -64,7 +66,7 @@ describe('FLT-01: the lists escape tenant-controlled data', function () {
             ->and($row['trailer_info'])->toContain(e(FLT_PAYLOAD))
             ->and($row['trailer_info'])->toContain(e(FLT_PAYLOAD.'m'))
             ->and($row['trailer_info'])->toContain(e(FLT_PAYLOAD.'o'))
-            ->and($row['trailer_info'])->toContain(e(FLT_PAYLOAD.'v'))
+            ->and($row['trailer_info'])->toContain(e(FLT_VIN_PAYLOAD))
             ->and($row['equipment_group'])->toContain(e(FLT_PAYLOAD.'e'))
             ->and($row['equipment_group'])->toContain(e(FLT_PAYLOAD.'g'));
     });

@@ -146,12 +146,12 @@ describe('DCMP-05: paginated dashboard', function () {
         DB::enableQueryLog();
         $this->actingAs($owner)->get(route('admin.compliance.drivers'))->assertOk();
         $documentQueries = collect(DB::getQueryLog())
-            ->filter(fn ($q) => str_starts_with($q['query'], 'select * from "driver_compliance_documents"'));
+            ->filter(fn ($q) => str_starts_with($q['query'], 'select * from '.DB::getQueryGrammar()->wrap('driver_compliance_documents')));
         DB::disableQueryLog();
 
         // Integer keys are inlined in the eager-load's "in (...)", not bound.
         expect($documentQueries)->toHaveCount(1);
-        preg_match('/"driver_id" in \(([^)]*)\)/', $documentQueries->first()['query'], $ids);
+        preg_match('/'.preg_quote(DB::getQueryGrammar()->wrap('driver_id'), '/').' in \(([^)]*)\)/', $documentQueries->first()['query'], $ids);
         expect(explode(',', $ids[1]))->toHaveCount(25);
         expect(DriverComplianceDocument::withoutTenancy()->count())->toBe(30);
     });

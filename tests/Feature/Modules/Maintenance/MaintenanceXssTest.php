@@ -17,10 +17,12 @@ use Tests\Support\Files;
 */
 
 const MNT_PAYLOAD = '<img src=x onerror=alert(1)>';
+// Fits vehicles.vin / trailers.vin (17 characters)
+const MNT_VIN_PAYLOAD = '<img src=x>v';
 
 function mntVehicleFields(): array
 {
-    return ['unit_no' => MNT_PAYLOAD, 'make' => MNT_PAYLOAD.'m', 'model' => MNT_PAYLOAD.'o', 'vin' => MNT_PAYLOAD.'v'];
+    return ['unit_no' => MNT_PAYLOAD, 'make' => MNT_PAYLOAD.'m', 'model' => MNT_PAYLOAD.'o', 'vin' => MNT_VIN_PAYLOAD];
 }
 
 describe('MNT-02: the list escapes tenant-controlled data', function () {
@@ -38,7 +40,7 @@ describe('MNT-02: the list escapes tenant-controlled data', function () {
         $html = $row['vehicle_info'].$row['service_info'];
         expect($html)->not->toContain('<img')
             ->and($row['vehicle_info'])->toContain(e(MNT_PAYLOAD))
-            ->and($row['vehicle_info'])->toContain(e(MNT_PAYLOAD.'v'))
+            ->and($row['vehicle_info'])->toContain(e(MNT_VIN_PAYLOAD))
             ->and($row['vehicle_info'])->toContain('fa-paperclip')
             ->and($row['service_info'])->toContain(e(MNT_PAYLOAD.'c'));
     });

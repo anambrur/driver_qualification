@@ -4,6 +4,7 @@ use App\Exceptions\LimitReached;
 use App\Features\Feature;
 use App\Mail\CompanyInvitationMail;
 use App\Models\Company;
+use App\Models\EquipmentType;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Entitlements\Limits;
@@ -166,7 +167,7 @@ it('blocks creating and restoring vehicles and trailers past their limits', func
     $owner = $this->owner->fresh();
 
     $payload = ['unit_no' => 'U-NEW', 'vin' => '1HGBH41JXMN109186', 'year' => 2020, 'make' => 'Volvo', 'model' => 'VNL', 'odometer' => 0,
-        'equipment_type_id' => DB::table('equipment_types')->insertGetId(['name' => 'Dry van', 'created_at' => now(), 'updated_at' => now()])];
+        'equipment_type_id' => EquipmentType::query()->firstOrCreate(['name' => 'Dry Van'])->id];
 
     $this->actingAs($owner)->postJson(route($store), $payload)
         ->assertStatus(422)

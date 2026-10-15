@@ -11,6 +11,7 @@ use Database\Factories\PlanFactory;
 use Database\Factories\PlatformUserFactory;
 use Database\Seeders\CountryStateSeeder;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -204,8 +205,8 @@ describe('companies', function () {
 
         expect($company->fresh()->status)->toBe('suspended')
             ->and($company->fresh()->status_reason)->toBe('Unpaid invoices')
-            ->and(AuditLog::where('action', 'company.status_changed')->where('company_id', $company->id)->value('changes'))
-            ->toBe(['from' => 'active', 'to' => 'suspended', 'reason' => 'Unpaid invoices']);
+            ->and(Arr::sortRecursive(AuditLog::where('action', 'company.status_changed')->where('company_id', $company->id)->value('changes')))
+            ->toBe(Arr::sortRecursive(['from' => 'active', 'to' => 'suspended', 'reason' => 'Unpaid invoices']));
 
         $this->actingAs($company->owner, 'web')->get(route('admin.driver.index'))->assertRedirect(route('login'));
     });
@@ -312,7 +313,7 @@ describe('catalogue', function () {
         expect(DB::table('features')->where('key', 'gps_tracking')->value('availability'))->toBe('override_only')
             ->and($a->fresh()->entitlements_version)->toBe($a->entitlements_version + 1)
             ->and($b->fresh()->entitlements_version)->toBe($b->entitlements_version + 1)
-            ->and(AuditLog::where('action', 'feature.updated')->value('changes'))->toBe(['feature' => 'gps_tracking', 'from' => 'general', 'to' => 'override_only']);
+            ->and(Arr::sortRecursive(AuditLog::where('action', 'feature.updated')->value('changes')))->toBe(Arr::sortRecursive(['feature' => 'gps_tracking', 'from' => 'general', 'to' => 'override_only']));
     });
 });
 
@@ -330,7 +331,7 @@ describe('audit', function () {
     it('redacts secrets from audit changes', function () {
         $log = AuditLog::recordSystem(null, 'test.redaction', null, ['password' => 'x', 'nested' => ['api_token' => 'y', 'ok' => 'z'], 'ssn' => '123']);
 
-        expect($log->fresh()->changes)->toBe(['password' => '[redacted]', 'nested' => ['api_token' => '[redacted]', 'ok' => 'z'], 'ssn' => '[redacted]']);
+        expect(Arr::sortRecursive($log->fresh()->changes))->toBe(Arr::sortRecursive(['password' => '[redacted]', 'nested' => ['api_token' => '[redacted]', 'ok' => 'z'], 'ssn' => '[redacted]']));
     });
 
     it('filters the audit viewer and offers no way to change an entry', function () {

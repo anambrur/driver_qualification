@@ -44,6 +44,8 @@ class ProfileController extends Controller
                 $user->save();
                 AuditLog::record($user, $user->company_id, 'user.email_changed', $user, ['from' => $from, 'to' => $user->email]);
             }, $user);
+            // The admin area needs a verified email, so the link goes out at once
+            $user->sendEmailVerificationNotification();
         } else {
             $user->save();
         }
