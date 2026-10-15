@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\PlanPrice;
 use App\Models\PlatformUser;
 use App\Models\Subscription;
+use App\Services\Entitlements\RetainedFeatures;
 use App\Services\Stripe\SubscriptionService;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,7 @@ class SubscriptionAdminService
                 throw new InvalidArgumentException('The company already has an active subscription. Expire it first.');
             }
 
+            $fromPriceId = RetainedFeatures::lastPriceId($company);
             $company->subscriptions()->open()->update(['ended_at' => now()]);
 
             $subscription = Subscription::query()->create([
@@ -53,6 +55,7 @@ class SubscriptionAdminService
                 'cancel_at_period_end' => true,
                 'ends_at' => $endsAt,
             ]);
+            RetainedFeatures::priceChanged($company, $fromPriceId, $price->id);
 
             $this->audit($actor, $company, 'subscription.granted', $subscription, [
                 'plan_price_id' => $price->id,
@@ -100,6 +103,7 @@ class SubscriptionAdminService
         $before = $subscription->only(['status', 'cancel_at_period_end', 'ends_at', 'ended_at', 'plan_price_id']);
 
         $after = $apply($subscription);
+        RetainedFeatures::priceChanged($company, $before['plan_price_id'], $after->plan_price_id);
 
         $this->audit($actor, $company, $action, $after, [
             'before' => $before,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\LimitReached;
 use App\Http\Requests\Driver\StoreDriverRequest;
 use App\Http\Requests\Driver\UpdateDriverRequest;
 use App\Models\AssetGroup;
@@ -973,14 +974,16 @@ class DriverController extends Controller
                 $message = 'Driver has been marked as not hired.';
             }
 
+            $status = $driver->application_status === 'rejected' ? 'rejected' : $driver->employment_status;
+
             return response()->json([
                 'success' => true,
                 'message' => $message,
                 'data' => [
-                    'status' => $driver->status,
+                    'status' => $status,
                     'hire_date' => $driver->hire_date,
                     'rejection_reason' => $hireService->getRejectionReasonLabel($driver->rejection_reason),
-                    'status_label' => $hireService->getStatusLabel($driver->status),
+                    'status_label' => $hireService->getStatusLabel($status),
                 ],
             ]);
         } catch (InvalidArgumentException $e) {
@@ -988,6 +991,8 @@ class DriverController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('Failed to update driver hire status: '.$e->getMessage(), [
                 'driver_id' => $driver->id,

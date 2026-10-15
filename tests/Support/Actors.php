@@ -45,7 +45,7 @@ final class Actors
 
     /**
      * An active company with an owner, settings, the system roles and, unless $subscribed is
-     * false, an open, active subscription. No feature rows exist until WP7.
+     * false, an open, active subscription on a plan with every feature.
      */
     public static function company(array $attributes = [], bool $subscribed = true): Company
     {

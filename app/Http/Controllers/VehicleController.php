@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\LimitReached;
+use App\Features\Feature;
 use App\Models\AssetGroup;
 use App\Models\FuelType;
 use App\Models\MaintenanceSchedule;
@@ -9,6 +11,7 @@ use App\Models\ServiceLog;
 use App\Models\Vehicle;
 use App\Models\VehicleGroup;
 use App\Models\VehicleType;
+use App\Services\Entitlements\Limits;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -190,6 +193,8 @@ class VehicleController extends Controller
         DB::beginTransaction();
 
         try {
+            Limits::assertCanCreate((int) $request->company_id, Feature::MaxVehicles);
+
             $vehicle = Vehicle::create([
                 'company_id' => $request->company_id,
                 'unit_no' => $request->unit_no,
@@ -224,6 +229,10 @@ class VehicleController extends Controller
                 'message' => 'Vehicle created successfully!',
                 'data' => $vehicle,
             ]);
+        } catch (LimitReached $e) {
+            DB::rollBack();
+
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Vehicle store error: '.$e->getMessage());
@@ -369,6 +378,10 @@ class VehicleController extends Controller
         DB::beginTransaction();
 
         try {
+            if ($vehicle->trashed()) {
+                Limits::assertCanCreate($vehicle->company_id, Feature::MaxVehicles);
+            }
+
             $vehicle->restore();
             DB::commit();
 
@@ -376,6 +389,10 @@ class VehicleController extends Controller
                 'success' => true,
                 'message' => 'Vehicle restored successfully!',
             ]);
+        } catch (LimitReached $e) {
+            DB::rollBack();
+
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Vehicle restore error: '.$e->getMessage());

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureFeature;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SeoRobotsHeader;
@@ -40,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => RoleOrPermissionMiddleware::class,
 
             'subscribed' => Subscribed::class,
+            'feature' => EnsureFeature::class,
         ]);
     })
 

@@ -7,7 +7,8 @@ use App\Models\Subscription;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * Default state is an accessible (active, paid) Stripe subscription.
+ * Default state is an accessible (active, paid) Stripe subscription on a plan with every
+ * feature enabled and unlimited.
  *
  * @extends Factory<Subscription>
  */
@@ -22,7 +23,7 @@ class SubscriptionFactory extends Factory
     {
         return [
             'company_id' => CompanyFactory::new(),
-            'plan_price_id' => PlanPriceFactory::new(),
+            'plan_price_id' => PlanPriceFactory::new()->for(PlanFactory::new()->withAllFeatures()),
             'interval' => 'month',
             'stripe_subscription_id' => 'sub_test_'.fake()->unique()->bothify('????########'),
             'status' => 'active',

@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\PlatformUser;
 use App\Models\User;
 use App\Services\Billing\AccessState;
+use App\Services\Entitlements\Entitlements;
 use App\Tenancy\TenantContext;
 
 /**
@@ -43,7 +44,15 @@ class PermissionGate
             return Permission::fromCatalogue($ability) === null ? null : false;
         }
 
-        // 4. Entitlement: WP7 (05 §4).
+        // 4. Entitlement (05 §4): a feature the company is not entitled to denies; a read-only
+        //    one (lapsed or lost through a plan change) keeps viewing and exporting.
+        if ($permission->feature_key !== null && $user instanceof User && $user->company) {
+            $state = Entitlements::for($user->company)->state($permission->feature_key);
+
+            if (! $state->allowsRead() || ($permission->is_write && ! $state->allowsWrite())) {
+                return false;
+            }
+        }
 
         // 5. A read-only company keeps viewing and exporting; billing stays open so it can pay (07 §4.3).
         if ($permission->is_write && ! str_starts_with($permission->name, 'billing.')

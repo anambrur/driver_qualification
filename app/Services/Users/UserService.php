@@ -2,9 +2,11 @@
 
 namespace App\Services\Users;
 
+use App\Features\Feature;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\Authorization\RoleAssignmentService;
+use App\Services\Entitlements\Limits;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -73,8 +75,15 @@ class UserService
             return;
         }
 
-        $target->forceFill(['status' => $status])->save();
+        DB::transaction(function () use ($actor, $target, $status) {
+            // Re-activating an office user raises the max_users count (05 §5).
+            if ($status === 'active' && Limits::isOfficeUser($target)) {
+                Limits::assertCanCreate($target->company_id, Feature::MaxUsers);
+            }
 
-        AuditLog::record($actor, $actor->company_id, $status === 'active' ? 'user.reactivated' : 'user.deactivated', $target);
+            $target->forceFill(['status' => $status])->save();
+
+            AuditLog::record($actor, $actor->company_id, $status === 'active' ? 'user.reactivated' : 'user.deactivated', $target);
+        });
     }
 }

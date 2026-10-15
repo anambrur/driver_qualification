@@ -55,13 +55,14 @@ it('leaves permissions outside the catalogue in place', function () {
     expect(Permission::where('name', 'legacy.thing')->exists())->toBeTrue();
 });
 
-it('sets feature_key once the feature row exists', function () {
-    expect(Permission::where('name', 'trips.view')->value('feature_key'))->toBeNull();
+it('syncs the feature registry first, so every feature_key resolves', function () {
+    DB::table('permissions')->update(['feature_key' => null]);
+    DB::table('features')->where('key', 'trips')->update(['name' => 'Renamed']);
 
-    DB::table('features')->insert(['key' => 'trips', 'name' => 'Trips', 'group' => 'Operations', 'kind' => 'module', 'created_at' => now(), 'updated_at' => now()]);
     (new PermissionSeeder)->run();
 
     expect(Permission::where('name', 'trips.view')->value('feature_key'))->toBe('trips')
+        ->and(DB::table('features')->where('key', 'trips')->value('name'))->toBe('Trips')
         ->and(Permission::where('name', 'company.edit')->value('feature_key'))->toBeNull();
 });
 

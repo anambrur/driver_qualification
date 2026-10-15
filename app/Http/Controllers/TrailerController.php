@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\LimitReached;
+use App\Features\Feature;
 use App\Models\AssetGroup;
 use App\Models\EquipmentType;
 use App\Models\Trailer;
 use App\Models\VehicleGroup;
+use App\Services\Entitlements\Limits;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -173,6 +176,8 @@ class TrailerController extends Controller
         DB::beginTransaction();
 
         try {
+            Limits::assertCanCreate((int) $request->company_id, Feature::MaxTrailers);
+
             $trailer = Trailer::create($validator->validated());
 
             DB::commit();
@@ -182,6 +187,10 @@ class TrailerController extends Controller
                 'message' => 'Trailer created successfully!',
                 'data' => $trailer,
             ]);
+        } catch (LimitReached $e) {
+            DB::rollBack();
+
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Trailer store error: '.$e->getMessage());
@@ -315,6 +324,10 @@ class TrailerController extends Controller
         DB::beginTransaction();
 
         try {
+            if ($trailer->trashed()) {
+                Limits::assertCanCreate($trailer->company_id, Feature::MaxTrailers);
+            }
+
             $trailer->restore();
             DB::commit();
 
@@ -322,6 +335,10 @@ class TrailerController extends Controller
                 'success' => true,
                 'message' => 'Trailer restored successfully!',
             ]);
+        } catch (LimitReached $e) {
+            DB::rollBack();
+
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Trailer restore error: '.$e->getMessage());

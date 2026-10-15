@@ -13,12 +13,14 @@ class PermissionSeeder extends Seeder
     /**
      * Sync the permission catalogue (06 §5, 04 §3). Idempotent and safe in production: it only
      * creates or updates permission rows and never deletes one, so it never touches team roles
-     * or their grants. A feature_key is set once its features row exists (WP7 registry sync).
+     * or their grants. The feature registry is synced first, so every feature_key resolves.
      *
      * php artisan db:seed --class=PermissionSeeder
      */
     public function run(): void
     {
+        $this->call(FeatureRegistrySync::class);
+
         $registrar = app(PermissionRegistrar::class);
         $registrar->forgetCachedPermissions();
 

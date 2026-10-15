@@ -214,8 +214,7 @@ describe('drivers, fleet, billing, files and audit', function () {
     });
 
     it('allows one open override per company and feature, and checks its values', function () {
-        $company = CompanyFactory::new()->create();
-        DB::table('features')->insert(['key' => 'max_drivers', 'name' => 'Drivers', 'group' => 'limits', 'kind' => 'limit']);
+        $company = CompanyFactory::new()->create(); // max_drivers comes from the registry sync
         $override = fn (array $values = []) => DB::table('company_feature_overrides')->insert($values + [
             'company_id' => $company->id, 'feature_key' => 'max_drivers', 'limit_value' => 10, 'reason' => 'test', 'starts_at' => '2026-10-01 00:00:00',
         ]);
