@@ -239,14 +239,6 @@ class MaintenanceSchedule extends Model
         });
     }
 
-    public function scopeForVehicle($query, $vehicleId)
-    {
-        return $query->where(function ($q) use ($vehicleId) {
-            $q->where('vehicle_id', $vehicleId)
-                ->orWhereNull('vehicle_id');
-        });
-    }
-
     public function scopeByType($query, $type)
     {
         return $query->where('schedule_type', $type);

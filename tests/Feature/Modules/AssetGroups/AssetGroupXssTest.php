@@ -12,18 +12,19 @@ use Tests\Feature\Modules\AssetGroups\AssetGroupActors;
 | and delete/restore used onclick="fn(id, '<addslashes(name)>')".
 */
 
+// The second value fits vehicles.vin / trailers.vin (17 characters with the prefix)
 dataset('agr xss payloads', [
-    'script tag' => ['<script>alert(1)</script>'],
-    'attribute break-out' => ['x" onmouseover="alert(1)'],
-    'entity-encoded quote' => ['&#39;);alert(1);//'],
+    'script tag' => ['<script>alert(1)</script>', '<script>'],
+    'attribute break-out' => ['x" onmouseover="alert(1)', 'x" onclick="'],
+    'entity-encoded quote' => ['&#39;);alert(1);//', '&#39;);//'],
 ]);
 
 describe('AGR-04', function () {
-    it('escapes user text in every raw column', function (string $payload) {
+    it('escapes user text in every raw column', function (string $payload, string $vin) {
         $tenant = AssetGroupActors::tenant();
         $company = AssetGroupActors::company($tenant);
-        $vehicle = VehicleFactory::new()->forCompany($company)->create(['unit_no' => 'V'.$payload, 'vin' => 'VIN'.$payload]);
-        $trailer = TrailerFactory::new()->forCompany($company)->create(['unit_no' => 'T'.$payload, 'vin' => 'TVIN'.$payload]);
+        $vehicle = VehicleFactory::new()->forCompany($company)->create(['unit_no' => 'V'.$payload, 'vin' => 'VIN'.$vin]);
+        $trailer = TrailerFactory::new()->forCompany($company)->create(['unit_no' => 'T'.$payload, 'vin' => 'TVIN'.$vin]);
         AssetGroupFactory::new()->create([
             'vehicle_id' => $vehicle->id,
             'trailer_id' => $trailer->id,
@@ -38,12 +39,12 @@ describe('AGR-04', function () {
             ->json('data.0');
 
         foreach (['group_info', 'drivers_info', 'assets_info', 'action'] as $column) {
-            expect($row[$column])->not->toContain($payload);
+            expect($row[$column])->not->toContain($payload)->not->toContain('VIN'.$vin);
         }
 
         expect($row['group_info'])->toContain(e('G'.$payload))
             ->and($row['drivers_info'])->toContain(e('P'.$payload))->toContain(e('SP'.$payload))
-            ->and($row['assets_info'])->toContain(e('V'.$payload))->toContain(e('TVIN'.$payload));
+            ->and($row['assets_info'])->toContain(e('V'.$payload))->toContain(e('TVIN'.$vin));
     })->with('agr xss payloads');
 
     // The Restore button (Deleted filter) is covered in AssetGroupListFiltersTest.

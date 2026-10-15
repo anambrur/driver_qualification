@@ -1,717 +1,224 @@
 # DriverFilesHub data model
 
-Entity-relationship diagrams for every table in the app, built from `database/migrations` and the relationships in `app/Models` (commit d1d4d8d, 11 October 2026). Update this file when you add or change a migration.
+Entity-relationship diagrams for every table the migrations build, read from a migrated MySQL schema (`information_schema`, commit 82b0468, 15 October 2026) and laid out like [erd-proposed.md](erd-proposed.md), the target design. Update this file when you add or change a migration.
 
-50 tables · 52 foreign keys · 9 soft-delete tables
+65 tables · 111 foreign keys · 10 soft-delete tables. The Phase 0 tables of the redesign are built; the tables of later phases are listed under [Not built yet](#not-built-yet).
+
+- Full column, constraint and index specifications are in [architecture/08-database-schema.md](architecture/08-database-schema.md).
+- The reason for each change to an earlier table is in [architecture/09-erd-audit.md](architecture/09-erd-audit.md).
 
 ## How it fits together
 
-The tenant is the **company**. A user owns a company. The company owns drivers, vehicles, trailers, maintenance records and asset groups. Each driver owns their own qualification-file records. Billing hangs off the user. Hard-deleting a user cascades through all of it.
-
-- `users` → `companies` → `drivers` → licenses, accidents, documents …
-- `companies` → `vehicles` / `trailers` → documents, service logs, asset groups
-- `users` → `subscriptions` → payments, reminder logs
+- **Platform tables.** These belong to the SaaS operator, not to any tenant: platform staff, features, plans, prices, Stripe events, support sessions, asset transfers, audit.
+- **The company is the tenant.** Every user, driver, asset, maintenance record and stored file belongs to exactly one company.
+- **Billing belongs to the company:** subscription, payments and feature overrides. The plan's features and limits decide what the company can use.
+- **Roles are Spatie roles in the company's team** (`team_id = company_id`). Platform roles live in team 0. Permission checks query these tables directly in the user's own team, with no global role cache.
+- **Same-company references are enforced by the database.** References between tenant tables use composite foreign keys `(company_id, x_id)`, so a row cannot point at another company's record.
+- **Files are rows.** Every upload is a `stored_files` row on the private disk, referenced by `*_file_id` with `restrict`, and counted in `companies.storage_bytes`.
 
 ## Reading the diagrams
 
 | Notation | Meaning |
-| --- | --- |
+|---|---|
 | `\|\|--o{` | one to zero-or-many (FK required) |
 | `\|o--o{` | optional parent (FK nullable) |
-| `\|\|--o\|` | one to zero-or-one (FK unique) |
-| solid line | enforced by a foreign-key constraint |
-| dotted line | logical link only: polymorphic, by email, or an index with no FK |
+| `\|\|--o\|` | one to zero-or-one |
+| solid line | enforced by a foreign key |
+| dotted line | logical link only (polymorphic, generated column, or no FK on purpose) |
+| `cFK` in a comment | composite tenant FK `(company_id, x_id)` to `x(company_id, id)` |
 | `PK` `FK` `UK` | primary, foreign, unique key |
 
-Every table also has `created_at` and `updated_at` unless its diagram shows otherwise. Those columns are left out to save space.
+Every table also has `created_at` / `updated_at` unless its diagram says otherwise. Every tenant parent has `UNIQUE(company_id, id)`. Neither is drawn.
+
+Every column that the migrations create is drawn. A comment on an FK column gives its delete rule.
 
 ## Overview
 
-All business tables, relationships only.
+The main business tables, relationships only.
 
 ```mermaid
 erDiagram
-  users ||--o{ companies : "owns"
-  users ||--o{ drivers : "created by"
-  users |o--o{ drivers : "action_by"
+  plans ||--o{ plan_prices : "priced"
+  plans ||--o{ plan_features : "includes"
+  features ||--o{ plan_features : "in plan"
+  features ||--o{ company_feature_overrides : "overridden"
+  companies ||--o{ company_feature_overrides : "exceptions"
+  companies ||--o{ subscriptions : "subscribes"
+  plan_prices ||--o{ subscriptions : "billed at"
+  subscriptions |o--o{ payments : "invoices"
+  companies ||--o{ users : "members"
+  companies |o..o| users : "owner_user_id"
+  companies ||--o{ roles : "team roles"
+  roles ||--o{ model_has_roles : "assigned"
   companies ||--o{ drivers : "employs"
-  companies ||--o| policy_pdfs : "policies"
-  companies ||--o{ company_document_type : "disables"
-  document_types ||--o{ company_document_type : "disabled for"
-  drivers ||--o{ residence_addresses : ""
+  users |o--o| drivers : "driver login"
   drivers ||--o{ licenses : ""
-  drivers ||--o{ experiences : ""
-  drivers ||--o{ accidents : ""
-  drivers ||--o{ violations : ""
-  drivers ||--o{ forfeitures : ""
-  drivers ||--o{ employment_records : ""
-  drivers ||--o{ driver_documents : ""
   drivers ||--o{ driver_compliance_documents : ""
-  document_types ||--o{ driver_compliance_documents : "typed as"
   companies ||--o{ vehicles : "fleet"
   companies ||--o{ trailers : "fleet"
-  vehicle_types |o--o{ vehicles : ""
-  fuel_types |o--o{ vehicles : ""
-  vehicle_groups |o--o{ vehicles : ""
-  vehicle_groups |o--o{ trailers : ""
-  equipment_types ||--o{ trailers : ""
-  companies ||--o{ asset_groups : ""
-  drivers ||--o{ asset_groups : "assigned"
-  vehicles ||--o{ asset_groups : "assigned"
-  trailers |o--o{ asset_groups : "assigned"
   vehicles ||--o{ vehicle_documents : ""
   trailers ||--o{ trailer_documents : ""
-  document_types ||--o{ vehicle_documents : "typed as"
-  document_types ||--o{ trailer_documents : "typed as"
-  companies ||--o{ service_logs : ""
+  drivers ||--o{ asset_groups : "default pairing"
   vehicles ||--o{ service_logs : "serviced"
-  service_logs ||--o{ service_log_category : ""
-  maintenance_categories ||--o{ service_log_category : ""
-  service_logs ||--o{ service_documents : ""
-  companies ||--o{ maintenance_schedules : ""
-  vehicles |o--o{ maintenance_schedules : ""
-  maintenance_categories ||--o{ maintenance_schedules : ""
-  users ||--o{ subscriptions : ""
-  plans |o--o{ subscriptions : ""
-  users ||--o{ payments : ""
-  plans |o--o{ payments : ""
-  subscriptions |o--o{ payments : ""
-  subscriptions ||--o{ subscription_notification_logs : ""
-  users ||--o{ subscription_notification_logs : ""
-  roles ||--o{ model_has_roles : ""
-  users ||..o{ model_has_roles : "morph"
-  countries ||--o{ states : ""
+  companies ||--o{ stored_files : "stores"
+  companies ||--o{ audit_logs : ""
+  companies ||--o{ platform_support_sessions : "support access"
+  platform_users ||--o{ platform_support_sessions : "requests"
 ```
 
-## Accounts, roles & tenancy
-
-_11 tables_
-
-A **user** registers, is given the `company` role, and owns one **company**. That company is the tenant: almost every business table hangs off `company_id`. Roles come from Spatie Permission, which links to users polymorphically through `model_type` + `model_id`, so the database has no foreign key back to `users`. The three roles seeded are `super-admin`, `company` and `user`.
+## Platform, plans and billing
 
 ```mermaid
 erDiagram
-  users {
+  platform_users {
     bigint id PK
     string name
     string email UK
-    timestamp email_verified_at
     string password
     enum status "active / inactive"
+    text two_factor_secret "encrypted"
+    text two_factor_recovery_codes
+    timestamp two_factor_confirmed_at
+    timestamp last_login_at
     string remember_token
-    string stripe_id "indexed"
-    string pm_type
-    string pm_last_four
-    timestamp trial_ends_at
   }
-  companies {
-    bigint id PK
-    bigint user_id FK "owner, cascade"
-    string company_name
-    string slug UK
-    string email UK
-    string address
-    string city
-    string state "free text"
-    string zip
-    text description
-    string phone
-    string fax
-    text logo
-    enum status "active / inactive"
-  }
-  policy_pdfs {
-    bigint id PK
-    bigint company_id FK, UK "nullable, cascade"
-    string alcohol_drug_test_policy_pdf
-    string general_work_policy_pdf
-  }
-  roles {
-    bigint id PK
-    string name "super-admin / company / user"
-    string guard_name
-  }
-  permissions {
-    bigint id PK
+  features {
+    string key PK "code registry"
     string name
-    string guard_name
-  }
-  model_has_roles {
-    bigint role_id PK, FK
-    string model_type PK "App Models User"
-    bigint model_id PK "users.id, no FK"
-  }
-  model_has_permissions {
-    bigint permission_id PK, FK
-    string model_type PK
-    bigint model_id PK "users.id, no FK"
-  }
-  role_has_permissions {
-    bigint permission_id PK, FK
-    bigint role_id PK, FK
-  }
-  sessions {
-    string id PK
-    bigint user_id "indexed, no FK"
-    string ip_address
-    text user_agent
-    longtext payload
-    int last_activity
-  }
-  password_reset_tokens {
-    string email PK "matches users.email"
-    string token
-    timestamp created_at
-  }
-  notifications {
-    uuid id PK
-    string type
-    string notifiable_type "morph"
-    bigint notifiable_id "morph"
-    text data
-    timestamp read_at
-  }
-  users ||--o{ companies : "owns"
-  companies ||--o| policy_pdfs : "has"
-  roles ||--o{ model_has_roles : "granted"
-  users ||..o{ model_has_roles : "model_id"
-  permissions ||--o{ model_has_permissions : "granted"
-  users ||..o{ model_has_permissions : "model_id"
-  roles ||--o{ role_has_permissions : "bundles"
-  permissions ||--o{ role_has_permissions : "in role"
-  users ||..o{ sessions : "user_id"
-  users ||..o| password_reset_tokens : "email"
-  users ||..o{ notifications : "notifiable"
-```
-
-## Driver qualification file
-
-_13 tables_
-
-This is the core of the product: the driver qualification (DQ) file that 49 CFR §391.51 requires a motor carrier to keep for each driver. A **driver** belongs to a company. `drivers.user_id` holds the user who created the record (the company owner, or an admin). It is not a login for the driver. The application form fills the history tables (addresses, licenses with CDL endorsements, experience, accidents, violations, forfeitures, and employment records), and `driver_documents` holds the signatures and consents (PSP, FMCSA Clearinghouse, drug-test answers, policies). Files uploaded later go in `driver_compliance_documents`, typed by `document_types`.
-
-```mermaid
-erDiagram
-  users {
-    bigint id PK
-  }
-  companies {
-    bigint id PK
-  }
-  drivers {
-    bigint id PK
-    bigint user_id FK "creator, cascade"
-    bigint company_id FK "cascade"
-    string first_name
-    string middle_name
-    string last_name
-    string suffix
-    date date_of_birth
-    string ssn "encrypted cast"
-    string main_phone
-    string alt_phone
-    string email "UK with company_id"
-    date medical_certificate_expiration_date
-    text photo
-    string business_name
-    string employer_identification_number
-    enum federal_tax_classification "sole prop / C / S / LLC"
-    string address
-    string city
-    string state "free text"
-    string country "default US"
-    string postal_code
-    boolean twic_card
-    boolean passport
-    enum status "draft ... approved / rejected / withdrawn"
-    timestamp withdrawn_at
-    enum hazmat "yes / no"
-    enum lcv_certificate "yes / no"
-    enum rejection_reason "7 reasons"
-    text rejection_notes
-    date rejection_date
-    timestamp hired_at
-    date hire_date
-    timestamp rejected_at
-    bigint action_by FK "users.id, nullable"
-    string source "admin / public_application"
-    timestamp deleted_at "soft delete"
-  }
-  residence_addresses {
-    bigint id PK
-    bigint driver_id FK
-    string address
-    string city
-    string state
-    string country
-    string zip
-    boolean is_current
-  }
-  licenses {
-    bigint id PK
-    bigint driver_id FK
-    string first_name
-    string last_name
-    date issued
-    date expires
-    string country
-    string state
-    string class
-    string license_number
-    string repeat_license_number
-    boolean is_h_placarded_hazmat
-    boolean is_n_tank_vehicle
-    boolean is_p_passengers
-    boolean is_t_double_trailer
-    boolean is_s_school_bus
-    boolean is_x_placarded_hazmat
-  }
-  experiences {
-    bigint id PK
-    bigint driver_id FK
-    string equipment_class
-    enum experience "yes / no"
-    date from_date
-    date to_date
-    string approx_miles
-  }
-  accidents {
-    bigint id PK
-    bigint driver_id FK
-    enum accident "yes / no"
-    date accident_date
-    string accident_location
-    string number_of_injuries
-    string number_of_fatalities
-    enum hazmat_spill "yes / no"
-  }
-  violations {
-    bigint id PK
-    bigint driver_id FK
-    enum violation "yes / no"
-    date violation_date
-    string violation_location
-    string offense
-    string vehicle_type "free text"
-    string violation_record_signature
-    date violation_record_date_signed
-  }
-  forfeitures {
-    bigint id PK
-    bigint driver_id FK
-    enum denied_license "yes / no"
-    enum license_revoked "yes / no"
-    text forfeitures
-  }
-  employment_records {
-    bigint id PK
-    bigint driver_id FK
-    string employer_name
-    string employer_record_address
-    string employer_record_city
-    string employer_record_country
-    string employer_record_state
-    string employer_record_postal_code
-    string employer_record_phone
-    string employer_record_fax
-    string employer_record_email
-    string employer_record_position
-    date employer_record_date_from
-    date employer_record_date_to
-    text employer_record_reason_for_leaving
-    enum employed_regulations "yes / no"
-    enum safety_sensitive_function "yes / no"
-  }
-  driver_documents {
-    bigint id PK
-    bigint driver_id FK "hasOne in code"
-    text license_front
-    text license_back
-    text medical_card
-    text forfeiture_document
-    string document_path
-    string violation_record_signature
-    date violation_record_date_signed
-    enum drug_test_question_1 "yes / no"
-    enum drug_test_question_2 "yes / no / n-a"
-    string drug_test_signature
-    date drug_test_date_signed
-    boolean psp_authorization
-    datetime psp_authorization_date
-    string psp_authorization_signature
-    boolean psp_authorization_agreement
-    boolean fmcsa_consent
-    datetime fmcsa_consent_date
-    string fmcsa_consent_signature
-    boolean fmcsa_consent_agreement
-    date fmcsa_date_signed
-    string alcohol_drug_test_policy_signature
-    date alcohol_drug_test_policy_date
-    string general_work_policy_signature
-    date general_work_policy_date
-    string applicant_signature
-    date date_signed
-  }
-  driver_compliance_documents {
-    bigint id PK
-    bigint driver_id FK "cascade"
-    bigint document_type_id FK "restrict"
-    date file_date
-    date expiry_date
-    string description
-    string file_path
-  }
-  document_types {
-    bigint id PK
-    string name
-    string module "driver / vehicle / trailer"
-    boolean status
-    timestamp deleted_at "soft delete"
-  }
-  users ||--o{ drivers : "created by"
-  users |o--o{ drivers : "action_by"
-  companies ||--o{ drivers : "employs"
-  drivers ||--o{ residence_addresses : "lived at"
-  drivers ||--o{ licenses : "holds"
-  drivers ||--o{ experiences : "has"
-  drivers ||--o{ accidents : "reported"
-  drivers ||--o{ violations : "reported"
-  drivers ||--o{ forfeitures : "reported"
-  drivers ||--o{ employment_records : "worked at"
-  drivers ||--o{ driver_documents : "signed"
-  drivers ||--o{ driver_compliance_documents : "files"
-  document_types ||--o{ driver_compliance_documents : "typed as"
-```
-
-## Fleet & assets
-
-_13 tables_
-
-Each company owns **vehicles** (power units) and **trailers**. Both are unique per company by unit number and VIN. Four lookup tables classify them. An **asset group** pairs one driver with one vehicle and, optionally, one trailer. `document_types` is a global list shared across modules. `company_document_type` is an opt-out list: each row is a document type that one company has switched off.
-
-```mermaid
-erDiagram
-  companies {
-    bigint id PK
-  }
-  drivers {
-    bigint id PK
-  }
-  vehicles {
-    bigint id PK
-    bigint company_id FK "cascade"
-    string unit_no "UK with company_id"
-    string vin "UK with company_id"
-    year year
-    string make
-    string model
-    bigint vehicle_type_id FK "nullable, restrict"
-    string owned_by
-    string color
-    string title_no
-    string tire_size
-    bigint odometer
-    int engine_hours
-    int gvw "lbs"
-    bigint vehicle_group_id FK "nullable, restrict"
-    bigint fuel_type_id FK "nullable, restrict"
-    string engine_type
-    string transmission
-    string suspension
-    int no_axles
-    enum configuration "conventional / cabover"
-    int wheel_base "inches"
-    string size_dimension
-    text notes
-    timestamp deleted_at "soft delete"
-  }
-  trailers {
-    bigint id PK
-    bigint company_id FK "cascade"
-    string unit_no "UK with company_id"
-    string vin "UK with company_id"
-    year year
-    string make
-    string model
-    bigint equipment_types_id FK "restrict"
-    string owned_by
-    string color
-    string title_no
-    string tire_size
-    int gvw "lbs"
-    bigint vehicle_group_id FK "nullable, restrict"
-    text notes
-    timestamp deleted_at "soft delete"
-  }
-  vehicle_types {
-    bigint id PK
-    string name
-  }
-  fuel_types {
-    bigint id PK
-    string name
-  }
-  vehicle_groups {
-    bigint id PK
-    string name
-  }
-  equipment_types {
-    bigint id PK
-    string name
-  }
-  asset_groups {
-    bigint id PK
-    bigint company_id FK "cascade"
-    string group_name
-    bigint driver_id FK "cascade"
-    string primary_driver_name "copied"
-    string primary_driver_phone "copied"
-    string primary_driver_email "copied"
-    string second_driver_name
-    string second_driver_phone
-    string second_driver_email
-    bigint vehicle_id FK "cascade"
-    bigint trailer_id FK "nullable, cascade"
-    enum status "active / inactive"
-    timestamp deleted_at "soft delete"
-  }
-  document_types {
-    bigint id PK
-    string name
-    string module "driver / vehicle / trailer"
-    boolean status
-    timestamp deleted_at "soft delete"
-  }
-  company_document_type {
-    bigint id PK
-    bigint company_id FK "UK pair, cascade"
-    bigint document_type_id FK "UK pair, cascade"
-  }
-  vehicle_documents {
-    bigint id PK
-    bigint vehicle_id FK "cascade"
-    bigint document_type_id FK "restrict"
-    date expiry_date
-    string description
-    string file_path
-    timestamp deleted_at "soft delete"
-  }
-  trailer_documents {
-    bigint id PK
-    bigint trailer_id FK "cascade"
-    bigint document_type_id FK "restrict"
-    date expiry_date
-    string description
-    string file_path
-    timestamp deleted_at "soft delete"
-  }
-  companies ||--o{ vehicles : "owns"
-  companies ||--o{ trailers : "owns"
-  vehicle_types |o--o{ vehicles : "classifies"
-  fuel_types |o--o{ vehicles : "fuels"
-  vehicle_groups |o--o{ vehicles : "groups"
-  vehicle_groups |o--o{ trailers : "groups"
-  equipment_types ||--o{ trailers : "classifies"
-  companies ||--o{ asset_groups : "owns"
-  drivers ||--o{ asset_groups : "drives"
-  vehicles ||--o{ asset_groups : "in"
-  trailers |o--o{ asset_groups : "in"
-  vehicles ||--o{ vehicle_documents : "files"
-  trailers ||--o{ trailer_documents : "files"
-  document_types ||--o{ vehicle_documents : "typed as"
-  document_types ||--o{ trailer_documents : "typed as"
-  companies ||--o{ company_document_type : "disables"
-  document_types ||--o{ company_document_type : "disabled for"
-```
-
-## Maintenance
-
-_7 tables_
-
-**Maintenance schedules** set recurring service by date, mileage or engine hours. A schedule can cover one vehicle or none (company-wide). **Service logs** record completed work on a vehicle. Each log is tagged with one or more categories through the `service_log_category` pivot and can have receipts attached.
-
-```mermaid
-erDiagram
-  companies {
-    bigint id PK
-  }
-  vehicles {
-    bigint id PK
-  }
-  maintenance_categories {
-    bigint id PK
-    string name
-  }
-  maintenance_schedules {
-    bigint id PK
-    bigint company_id FK "cascade"
-    bigint vehicle_id FK "nullable, cascade"
-    bigint maintenance_category_id FK "restrict"
-    string title
-    enum schedule_type "date / mileage / engine_hours"
-    int interval_days
-    int interval_miles
-    int interval_hours
-    date last_due_date
-    int last_due_mileage
-    int last_due_hours
-    date next_due_date "indexed"
-    int next_due_mileage
-    int next_due_hours
-    text description
-    text notes
-    boolean is_active
-    enum status "active / paused / completed"
-    timestamp deleted_at "soft delete"
-  }
-  service_logs {
-    bigint id PK
-    bigint company_id FK "cascade"
-    bigint vehicle_id FK "cascade"
-    date service_date
-    text maintenance_notes
-    bigint odometer_at_service
-    bigint current_odometer
-    int engine_hours_at_service
-    int current_engine_hours
-    decimal total_cost "10,2"
-    enum status "completed / pending / cancelled"
-    timestamp deleted_at "soft delete"
-  }
-  service_log_category {
-    bigint id PK
-    bigint service_log_id FK "UK pair, cascade"
-    bigint maintenance_category_id FK "UK pair, restrict"
-  }
-  service_documents {
-    bigint id PK
-    bigint service_log_id FK "cascade"
-    string original_name
-    string file_name
-    string file_path
-    string mime_type
-    int file_size
-  }
-  companies ||--o{ maintenance_schedules : "plans"
-  vehicles |o--o{ maintenance_schedules : "scheduled for"
-  maintenance_categories ||--o{ maintenance_schedules : "type of"
-  companies ||--o{ service_logs : "records"
-  vehicles ||--o{ service_logs : "serviced"
-  service_logs ||--o{ service_log_category : "covers"
-  maintenance_categories ||--o{ service_log_category : "tagged"
-  service_logs ||--o{ service_documents : "attaches"
-```
-
-## Billing & subscriptions
-
-_5 tables_
-
-Billing is attached to the **user**, not the company. Stripe is the source of truth. `subscriptions` mirrors the Stripe subscription state, and `payments` records each checkout session or invoice. Deleting a plan does not delete history: the plan link is set to null. `subscription_notification_logs` keeps the same expiry reminder from being sent twice. Its unique key is subscription + type + channel + days before.
-
-```mermaid
-erDiagram
-  users {
-    bigint id PK
-    string stripe_id
-    timestamp trial_ends_at
+    string group
+    enum kind "module / limit"
+    string unit
+    enum availability "general / override_only / disabled"
+    int sort_order
   }
   plans {
     bigint id PK
     string name
-    string stripe_plan_id UK
-    string stripe_price_id UK
     string slug UK
     text description
-    decimal price "8,2"
-    string currency "default USD"
-    string billing_cycle "default monthly"
-    int duration_days
-    int trial_days
+    boolean is_public
     boolean is_active
-    boolean is_featured
     int sort_order
-    json features
+    json marketing_bullets "display only"
+  }
+  plan_prices {
+    bigint id PK
+    bigint plan_id FK "restrict"
+    enum interval "month / year"
+    decimal amount
+    char currency
+    string stripe_price_id UK
+    timestamp archived_at "immutable rows"
+    tinyint current_flag "generated, UK with plan interval currency"
+  }
+  plan_features {
+    bigint plan_id PK, FK "cascade"
+    string feature_key PK, FK "restrict"
+    boolean enabled
+    int limit_value "null = unlimited"
+  }
+  company_feature_overrides {
+    bigint id PK
+    bigint company_id FK "restrict"
+    string feature_key FK "restrict"
+    boolean enabled "null = inherit"
+    int limit_value "null = inherit"
+    boolean is_unlimited
+    text reason
+    timestamp starts_at
+    timestamp ends_at
+    bigint granted_by_platform_user_id FK "set null"
+    timestamp revoked_at "append-only history"
+    bigint revoked_by_platform_user_id FK "set null"
+    text revoke_reason
+    tinyint open_flag "generated, UK with company and feature"
   }
   subscriptions {
     bigint id PK
-    bigint user_id FK "cascade"
-    bigint plan_id FK "nullable, set null"
+    bigint company_id FK "restrict"
+    bigint actor_user_id FK "set null"
+    bigint plan_price_id FK "restrict"
     string stripe_subscription_id UK
-    string stripe_status "default incomplete"
-    string billing_cycle
-    decimal amount "10,2"
-    string currency
+    string stripe_price_id "snapshot"
+    enum interval "month / year"
+    decimal amount "snapshot"
+    char currency
+    enum status "trialing ... canceled"
+    enum source "stripe / trial / admin"
     timestamp trial_ends_at
     timestamp current_period_start
     timestamp current_period_end
     boolean cancel_at_period_end
     timestamp ends_at
-    string source "stripe / trial / admin"
+    timestamp ended_at
+    timestamp last_stripe_event_at "ordering guard"
+    boolean needs_review
+    tinyint open_flag "generated, UK with company"
   }
   payments {
     bigint id PK
-    bigint user_id FK "cascade"
-    bigint plan_id FK "nullable, set null"
-    bigint subscription_id FK "nullable, set null"
+    bigint company_id FK "restrict"
+    bigint plan_id FK "restrict"
+    bigint subscription_id FK "restrict, nullable"
     string stripe_checkout_session_id UK
     string stripe_invoice_id UK
     string stripe_payment_intent_id UK
-    decimal amount "10,2"
+    decimal amount
     string currency
-    string status "paid / failed / refunded / pending"
+    string status
     string billing_reason
     string hosted_invoice_url
     timestamp paid_at
-    json raw "Stripe payload"
+    json raw
   }
   subscription_notification_logs {
     bigint id PK
+    bigint company_id FK "restrict"
     bigint subscription_id FK "cascade"
-    bigint user_id FK "cascade"
-    string type "expiring_soon / expired"
-    string channel "mail / database / sms"
+    bigint recipient_user_id FK "set null"
+    string type
+    string channel
     tinyint days_before
     timestamp sent_at
   }
-  users ||--o{ subscriptions : "subscribes"
-  plans |o--o{ subscriptions : "priced by"
-  users ||--o{ payments : "pays"
-  plans |o--o{ payments : "for"
-  subscriptions |o--o{ payments : "billed by"
-  subscriptions ||--o{ subscription_notification_logs : "reminders"
-  users ||--o{ subscription_notification_logs : "notified"
-```
-
-## Reference data & framework
-
-_9 tables_
-
-These tables stand alone. `countries` and `states` feed dropdowns, but no business table references them: every state and country column elsewhere stores the name as plain text. `otp_verifications` handles phone sign-in codes and `site_settings` is a single-row configuration table. The rest are Laravel's cache and queue tables.
-
-```mermaid
-erDiagram
-  countries {
+  stripe_events {
+    bigint id PK
+    string event_id UK
+    string type
+    timestamp stripe_created_at
+    json payload
+    enum status "pending / processed / ignored / failed"
+    text error
+    timestamp received_at
+    timestamp processed_at
+  }
+  asset_transfers {
+    bigint id PK
+    enum asset_type "vehicle / trailer"
+    bigint source_company_id FK "restrict"
+    bigint target_company_id FK "restrict"
+    bigint source_vehicle_id FK "cFK with source company, restrict"
+    bigint target_vehicle_id FK "cFK with target company, restrict"
+    bigint source_trailer_id FK "cFK, restrict"
+    bigint target_trailer_id FK "cFK, restrict"
+    text reason
+    enum status "completed / failed"
+    json copied_counts
+    bigint bytes_copied
+    bigint performed_by_platform_user_id FK "restrict"
+    timestamp performed_at
+  }
+  platform_users {
     bigint id PK
     string name
-    string iso_code UK
-    string phone_code
-    string currency_code
-    string currency_name
-  }
-  states {
-    bigint id PK
-    bigint country_id FK "cascade"
-    string name
-    string code
-  }
-  otp_verifications {
-    bigint id PK
-    string phone "indexed"
-    string otp
-    timestamp expires_at
-    boolean is_used
-    string method "default direct_sms"
-    string verification_sid
+    string email UK
+    string password
+    enum status "active / inactive"
+    text two_factor_secret "encrypted"
+    text two_factor_recovery_codes
+    timestamp two_factor_confirmed_at
+    timestamp last_login_at
+    string remember_token
   }
   site_settings {
     bigint id PK
@@ -731,117 +238,831 @@ erDiagram
     boolean tawk_enabled
     string tawk_property_id
     string tawk_widget_id
-    longtext tawk_widget_code
+    text tawk_widget_code
+    string default_alcohol_drug_test_policy_pdf
+    string default_general_work_policy_pdf
+    bigint trial_plan_id FK "restrict, nullable"
+    smallint trial_days
+    smallint grace_days
+    smallint support_session_max_minutes
+    string legal_name
+    string support_email
+    string support_phone
+    text footer_text
+    string terms_url
+    string privacy_url
+    string timezone
+    string primary_color
+    string accent_color
+    enum default_color_mode "light / dark / system"
+    string logo_dark
+    string email_logo
+    string og_image
+    string twitter_card
+    string canonical_base_url
+    boolean robots_noindex_default
+    string search_console_verification
+    string mail_from_name
+    string mail_from_address
   }
-  cache {
-    string key PK
-    mediumtext value
-    int expiration
-  }
-  cache_locks {
-    string key PK
-    string owner
-    int expiration
-  }
-  jobs {
+  companies {
     bigint id PK
-    string queue "indexed"
-    longtext payload
-    tinyint attempts
-    int reserved_at
-    int available_at
-    int created_at
   }
-  job_batches {
-    string id PK
-    string name
-    int total_jobs
-    int pending_jobs
-    int failed_jobs
-    longtext failed_job_ids
-    mediumtext options
-    int cancelled_at
-    int created_at
-    int finished_at
-  }
-  failed_jobs {
-    bigint id PK
-    string uuid UK
-    text connection
-    text queue
-    longtext payload
-    longtext exception
-    timestamp failed_at
-  }
-  countries ||--o{ states : "contains"
+  plans ||--o{ plan_prices : "priced"
+  plans ||--o{ plan_features : "includes"
+  features ||--o{ plan_features : "in"
+  features ||--o{ company_feature_overrides : "for"
+  companies ||--o{ company_feature_overrides : "has"
+  platform_users |o--o{ company_feature_overrides : "granted"
+  companies ||--o{ subscriptions : "owns"
+  plan_prices ||--o{ subscriptions : "at price"
+  companies ||--o{ payments : "pays"
+  subscriptions |o--o{ payments : "billed"
+  subscriptions ||--o{ subscription_notification_logs : "reminders"
+  plans |o--o| site_settings : "trial plan"
+  companies ||--o{ asset_transfers : "source"
+  companies ||--o{ asset_transfers : "target"
+  platform_users ||--o{ asset_transfers : "performed"
 ```
+
+## Accounts, tenancy and authorization
+
+```mermaid
+erDiagram
+  companies {
+    bigint id PK
+    bigint owner_user_id FK "cFK id+owner to users company_id+id, restrict"
+    string company_name
+    string slug UK "not null"
+    string dot_number
+    string mc_number
+    text description
+    string email "contact, not unique"
+    string billing_email
+    string phone
+    string fax
+    string address
+    string city
+    char state_code
+    string zip
+    string timezone
+    string logo_path
+    enum status "active / suspended / deactivated"
+    timestamp status_changed_at
+    string status_reason
+    string stripe_customer_id UK
+    timestamp trial_used_at
+    string trial_email UK
+    int entitlements_version
+    bigint storage_bytes
+  }
+  company_settings {
+    bigint company_id PK, FK "cascade"
+    string trip_number_prefix
+    enum distance_unit "mi / km"
+    enum weight_unit "lb / kg"
+    char currency
+    tinyint week_starts_on
+    smallint overtime_daily_after_minutes "default 480"
+    smallint double_overtime_daily_after_minutes "default 720"
+    smallint overtime_weekly_after_minutes "optional"
+    decimal overtime_multiplier "1.5"
+    decimal double_overtime_multiplier "2.0"
+  }
+  users {
+    bigint id PK
+    bigint company_id FK "restrict, not null"
+    enum user_type "member / support"
+    string name
+    string email UK "global, lowercase"
+    timestamp email_verified_at
+    string password
+    string phone
+    enum status "active / inactive"
+    timestamp last_login_at
+    string remember_token
+  }
+  company_invitations {
+    bigint id PK
+    bigint company_id FK "cascade"
+    string email
+    bigint role_id FK "FK team_id+id to roles, cascade"
+    bigint driver_id FK "cFK, restrict, nullable"
+    char token_hash UK
+    bigint invited_by_user_id FK "set null"
+    timestamp expires_at
+    timestamp accepted_at
+    bigint accepted_user_id FK "set null"
+    timestamp revoked_at
+  }
+  roles {
+    bigint id PK
+    bigint team_id "company id, 0 = platform, never null"
+    string name "UK with team and guard"
+    string guard_name "web / platform"
+    string system_key "owner / driver / support_read ..."
+    boolean is_system
+    string description
+  }
+  permissions {
+    bigint id PK
+    string name "UK with guard"
+    string guard_name
+    string feature_key FK "restrict"
+    boolean is_write
+    boolean self_scoped
+    string description
+  }
+  model_has_roles {
+    bigint team_id PK
+    bigint role_id PK, FK "FK team_id+role_id to roles, cascade"
+    string model_type PK "User or PlatformUser"
+    bigint model_id PK "no FK, integrity query"
+  }
+  model_has_permissions {
+    bigint team_id PK
+    bigint permission_id PK, FK "cascade"
+    string model_type PK
+    bigint model_id PK
+  }
+  role_has_permissions {
+    bigint permission_id PK, FK "cascade"
+    bigint role_id PK, FK "cascade"
+  }
+  platform_users {
+    bigint id PK
+  }
+  companies ||--|| company_settings : "settings"
+  companies ||--o{ users : "members"
+  companies |o..o| users : "owner"
+  companies ||--o{ company_invitations : "invites"
+  companies ||..o{ roles : "team_id"
+  roles ||--o{ model_has_roles : "assigned"
+  users ||..o{ model_has_roles : "model_id"
+  platform_users ||..o{ model_has_roles : "model_id, team 0"
+  permissions ||--o{ model_has_permissions : "granted"
+  roles ||--o{ role_has_permissions : "bundles"
+  permissions ||--o{ role_has_permissions : "in"
+  roles ||--o{ company_invitations : "offered"
+```
+
+## Drivers and the DQ file
+
+```mermaid
+erDiagram
+  drivers {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint created_by_user_id FK "set null"
+    bigint user_id FK, UK "cFK login, restrict"
+    string first_name
+    string middle_name
+    string last_name
+    string suffix
+    date date_of_birth
+    text ssn "encrypted"
+    string main_phone
+    string alt_phone
+    string email "UK with company_id"
+    bigint photo_file_id FK "cFK stored_files, restrict"
+    string business_name
+    string employer_identification_number
+    enum federal_tax_classification "individual_sole_proprietor / c_corporation / s_corporation / llc"
+    string address
+    string city
+    char state_code
+    char country_code
+    string postal_code
+    boolean twic_card
+    boolean passport
+    boolean hazmat
+    boolean lcv_certificate
+    enum worker_type "employee / contractor"
+    boolean overtime_exempt "company decides"
+    enum overtime_exempt_basis "motor_carrier_act / other"
+    enum application_status "draft ... withdrawn"
+    enum employment_status "applicant / active / inactive / terminated"
+    enum source "admin / public_application"
+    timestamp withdrawn_at
+    enum rejection_reason "not_good_fit / failed_drug_test / background_check_issues / cdl_issues / mvr_issues / psp_issues / other"
+    text rejection_notes
+    timestamp rejected_at
+    timestamp hired_at
+    date hire_date
+    timestamp terminated_at
+    date termination_date
+    bigint decided_by_user_id FK "set null"
+    timestamp deleted_at
+  }
+  licenses {
+    bigint id PK
+    bigint driver_id FK "restrict"
+    string first_name "snapshot as printed"
+    string last_name "snapshot as printed"
+    date issued
+    date expires
+    char country_code
+    char state_code
+    string class
+    string license_number
+    boolean is_h_placarded_hazmat
+    boolean is_n_tank_vehicle
+    boolean is_p_passengers
+    boolean is_t_double_trailer
+    boolean is_s_school_bus
+    boolean is_x_placarded_hazmat
+    boolean is_current
+    bigint current_driver_id UK "generated"
+  }
+  residence_addresses {
+    bigint id PK
+    bigint driver_id FK "cascade"
+    string address
+    string city
+    char state_code
+    char country_code
+    string zip
+    boolean is_current
+  }
+  experiences {
+    bigint id PK
+    bigint driver_id FK "cascade"
+    string equipment_class
+    boolean experience
+    date from_date
+    date to_date
+    int approx_miles
+  }
+  accidents {
+    bigint id PK
+    bigint driver_id FK "cascade"
+    date accident_date
+    string accident_location
+    smallint number_of_injuries
+    smallint number_of_fatalities
+    boolean hazmat_spill
+  }
+  violations {
+    bigint id PK
+    bigint driver_id FK "cascade"
+    date violation_date
+    string violation_location
+    string offense
+    string vehicle_type "snapshot text"
+  }
+  forfeitures {
+    bigint id PK
+    bigint driver_id FK "cascade"
+    boolean denied_license
+    boolean license_revoked
+    text forfeitures
+  }
+  employment_records {
+    bigint id PK
+    bigint driver_id FK "cascade"
+    string employer_name "external, snapshot"
+    string employer_record_address
+    string employer_record_city
+    char employer_record_country_code
+    char employer_record_state_code
+    string employer_record_postal_code
+    string employer_record_phone
+    string employer_record_fax
+    string employer_record_email
+    string employer_record_position
+    date employer_record_date_from
+    date employer_record_date_to
+    text employer_record_reason_for_leaving
+    boolean employed_regulations
+    boolean safety_sensitive_function
+  }
+  driver_documents {
+    bigint id PK
+    bigint driver_id FK, UK "FK cascade, one per driver"
+    bigint license_front_file_id FK "restrict"
+    bigint license_back_file_id FK "restrict"
+    bigint medical_card_file_id FK "restrict"
+    bigint forfeiture_document_file_id FK "restrict"
+    boolean has_accidents
+    boolean has_violations
+    string violation_record_signature
+    date violation_record_date_signed
+    enum drug_test_question_1 "yes / no"
+    enum drug_test_question_2 "yes / no / n/a"
+    string drug_test_signature
+    date drug_test_date_signed
+    boolean psp_authorization
+    timestamp psp_authorization_date
+    string psp_authorization_signature
+    boolean psp_authorization_agreement
+    boolean fmcsa_consent
+    timestamp fmcsa_consent_date
+    string fmcsa_consent_signature
+    boolean fmcsa_consent_agreement
+    date fmcsa_date_signed
+    string alcohol_drug_test_policy_signature
+    date alcohol_drug_test_policy_date
+    string general_work_policy_signature
+    date general_work_policy_date
+    string applicant_signature
+    date date_signed
+  }
+  driver_compliance_documents {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint driver_id FK "cFK, cascade"
+    bigint document_type_id FK "restrict"
+    bigint file_id FK "cFK stored_files, restrict"
+    date file_date
+    date expiry_date
+    string description
+    bigint uploaded_by_user_id FK "set null"
+    timestamp deleted_at
+  }
+  document_types {
+    bigint id PK
+    string name "UK with module"
+    string module "driver / vehicle / trailer"
+    string system_key UK
+    boolean requires_expiry
+    boolean status
+    timestamp deleted_at
+  }
+  company_document_type {
+    bigint id PK
+    bigint company_id FK "cascade"
+    bigint document_type_id FK "cascade"
+  }
+  policy_pdfs {
+    bigint id PK
+    bigint company_id FK, UK "FK restrict, not null"
+    bigint alcohol_drug_test_policy_file_id FK "cFK"
+    bigint general_work_policy_file_id FK "cFK"
+  }
+  companies {
+    bigint id PK
+  }
+  users {
+    bigint id PK
+  }
+  companies ||--o{ drivers : "employs"
+  users |o--o| drivers : "login"
+  users |o--o{ drivers : "created by"
+  drivers ||--o{ licenses : "holds"
+  drivers ||--o{ residence_addresses : "lived at"
+  drivers ||--o{ experiences : ""
+  drivers ||--o{ accidents : "declared"
+  drivers ||--o{ violations : "declared"
+  drivers ||--o{ forfeitures : ""
+  drivers ||--o{ employment_records : ""
+  drivers ||--o| driver_documents : "signed"
+  drivers ||--o{ driver_compliance_documents : "files"
+  document_types ||--o{ driver_compliance_documents : "typed"
+  companies ||--o{ company_document_type : "opts out"
+  document_types ||--o{ company_document_type : ""
+  companies ||--o| policy_pdfs : "policies"
+```
+
+## Fleet and maintenance
+
+```mermaid
+erDiagram
+  vehicles {
+    bigint id PK
+    bigint company_id FK "restrict"
+    string unit_no "UK with company_id"
+    string vin "UK with company_id"
+    year year
+    string make
+    string model
+    bigint vehicle_type_id FK "restrict"
+    string owned_by
+    string plate_number
+    char plate_state_code
+    bigint photo_file_id FK "cFK, restrict"
+    string color
+    string title_no
+    string tire_size
+    bigint odometer
+    int engine_hours
+    int gvw
+    bigint vehicle_group_id FK "restrict"
+    bigint fuel_type_id FK "restrict"
+    string engine_type
+    string transmission
+    string suspension
+    int no_axles
+    enum configuration "conventional / cabover"
+    int wheel_base
+    string size_dimension
+    text notes
+    timestamp deleted_at
+  }
+  trailers {
+    bigint id PK
+    bigint company_id FK "restrict"
+    string unit_no "UK with company_id"
+    string vin "UK with company_id"
+    year year
+    string make
+    string model
+    bigint equipment_type_id FK "restrict, renamed"
+    string owned_by
+    string plate_number
+    char plate_state_code
+    bigint photo_file_id FK "cFK, restrict"
+    string color
+    string title_no
+    string tire_size
+    int gvw
+    bigint vehicle_group_id FK "restrict"
+    text notes
+    timestamp deleted_at
+  }
+  asset_groups {
+    bigint id PK
+    bigint company_id FK "restrict"
+    string group_name "UK with company_id"
+    bigint driver_id FK "cFK, restrict"
+    bigint co_driver_id FK "cFK, restrict, pending"
+    bigint vehicle_id FK "cFK, restrict"
+    bigint trailer_id FK "cFK, restrict, nullable"
+    enum status "active / inactive"
+    timestamp deleted_at
+    bigint active_vehicle_id UK "generated"
+    bigint active_trailer_id UK "generated"
+  }
+  vehicle_documents {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint vehicle_id FK "cFK, cascade"
+    bigint document_type_id FK "restrict"
+    bigint file_id FK "cFK, restrict"
+    date file_date
+    date expiry_date
+    string description
+    bigint uploaded_by_user_id FK "set null"
+    timestamp deleted_at
+  }
+  trailer_documents {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint trailer_id FK "cFK, cascade"
+    bigint document_type_id FK "restrict"
+    bigint file_id FK "cFK, restrict"
+    date file_date
+    date expiry_date
+    string description
+    bigint uploaded_by_user_id FK "set null"
+    timestamp deleted_at
+  }
+  service_logs {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint vehicle_id FK "cFK, restrict"
+    bigint maintenance_schedule_id FK "cFK, restrict, nullable"
+    date service_date
+    text maintenance_notes
+    bigint odometer_at_service
+    bigint current_odometer
+    int engine_hours_at_service
+    int current_engine_hours
+    decimal total_cost
+    enum status "completed / pending / cancelled"
+    timestamp deleted_at
+  }
+  service_log_category {
+    bigint id PK
+    bigint service_log_id FK "cascade"
+    bigint maintenance_category_id FK "restrict"
+  }
+  service_documents {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint service_log_id FK "cFK, cascade"
+    bigint file_id FK "cFK, restrict"
+  }
+  maintenance_schedules {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint vehicle_id FK "cFK, restrict, nullable"
+    bigint maintenance_category_id FK "restrict"
+    string title
+    enum schedule_type "date / mileage / engine_hours"
+    int interval_days
+    int interval_miles
+    int interval_hours
+    date last_service_date
+    int last_service_mileage
+    int last_service_hours
+    date next_due_date
+    int next_due_mileage
+    int next_due_hours
+    text description
+    text notes
+    enum status "active / paused / completed"
+    timestamp deleted_at
+  }
+  vehicle_types {
+    bigint id PK
+    string name UK
+    boolean is_active
+  }
+  fuel_types {
+    bigint id PK
+    string name UK
+    boolean is_active
+  }
+  vehicle_groups {
+    bigint id PK
+    string name UK
+    boolean is_active
+  }
+  equipment_types {
+    bigint id PK
+    string name UK
+    boolean is_active
+  }
+  maintenance_categories {
+    bigint id PK
+    string name UK
+    boolean is_active
+  }
+  drivers {
+    bigint id PK
+  }
+  vehicle_types |o--o{ vehicles : ""
+  fuel_types |o--o{ vehicles : ""
+  vehicle_groups |o--o{ vehicles : ""
+  vehicle_groups |o--o{ trailers : ""
+  equipment_types ||--o{ trailers : ""
+  drivers ||--o{ asset_groups : "primary"
+  drivers |o--o{ asset_groups : "co-driver"
+  vehicles ||--o{ asset_groups : ""
+  trailers |o--o{ asset_groups : ""
+  vehicles ||--o{ vehicle_documents : ""
+  trailers ||--o{ trailer_documents : ""
+  vehicles ||--o{ service_logs : ""
+  maintenance_schedules |o--o{ service_logs : "completed by"
+  service_logs ||--o{ service_log_category : ""
+  maintenance_categories ||--o{ service_log_category : ""
+  service_logs ||--o{ service_documents : ""
+  vehicles |o--o{ maintenance_schedules : ""
+  maintenance_categories ||--o{ maintenance_schedules : ""
+```
+
+## Files, folders and documents
+
+```mermaid
+erDiagram
+  stored_files {
+    bigint id PK
+    bigint company_id FK "restrict"
+    string disk
+    string path UK "companies/id/area/yyyy/mm/hash"
+    string original_name
+    string mime_type
+    bigint size_bytes
+    char checksum_sha256
+    bigint converted_from_file_id FK "cFK self, restrict"
+    bigint uploaded_by_user_id FK "set null"
+  }
+  companies {
+    bigint id PK
+  }
+  companies ||--o{ stored_files : "stores"
+  stored_files |o--o{ stored_files : "converted from"
+```
+
+## Trips, inspections, events and tracking
+
+```mermaid
+erDiagram
+  trip_number_sequences {
+    bigint company_id PK, FK "cascade"
+    bigint next_number "locked on use"
+  }
+```
+
+## Communication, integrations and audit
+
+```mermaid
+erDiagram
+  audit_logs {
+    bigint id PK
+    bigint company_id "no FK, survives purge"
+    enum actor_type "user / platform_user / system / stripe"
+    bigint actor_id
+    bigint support_session_id
+    string action
+    string subject_type
+    bigint subject_id
+    json changes "redacted"
+    string ip
+    text user_agent
+  }
+  platform_support_sessions {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint platform_user_id FK "restrict"
+    text reason
+    enum scope "read / read_write"
+    enum status "requested / approved / rejected / expired / active / ended"
+    bigint tenant_approved_by_user_id FK "restrict, required to approve"
+    timestamp tenant_approved_at
+    bigint platform_approved_by_platform_user_id FK "restrict, not the requester"
+    timestamp platform_approved_at
+    enum rejected_by_type "user / platform_user"
+    bigint rejected_by_id
+    text rejection_reason
+    timestamp requested_at
+    timestamp started_at
+    timestamp expires_at
+    timestamp ended_at
+    string end_reason
+    bigint revoked_by_user_id FK "set null"
+    tinyint active_flag "generated"
+  }
+  platform_users {
+    bigint id PK
+  }
+  platform_users ||--o{ platform_support_sessions : "requests"
+  platform_support_sessions |o..o{ audit_logs : "actions"
+```
+
+## Built tables not in the proposal
+
+Lookups and support tables that the build added beside the design.
+
+```mermaid
+erDiagram
+  companies ||--o{ company_retained_features : "company_id"
+  features ||--o{ company_retained_features : "feature_key"
+  countries ||--o{ states : "country_id"
+  company_retained_features {
+    bigint company_id PK, FK "cascade"
+    string feature_key PK, FK "restrict"
+    timestamp retained_at
+  }
+  countries {
+    bigint id PK
+    string name
+    string iso_code UK
+    string phone_code
+    string currency_code
+    string currency_name
+  }
+  otp_verifications {
+    bigint id PK
+    string phone
+    string otp
+    timestamp expires_at
+    boolean is_used
+    string method
+    string verification_sid
+  }
+  states {
+    bigint id PK
+    bigint country_id FK "cascade"
+    string name
+    string code
+  }
+```
+
+Framework tables, not drawn: `cache`, `cache_locks`, `failed_jobs`, `job_batches`, `jobs`, `migrations`, `notifications`, `password_reset_tokens`, `platform_password_reset_tokens`, `sessions`.
 
 ## Foreign keys and delete rules
 
-What the database does when a parent row is hard-deleted. Soft deletes are updates, so they never trigger these rules.
+What the database does when a parent row is hard-deleted, as built. In normal use tenant data is soft-deleted or deactivated, so most of these rules only matter to the retention purge job. `cFK` is a composite tenant FK `(company_id, x_id)` to `x (company_id, id)`.
 
-| Domain | Column | References | Null | On delete |
-| --- | --- | --- | --- | --- |
-| Accounts | `companies.user_id` | `users.id` | required | cascade |
-| Accounts | `policy_pdfs.company_id` | `companies.id` | nullable | cascade |
-| Accounts | `model_has_roles.role_id` | `roles.id` | required | cascade |
+| Area | Column | References | Null | On delete |
+|---|---|---|---|---|
+| Accounts | `company_invitations.accepted_user_id` | `users.id` | nullable | set null |
+| Accounts | `company_invitations.company_id` | `companies.id` | required | cascade |
+| Accounts | `company_invitations` cFK `driver_id` | `drivers` | nullable | restrict |
+| Accounts | `company_invitations` cFK `role_id` | `roles` | required | cascade |
+| Accounts | `company_invitations.invited_by_user_id` | `users.id` | nullable | set null |
+| Accounts | `company_settings.company_id` | `companies.id` | required | cascade |
 | Accounts | `model_has_permissions.permission_id` | `permissions.id` | required | cascade |
-| Accounts | `role_has_permissions.role_id` | `roles.id` | required | cascade |
+| Accounts | `model_has_roles` cFK `role_id` | `roles` | required | cascade |
+| Accounts | `permissions.feature_key` | `features.key` | nullable | restrict |
 | Accounts | `role_has_permissions.permission_id` | `permissions.id` | required | cascade |
-| Driver file | `drivers.user_id` | `users.id` | required | cascade |
-| Driver file | `drivers.company_id` | `companies.id` | required | cascade |
-| Driver file | `drivers.action_by` | `users.id` | nullable | no action |
-| Driver file | `residence_addresses.driver_id` | `drivers.id` | required | cascade |
-| Driver file | `licenses.driver_id` | `drivers.id` | required | cascade |
-| Driver file | `experiences.driver_id` | `drivers.id` | required | cascade |
-| Driver file | `accidents.driver_id` | `drivers.id` | required | cascade |
-| Driver file | `violations.driver_id` | `drivers.id` | required | cascade |
-| Driver file | `forfeitures.driver_id` | `drivers.id` | required | cascade |
-| Driver file | `employment_records.driver_id` | `drivers.id` | required | cascade |
-| Driver file | `driver_documents.driver_id` | `drivers.id` | required | cascade |
-| Driver file | `driver_compliance_documents.driver_id` | `drivers.id` | required | cascade |
-| Driver file | `driver_compliance_documents.document_type_id` | `document_types.id` | required | restrict |
-| Fleet | `vehicles.company_id` | `companies.id` | required | cascade |
-| Fleet | `vehicles.vehicle_type_id` | `vehicle_types.id` | nullable | restrict |
-| Fleet | `vehicles.vehicle_group_id` | `vehicle_groups.id` | nullable | restrict |
-| Fleet | `vehicles.fuel_type_id` | `fuel_types.id` | nullable | restrict |
-| Fleet | `trailers.company_id` | `companies.id` | required | cascade |
-| Fleet | `trailers.equipment_types_id` | `equipment_types.id` | required | restrict |
-| Fleet | `trailers.vehicle_group_id` | `vehicle_groups.id` | nullable | restrict |
-| Fleet | `asset_groups.company_id` | `companies.id` | required | cascade |
-| Fleet | `asset_groups.driver_id` | `drivers.id` | required | cascade |
-| Fleet | `asset_groups.vehicle_id` | `vehicles.id` | required | cascade |
-| Fleet | `asset_groups.trailer_id` | `trailers.id` | nullable | cascade |
-| Fleet | `vehicle_documents.vehicle_id` | `vehicles.id` | required | cascade |
-| Fleet | `vehicle_documents.document_type_id` | `document_types.id` | required | restrict |
-| Fleet | `trailer_documents.trailer_id` | `trailers.id` | required | cascade |
+| Accounts | `role_has_permissions.role_id` | `roles.id` | required | cascade |
+| Accounts | `users.company_id` | `companies.id` | required | restrict |
+| Communication | `platform_support_sessions.company_id` | `companies.id` | required | restrict |
+| Communication | `platform_support_sessions.platform_approved_by_platform_user_id` | `platform_users.id` | nullable | restrict |
+| Communication | `platform_support_sessions.platform_user_id` | `platform_users.id` | required | restrict |
+| Communication | `platform_support_sessions.revoked_by_user_id` | `users.id` | nullable | set null |
+| Communication | `platform_support_sessions.tenant_approved_by_user_id` | `users.id` | nullable | restrict |
+| Drivers | `accidents.driver_id` | `drivers.id` | required | cascade |
+| Drivers | `company_document_type.company_id` | `companies.id` | required | cascade |
+| Drivers | `company_document_type.document_type_id` | `document_types.id` | required | cascade |
+| Drivers | `driver_compliance_documents.company_id` | `companies.id` | required | restrict |
+| Drivers | `driver_compliance_documents` cFK `driver_id` | `drivers` | required | cascade |
+| Drivers | `driver_compliance_documents` cFK `file_id` | `stored_files` | required | restrict |
+| Drivers | `driver_compliance_documents.document_type_id` | `document_types.id` | required | restrict |
+| Drivers | `driver_compliance_documents.uploaded_by_user_id` | `users.id` | nullable | set null |
+| Drivers | `driver_documents.driver_id` | `drivers.id` | required | cascade |
+| Drivers | `driver_documents.forfeiture_document_file_id` | `stored_files.id` | nullable | restrict |
+| Drivers | `driver_documents.license_back_file_id` | `stored_files.id` | nullable | restrict |
+| Drivers | `driver_documents.license_front_file_id` | `stored_files.id` | nullable | restrict |
+| Drivers | `driver_documents.medical_card_file_id` | `stored_files.id` | nullable | restrict |
+| Drivers | `drivers.company_id` | `companies.id` | required | restrict |
+| Drivers | `drivers` cFK `photo_file_id` | `stored_files` | nullable | restrict |
+| Drivers | `drivers` cFK `user_id` | `users` | nullable | restrict |
+| Drivers | `drivers.created_by_user_id` | `users.id` | nullable | set null |
+| Drivers | `drivers.decided_by_user_id` | `users.id` | nullable | set null |
+| Drivers | `employment_records.driver_id` | `drivers.id` | required | cascade |
+| Drivers | `experiences.driver_id` | `drivers.id` | required | cascade |
+| Drivers | `forfeitures.driver_id` | `drivers.id` | required | cascade |
+| Drivers | `licenses.driver_id` | `drivers.id` | required | restrict |
+| Drivers | `policy_pdfs.company_id` | `companies.id` | required | restrict |
+| Drivers | `policy_pdfs` cFK `alcohol_drug_test_policy_file_id` | `stored_files` | nullable | restrict |
+| Drivers | `policy_pdfs` cFK `general_work_policy_file_id` | `stored_files` | nullable | restrict |
+| Drivers | `residence_addresses.driver_id` | `drivers.id` | required | cascade |
+| Drivers | `violations.driver_id` | `drivers.id` | required | cascade |
+| Files | `stored_files.company_id` | `companies.id` | required | restrict |
+| Files | `stored_files` cFK `converted_from_file_id` | `stored_files` | nullable | restrict |
+| Files | `stored_files.uploaded_by_user_id` | `users.id` | nullable | set null |
+| Fleet | `asset_groups.company_id` | `companies.id` | required | restrict |
+| Fleet | `asset_groups` cFK `co_driver_id` | `drivers` | nullable | restrict |
+| Fleet | `asset_groups` cFK `driver_id` | `drivers` | required | restrict |
+| Fleet | `asset_groups` cFK `trailer_id` | `trailers` | nullable | restrict |
+| Fleet | `asset_groups` cFK `vehicle_id` | `vehicles` | required | restrict |
+| Fleet | `maintenance_schedules.company_id` | `companies.id` | required | restrict |
+| Fleet | `maintenance_schedules` cFK `vehicle_id` | `vehicles` | nullable | restrict |
+| Fleet | `maintenance_schedules.maintenance_category_id` | `maintenance_categories.id` | required | restrict |
+| Fleet | `service_documents.company_id` | `companies.id` | required | restrict |
+| Fleet | `service_documents` cFK `file_id` | `stored_files` | required | restrict |
+| Fleet | `service_documents` cFK `service_log_id` | `service_logs` | required | cascade |
+| Fleet | `service_log_category.maintenance_category_id` | `maintenance_categories.id` | required | restrict |
+| Fleet | `service_log_category.service_log_id` | `service_logs.id` | required | cascade |
+| Fleet | `service_logs.company_id` | `companies.id` | required | restrict |
+| Fleet | `service_logs` cFK `maintenance_schedule_id` | `maintenance_schedules` | nullable | restrict |
+| Fleet | `service_logs` cFK `vehicle_id` | `vehicles` | required | restrict |
+| Fleet | `trailer_documents.company_id` | `companies.id` | required | restrict |
+| Fleet | `trailer_documents` cFK `file_id` | `stored_files` | required | restrict |
+| Fleet | `trailer_documents` cFK `trailer_id` | `trailers` | required | cascade |
 | Fleet | `trailer_documents.document_type_id` | `document_types.id` | required | restrict |
-| Fleet | `company_document_type.company_id` | `companies.id` | required | cascade |
-| Fleet | `company_document_type.document_type_id` | `document_types.id` | required | cascade |
-| Maintenance | `maintenance_schedules.company_id` | `companies.id` | required | cascade |
-| Maintenance | `maintenance_schedules.vehicle_id` | `vehicles.id` | nullable | cascade |
-| Maintenance | `maintenance_schedules.maintenance_category_id` | `maintenance_categories.id` | required | restrict |
-| Maintenance | `service_logs.company_id` | `companies.id` | required | cascade |
-| Maintenance | `service_logs.vehicle_id` | `vehicles.id` | required | cascade |
-| Maintenance | `service_log_category.service_log_id` | `service_logs.id` | required | cascade |
-| Maintenance | `service_log_category.maintenance_category_id` | `maintenance_categories.id` | required | restrict |
-| Maintenance | `service_documents.service_log_id` | `service_logs.id` | required | cascade |
-| Billing | `subscriptions.user_id` | `users.id` | required | cascade |
-| Billing | `subscriptions.plan_id` | `plans.id` | nullable | set null |
-| Billing | `payments.user_id` | `users.id` | required | cascade |
-| Billing | `payments.plan_id` | `plans.id` | nullable | set null |
-| Billing | `payments.subscription_id` | `subscriptions.id` | nullable | set null |
-| Billing | `subscription_notification_logs.subscription_id` | `subscriptions.id` | required | cascade |
-| Billing | `subscription_notification_logs.user_id` | `users.id` | required | cascade |
+| Fleet | `trailer_documents.uploaded_by_user_id` | `users.id` | nullable | set null |
+| Fleet | `trailers.company_id` | `companies.id` | required | restrict |
+| Fleet | `trailers` cFK `photo_file_id` | `stored_files` | nullable | restrict |
+| Fleet | `trailers.equipment_type_id` | `equipment_types.id` | required | restrict |
+| Fleet | `trailers.vehicle_group_id` | `vehicle_groups.id` | nullable | restrict |
+| Fleet | `vehicle_documents.company_id` | `companies.id` | required | restrict |
+| Fleet | `vehicle_documents` cFK `file_id` | `stored_files` | required | restrict |
+| Fleet | `vehicle_documents` cFK `vehicle_id` | `vehicles` | required | cascade |
+| Fleet | `vehicle_documents.document_type_id` | `document_types.id` | required | restrict |
+| Fleet | `vehicle_documents.uploaded_by_user_id` | `users.id` | nullable | set null |
+| Fleet | `vehicles.company_id` | `companies.id` | required | restrict |
+| Fleet | `vehicles` cFK `photo_file_id` | `stored_files` | nullable | restrict |
+| Fleet | `vehicles.fuel_type_id` | `fuel_types.id` | nullable | restrict |
+| Fleet | `vehicles.vehicle_group_id` | `vehicle_groups.id` | nullable | restrict |
+| Fleet | `vehicles.vehicle_type_id` | `vehicle_types.id` | nullable | restrict |
+| Platform | `asset_transfers.performed_by_platform_user_id` | `platform_users.id` | required | restrict |
+| Platform | `asset_transfers.source_company_id` | `companies.id` | required | restrict |
+| Platform | `asset_transfers (source_company_id, source_trailer_id)` | `trailers (company_id, id)` | nullable | restrict |
+| Platform | `asset_transfers (source_company_id, source_vehicle_id)` | `vehicles (company_id, id)` | nullable | restrict |
+| Platform | `asset_transfers.target_company_id` | `companies.id` | required | restrict |
+| Platform | `asset_transfers (target_company_id, target_trailer_id)` | `trailers (company_id, id)` | nullable | restrict |
+| Platform | `asset_transfers (target_company_id, target_vehicle_id)` | `vehicles (company_id, id)` | nullable | restrict |
+| Platform | `companies (id, owner_user_id)` | `users (company_id, id)` | nullable | restrict |
+| Platform | `company_feature_overrides.company_id` | `companies.id` | required | restrict |
+| Platform | `company_feature_overrides.feature_key` | `features.key` | required | restrict |
+| Platform | `company_feature_overrides.granted_by_platform_user_id` | `platform_users.id` | nullable | set null |
+| Platform | `company_feature_overrides.revoked_by_platform_user_id` | `platform_users.id` | nullable | set null |
+| Platform | `payments.company_id` | `companies.id` | required | restrict |
+| Platform | `payments.plan_id` | `plans.id` | nullable | restrict |
+| Platform | `payments.subscription_id` | `subscriptions.id` | nullable | restrict |
+| Platform | `plan_features.feature_key` | `features.key` | required | restrict |
+| Platform | `plan_features.plan_id` | `plans.id` | required | cascade |
+| Platform | `plan_prices.plan_id` | `plans.id` | required | restrict |
+| Platform | `site_settings.trial_plan_id` | `plans.id` | nullable | restrict |
+| Platform | `subscription_notification_logs.company_id` | `companies.id` | required | restrict |
+| Platform | `subscription_notification_logs.recipient_user_id` | `users.id` | nullable | set null |
+| Platform | `subscription_notification_logs.subscription_id` | `subscriptions.id` | required | cascade |
+| Platform | `subscriptions.actor_user_id` | `users.id` | nullable | set null |
+| Platform | `subscriptions.company_id` | `companies.id` | required | restrict |
+| Platform | `subscriptions.plan_price_id` | `plan_prices.id` | required | restrict |
+| Reference | `company_retained_features.company_id` | `companies.id` | required | cascade |
+| Reference | `company_retained_features.feature_key` | `features.key` | required | restrict |
 | Reference | `states.country_id` | `countries.id` | required | cascade |
+| Trips | `trip_number_sequences.company_id` | `companies.id` | required | cascade |
 
-## Known mismatches between schema and code
+The tables with deliberately **no FK** are `audit_logs` (it outlives what it records) and the Spatie `model_id` columns. The reasons are in [architecture/08-database-schema.md](architecture/08-database-schema.md).
 
-As of commit d1d4d8d. Remove each item from this list once it is fixed.
+## Not built yet
 
-- **Broken relation:** `MaintenanceSchedule::serviceLogs()` (`app/Models/MaintenanceSchedule.php`) uses `maintenance_schedule_id`, which `service_logs` doesn't have. Calling it fails with an unknown-column error.
-- **Delete blocker:** `drivers.action_by` has no on-delete rule, so a user who approved or rejected a driver can't be hard-deleted while that driver exists.
-- **hasOne without a unique constraint:** `User::company`, `Driver::driverDocument`, `Vehicle::assetGroup` and `Trailer::assetGroup` are `hasOne`, but the matching foreign-key columns aren't unique. If a duplicate row is created, Eloquent silently returns only one of them.
-- **Unlinked lookups:** no table references `countries` or `states`. Country and state names are stored as text in `drivers`, `companies`, `licenses`, `residence_addresses` and `employment_records`. `violations.vehicle_type` is also free text.
-- **Copied data:** `asset_groups` copies the primary driver's name, phone and email alongside `driver_id`.
-- **FK without a model relation:** `Company` has no `drivers()`, `assetGroups()`, `serviceLogs()`, `maintenanceSchedules()` or `policyPdf()`, and `Driver` has no relation for `action_by`.
+Tables of the design in [erd-proposed.md](erd-proposed.md) that later phases build ([architecture/13-implementation-roadmap.md](architecture/13-implementation-roadmap.md)):
+
+- **Accounts, tenancy and authorization:** `social_accounts`, `device_tokens`
+- **Files, folders and documents:** `folders`, `documents`, `exports`
+- **Trips, inspections, events and tracking:** `shippers`, `trips`, `trip_stops`, `inspection_templates`, `inspection_template_items`, `inspections`, `inspection_results`, `trip_events`, `fuel_purchases`, `location_pings`, `vehicle_last_locations`
+- **Money:** `driver_pay_rates`, `expenses`, `time_entries`, `timesheets`, `payroll_runs`, `payroll_run_lines`
+- **Communication, integrations and audit:** `conversations`, `conversation_participants`, `messages`, `time_off_requests`, `integration_connections`, `external_references`, `integration_sync_logs`
+
+## Open items that affect this diagram
+
+| Item | Effect if decided differently |
+|---|---|
+| Co-driver (still PENDING) | `asset_groups.co_driver_id` removed |

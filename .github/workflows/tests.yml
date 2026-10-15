@@ -1,0 +1,95 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Nightly: PermissionScaleTest at 2,000 companies (11 §5)
+    - cron: '0 3 * * *'
+
+jobs:
+  sqlite:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, gd, intl, zip
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - run: composer test
+
+  # MySQL-specific behaviour (CHECKs, composite FKs, row locks); 8.0.16 is the oldest supported version (13 task 0.1)
+  mysql:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0.16
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: driver_qualification
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: driver_qualification
+      DB_USERNAME: root
+      DB_PASSWORD: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, gd, intl, zip
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - name: Migrations up, down and up again
+        run: php artisan migrate:fresh --force && php artisan migrate:rollback --force && php artisan migrate --force
+      - name: Integrity and schema
+        run: php artisan test tests/Feature/Integrity tests/Feature/Schema
+      - name: Concurrency
+        run: php artisan test --group=mysql
+      - name: Full suite
+        run: php artisan test
+
+  scale:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0.16
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: driver_qualification
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: driver_qualification
+      DB_USERNAME: root
+      DB_PASSWORD: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, gd, intl, zip
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - run: php artisan test --group=scale

@@ -159,6 +159,15 @@ describe('route guard matrix', function () {
         expect($unguarded)->toBe([]);
     });
 
+    it('puts every /admin route but the profile behind verified (01 §5)', function () {
+        $unverified = aclRoutes()
+            ->filter(fn (array $route) => str_starts_with($route['uri'], 'admin/'))
+            ->reject(fn (array $route) => aclHasMiddleware($route, 'verified'))
+            ->pluck('key')->values()->all();
+
+        expect($unverified)->toBe(['GET admin/profile', 'PATCH admin/profile', 'DELETE admin/profile']);
+    });
+
     it('puts every /platform route behind auth:platform and the platform session (11 §5)', function () {
         $unguarded = aclRoutes()
             ->filter(fn (array $route) => $route['uri'] === 'platform' || str_starts_with($route['uri'], 'platform/'))

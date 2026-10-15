@@ -26,6 +26,7 @@ use Database\Factories\StoredFileFactory;
 use Database\Factories\TrailerFactory;
 use Database\Factories\VehicleFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\Actors;
@@ -137,7 +138,7 @@ it('copies the vehicle and its history into the target within its limits', funct
     $transfer = AssetTransfer::query()->sole();
     expect($transfer->status)->toBe('completed')
         ->and($transfer->target_vehicle_id)->toBe($copy->id)
-        ->and($transfer->copied_counts)->toBe(['documents' => 2, 'service_logs' => 2, 'schedules' => 1, 'files' => 4])
+        ->and(Arr::sortRecursive($transfer->copied_counts))->toBe(Arr::sortRecursive(['documents' => 2, 'service_logs' => 2, 'schedules' => 1, 'files' => 4]))
         ->and(AuditLog::where('action', 'asset.transferred_out')->where('company_id', $this->sourceCompany->id)->where('actor_type', 'platform_user')->exists())->toBeTrue()
         ->and(AuditLog::where('action', 'asset.transferred_in')->where('company_id', $this->targetCompany->id)->where('subject_id', $copy->id)->exists())->toBeTrue();
 
@@ -176,7 +177,7 @@ it('copies a trailer with its documents and takes it out of its groups', functio
     expect(TrailerDocument::withoutTenancy()->where('trailer_id', $copy->id)->count())->toBe(1)
         ->and($trailer->fresh()->trashed())->toBeTrue()
         ->and(AssetGroup::withoutTenancy()->where('trailer_id', $trailer->id)->where('status', 'active')->exists())->toBeFalse()
-        ->and(AssetTransfer::query()->sole()->copied_counts)->toBe(['documents' => 1, 'service_logs' => 0, 'schedules' => 0, 'files' => 1]);
+        ->and(Arr::sortRecursive(AssetTransfer::query()->sole()->copied_counts))->toBe(Arr::sortRecursive(['documents' => 1, 'service_logs' => 0, 'schedules' => 0, 'files' => 1]));
 });
 
 describe('refusals', function () {

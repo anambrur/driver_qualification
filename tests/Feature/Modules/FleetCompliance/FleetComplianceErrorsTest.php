@@ -1,11 +1,12 @@
 <?php
 
+use App\Models\StoredFile;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\FleetCompliance\FleetCompliance;
 use Tests\Support\Actors;
 use Tests\Support\Files;
+use Tests\Support\QueryFailure;
 
 /*
 | FCMP-05: the list, upload and delete endpoints returned `$e->getMessage()` in their JSON
@@ -28,7 +29,7 @@ describe('FCMP-05: no exception text in responses', function () {
     it('logs a failed asset list and returns a generic message', function (string $assetType, string $route, string $message) {
         [$owner] = FleetCompliance::tenantWithAsset($assetType);
         $type = FleetCompliance::documentType($assetType);
-        Schema::drop($assetType.'_documents');
+        QueryFailure::on($assetType.'_documents');
         Log::spy();
 
         $response = $this->actingAs($owner)
@@ -46,7 +47,7 @@ describe('FCMP-05: no exception text in responses', function () {
     it('logs a failed upload, returns a generic message and removes the stored file', function (string $assetType) {
         [$owner, $asset] = FleetCompliance::tenantWithAsset($assetType);
         $type = FleetCompliance::documentType($assetType);
-        Schema::drop($assetType.'_documents');
+        QueryFailure::on($assetType.'_documents');
         Log::spy();
 
         $response = $this->actingAs($owner)
@@ -57,7 +58,8 @@ describe('FCMP-05: no exception text in responses', function () {
         expect($response->json('message'))->toBe('Failed to upload document.');
         Log::shouldHaveReceived('error')->once();
         expect(Storage::disk('local')->allFiles())->toBe([])
-            ->and(Storage::disk('public')->allFiles())->toBe([]);
+            ->and(Storage::disk('public')->allFiles())->toBe([])
+            ->and(StoredFile::withoutTenancy()->count())->toBe(0);
     })->with(['vehicle', 'trailer']);
 
     it('returns 404 for an unknown document on delete', function (string $assetType) {

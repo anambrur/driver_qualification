@@ -1,12 +1,13 @@
 <?php
 
 use App\Models\DriverComplianceDocument;
+use App\Models\StoredFile;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\DriverCompliance\DriverCompliance;
 use Tests\Support\Actors;
 use Tests\Support\Files;
+use Tests\Support\QueryFailure;
 
 /*
 | DCMP-06: the list, upload and delete endpoints returned `$e->getMessage()` in their JSON
@@ -24,7 +25,7 @@ describe('DCMP-06: no exception text in responses', function () {
     it('logs a failed driver list and returns a generic message', function () {
         [$owner] = DriverCompliance::tenantWithDriver();
         $type = DriverCompliance::documentType();
-        Schema::drop('driver_compliance_documents');
+        QueryFailure::on('driver_compliance_documents');
         Log::spy();
 
         $response = $this->actingAs($owner)
@@ -39,7 +40,7 @@ describe('DCMP-06: no exception text in responses', function () {
     it('logs a failed upload, returns a generic message and removes the stored file', function () {
         [$owner, $driver] = DriverCompliance::tenantWithDriver();
         $type = DriverCompliance::documentType();
-        Schema::drop('driver_compliance_documents');
+        QueryFailure::on('driver_compliance_documents');
         Log::spy();
 
         $response = $this->actingAs($owner)
@@ -50,7 +51,8 @@ describe('DCMP-06: no exception text in responses', function () {
         expect($response->json('message'))->toBe('Failed to upload document.');
         Log::shouldHaveReceived('error')->once();
         expect(Storage::disk('local')->allFiles())->toBe([])
-            ->and(Storage::disk('public')->allFiles())->toBe([]);
+            ->and(Storage::disk('public')->allFiles())->toBe([])
+            ->and(StoredFile::withoutTenancy()->count())->toBe(0);
     });
 
     it('returns 404 for an unknown document on delete', function () {
