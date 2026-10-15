@@ -22,7 +22,7 @@ use Tests\Support\Actors;
 function remindersTenantWithDriver(): array
 {
     $owner = Actors::companyOwner();
-    $driver = DriverFactory::new()->forCompany(Actors::companyOf($owner))->create(['status' => 'active']);
+    $driver = DriverFactory::new()->forCompany(Actors::companyOf($owner))->status('active')->create();
 
     return [$owner, $driver];
 }
@@ -88,7 +88,8 @@ describe('REM-01: reminder endpoints work for a subscribed tenant with permissio
                 'document_type_id' => $type->id,
             ]);
 
-        expect($response->status())->toBeIn([403, 404]);
+        // A foreign id in the body fails TenantRule validation (03 §4.4)
+        $response->assertStatus(422)->assertJson(['success' => false]);
         Mail::assertNothingQueued();
     });
 });

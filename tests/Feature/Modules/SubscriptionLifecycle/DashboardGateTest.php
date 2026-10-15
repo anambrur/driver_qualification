@@ -77,10 +77,11 @@ it('still shows a subscribed tenant only their own company counts', function () 
     DriverFactory::new()->create(['company_id' => $user->company->id]);
     DriverFactory::new()->count(3)->create();
 
-    $this->actingAs($user)->get(route('dashboard'))
+    $response = $this->actingAs($user)->get(route('dashboard'))
         ->assertOk()
-        ->assertViewHas('driverStats', fn (array $stats) => $stats['total'] === 1)
-        ->assertViewHas('companyStats', null);
+        ->assertViewHas('driverStats', fn (array $stats) => $stats['total'] === 1);
+    // Cross-company stats are the platform dashboard's (WP8a)
+    expect($response->original->getData())->not->toHaveKey('companyStats');
 });
 
 it('does not let a platform user open /dashboard (no company, no tenant access)', function () {

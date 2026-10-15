@@ -36,6 +36,8 @@ const ISO_EXCLUDED = [
     // Plan slugs: public catalogue
     // Signed link of the logged-in user's own email
     'GET verify-email/{id}/{hash}' => 'signed own-user link',
+    // A policy key, not an id: the action only serves the user's own company's file
+    'GET admin/settings/policy-pdf/{policy}' => 'policy key; own company only (PolicyPdfTest)',
 ];
 
 /**

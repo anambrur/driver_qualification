@@ -22,14 +22,14 @@ class DriverComplianceDashboardController extends Controller
 
     public function index()
     {
-        $driversQuery = Driver::query()->where('status', 'active');
+        $driversQuery = Driver::query()->where('employment_status', 'active');
 
         // Summary cards cover every driver, computed in SQL (DCMP-05)
         $summary = $this->complianceService->summary($driversQuery);
 
         // Only the current page is loaded with its documents
         $page = $driversQuery->clone()
-            ->with(['documents.documentType', 'company'])
+            ->with(['documents.documentType', 'documents.file', 'company', 'currentLicense'])
             ->orderBy('first_name')->orderBy('last_name')->orderBy('id')
             ->paginate(self::PER_PAGE);
 
@@ -40,8 +40,6 @@ class DriverComplianceDashboardController extends Controller
         $disabledTypeIds = DocumentType::disabledIdsByCompany($page->getCollection()->pluck('company_id')->unique()->values()->all());
 
         // Process drivers compliance
-        // Laravel's through() is typed with @phpstan-this-out static<…>, which PHPStan can't resolve.
-        // @phpstan-ignore argument.unresolvableType
         $drivers = $page->through(function (Driver $driver) use ($driverDocumentTypes, $disabledTypeIds): array {
             $complianceData = $this->complianceService->calculateCompliance(
                 $driver,
@@ -54,10 +52,10 @@ class DriverComplianceDashboardController extends Controller
                 'first_name' => $driver->first_name,
                 'last_name' => $driver->last_name,
                 'email' => $driver->email,
-                'phone' => $driver->phone,
+                'phone' => $driver->main_phone,
                 'date_of_birth' => $driver->date_of_birth,
-                'license_number' => $driver->license_number,
-                'license_state' => $driver->license_state,
+                'license_number' => $driver->currentLicense?->license_number,
+                'license_state' => $driver->currentLicense?->state_code,
                 'hire_date' => $driver->hire_date,
                 'status' => $driver->status,
                 'company_id' => $driver->company_id,
@@ -99,7 +97,7 @@ class DriverComplianceDashboardController extends Controller
     public function getDriverDetails($id)
     {
         try {
-            $driver = Driver::with(['documents.documentType', 'company'])
+            $driver = Driver::with(['documents.documentType', 'documents.file', 'company', 'currentLicense'])
                 ->findOrFail($id);
 
             Gate::authorize('view', $driver);
@@ -121,7 +119,7 @@ class DriverComplianceDashboardController extends Controller
                     'file_date' => $doc->file_date,
                     'expiry_date' => $doc->expiry_date,
                     'description' => $doc->description,
-                    'file_path' => $doc->file_path,
+                    'file_path' => $doc->file?->path,
                     'days_until_expiry' => $daysUntilExpiry,
                 ];
             });
@@ -134,10 +132,10 @@ class DriverComplianceDashboardController extends Controller
                     'first_name' => $driver->first_name,
                     'last_name' => $driver->last_name,
                     'email' => $driver->email,
-                    'phone' => $driver->phone,
+                    'phone' => $driver->main_phone,
                     'date_of_birth' => $driver->date_of_birth,
-                    'license_number' => $driver->license_number,
-                    'license_state' => $driver->license_state,
+                    'license_number' => $driver->currentLicense?->license_number,
+                    'license_state' => $driver->currentLicense?->state_code,
                     'hire_date' => $driver->hire_date,
                     'status' => $driver->status,
                     'company_id' => $driver->company_id,

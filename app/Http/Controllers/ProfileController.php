@@ -63,9 +63,11 @@ class ProfileController extends Controller
             'password' => ['required', 'current_password'],
         ]);
 
+        // A deactivated company blocks all its users (PO-13); the owner's login is closed too
         DB::transaction(function () use ($user) {
             $user->update(['status' => 'inactive']);
-            Company::where('user_id', $user->id)->update(['status' => 'inactive']);
+            Company::query()->whereKey($user->company_id)->lockForUpdate()->firstOrFail()
+                ->forceFill(['status' => 'deactivated', 'status_changed_at' => now(), 'status_reason' => 'Closed by the owner'])->save();
         });
 
         Auth::logout();
@@ -77,11 +79,10 @@ class ProfileController extends Controller
     }
 
     /**
-     * Only company owners see and may use "Close account"; sub-users don't.
+     * Only the company's owner sees and may use "Close account"; other users don't.
      */
     private function canCloseAccount(User $user): bool
     {
-        return $user->hasRole('company')
-            && Company::where('user_id', $user->id)->exists();
+        return Company::query()->whereKey($user->company_id)->where('owner_user_id', $user->id)->exists();
     }
 }

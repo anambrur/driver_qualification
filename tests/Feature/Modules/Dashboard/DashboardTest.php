@@ -4,6 +4,7 @@ use App\Models\DriverComplianceDocument;
 use App\Models\TrailerDocument;
 use App\Models\User;
 use App\Models\VehicleDocument;
+use App\Tenancy\TenantContext;
 use Database\Factories\DocumentTypeFactory;
 use Database\Factories\DriverFactory;
 use Database\Factories\ServiceLogFactory;
@@ -11,6 +12,7 @@ use Database\Factories\TrailerFactory;
 use Database\Factories\VehicleFactory;
 use Illuminate\Support\Facades\Route;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 use Tests\Support\Perf;
 
 /**
@@ -24,10 +26,7 @@ function seedDashboardData(User $owner, int $n): void
     foreach (['active', 'pending', 'submitted', 'under_review', 'inactive', 'rejected', 'draft'] as $status) {
         DriverFactory::new()->forCompany($company)->status($status)->count($n)->create();
     }
-    DriverFactory::new()->forCompany($company)->count($n)->create([
-        'source' => 'public_application',
-        'status' => 'pending',
-    ]);
+    DriverFactory::new()->forCompany($company)->state(['source' => 'public_application'])->status('pending')->count($n)->create();
 
     $driverType = DocumentTypeFactory::new()->module('driver')->create();
     $vehicleType = DocumentTypeFactory::new()->module('vehicle')->create();
@@ -37,17 +36,20 @@ function seedDashboardData(User $owner, int $n): void
     $vehicles = VehicleFactory::new()->forCompany($company)->count($n)->create();
     $trailers = TrailerFactory::new()->forCompany($company)->count($n)->create();
 
-    foreach ([now()->subDays(5), now()->addDays(10), now()->addDays(90)] as $expiry) {
-        foreach ($drivers as $driver) {
-            DriverComplianceDocument::create(['driver_id' => $driver->id, 'document_type_id' => $driverType->id, 'expiry_date' => $expiry->toDateString(), 'file_path' => 'x.pdf']);
+    $fileId = Files::stored($company->id)->id;
+    app(TenantContext::class)->run($company->id, function () use ($drivers, $vehicles, $trailers, $driverType, $vehicleType, $trailerType, $fileId) {
+        foreach ([now()->subDays(5), now()->addDays(10), now()->addDays(90)] as $expiry) {
+            foreach ($drivers as $driver) {
+                DriverComplianceDocument::create(['driver_id' => $driver->id, 'document_type_id' => $driverType->id, 'expiry_date' => $expiry->toDateString(), 'file_id' => $fileId]);
+            }
+            foreach ($vehicles as $vehicle) {
+                VehicleDocument::create(['vehicle_id' => $vehicle->id, 'document_type_id' => $vehicleType->id, 'expiry_date' => $expiry->toDateString(), 'file_id' => $fileId]);
+            }
+            foreach ($trailers as $trailer) {
+                TrailerDocument::create(['trailer_id' => $trailer->id, 'document_type_id' => $trailerType->id, 'expiry_date' => $expiry->toDateString(), 'file_id' => $fileId]);
+            }
         }
-        foreach ($vehicles as $vehicle) {
-            VehicleDocument::create(['vehicle_id' => $vehicle->id, 'document_type_id' => $vehicleType->id, 'expiry_date' => $expiry->toDateString(), 'file_path' => 'x.pdf']);
-        }
-        foreach ($trailers as $trailer) {
-            TrailerDocument::create(['trailer_id' => $trailer->id, 'document_type_id' => $trailerType->id, 'expiry_date' => $expiry->toDateString(), 'file_path' => 'x.pdf']);
-        }
-    }
+    });
 
     foreach ($vehicles as $vehicle) {
         ServiceLogFactory::new()->forVehicle($vehicle)->create(['service_date' => now()->subDays(3)->toDateString()]);
@@ -101,21 +103,7 @@ describe('DSH-02 → dashboard query budget', function () {
         expect($response->viewData('driverComplianceStats'))->toBe(['overdue' => 2, 'due_soon' => 2]);
         expect($response->viewData('fleetComplianceStats'))->toBe(['overdue' => 4, 'due_soon' => 4]);
         expect($response->viewData('maintenanceStats'))->toBe(['total_services' => 4, 'recent_30_days' => 2]);
-        expect($response->viewData('companyStats'))->toBeNull();
-    });
-
-    it('shows company-wide stats to the super-admin', function () {
-        $admin = Actors::superAdmin();
-        Actors::companyOwner();
-        Actors::companyOwner(companyAttributes: ['status' => 'inactive']);
-
-        $response = $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();
-
-        expect($response->viewData('companyStats'))->toBe([
-            'total_companies' => 3,
-            'active_companies' => 2,
-            'inactive_companies' => 1,
-        ]);
+        expect($response->original->getData())->not->toHaveKey('companyStats');
     });
 });
 
@@ -135,14 +123,4 @@ describe('DSH-03 → draft drivers', function () {
             ->and($dashboard->viewData('driverStats')['new_applicants'])->toBe(0);
     });
 
-    it('still counts drafts for the super-admin, like the driver list does', function () {
-        $admin = Actors::superAdmin();
-        $company = Actors::companyOf(Actors::companyOwner());
-        DriverFactory::new()->forCompany($company)->status('active')->create();
-        DriverFactory::new()->forCompany($company)->publicDraft()->create();
-
-        $response = $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();
-
-        expect($response->viewData('driverStats')['total'])->toBe(2);
-    });
 });

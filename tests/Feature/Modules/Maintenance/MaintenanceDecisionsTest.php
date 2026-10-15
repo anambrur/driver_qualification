@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\Maintenance\Maintenance;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /*
 | Product decisions of 2026-10-11 (docs/testing/PRODUCT_DECISIONS.md):
@@ -38,9 +39,9 @@ describe('PO-04: completing a recurring schedule', function () {
 
         expect($schedule->fresh())
             ->status->toBe('active')
-            ->last_due_date->toDateString()->toBe('2026-10-10')
+            ->last_service_date->toDateString()->toBe('2026-10-10')
             ->next_due_date->toDateString()->toBe('2026-11-09')
-            ->and(MaintenanceSchedule::active()->whereKey($schedule->id)->exists())->toBeTrue();
+            ->and(MaintenanceSchedule::withoutTenancy()->active()->whereKey($schedule->id)->exists())->toBeTrue();
     });
 
     it('can still be retired by editing its status to completed', function () {
@@ -120,48 +121,9 @@ describe('PO-06: mileage and engine-hour schedules need a vehicle', function () 
     });
 });
 
-describe('PO-07: a super-admin\'s schedule for all vehicles', function () {
-    it('requires a company', function () {
-        $this->actingAs(Actors::superAdmin())
-            ->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload(null))
-            ->assertStatus(422)->assertJsonValidationErrors('company_id', 'errors');
-
-        expect(MaintenanceSchedule::withoutTenancy()->count())->toBe(0);
-    });
-
-    it('is filed under the company picked', function () {
-        [$owner] = Maintenance::tenantWithVehicle();
-        $company = Actors::companyOf($owner);
-
-        $this->actingAs(Actors::superAdmin())
-            ->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload(null, ['company_id' => $company->id]))
-            ->assertOk();
-
-        expect(MaintenanceSchedule::withoutTenancy()->sole()->company_id)->toBe($company->id);
-    });
-
-    it('takes the vehicle\'s company when there is a vehicle, whatever company is posted', function () {
-        [, $vehicle] = Maintenance::tenantWithVehicle();
-        [$other] = Maintenance::tenantWithVehicle();
-
-        $this->actingAs(Actors::superAdmin())
-            ->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload($vehicle, ['company_id' => Actors::companyOf($other)->id]))
-            ->assertOk();
-
-        expect(MaintenanceSchedule::withoutTenancy()->sole()->company_id)->toBe($vehicle->company_id);
-    });
-
-    it('can be moved to another company on update', function () {
-        [$owner] = Maintenance::tenantWithVehicle();
-        [$other] = Maintenance::tenantWithVehicle();
-        $schedule = MaintenanceScheduleFactory::new()->create(['company_id' => Actors::companyOf($owner)->id, 'vehicle_id' => null]);
-
-        $this->actingAs(Actors::superAdmin())
-            ->putJson(route('admin.maintenance-schedule.update', $schedule->id), Maintenance::schedulePayload(null, ['company_id' => Actors::companyOf($other)->id]))
-            ->assertOk();
-
-        expect($schedule->fresh()->company_id)->toBe(Actors::companyOf($other)->id);
-    });
+describe('PO-07: a schedule for all vehicles', function () {
+    // The platform files one for a chosen company inside a read_write support session (D11)
+    it('is filed by platform support for the company of the support session')->todo('WP8b: read_write support session');
 
     it('ignores a company_id posted by a tenant', function () {
         [$owner] = Maintenance::tenantWithVehicle();
@@ -174,10 +136,7 @@ describe('PO-07: a super-admin\'s schedule for all vehicles', function () {
         expect(MaintenanceSchedule::withoutTenancy()->sole()->company_id)->toBe(Actors::companyOf($owner)->id);
     });
 
-    it('shows the company select to super-admins only', function () {
-        $this->actingAs(Actors::superAdmin())->get(route('admin.maintenance-schedule.index'))
-            ->assertOk()->assertSee('id="company_id"', false);
-
+    it('never shows a tenant a company select', function () {
         [$owner] = Maintenance::tenantWithVehicle();
         $this->actingAs($owner)->get(route('admin.maintenance-schedule.index'))
             ->assertOk()->assertDontSee('id="company_id"', false);
@@ -195,7 +154,7 @@ describe('PO-22: service log follow-ups', function () {
         $this->actingAs($owner)->deleteJson(route('admin.service-log.destroy', $document->service_log_id))->assertOk();
 
         expect(ServiceDocument::withoutTenancy()->count())->toBe(0);
-        Storage::disk('local')->assertMissing($document->file_path);
+        Storage::disk('local')->assertMissing(Files::pathOf($document->file_id));
     });
 
     it('lowers the odometer when the highest log is corrected downwards', function () {

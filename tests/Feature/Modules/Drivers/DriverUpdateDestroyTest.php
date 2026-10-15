@@ -1,14 +1,17 @@
 <?php
 
 use App\Models\Driver;
+use App\Models\DriverDocument;
 use App\Models\Violation;
 use Tests\Feature\Modules\Drivers\DriverAdmin;
 use Tests\Support\Actors;
 
 /*
 | DRV-08: update() deletes and re-inserts every child row on each save. The violation rows
-| carry the applicant's step-5 signature, which the re-insert dropped, so the step-5 page
-| showed "N/A" after any edit. destroy() returned the exception text to the browser.
+| carried the applicant's step-5 signature, which the re-insert dropped, so the step-5 page
+| showed "N/A" after any edit. Since F19c the signature and the yes/no answer live on
+| driver_documents and violation rows exist only for real events. destroy() returned the
+| exception text to the browser.
 | (Whether destroy should hard-delete a DQ file is deferred to the product owner.)
 */
 
@@ -23,14 +26,14 @@ describe('DRV-08: saving the edit form keeps the violation signature', function 
         $this->put(route('admin.driver.update', $driver->id), DriverAdmin::updatePayload($driver))
             ->assertSessionHasNoErrors();
 
-        $rows = Violation::where('driver_id', $driver->id)->get();
-        expect($rows)->toHaveCount(1)
-            ->and($rows[0]->violation)->toBe('no')
-            ->and($rows[0]->violation_record_signature)->toBe('Jane Roe')
-            ->and((string) $rows[0]->violation_record_date_signed)->toStartWith('2026-01-15');
+        $document = DriverDocument::where('driver_id', $driver->id)->sole();
+        expect(Violation::where('driver_id', $driver->id)->count())->toBe(0)
+            ->and($document->has_violations)->toBeFalse()
+            ->and($document->violation_record_signature)->toBe('Jane Roe')
+            ->and((string) $document->violation_record_date_signed)->toStartWith('2026-01-15');
     });
 
-    it('keeps the signature on every violation row', function () {
+    it('keeps the signature when the edit form changes the violations', function () {
         [$owner, $driver] = DriverAdmin::tenantWithDriver(['status' => 'pending']);
         $this->actingAs($owner)->post(route('admin.driver.violation.store'), [
             'driver_id' => $driver->id, 'violation' => 'yes',
@@ -44,9 +47,10 @@ describe('DRV-08: saving the edit form keeps the violation signature', function 
             'offense' => ['Speeding', 'Lane'], 'vehicle_type' => ['Truck', 'Truck'],
         ]))->assertSessionHasNoErrors();
 
-        $rows = Violation::where('driver_id', $driver->id)->get();
-        expect($rows)->toHaveCount(2)
-            ->and($rows->pluck('violation_record_signature')->unique()->all())->toBe(['Jane Roe']);
+        $document = DriverDocument::where('driver_id', $driver->id)->sole();
+        expect(Violation::where('driver_id', $driver->id)->count())->toBe(2)
+            ->and($document->has_violations)->toBeTrue()
+            ->and($document->violation_record_signature)->toBe('Jane Roe');
     });
 });
 

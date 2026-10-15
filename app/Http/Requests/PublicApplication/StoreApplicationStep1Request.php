@@ -16,7 +16,7 @@ class StoreApplicationStep1Request extends FormRequest
 
     public function rules(): array
     {
-        $rules = StoreDriverRequest::step1FieldRules(true, true);
+        $rules = StoreDriverRequest::step1FieldRules(true);
 
         // drivers.email is unique per company; say so instead of failing on insert.
         $companyId = Company::where('slug', (string) $this->route('slug'))->value('id');

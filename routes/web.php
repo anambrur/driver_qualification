@@ -146,6 +146,7 @@ Route::prefix('{slug}/application')->name('public.application.')->middleware(Res
 
     // The applicant's own uploaded files (stored on the private disk)
     Route::get('/file/{driver_id}/{field}', [ApplicationFormController::class, 'file'])->name('file');
+    Route::get('/policy/{policy}', [ApplicationFormController::class, 'policy'])->name('policy');
 
     // Delete/Withdraw Application
     Route::post('/withdraw/{driver_id}', [ApplicationFormController::class, 'withdraw'])
@@ -361,6 +362,8 @@ Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
 
         Route::get('/policy-pdf', [CompanyController::class, 'policyPDF'])->name('admin.settings.policy.pdf')->middleware('permission:company.edit');
         Route::post('/policy-pdf', [CompanyController::class, 'policyPDFStore'])->name('admin.settings.policy.pdf.store')->middleware('permission:company.edit');
+        // The driver wizard shows the policies to staff who sign drivers up
+        Route::get('/policy-pdf/{policy}', [CompanyController::class, 'policyFile'])->name('admin.settings.policy.pdf.file')->middleware('permission:company.edit|drivers.create|drivers.edit');
 
         // Document types are managed by the platform (LKP-01); a company switches them off for itself
         Route::prefix('document-types')->group(function () {

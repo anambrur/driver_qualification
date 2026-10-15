@@ -6,7 +6,7 @@ use Illuminate\Support\Carbon;
 use Tests\Feature\Modules\Maintenance\Maintenance;
 
 /*
-| MNT-04: markAsCompleted() set last_due_hours from $vehicle->engine_hours, a column vehicles
+| MNT-04: markAsCompleted() set last_service_hours from $vehicle->engine_hours, a column vehicles
 | doesn't have, so it was always 0 (and getVehicleDetails() always reported 0 engine hours).
 | Also covered here: the details modal read is_due, status_badge, interval_text, ... from
 | show(), which never sent them, so "Mark as completed" never appeared; and every edit
@@ -26,7 +26,7 @@ describe('MNT-04: completing a schedule', function () {
 
         $this->actingAs($owner)->postJson(route('admin.maintenance-schedule.mark-completed', $schedule->id))->assertOk();
 
-        expect($schedule->fresh())->last_due_hours->toBe(1200)->next_due_hours->toBe(1450);
+        expect($schedule->fresh())->last_service_hours->toBe(1200)->next_due_hours->toBe(1450);
     });
 
     it('records the odometer for a mileage schedule', function () {
@@ -35,7 +35,7 @@ describe('MNT-04: completing a schedule', function () {
 
         $this->actingAs($owner)->postJson(route('admin.maintenance-schedule.mark-completed', $schedule->id))->assertOk();
 
-        expect($schedule->fresh())->last_due_mileage->toBe(52000)->next_due_mileage->toBe(57000);
+        expect($schedule->fresh())->last_service_mileage->toBe(52000)->next_due_mileage->toBe(57000);
     });
 
     it('records today for a date schedule', function () {
@@ -46,7 +46,7 @@ describe('MNT-04: completing a schedule', function () {
         $this->actingAs($owner)->postJson(route('admin.maintenance-schedule.mark-completed', $schedule->id))->assertOk();
 
         expect($schedule->fresh())
-            ->last_due_date->toDateString()->toBe('2026-10-10')
+            ->last_service_date->toDateString()->toBe('2026-10-10')
             ->next_due_date->toDateString()->toBe('2026-11-09');
     });
 
@@ -57,7 +57,7 @@ describe('MNT-04: completing a schedule', function () {
 
         $this->actingAs($owner)->postJson(route('admin.maintenance-schedule.mark-completed', $schedule->id))->assertNotFound();
 
-        expect($schedule->fresh()->last_due_date)->toBeNull();
+        expect($schedule->fresh()->last_service_date)->toBeNull();
     });
 
     it('reports the logged engine hours in the vehicle details', function () {
@@ -106,7 +106,7 @@ describe('MNT-04: editing a schedule', function () {
 
     it('recalculates the due date when the interval changes', function () {
         [$owner, $vehicle] = Maintenance::tenantWithVehicle();
-        $schedule = MaintenanceScheduleFactory::new()->forVehicle($vehicle)->create(['interval_days' => 30, 'last_due_date' => '2026-09-01', 'next_due_date' => '2026-10-01']);
+        $schedule = MaintenanceScheduleFactory::new()->forVehicle($vehicle)->create(['interval_days' => 30, 'last_service_date' => '2026-09-01', 'next_due_date' => '2026-10-01']);
 
         $this->actingAs($owner)->putJson(route('admin.maintenance-schedule.update', $schedule->id), Maintenance::schedulePayload($vehicle, [
             'interval_days' => 60,

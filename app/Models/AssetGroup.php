@@ -51,15 +51,28 @@ class AssetGroup extends Model
         return $this->belongsTo(Driver::class);
     }
 
-    // Scope for searching
+    /**
+     * The second driver of a team (team driving is still PENDING, 14 §3).
+     *
+     * @return BelongsTo<Driver, $this>
+     */
+    public function coDriver(): BelongsTo
+    {
+        return $this->belongsTo(Driver::class, 'co_driver_id');
+    }
+
+    // Scope for searching: the group name, or a driver's name, email or phone
     public function scopeSearch($query, $search)
     {
-        return $query->where(function ($q) use ($search) {
+        $driverMatches = fn ($d) => $d->where(fn ($q) => $q->where('first_name', 'like', "%{$search}%")
+            ->orWhere('last_name', 'like', "%{$search}%")
+            ->orWhere('email', 'like', "%{$search}%")
+            ->orWhere('main_phone', 'like', "%{$search}%"));
+
+        return $query->where(function ($q) use ($search, $driverMatches) {
             $q->where('group_name', 'like', "%{$search}%")
-                ->orWhere('primary_driver_name', 'like', "%{$search}%")
-                ->orWhere('primary_driver_email', 'like', "%{$search}%")
-                ->orWhere('primary_driver_phone', 'like', "%{$search}%")
-                ->orWhere('second_driver_name', 'like', "%{$search}%");
+                ->orWhereHas('driver', $driverMatches)
+                ->orWhereHas('coDriver', $driverMatches);
         });
     }
 

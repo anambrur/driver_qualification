@@ -33,13 +33,13 @@ class ComplianceDashboardController extends Controller
         // Only the current page of each list is loaded with its documents; each list has its
         // own page parameter and its links keep the other list's page.
         $vehiclesPage = $vehiclesQuery->clone()
-            ->with(['assetGroups.driver', 'documents.documentType', 'company'])
+            ->with(['assetGroups.driver', 'documents.documentType', 'documents.file', 'company'])
             ->orderBy('unit_no')->orderBy('id')
             ->paginate(self::PER_PAGE, ['*'], 'vehicles_page')
             ->withQueryString();
 
         $trailersPage = $trailersQuery->clone()
-            ->with(['assetGroups.driver', 'documents.documentType', 'company'])
+            ->with(['assetGroups.driver', 'documents.documentType', 'documents.file', 'company'])
             ->orderBy('unit_no')->orderBy('id')
             ->paginate(self::PER_PAGE, ['*'], 'trailers_page')
             ->withQueryString();
@@ -188,7 +188,7 @@ class ComplianceDashboardController extends Controller
 
             if ($document) {
                 $docStatus['document_id'] = $document->id;
-                $docStatus['file_path'] = $document->file_path;
+                $docStatus['file_path'] = $document->file?->path;
                 $docStatus['description'] = $document->description;
 
                 if (! $document->expiry_date) {
@@ -256,7 +256,7 @@ class ComplianceDashboardController extends Controller
     public function getVehicleDetails($id)
     {
         try {
-            $vehicle = Vehicle::with(['assetGroups.driver', 'documents.documentType', 'company'])
+            $vehicle = Vehicle::with(['assetGroups.driver', 'documents.documentType', 'documents.file', 'company'])
                 ->findOrFail($id);
 
             // Check if user has access to this vehicle
@@ -275,7 +275,7 @@ class ComplianceDashboardController extends Controller
                     'type_name' => $doc->documentType->name,
                     'expiry_date' => $doc->expiry_date,
                     'description' => $doc->description,
-                    'file_path' => $doc->file_path,
+                    'file_path' => $doc->file?->path,
                     'status' => $doc->status,
                     'days_until_expiry' => $doc->days_until_expiry,
                 ];
@@ -317,7 +317,7 @@ class ComplianceDashboardController extends Controller
     public function getTrailerDetails($id)
     {
         try {
-            $trailer = Trailer::with(['assetGroups.driver', 'documents.documentType', 'company'])
+            $trailer = Trailer::with(['assetGroups.driver', 'documents.documentType', 'documents.file', 'company'])
                 ->findOrFail($id);
 
             // Check if user has access to this trailer
@@ -336,7 +336,7 @@ class ComplianceDashboardController extends Controller
                     'type_name' => $doc->documentType->name,
                     'expiry_date' => $doc->expiry_date,
                     'description' => $doc->description,
-                    'file_path' => $doc->file_path,
+                    'file_path' => $doc->file?->path,
                     'status' => $doc->status,
                     'days_until_expiry' => $doc->days_until_expiry,
                 ];

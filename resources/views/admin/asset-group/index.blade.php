@@ -647,7 +647,7 @@
                     },
                     {
                         data: 'drivers_info',
-                        name: 'primary_driver_name',
+                        name: 'driver_id',
                         orderable: false,
                         searchable: false,
                         width: '25%'

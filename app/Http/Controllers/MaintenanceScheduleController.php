@@ -246,9 +246,9 @@ class MaintenanceScheduleController extends Controller
             'interval_days' => 'required_if:schedule_type,date|nullable|integer|min:1|max:9999',
             'interval_miles' => 'required_if:schedule_type,mileage|nullable|integer|min:1|max:999999',
             'interval_hours' => 'required_if:schedule_type,engine_hours|nullable|integer|min:1|max:999999',
-            'last_due_date' => 'nullable|date',
-            'last_due_mileage' => 'nullable|integer|min:0',
-            'last_due_hours' => 'nullable|integer|min:0',
+            'last_service_date' => 'nullable|date',
+            'last_service_mileage' => 'nullable|integer|min:0',
+            'last_service_hours' => 'nullable|integer|min:0',
             'description' => 'nullable|string',
             'notes' => 'nullable|string',
             'status' => 'required|in:active,paused,completed',
@@ -275,7 +275,7 @@ class MaintenanceScheduleController extends Controller
 
             // Recalculate next due only when what it depends on changed, so editing the
             // notes doesn't move the due date
-            if ($schedule->isDirty(['vehicle_id', 'schedule_type', 'interval_days', 'interval_miles', 'interval_hours', 'last_due_date', 'last_due_mileage', 'last_due_hours'])) {
+            if ($schedule->isDirty(['vehicle_id', 'schedule_type', 'interval_days', 'interval_miles', 'interval_hours', 'last_service_date', 'last_service_mileage', 'last_service_hours'])) {
                 $schedule->calculateNextDue();
             }
 
@@ -393,16 +393,16 @@ class MaintenanceScheduleController extends Controller
             // editing the schedule (PO-04).
             switch ($schedule->schedule_type) {
                 case 'date':
-                    $schedule->last_due_date = now();
+                    $schedule->last_service_date = now();
                     break;
                 case 'mileage':
                     if ($schedule->vehicle) {
-                        $schedule->last_due_mileage = $schedule->vehicle->odometer;
+                        $schedule->last_service_mileage = $schedule->vehicle->odometer;
                     }
                     break;
                 case 'engine_hours':
                     if ($schedule->vehicle) {
-                        $schedule->last_due_hours = $schedule->currentEngineHours();
+                        $schedule->last_service_hours = $schedule->currentEngineHours();
                     }
                     break;
             }

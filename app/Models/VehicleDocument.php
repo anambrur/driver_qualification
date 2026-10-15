@@ -45,6 +45,14 @@ class VehicleDocument extends Model
     }
 
     /**
+     * @return BelongsTo<StoredFile, $this>
+     */
+    public function file(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'file_id');
+    }
+
+    /**
      * Check if document is expired
      */
     public function isExpired()

@@ -67,7 +67,7 @@ final class FleetAssets
             'year' => 2020,
             'make' => 'Wabash',
             'model' => 'Van-53',
-            'equipment_types_id' => EquipmentType::query()->firstOrCreate(['name' => 'Dry Van'])->id,
+            'equipment_type_id' => EquipmentType::query()->firstOrCreate(['name' => 'Dry Van'])->id,
         ], $overrides);
     }
 
@@ -89,7 +89,7 @@ final class FleetAssets
     public static function trailerFormData(Trailer $trailer, array $overrides = []): array
     {
         return array_merge($trailer->only([
-            'company_id', 'unit_no', 'vin', 'year', 'make', 'model', 'equipment_types_id',
+            'company_id', 'unit_no', 'vin', 'year', 'make', 'model', 'equipment_type_id',
         ]), $overrides);
     }
 

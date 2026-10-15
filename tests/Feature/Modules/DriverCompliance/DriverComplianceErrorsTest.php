@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\DriverCompliance\DriverCompliance;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /*
 | DCMP-06: the list, upload and delete endpoints returned `$e->getMessage()` in their JSON
@@ -87,7 +88,7 @@ describe('DCMP-06: no exception text in responses', function () {
             ->assertNotFound();
 
         expect($document->fresh())->not->toBeNull();
-        Storage::disk('local')->assertExists($document->file_path);
+        Storage::disk('local')->assertExists(Files::pathOf($document->file_id));
     });
 
     it('returns 404 and stores nothing when uploading for another tenant\'s driver', function () {
@@ -135,7 +136,7 @@ describe('DCMP-07: a deleted driver\'s documents', function () {
             ->assertNotFound();
 
         expect($document->fresh())->not->toBeNull();
-        Storage::disk('public')->assertExists($document->file_path);
+        Storage::disk('public')->assertExists(Files::pathOf($document->file_id));
     });
 
     it('are not served to their own tenant either, like the rest of a deleted driver', function () {

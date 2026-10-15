@@ -5,6 +5,7 @@ use App\Mail\DriverRejectedMail;
 use App\Models\Driver;
 use App\Services\Driver\DriverHireService;
 use Database\Factories\DriverFactory;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\Actors;
 
@@ -16,7 +17,9 @@ use Tests\Support\Actors;
 function hiringTenantWithDriver(array $attributes = ['status' => 'pending']): array
 {
     $owner = Actors::companyOwner();
-    $driver = DriverFactory::new()->forCompany(Actors::companyOf($owner))->create($attributes);
+    $driver = DriverFactory::new()->forCompany(Actors::companyOf($owner))
+        ->status(Arr::pull($attributes, 'status', 'pending'))
+        ->create($attributes);
 
     return [$owner, $driver];
 }
@@ -45,6 +48,7 @@ describe('HIRE-01: the pending check is atomic with the status change', function
     it('does not hire twice when two requests hold the same stale pending driver', function () {
         Mail::fake();
         [$owner, $driver] = hiringTenantWithDriver();
+        Actors::actingAsTenant($owner);
         $first = Driver::withoutTenancy()->findOrFail($driver->id);
         $second = Driver::withoutTenancy()->findOrFail($driver->id); // loaded before the first request commits
 
@@ -60,6 +64,7 @@ describe('HIRE-01: the pending check is atomic with the status change', function
     it('does not flip a hired driver to rejected from a stale request', function () {
         Mail::fake();
         [$owner, $driver] = hiringTenantWithDriver();
+        Actors::actingAsTenant($owner);
         $first = Driver::withoutTenancy()->findOrFail($driver->id);
         $second = Driver::withoutTenancy()->findOrFail($driver->id);
 
@@ -127,15 +132,15 @@ describe('HIRE-03: hire/reject is tenant-scoped and permission-gated', function 
             ->postJson(route('admin.driver.hire-status', $driver->id), $payload)
             ->assertNotFound();
 
-        expect($driver->fresh())->status->toBe('pending')->action_by->toBeNull();
+        expect($driver->fresh())->status->toBe('pending')->decided_by_user_id->toBeNull();
         Mail::assertNothingQueued();
     })->with(['hire', 'reject']);
 
-    it('returns 403 for a user without drivers.hire', function () {
+    it('returns 403 for a user of the company without drivers.hire', function () {
         Mail::fake();
-        [, $driver] = hiringTenantWithDriver();
+        [$owner, $driver] = hiringTenantWithDriver();
 
-        $this->actingAs(Actors::plainUser())
+        $this->actingAs(Actors::plainUser(Actors::companyOf($owner)))
             ->postJson(route('admin.driver.hire-status', $driver->id), hirePayload())
             ->assertForbidden();
 
@@ -152,7 +157,7 @@ describe('HIRE-03: hire/reject is tenant-scoped and permission-gated', function 
             ->assertOk()
             ->assertJsonPath('data.status', 'active');
 
-        expect($driver->fresh())->status->toBe('active')->action_by->toBe($owner->id)->hired_at->not->toBeNull();
+        expect($driver->fresh())->status->toBe('active')->decided_by_user_id->toBe($owner->id)->hired_at->not->toBeNull();
         Mail::assertQueued(DriverHiredMail::class, fn ($m) => $m->hasTo($driver->email));
     });
 });

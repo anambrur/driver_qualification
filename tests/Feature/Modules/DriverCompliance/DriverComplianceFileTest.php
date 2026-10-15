@@ -4,12 +4,13 @@ use App\Models\DriverComplianceDocument;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\DriverCompliance\DriverCompliance;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /*
 | DCMP-01: compliance documents were stored on the *public* disk as
 | documents/drivers/<time>_<client name>, so anyone could read them at /storage/... without
 | logging in, bypassing the authorized view/download routes. They now live on the private
-| `local` disk under a random name and are only served by those routes.
+| `local` disk as stored files under a random name and are only served by those routes.
 | DCMP-04: the stored name kept the client's name and extension, so PDF bytes uploaded as
 | x.html passed `mimes:pdf` and were served as HTML from /storage.
 */
@@ -28,7 +29,7 @@ describe('DCMP-01: compliance documents are private', function () {
             ->post(route('admin.compliance.driver.documents.upload'), DriverCompliance::payload($driver, $type), DriverCompliance::json())
             ->assertOk()->assertJson(['success' => true]);
 
-        $path = DriverComplianceDocument::withoutTenancy()->where('driver_id', $driver->id)->value('file_path');
+        $path = Files::pathOf(DriverComplianceDocument::withoutTenancy()->where('driver_id', $driver->id)->value('file_id'));
         Storage::disk('local')->assertExists($path);
         Storage::disk('public')->assertMissing($path);
     });
@@ -43,17 +44,10 @@ describe('DCMP-01: compliance documents are private', function () {
 
         $this->actingAs($owner)->get(route('admin.compliance.driver.documents.download', $document->id))
             ->assertOk()
-            ->assertDownload('Medical Card_'.basename($document->file_path));
+            ->assertDownload('Medical Card_'.basename(Files::pathOf($document->file_id)));
     });
 
-    it('lets a super-admin open any company\'s document', function () {
-        [, $driver] = DriverCompliance::tenantWithDriver();
-        $document = DriverCompliance::document($driver, DriverCompliance::documentType());
-
-        $this->actingAs(Actors::superAdmin())
-            ->get(route('admin.compliance.driver.documents.view', $document->id))
-            ->assertOk();
-    });
+    it('lets platform support open any company\'s document inside a support session')->todo('WP8b: read_write support session');
 
     it('returns 404 to another tenant', function (string $route) {
         [, $driver] = DriverCompliance::tenantWithDriver();
@@ -72,7 +66,7 @@ describe('DCMP-01: compliance documents are private', function () {
             ->assertForbidden();
     });
 
-    it('still serves documents uploaded before the move, from the public disk', function () {
+    it('serves a document from the disk its stored file is on', function () {
         [$owner, $driver] = DriverCompliance::tenantWithDriver();
         $document = DriverCompliance::document($driver, DriverCompliance::documentType(), disk: 'public');
 
@@ -80,7 +74,7 @@ describe('DCMP-01: compliance documents are private', function () {
         $this->actingAs($owner)->get(route('admin.compliance.driver.documents.download', $document->id))->assertOk();
     });
 
-    it('deletes a legacy file from the public disk when the document is replaced', function () {
+    it('purges a replaced file from the disk it is on', function () {
         [$owner, $driver] = DriverCompliance::tenantWithDriver();
         $type = DriverCompliance::documentType();
         $old = DriverCompliance::document($driver, $type, disk: 'public');
@@ -89,14 +83,14 @@ describe('DCMP-01: compliance documents are private', function () {
             ->post(route('admin.compliance.driver.documents.upload'), DriverCompliance::payload($driver, $type), DriverCompliance::json())
             ->assertOk();
 
-        Storage::disk('public')->assertMissing($old->file_path);
-        Storage::disk('local')->assertExists($old->fresh()->file_path);
+        Storage::disk('public')->assertMissing(Files::pathOf($old->file_id));
+        Storage::disk('local')->assertExists(Files::pathOf($old->fresh()->file_id));
     });
 
     it('returns 404 when the file is missing from both disks', function () {
         [$owner, $driver] = DriverCompliance::tenantWithDriver();
         $document = DriverCompliance::document($driver, DriverCompliance::documentType());
-        Storage::disk('local')->delete($document->file_path);
+        Storage::disk('local')->delete(Files::pathOf($document->file_id));
 
         $this->actingAs($owner)->get(route('admin.compliance.driver.documents.view', $document->id))->assertNotFound();
     });
@@ -121,8 +115,8 @@ describe('DCMP-04: stored names come from the content, not the client', function
             ->post(route('admin.compliance.driver.documents.upload'), DriverCompliance::payload($driver, $type, ['file' => $file]), DriverCompliance::json())
             ->assertOk();
 
-        $path = DriverComplianceDocument::withoutTenancy()->where('driver_id', $driver->id)->value('file_path');
-        expect($path)->toStartWith('documents/drivers/')
+        $path = Files::pathOf(DriverComplianceDocument::withoutTenancy()->where('driver_id', $driver->id)->value('file_id'));
+        expect($path)->toStartWith('companies/')
             ->toEndWith('.pdf')
             ->not->toContain('x.html')
             ->not->toContain('x_html');
@@ -139,7 +133,7 @@ describe('DCMP-04: stored names come from the content, not the client', function
                 ->assertOk();
         }
 
-        expect(DriverComplianceDocument::withoutTenancy()->pluck('file_path')->unique())->toHaveCount(2);
+        expect(DriverComplianceDocument::withoutTenancy()->pluck('file_id')->unique())->toHaveCount(2);
     });
 
     it('rejects files whose content is not jpg, png or pdf', function (string $name, string $bytes, string $mime) {

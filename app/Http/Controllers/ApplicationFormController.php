@@ -4,6 +4,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\LimitReached;
 use App\Http\Requests\PublicApplication\StoreApplicationDrugPolicyRequest;
 use App\Http\Requests\PublicApplication\StoreApplicationDrugTestRequest;
 use App\Http\Requests\PublicApplication\StoreApplicationFmcsaConsentRequest;
@@ -14,15 +15,16 @@ use App\Http\Requests\PublicApplication\StoreApplicationPspRequest;
 use App\Http\Requests\PublicApplication\StoreApplicationStep1Request;
 use App\Http\Requests\PublicApplication\StoreApplicationViolationRequest;
 use App\Http\Requests\PublicApplication\StoreApplicationWorkPolicyRequest;
+use App\Mail\ApplicationSubmittedMail;
 use App\Models\Company;
 use App\Models\Country;
 use App\Models\Driver;
 use App\Models\DriverDocument;
 use App\Models\PolicyPdf;
 use App\Models\Violation;
-use App\Mail\ApplicationSubmittedMail;
 use App\Services\Driver\DriverCrudService;
 use App\Services\Driver\DriverDocumentWizardService;
+use App\Services\Files\StoredFileService;
 use App\Services\OTPService;
 use App\Services\PhoneNumberService;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -92,7 +94,7 @@ class ApplicationFormController extends Controller
                     // Check if already registered as active
                     $exists = Driver::where('company_id', $company->id)
                         ->where('main_phone', $phone)
-                        ->whereIn('status', ['active', 'pending'])
+                        ->withStatus('active', 'pending')
                         ->exists();
 
                     if ($exists) {
@@ -233,7 +235,7 @@ class ApplicationFormController extends Controller
             // Check if driver already exists in draft
             $driver = Driver::where('company_id', $company->id)
                 ->where('main_phone', $phone)
-                ->where('status', 'draft')
+                ->where('application_status', 'draft')
                 ->where('source', 'public_application')
                 ->first();
 
@@ -242,21 +244,21 @@ class ApplicationFormController extends Controller
             if (! $driver) {
                 $driver = Driver::where('company_id', $company->id)
                     ->where('main_phone', $phone)
-                    ->where('status', 'withdrawn')
+                    ->where('application_status', 'withdrawn')
                     ->where('source', 'public_application')
                     ->latest('withdrawn_at')
                     ->first();
 
-                $driver?->update(['status' => 'draft', 'withdrawn_at' => null]);
+                $driver?->update(['application_status' => 'draft', 'withdrawn_at' => null]);
             }
 
             if (! $driver) {
                 // Create new driver record
                 $driver = Driver::create([
                     'company_id' => $company->id,
-                    'user_id' => $company->user_id,
                     'main_phone' => $phone,
-                    'status' => 'draft',
+                    'application_status' => 'draft',
+                    'employment_status' => 'applicant',
                     'source' => 'public_application',
                 ]);
             }
@@ -333,7 +335,7 @@ class ApplicationFormController extends Controller
         $driver = Driver::where('company_id', $company->id)
             ->where('main_phone', $phone)
             ->where('source', 'public_application')
-            ->whereIn('status', ['draft', 'pending'])
+            ->whereIn('application_status', ['draft', 'pending'])
             ->first();
 
         // Same answer whether or not this phone has an application, so the endpoint
@@ -389,7 +391,7 @@ class ApplicationFormController extends Controller
             $driver = Driver::where('company_id', $company->id)
                 ->where('main_phone', $phone)
                 ->where('source', 'public_application')
-                ->whereIn('status', ['draft', 'pending'])
+                ->whereIn('application_status', ['draft', 'pending'])
                 ->first();
 
             if ($driver) {
@@ -457,12 +459,7 @@ class ApplicationFormController extends Controller
         $driver = $this->applicationDriver($this->activeCompany($slug));
 
         try {
-            $data = array_merge($request->validated(), [
-                'company_id' => $driver->company_id,
-                'status' => $driver->status,
-            ]);
-
-            $crud->update($driver, $data, $request->file('photo'));
+            $crud->update($driver, $request->validated(), $request->file('photo'));
 
             Session::put('current_step', 2);
 
@@ -472,6 +469,8 @@ class ApplicationFormController extends Controller
                 'slug' => $slug,
                 'driver_id' => $driver->id,
             ]);
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Step 1 Save Error: '.$e->getMessage());
             toastr()->error('Failed to save information. Please try again.');
@@ -488,6 +487,17 @@ class ApplicationFormController extends Controller
         $driver = $this->applicationDriver($this->activeCompany($slug), $driver_id);
 
         return $documents->fileResponse($driver, $field);
+    }
+
+    /**
+     * The company's policy PDF, for the applicant on the policy steps.
+     */
+    public function policy($slug, string $policy, StoredFileService $files)
+    {
+        $company = $this->activeCompany($slug);
+        $this->applicationDriver($company);
+
+        return $files->response(PolicyPdf::resolveFor($company->id)->fileFor($policy));
     }
 
     /**
@@ -527,6 +537,8 @@ class ApplicationFormController extends Controller
                 'slug' => $slug,
                 'driver_id' => $driver->id,
             ]);
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Step 2 Save Error: '.$e->getMessage());
             toastr()->error('Failed to upload license. Please try again.');
@@ -560,9 +572,10 @@ class ApplicationFormController extends Controller
     public function storeStep3(StoreApplicationMedicalCardRequest $request, $slug, DriverDocumentWizardService $documents)
     {
         $driver = $this->applicationDriver($this->activeCompany($slug), $request->driver_id);
+        $validated = $request->validate(DriverDocumentWizardService::medicalCardRules($driver));
 
         try {
-            $documents->saveMedicalCard($driver, $request->file('medical_card'));
+            $documents->saveMedicalCard($driver, $request->file('medical_card'), $validated['medical_certificate_expiration_date'] ?? null);
 
             Session::put('current_step', 4);
 
@@ -572,6 +585,8 @@ class ApplicationFormController extends Controller
                 'slug' => $slug,
                 'driver_id' => $driver->id,
             ]);
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Step 3 Save Error: '.$e->getMessage());
             toastr()->error('Failed to upload medical card. Please try again.');
@@ -617,6 +632,8 @@ class ApplicationFormController extends Controller
                 'slug' => $slug,
                 'driver_id' => $driver->id,
             ]);
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Step 4 Save Error: '.$e->getMessage());
             toastr()->error('Failed to save forfeiture information. Please try again.');
@@ -1079,7 +1096,7 @@ class ApplicationFormController extends Controller
         DB::beginTransaction();
         try {
             $driver->update([
-                'status' => 'withdrawn',
+                'application_status' => 'withdrawn',
                 'withdrawn_at' => now(),
             ]);
 
@@ -1148,7 +1165,7 @@ class ApplicationFormController extends Controller
     {
         return Driver::where('company_id', $company->id)
             ->where('main_phone', $phone)
-            ->where('date_of_birth', $dateOfBirth)
+            ->whereDate('date_of_birth', $dateOfBirth)
             ->where('source', 'public_application')
             ->latest()
             ->first();
@@ -1184,7 +1201,7 @@ class ApplicationFormController extends Controller
             ? Driver::where('id', $sessionDriverId)
                 ->where('company_id', $company->id)
                 ->where('source', 'public_application')
-                ->whereIn('status', ['draft', 'pending'])
+                ->whereIn('application_status', ['draft', 'pending'])
                 ->first()
             : null;
 

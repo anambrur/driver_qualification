@@ -7,6 +7,7 @@ use App\Models\Driver;
 use App\Models\User;
 use Database\Factories\DriverFactory;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Tests\Support\Actors;
 
 /**
@@ -27,9 +28,18 @@ final class DriverAdmin
         return [$owner, $driver];
     }
 
+    /**
+     * A 'status' attribute is the display status (DriverFactory::status()).
+     */
     public static function driverOf(User $owner, array $attributes = []): Driver
     {
-        return DriverFactory::new()->forCompany(Actors::companyOf($owner))->create($attributes);
+        $factory = DriverFactory::new()->forCompany(Actors::companyOf($owner));
+
+        if (isset($attributes['status'])) {
+            $factory = $factory->status(Arr::pull($attributes, 'status'));
+        }
+
+        return $factory->create($attributes);
     }
 
     public static function companyOf(User $owner): Company
@@ -64,8 +74,8 @@ final class DriverAdmin
             'medical_certificate_expiration_date' => now()->addYear()->toDateString(),
             'address' => '1 Main St',
             'city' => 'Austin',
-            'state' => 'Texas',
-            'country' => 'United States',
+            'state' => 'TX',
+            'country' => 'US',
             'postal_code' => '73301',
             'accident' => 'no',
             'violation' => 'no',
@@ -75,8 +85,8 @@ final class DriverAdmin
             'license_last_name' => 'Roe',
             'license_issued' => now()->subYears(5)->toDateString(),
             'license_expires' => now()->addYears(3)->toDateString(),
-            'license_country' => 'United States',
-            'license_state' => 'Texas',
+            'license_country' => 'US',
+            'license_state' => 'TX',
             'license_class' => 'A',
             'license_number' => 'D1234567',
             'repeat_license_number' => 'D1234567',

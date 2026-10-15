@@ -9,8 +9,8 @@
             $avatarUrl = asset('storage/' . $user->profile_image);
         } elseif (isset($user->avatar) && $user->avatar) {
             $avatarUrl = asset('storage/' . $user->avatar);
-        } elseif (isset($user->company) && $user->company && $user->company->logo) {
-            $avatarUrl = asset('storage/' . $user->company->logo);
+        } elseif (isset($user->company) && $user->company && $user->company->logo_path) {
+            $avatarUrl = asset('storage/' . $user->company->logo_path);
         }
     @endphp
 

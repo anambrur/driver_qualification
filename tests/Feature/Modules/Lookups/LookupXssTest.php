@@ -14,11 +14,11 @@ use Tests\Support\Actors;
 */
 
 dataset('named lookups', [
-    'vehicle type' => [VehicleType::class, 'admin.vehicle.type'],
-    'vehicle group' => [VehicleGroup::class, 'admin.vehicle.group'],
-    'fuel type' => [FuelType::class, 'admin.fuel.type'],
-    'equipment type' => [EquipmentType::class, 'admin.equipment.type'],
-    'maintenance category' => [MaintenanceCategory::class, 'admin.maintenance.category'],
+    'vehicle type' => [VehicleType::class, 'platform.lookups.vehicle-types'],
+    'vehicle group' => [VehicleGroup::class, 'platform.lookups.vehicle-groups'],
+    'fuel type' => [FuelType::class, 'platform.lookups.fuel-types'],
+    'equipment type' => [EquipmentType::class, 'platform.lookups.equipment-types'],
+    'maintenance category' => [MaintenanceCategory::class, 'platform.lookups.maintenance-categories'],
 ]);
 
 dataset('xss names', [
@@ -29,7 +29,7 @@ dataset('xss names', [
 it('renders lookup names in the action column as escaped data attributes', function (string $model, string $route, string $name) {
     $model::query()->create(['name' => $name]);
 
-    $action = $this->actingAs(Actors::superAdmin())
+    $action = $this->actingAs(Actors::platformOwner(), 'platform')
         ->getJson(route("$route.index"), ['X-Requested-With' => 'XMLHttpRequest'])
         ->assertOk()
         ->json('data.0.action');

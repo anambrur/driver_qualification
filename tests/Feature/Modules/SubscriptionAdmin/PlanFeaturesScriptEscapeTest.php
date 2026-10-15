@@ -1,79 +1,48 @@
 <?php
 
 use Database\Factories\PlanFactory;
+use Database\Factories\PlanPriceFactory;
 use Tests\Support\Actors;
 
 /*
-| SADM-02: admin/plans/{create,edit}.blade.php embed the features array inside <script>.
-| A feature containing </script> or <!-- must not break out of the script block.
+| SADM-02: plan feature text must not break out of the page. The old admin/plans forms put a
+| features array inside <script>; the platform plan form (WP8a) edits marketing_bullets in a
+| textarea, and the public pricing on the welcome page lists them. Both must escape the text.
 */
 
 const SADM_PAYLOAD = '</script><script>alert(document.domain)</script><!--<script>';
 
-function sadmScriptBlock(string $html): string
-{
-    preg_match('/Alpine\.data\(\'featuresManager\'.*?<\/script>/s', $html, $m);
+it('escapes a stored bullet on the platform edit page', function () {
+    $plan = PlanFactory::new()->create(['marketing_bullets' => [SADM_PAYLOAD]]);
 
-    return $m[0] ?? '';
-}
-
-it('escapes a stored feature on the edit page', function () {
-    $plan = PlanFactory::new()->create(['features' => [SADM_PAYLOAD]]);
-
-    $html = $this->actingAs(Actors::superAdmin())
-        ->get(route('admin.plans.edit', $plan))
+    $this->actingAs(Actors::platformOwner(), 'platform')
+        ->get(route('platform.plans.edit', $plan))
         ->assertOk()
-        ->getContent();
-
-    $block = sadmScriptBlock($html);
-
-    expect($block)->not->toBe('')
-        ->and($html)->not->toContain('<script>alert(document.domain)</script>')
-        ->and(substr_count($block, '</script>'))->toBe(1)
-        ->and(stripos($block, '<script'))->toBeFalse()
-        ->and(strpos($block, '<!--'))->toBeFalse();
+        ->assertDontSee('<script>alert(document.domain)</script>', false)
+        ->assertSee(e(SADM_PAYLOAD), false);
 });
 
-it('escapes old() features on the create page after a validation error', function () {
-    $admin = Actors::superAdmin();
+it('escapes old() bullets on the create page after a validation error', function () {
+    $owner = Actors::platformOwner();
 
-    $this->actingAs($admin)
-        ->from(route('admin.plans.create'))
-        ->post(route('admin.plans.store'), ['features' => [SADM_PAYLOAD]])
-        ->assertRedirect(route('admin.plans.create'));
+    $this->actingAs($owner, 'platform')
+        ->from(route('platform.plans.create'))
+        ->post(route('platform.plans.store'), ['marketing_bullets' => SADM_PAYLOAD])
+        ->assertRedirect(route('platform.plans.create'));
 
-    $html = $this->actingAs($admin)->get(route('admin.plans.create'))->assertOk()->getContent();
-    $block = sadmScriptBlock($html);
-
-    expect($block)->not->toBe('')
-        ->and($html)->not->toContain('<script>alert(document.domain)</script>')
-        ->and(substr_count($block, '</script>'))->toBe(1)
-        ->and(stripos($block, '<script'))->toBeFalse()
-        ->and(strpos($block, '<!--'))->toBeFalse();
+    $this->actingAs($owner, 'platform')
+        ->get(route('platform.plans.create'))
+        ->assertOk()
+        ->assertDontSee('<script>alert(document.domain)</script>', false)
+        ->assertSee(e(SADM_PAYLOAD), false);
 });
 
-it('escapes old() features on the edit page after a validation error', function () {
-    $admin = Actors::superAdmin();
-    $plan = PlanFactory::new()->create();
+it('escapes bullets in the public pricing', function () {
+    $plan = PlanFactory::new()->create(['marketing_bullets' => [SADM_PAYLOAD], 'is_public' => true, 'is_active' => true]);
+    PlanPriceFactory::new()->create(['plan_id' => $plan->id]);
 
-    $this->actingAs($admin)
-        ->from(route('admin.plans.edit', $plan))
-        ->put(route('admin.plans.update', $plan), ['features' => [SADM_PAYLOAD]])
-        ->assertRedirect(route('admin.plans.edit', $plan));
-
-    $html = $this->actingAs($admin)->get(route('admin.plans.edit', $plan))->assertOk()->getContent();
-    $block = sadmScriptBlock($html);
-
-    expect(substr_count($block, '</script>'))->toBe(1)
-        ->and(stripos($block, '<script'))->toBeFalse()
-        ->and(strpos($block, '<!--'))->toBeFalse();
-});
-
-it('still hands the exact feature text to Alpine', function () {
-    $features = ['Unlimited "drivers" & <b>trailers</b>', "Owner's portal"];
-    $plan = PlanFactory::new()->create(['features' => $features]);
-
-    $html = $this->actingAs(Actors::superAdmin())->get(route('admin.plans.edit', $plan))->getContent();
-
-    expect(sadmScriptBlock($html))->toContain('features: '.\Illuminate\Support\Js::from($features)->toHtml().',');
+    $this->get('/')
+        ->assertOk()
+        ->assertDontSee('<script>alert(document.domain)</script>', false)
+        ->assertSee(e(SADM_PAYLOAD), false);
 });

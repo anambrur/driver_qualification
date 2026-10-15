@@ -230,18 +230,18 @@
 
                                             <!-- Equipment Type -->
                                             <div>
-                                                <label for="equipment_types_id"
+                                                <label for="equipment_type_id"
                                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Equipment Type <span class="text-red-500">*</span>
                                                 </label>
-                                                <select name="equipment_types_id" id="equipment_types_id" required
+                                                <select name="equipment_type_id" id="equipment_type_id" required
                                                     class="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-hidden focus:ring-brand-500 focus:border-brand-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                                     <option value="">Select Equipment Type</option>
                                                     @foreach ($equipmentTypes as $type)
                                                         <option value="{{ $type->id }}">{{ $type->name }}</option>
                                                     @endforeach
                                                 </select>
-                                                <div id="equipment_types_id_error" class="mt-1 text-sm text-red-600">
+                                                <div id="equipment_type_id_error" class="mt-1 text-sm text-red-600">
                                                 </div>
                                             </div>
 
@@ -503,7 +503,7 @@
                     data: function(d) {
                         // Add filter parameters
                         d.search_text = $('#quick-search').val();
-                        d.equipment_types_id = $('#filter-type').val();
+                        d.equipment_type_id = $('#filter-type').val();
                         d.status = $('#filter-status').val();
                     },
                     error: function(xhr, error, thrown) {
@@ -528,7 +528,7 @@
                     },
                     {
                         data: 'equipment_group', // ✅ Matches controller's addColumn('equipment_group')
-                        name: 'equipment_types_id',
+                        name: 'equipment_type_id',
                         orderable: false,
                         searchable: false,
                         width: '20%'

@@ -21,6 +21,11 @@ class ServiceDocument extends Model
         'file_id',
     ];
 
+    // The service log screens read the client name; the stored file stays out of the JSON
+    protected $appends = ['original_name'];
+
+    protected $hidden = ['file'];
+
     // Relationships
     /**
      * @return BelongsTo<ServiceLog, $this>
@@ -39,6 +44,11 @@ class ServiceDocument extends Model
     }
 
     // Accessors
+    public function getOriginalNameAttribute(): ?string
+    {
+        return $this->file?->original_name;
+    }
+
     public function getFormattedFileSizeAttribute()
     {
         $bytes = $this->file->size_bytes;

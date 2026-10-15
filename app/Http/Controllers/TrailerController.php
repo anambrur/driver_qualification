@@ -42,8 +42,8 @@ class TrailerController extends Controller
                 $query->withTrashed();
             }
 
-            if ($request->filled('equipment_types_id')) {
-                $query->where('equipment_types_id', $request->input('equipment_types_id'));
+            if ($request->filled('equipment_type_id')) {
+                $query->where('equipment_type_id', $request->input('equipment_type_id'));
             }
 
             $searchText = $request->input('search_text');
@@ -153,7 +153,7 @@ class TrailerController extends Controller
             'year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
-            'equipment_types_id' => 'required|exists:equipment_types,id',
+            'equipment_type_id' => 'required|exists:equipment_types,id',
             'owned_by' => 'nullable|string|max:100',
             'color' => 'nullable|string|max:50',
             'title_no' => 'nullable|string|max:100',
@@ -232,7 +232,7 @@ class TrailerController extends Controller
             'year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
-            'equipment_types_id' => 'required|exists:equipment_types,id',
+            'equipment_type_id' => 'required|exists:equipment_types,id',
             'owned_by' => 'nullable|string|max:100',
             'color' => 'nullable|string|max:50',
             'title_no' => 'nullable|string|max:100',

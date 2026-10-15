@@ -3,16 +3,26 @@
 namespace App\Models;
 
 use App\Tenancy\BelongsToCompany;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\DB;
 
 class Driver extends Model
 {
     // Deleting hides the driver; the qualification file (child rows, documents, files) is kept.
     use BelongsToCompany, SoftDeletes;
+
+    public const MEDICAL_CERTIFICATE_KEY = 'medical_examiner_certificate';
+
+    /** status() in SQL, for filters, counts and sorting. */
+    public const STATUS_SQL = "CASE WHEN drivers.employment_status <> 'applicant' THEN drivers.employment_status ELSE COALESCE(drivers.application_status, 'pending') END";
 
     protected $guarded = ['id'];
 
@@ -43,6 +53,14 @@ class Driver extends Model
     public function login(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * @return BelongsTo<StoredFile, $this>
+     */
+    public function photoFile(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'photo_file_id');
     }
 
     /**
@@ -139,5 +157,73 @@ class Driver extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(DriverComplianceDocument::class);
+    }
+
+    /**
+     * The medical examiner's certificate (F17): the oldest compliance document of that type.
+     *
+     * @return HasOne<DriverComplianceDocument, $this>
+     */
+    public function medicalCertificate(): HasOne
+    {
+        return $this->hasOne(DriverComplianceDocument::class)
+            ->whereHas('documentType', fn (Builder $q) => $q->where('system_key', self::MEDICAL_CERTIFICATE_KEY))
+            ->orderBy('id');
+    }
+
+    /**
+     * medicalCertificate()'s expiry as a correlated subquery, for sorting lists.
+     */
+    public static function medicalCertificateExpirySubquery(): QueryBuilder
+    {
+        return DB::table('driver_compliance_documents as mc')
+            ->join('document_types as mct', 'mct.id', '=', 'mc.document_type_id')
+            ->whereColumn('mc.driver_id', 'drivers.id')
+            ->where('mct.system_key', self::MEDICAL_CERTIFICATE_KEY)
+            ->whereNull('mc.deleted_at')
+            ->orderBy('mc.id')
+            ->limit(1)
+            ->select('mc.expiry_date');
+    }
+
+    /**
+     * Drivers with any of the given display statuses (see status()).
+     *
+     * @param  Builder<Driver>  $query
+     */
+    public function scopeWithStatus(Builder $query, string ...$statuses): void
+    {
+        $query->whereIn(DB::raw(self::STATUS_SQL), $statuses);
+    }
+
+    /**
+     * Drivers on the lists: public applications still in draft are not.
+     *
+     * @param  Builder<Driver>  $query
+     */
+    public function scopeListed(Builder $query): void
+    {
+        $query->where(fn (Builder $q) => $q->whereNull('application_status')->orWhere('application_status', '!=', 'draft'));
+    }
+
+    /**
+     * One status for lists and badges (F15): the employment status once employed, otherwise
+     * the application stage (staff-created drivers have none and show as pending).
+     *
+     * @return Attribute<string, never>
+     */
+    protected function status(): Attribute
+    {
+        return Attribute::get(fn () => $this->employment_status !== 'applicant'
+            ? $this->employment_status
+            : ($this->application_status ?? 'pending'));
+    }
+
+    /**
+     * @return Attribute<?Carbon, never>
+     */
+    protected function medicalCertificateExpirationDate(): Attribute
+    {
+        return Attribute::get(fn () => $this->medicalCertificate?->expiry_date);
     }
 }

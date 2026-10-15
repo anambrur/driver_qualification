@@ -8,7 +8,7 @@ use Tests\Feature\Modules\Drivers\DriverAdmin;
 | DRV-06: the edit form re-posts the driver's status in a hidden field and UpdateDriverRequest
 | accepted any status. A tenant could change it to `active` (or `rejected`) and skip the
 | hire workflow, its checks (driver must be pending), its emails and its audit fields
-| (hired_at, action_by, rejection reason). The only way to hire or reject is now
+| (hired_at, decided_by_user_id, rejection reason). The only way to hire or reject is now
 | POST admin.driver.hire-status.
 */
 
@@ -25,7 +25,7 @@ describe('DRV-06: the edit form cannot change a driver\'s status', function () {
         $fresh = $driver->fresh();
         expect($fresh->status)->toBe('pending')
             ->and($fresh->hired_at)->toBeNull()
-            ->and($fresh->action_by)->toBeNull()
+            ->and($fresh->decided_by_user_id)->toBeNull()
             ->and($fresh->first_name)->toBe('Jane');
         Mail::assertNothingQueued();
     })->with(['active', 'rejected', 'draft', 'approved']);
@@ -60,6 +60,6 @@ describe('DRV-06: the edit form cannot change a driver\'s status', function () {
                 'action' => 'hire', 'hire_date' => now()->toDateString(), 'hazmat' => 'no', 'lcv_certificate' => 'no',
             ])->assertOk();
 
-        expect($driver->fresh())->status->toBe('active')->action_by->toBe($owner->id);
+        expect($driver->fresh())->status->toBe('active')->decided_by_user_id->toBe($owner->id);
     });
 });

@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\LimitReached;
 use App\Models\Company;
 use App\Models\PolicyPdf;
+use App\Services\Files\StoredFileService;
+use App\Tenancy\TenantContext;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -29,14 +30,13 @@ class CompanyController extends Controller
         $company = Company::findOrFail($id);
         $this->ensureCanManageCompany($company);
 
-        // Status belongs to the platform (/platform) and the login email to Profile (D3b)
+        // Status belongs to the platform (/platform); the owner's login, email and password to Profile (D3b)
         // Form validation
         $validator = Validator::make($request->all(), [
             'company_name' => 'required|string|max:255',
-            'password' => 'nullable|string|min:8|confirmed',
             'address' => 'required|string|max:255',
             'city' => 'required|string|max:255',
-            'state' => 'required|string|max:255',
+            'state' => 'required|string|size:2',
             'zip' => 'required|string|max:20',
             'description' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
@@ -56,18 +56,8 @@ class CompanyController extends Controller
         DB::beginTransaction();
 
         try {
-            // Update user
-            $userData = ['name' => $request->company_name];
-
-            // Update password only if provided
-            if ($request->filled('password')) {
-                $userData['password'] = Hash::make($request->password);
-            }
-
-            $company->user->update($userData);
-
             // Handle logo upload / removal; the old file is deleted once committed (PO-22)
-            $oldLogo = $company->logo;
+            $oldLogo = $company->logo_path;
             $logoPath = $oldLogo;
             if ($request->hasFile('logo')) {
                 $logoFile = $request->file('logo');
@@ -96,12 +86,12 @@ class CompanyController extends Controller
                 'slug' => $slug,
                 'address' => $request->address,
                 'city' => $request->city,
-                'state' => $request->state,
+                'state_code' => strtoupper((string) $request->state),
                 'zip' => $request->zip,
                 'description' => $request->description,
                 'phone' => $request->phone,
                 'fax' => $request->fax,
-                'logo' => $logoPath,
+                'logo_path' => $logoPath,
             ]);
 
             // Commit transaction
@@ -147,7 +137,7 @@ class CompanyController extends Controller
         ]);
     }
 
-    public function policyPDFStore(Request $request)
+    public function policyPDFStore(Request $request, StoredFileService $files)
     {
         $validator = Validator::make($request->all(), [
             'alcohol_drug_test_policy_pdf' => 'nullable|file|mimes:pdf|max:10240', // 10MB
@@ -167,73 +157,27 @@ class CompanyController extends Controller
             return back()->withInput()->withErrors($validator);
         }
 
+        // Check if at least one file was uploaded
+        if (! $request->hasFile('alcohol_drug_test_policy_pdf') && ! $request->hasFile('general_work_policy_pdf')) {
+            toastr()->warning('Please select at least one PDF file to upload.');
+
+            return back()->withInput();
+        }
+
         try {
-            // Check if at least one file was uploaded
-            if (! $request->hasFile('alcohol_drug_test_policy_pdf') && ! $request->hasFile('general_work_policy_pdf')) {
-                toastr()->warning('Please select at least one PDF file to upload.');
+            // Private stored files; applicants and staff open them through policyFile() routes
+            $files->transaction(function () use ($request, $files) {
+                $policyPdf = PolicyPdf::firstOrNew(['company_id' => $this->policyCompanyId()]);
 
-                return back()->withInput();
-            }
-
-            $alcoholPdfPath = null;
-            $generalPdfPath = null;
-
-            // The platform set, or the owner's own company's set (PO-14)
-            $companyId = $this->policyCompanyId();
-
-            // Define storage path. Policies are shown to job applicants on the public
-            // application form, so they stay on the public disk, under a random name.
-            $storagePath = 'policy_pdfs/'.$companyId;
-
-            // Ensure directory exists
-            $fullPath = storage_path('app/public/'.$storagePath);
-            if (! File::exists($fullPath)) {
-                File::makeDirectory($fullPath, 0755, true, true);
-            }
-
-            // Handle Alcohol & Drug Test Policy PDF
-            if ($request->hasFile('alcohol_drug_test_policy_pdf')) {
-                $alcoholPdfFile = $request->file('alcohol_drug_test_policy_pdf');
-                $alcoholPdfPath = $alcoholPdfFile->storeAs($storagePath, $alcoholPdfFile->hashName(), 'public');
-            }
-
-            // Handle General Work Policy PDF
-            if ($request->hasFile('general_work_policy_pdf')) {
-                $generalPdfFile = $request->file('general_work_policy_pdf');
-                $generalPdfPath = $generalPdfFile->storeAs($storagePath, $generalPdfFile->hashName(), 'public');
-            }
-
-            // Create or update policy PDF record
-            $policyPdf = PolicyPdf::where('company_id', $companyId)->first();
-
-            if (! $policyPdf) {
-                // Create first record if none exists
-                $policyPdf = PolicyPdf::create([
-                    'company_id' => $companyId,
-                    'alcohol_drug_test_policy_pdf' => $alcoholPdfPath,
-                    'general_work_policy_pdf' => $generalPdfPath,
-                ]);
-            } else {
-                // Delete old files before updating database
-                if ($request->hasFile('alcohol_drug_test_policy_pdf') && $policyPdf->alcohol_drug_test_policy_pdf) {
-                    Storage::disk('public')->delete($policyPdf->alcohol_drug_test_policy_pdf);
+                foreach (PolicyPdf::POLICIES as $policy) {
+                    if ($request->hasFile("{$policy}_policy_pdf")) {
+                        $files->purgeWhenUnreferenced($policyPdf->getAttribute("{$policy}_policy_file_id"));
+                        $policyPdf->setAttribute("{$policy}_policy_file_id", $files->store($request->file("{$policy}_policy_pdf"), 'policies')->id);
+                    }
                 }
 
-                if ($request->hasFile('general_work_policy_pdf') && $policyPdf->general_work_policy_pdf) {
-                    Storage::disk('public')->delete($policyPdf->general_work_policy_pdf);
-                }
-
-                // Update only the fields that have new files
-                $updateData = [];
-                if ($request->hasFile('alcohol_drug_test_policy_pdf')) {
-                    $updateData['alcohol_drug_test_policy_pdf'] = $alcoholPdfPath;
-                }
-                if ($request->hasFile('general_work_policy_pdf')) {
-                    $updateData['general_work_policy_pdf'] = $generalPdfPath;
-                }
-
-                $policyPdf->update($updateData);
-            }
+                $policyPdf->save();
+            });
 
             // Prepare success message based on what was uploaded
             $message = '';
@@ -248,6 +192,8 @@ class CompanyController extends Controller
             toastr()->success($message);
 
             return redirect()->route('admin.settings.policy.pdf');
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('Policy PDF Upload Error: '.$e->getMessage(), [
                 'exception' => $e,
@@ -261,27 +207,26 @@ class CompanyController extends Controller
     }
 
     /**
-     * The policy set the user manages: their own company's (the route requires company.edit).
+     * One of the company's policy PDFs, for its staff (settings and the driver wizard).
      */
-    private function policyCompanyId(): int
+    public function policyFile(string $policy, StoredFileService $files)
     {
-        return (int) auth()->user()->company_id;
+        return $files->response(PolicyPdf::resolveFor($this->policyCompanyId())->fileFor($policy));
     }
 
     /**
-     * Company-role users may only manage their own company profile.
+     * The policy set of the current tenant (the routes check the permission).
+     */
+    private function policyCompanyId(): int
+    {
+        return app(TenantContext::class)->requireCompanyId();
+    }
+
+    /**
+     * Users with company.edit (the route) manage their own company only: another is a 404 (03 §5).
      */
     private function ensureCanManageCompany(Company $company): void
     {
-        $user = auth()->user();
-
-        // Another company is a 404 (03 §5)
-        abort_unless((int) $user->company_id === (int) $company->id, 404);
-
-        if ($user->hasRole('company')) {
-            return;
-        }
-
-        abort(403, 'You can only manage your own company account.');
+        abort_unless((int) auth()->user()->company_id === (int) $company->id, 404);
     }
 }

@@ -4,6 +4,7 @@ use App\Models\DocumentType;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\FleetCompliance\FleetCompliance;
+use Tests\Support\Files;
 
 /*
 | FCMP-01: "upload to all" stores ONE file and points every vehicle's (or trailer's) document
@@ -31,7 +32,7 @@ function fcmpUploadToAll($test, User $owner, DocumentType $type, string $assetTy
         ], FleetCompliance::json())
         ->assertOk()->assertJson(['success' => true, 'uploaded_count' => 3]);
 
-    return FleetCompliance::documentModel($assetType)::withoutTenancy()->where('document_type_id', $type->id)->value('file_path');
+    return Files::pathOf(FleetCompliance::documentModel($assetType)::withoutTenancy()->where('document_type_id', $type->id)->value('file_id'));
 }
 
 describe('FCMP-01: a file shared by "upload to all"', function () {
@@ -48,9 +49,9 @@ describe('FCMP-01: a file shared by "upload to all"', function () {
 
         $model = FleetCompliance::documentModel($assetType);
         expect(Storage::disk('local')->exists($shared) || Storage::disk('public')->exists($shared))->toBeTrue()
-            ->and($model::where($assetType.'_id', $b->id)->value('file_path'))->toBe($shared);
+            ->and(Files::pathOf($model::withoutTenancy()->where($assetType.'_id', $b->id)->value('file_id')))->toBe($shared);
         $this->actingAs($owner)
-            ->get(route('admin.compliance.documents.view', [$model::where($assetType.'_id', $b->id)->value('id'), $assetType]))
+            ->get(route('admin.compliance.documents.view', [$model::withoutTenancy()->where($assetType.'_id', $b->id)->value('id'), $assetType]))
             ->assertOk();
     })->with(['vehicle', 'trailer']);
 
@@ -64,13 +65,13 @@ describe('FCMP-01: a file shared by "upload to all"', function () {
 
         $this->actingAs($owner)
             ->deleteJson(route('admin.compliance.documents.delete'), [
-                'document_id' => $model::where($assetType.'_id', $a->id)->value('id'),
+                'document_id' => $model::withoutTenancy()->where($assetType.'_id', $a->id)->value('id'),
                 'asset_type' => $assetType,
             ])
             ->assertOk();
 
         expect(Storage::disk('local')->exists($shared) || Storage::disk('public')->exists($shared))->toBeTrue()
-            ->and($model::where('file_path', $shared)->count())->toBe(2);
+            ->and($model::withoutTenancy()->where('file_id', Files::idOf($shared))->count())->toBe(2);
     })->with(['vehicle', 'trailer']);
 
     it('is deleted once the last document using it is replaced', function (string $assetType) {
@@ -107,13 +108,14 @@ describe('FCMP-01: a file shared by "upload to all"', function () {
             ], FleetCompliance::json())
             ->assertOk()->assertJson(['updated_count' => 3]);
 
-        $paths = FleetCompliance::documentModel('vehicle')::withoutTenancy()->pluck('file_path')->unique();
+        $paths = FleetCompliance::documentModel('vehicle')::withoutTenancy()->pluck('file_id')->unique()->map(fn ($id) => Files::pathOf($id));
         expect($paths)->toHaveCount(1)->and($paths->first())->not->toBe($first);
         Storage::disk('local')->assertExists($paths->first());
         Storage::disk('local')->assertMissing($first);
     });
 
-    it('still deletes the file of a document nobody else uses', function (string $assetType) {
+    // Documents are soft-deleted (01 §5): the row keeps its file so it can be restored
+    it('keeps the file of a deleted document nobody else uses, for restore', function (string $assetType) {
         [$owner, $asset] = FleetCompliance::tenantWithAsset($assetType);
         $document = FleetCompliance::document($asset, FleetCompliance::documentType($assetType));
 
@@ -121,6 +123,7 @@ describe('FCMP-01: a file shared by "upload to all"', function () {
             ->deleteJson(route('admin.compliance.documents.delete'), ['document_id' => $document->id, 'asset_type' => $assetType])
             ->assertOk();
 
-        Storage::disk('local')->assertMissing($document->file_path);
+        Storage::disk('local')->assertExists(Files::pathOf($document->file_id));
+        expect(FleetCompliance::documentModel($assetType)::withoutTenancy()->onlyTrashed()->count())->toBe(1);
     })->with(['vehicle', 'trailer']);
 });

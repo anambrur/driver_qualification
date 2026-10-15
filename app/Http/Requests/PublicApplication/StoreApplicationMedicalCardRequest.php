@@ -16,8 +16,8 @@ class StoreApplicationMedicalCardRequest extends FormRequest
     public function rules(): array
     {
         return [
+            // The card and its expiry: DriverDocumentWizardService::medicalCardRules(), once the driver is known
             'driver_id' => $this->applicationDriverRules(),
-            'medical_card' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ];
     }
 }

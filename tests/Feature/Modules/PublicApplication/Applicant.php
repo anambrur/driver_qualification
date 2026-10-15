@@ -5,11 +5,12 @@ namespace Tests\Feature\Modules\PublicApplication;
 use App\Models\Company;
 use App\Models\Driver;
 use App\Services\OTPService;
-use Database\Factories\CompanyFactory;
 use Database\Factories\DriverFactory;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Mockery;
 use Mockery\MockInterface;
+use Tests\Support\Actors;
 
 /**
  * Fixtures for the public 10-step application (no auth, session-based).
@@ -18,7 +19,8 @@ final class Applicant
 {
     public static function company(array $attributes = []): Company
     {
-        return CompanyFactory::new()->create($attributes);
+        // Subscribed: uploads count against the plan's storage (05 §5)
+        return Actors::company($attributes);
     }
 
     /**
@@ -28,7 +30,14 @@ final class Applicant
     {
         $company ??= self::company();
 
-        return DriverFactory::new()->forCompany($company)->publicDraft()->create($attributes);
+        $factory = DriverFactory::new()->forCompany($company)->publicDraft();
+
+        // A 'status' attribute is the application stage (DriverFactory::status())
+        if (isset($attributes['status'])) {
+            $factory = $factory->status(Arr::pull($attributes, 'status'));
+        }
+
+        return $factory->create($attributes);
     }
 
     /**
@@ -83,7 +92,7 @@ final class Applicant
                 'license_front' => UploadedFile::fake()->image('front.jpg'),
                 'license_back' => UploadedFile::fake()->image('back.jpg'),
             ],
-            3 => ['medical_card' => UploadedFile::fake()->image('medical.jpg')],
+            3 => ['medical_card' => UploadedFile::fake()->image('medical.jpg'), 'medical_certificate_expiration_date' => now()->addYear()->toDateString()],
             4 => ['forfeiture_document' => UploadedFile::fake()->image('forfeiture.jpg')],
             5 => ['violation' => 'no', 'applicant_signature' => 'Attacker'] + $signed,
             6 => ['drug_test_question_1' => 'no', 'drug_test_question_2' => 'no', 'applicant_signature' => 'Attacker'] + $signed,
@@ -110,8 +119,8 @@ final class Applicant
             'medical_certificate_expiration_date' => now()->addYear()->toDateString(),
             'address' => '1 Main St',
             'city' => 'Austin',
-            'state' => 'Texas',
-            'country' => 'United States',
+            'state' => 'TX',
+            'country' => 'US',
             'postal_code' => '73301',
             'accident' => 'no',
             'violation' => 'no',
@@ -121,8 +130,8 @@ final class Applicant
             'license_last_name' => 'Roe',
             'license_issued' => now()->subYears(5)->toDateString(),
             'license_expires' => now()->addYears(3)->toDateString(),
-            'license_country' => 'United States',
-            'license_state' => 'Texas',
+            'license_country' => 'US',
+            'license_state' => 'TX',
             'license_class' => 'A',
             'license_number' => 'D1234567',
             'repeat_license_number' => 'D1234567',

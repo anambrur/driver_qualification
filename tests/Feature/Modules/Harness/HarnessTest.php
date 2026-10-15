@@ -14,26 +14,26 @@ use Tests\Support\StripeFake;
 */
 
 describe('actors', function () {
-    it('lets a super-admin into the admin area without a subscription', function () {
-        $this->actingAs(Actors::superAdmin())
-            ->get(route('admin.dashboard'))
+    it('lets platform staff into the platform area', function () {
+        $this->actingAs(Actors::platformOwner(), 'platform')
+            ->get(route('platform.dashboard'))
             ->assertOk();
     });
 
     it('lets a subscribed company owner reach a permission-guarded page', function () {
-        $owner = Actors::companyOwner();
+        $owner = Actors::actingAsTenant(Actors::companyOwner());
 
-        expect($owner->hasRole('company'))->toBeTrue()
+        expect(Actors::companyOf($owner)->owner_user_id)->toBe($owner->id)
             ->and($owner->can('drivers.view'))->toBeTrue()
-            ->and($owner->hasActiveSubscription())->toBeTrue();
+            ->and(Actors::openSubscription(Actors::companyOf($owner)))->not->toBeNull();
 
         $this->actingAs($owner)
             ->get(route('admin.driver.index'))
             ->assertOk();
     });
 
-    it('sends an expired tenant to the pricing page', function () {
-        $this->actingAs(Actors::expiredCompanyOwner())
+    it('sends a tenant that never subscribed to the pricing page', function () {
+        $this->actingAs(Actors::companyOwner(Actors::company(subscribed: false)))
             ->get(route('admin.driver.index'))
             ->assertRedirect(route('pricing.plans'));
     });
@@ -51,7 +51,7 @@ describe('factories', function () {
         $vehicle = VehicleFactory::new()->forCompany($company)->create();
 
         expect($driver->company_id)->toBe($company->id)
-            ->and($driver->user_id)->toBe($company->user_id)
+            ->and($driver->created_by_user_id)->toBe($company->owner_user_id)
             ->and($vehicle->company_id)->toBe($company->id);
     });
 });

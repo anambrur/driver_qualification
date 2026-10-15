@@ -39,7 +39,7 @@
             $driverInitials = strtoupper(
                 substr($driver->first_name ?? 'D', 0, 1) . substr($driver->last_name ?? 'R', 0, 1),
             );
-            $driverPhotoUrl = $driver->photo ? route('admin.driver.file', [$driver->id, 'photo']) : null;
+            $driverPhotoUrl = $driver->photo_file_id ? route('admin.driver.file', [$driver->id, 'photo']) : null;
         @endphp
 
         <!-- Driver Header Card -->
@@ -1036,7 +1036,7 @@
                                 </div>
 
                                 <div class="flex items-center gap-2 ml-3 flex-shrink-0">
-                                    @if ($docDetail['document_id'] && $docDetail['file_path'])
+                                    @if ($docDetail['document_id'] && $docDetail['file_id'])
                                         <a href="{{ route('admin.compliance.driver.documents.view', $docDetail['document_id']) }}"
                                             target="_blank"
                                             class="h-6 w-6 rounded-md inline-flex items-center justify-center text-gray-600 hover:bg-zinc-800/5 dark:text-gray-300 dark:hover:bg-white/15"
@@ -1105,7 +1105,7 @@
                             <div class="space-y-2">
                                 @foreach ($uploadedDocuments as $document)
                                     @php
-                                        $ext = strtolower(pathinfo($document->file_path, PATHINFO_EXTENSION));
+                                        $ext = strtolower(pathinfo($document->file?->path, PATHINFO_EXTENSION));
                                         $icon = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']) ? 'fa-file-image' : 'fa-file-pdf';
                                     @endphp
                                     <div

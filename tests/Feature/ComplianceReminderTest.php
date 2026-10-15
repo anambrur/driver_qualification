@@ -2,19 +2,22 @@
 
 use App\Mail\DriverComplianceReminderMail;
 use App\Mail\VehicleComplianceStatusReminderMail;
-use App\Models\AssetGroup;
 use App\Models\Company;
 use App\Models\DocumentType;
 use App\Models\Driver;
 use App\Models\User;
-use App\Models\Vehicle;
 use App\Services\ComplianceReminderService;
+use App\Tenancy\TenantContext;
+use Database\Factories\AssetGroupFactory;
+use Database\Factories\DriverFactory;
+use Database\Factories\VehicleFactory;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\Actors;
 
-function createSuperAdminUser(): User
+// Reminders are sent by the company's own staff (the platform acts only in a support session)
+function createReminderUser(): User
 {
-    return Actors::superAdmin();
+    return Actors::companyOwner();
 }
 
 function createCompanyForUser(User $user): Company
@@ -24,22 +27,17 @@ function createCompanyForUser(User $user): Company
 
 function createDriverForCompany(Company $company, array $overrides = []): Driver
 {
-    $driverUser = User::factory()->create();
-
-    return Driver::create(array_merge([
-        'user_id' => $driverUser->id,
-        'company_id' => $company->id,
+    return DriverFactory::new()->forCompany($company)->create(array_merge([
         'first_name' => 'Jane',
         'last_name' => 'Driver',
         'email' => 'jane.driver@test.com',
-        'status' => 'active',
     ], $overrides));
 }
 
 test('driver compliance reminder endpoint queues email', function () {
     Mail::fake();
 
-    $admin = createSuperAdminUser();
+    $admin = createReminderUser();
     $company = createCompanyForUser($admin);
     $driver = createDriverForCompany($company);
 
@@ -67,7 +65,7 @@ test('driver compliance reminder endpoint queues email', function () {
 });
 
 test('driver compliance reminder returns validation error for invalid payload', function () {
-    $admin = createSuperAdminUser();
+    $admin = createReminderUser();
 
     $response = $this->actingAs($admin)->postJson(route('admin.compliance.driver.documents.send-reminder'), []);
 
@@ -80,7 +78,7 @@ test('driver compliance reminder returns validation error for invalid payload', 
 test('driver compliance reminder fails when driver has no email', function () {
     Mail::fake();
 
-    $admin = createSuperAdminUser();
+    $admin = createReminderUser();
     $company = createCompanyForUser($admin);
     $driver = createDriverForCompany($company, ['email' => null]);
 
@@ -106,20 +104,13 @@ test('driver compliance reminder fails when driver has no email', function () {
 test('vehicle compliance reminder endpoint queues email for assigned driver', function () {
     Mail::fake();
 
-    $admin = createSuperAdminUser();
+    $admin = createReminderUser();
     $company = createCompanyForUser($admin);
     $driver = createDriverForCompany($company);
 
-    $vehicle = Vehicle::create([
-        'company_id' => $company->id,
-        'unit_no' => 'TRK-100',
-        'vin' => '1HGBH41JXMN109186',
-        'year' => 2022,
-        'make' => 'Freightliner',
-        'model' => 'Cascadia',
-    ]);
+    $vehicle = VehicleFactory::new()->forCompany($company)->create(['unit_no' => 'TRK-100']);
 
-    AssetGroup::create([
+    AssetGroupFactory::new()->create([
         'group_name' => 'Group A',
         'driver_id' => $driver->id,
         'vehicle_id' => $vehicle->id,
@@ -153,7 +144,7 @@ test('vehicle compliance reminder endpoint queues email for assigned driver', fu
 test('compliance reminder service resolves missing document status', function () {
     Mail::fake();
 
-    $admin = createSuperAdminUser();
+    $admin = createReminderUser();
     $company = createCompanyForUser($admin);
     $driver = createDriverForCompany($company);
 
@@ -163,8 +154,7 @@ test('compliance reminder service resolves missing document status', function ()
         'status' => true,
     ]);
 
-    $service = app(ComplianceReminderService::class);
-    $result = $service->sendDriverReminder($driver, $documentType);
+    $result = app(TenantContext::class)->run($company->id, fn () => app(ComplianceReminderService::class)->sendDriverReminder($driver, $documentType));
 
     expect($result['success'])->toBeTrue();
 

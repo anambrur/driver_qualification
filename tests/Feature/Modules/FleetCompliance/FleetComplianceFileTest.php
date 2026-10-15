@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\FleetCompliance\FleetCompliance;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /*
 | FCMP-02: vehicle and trailer documents were stored on the public disk as
@@ -26,8 +27,8 @@ describe('FCMP-02: fleet compliance documents are private', function () {
             ->post(route('admin.compliance.documents.upload'), FleetCompliance::payload($asset, $type), FleetCompliance::json())
             ->assertOk()->assertJson(['success' => true]);
 
-        $path = FleetCompliance::documentModel($assetType)::withoutTenancy()->where($assetType.'_id', $asset->id)->value('file_path');
-        expect($path)->toStartWith('documents/'.$assetType.'s/');
+        $path = Files::pathOf(FleetCompliance::documentModel($assetType)::withoutTenancy()->where($assetType.'_id', $asset->id)->value('file_id'));
+        expect($path)->toStartWith('companies/');
         Storage::disk('local')->assertExists($path);
         Storage::disk('public')->assertMissing($path);
     })->with(['vehicle', 'trailer']);
@@ -44,22 +45,16 @@ describe('FCMP-02: fleet compliance documents are private', function () {
             ->assertOk()->assertDownload();
     })->with(['vehicle', 'trailer']);
 
-    it('lets a super-admin open any company\'s document', function (string $assetType) {
-        [, $asset] = FleetCompliance::tenantWithAsset($assetType);
-        $document = FleetCompliance::document($asset, FleetCompliance::documentType($assetType));
-
-        $this->actingAs(Actors::superAdmin())
-            ->get(route('admin.compliance.documents.view', [$document->id, $assetType]))
-            ->assertOk();
-    })->with(['vehicle', 'trailer']);
+    it('lets platform support open any company\'s document inside a support session')->todo('WP8b: read_write support session');
 
     it('refuses another tenant', function (string $assetType, string $route) {
         [, $asset] = FleetCompliance::tenantWithAsset($assetType);
         $document = FleetCompliance::document($asset, FleetCompliance::documentType($assetType));
 
+        // Another company's id is not found (11 §5 step 3), not forbidden
         $this->actingAs(Actors::companyOwner())
             ->get(route($route, [$document->id, $assetType]))
-            ->assertForbidden();
+            ->assertNotFound();
     })->with(['vehicle', 'trailer'])->with(['admin.compliance.documents.view', 'admin.compliance.documents.download']);
 
     it('refuses guests and users without fleet permissions', function () {
@@ -71,7 +66,7 @@ describe('FCMP-02: fleet compliance documents are private', function () {
         $this->actingAs(Actors::plainUser())->get($url)->assertForbidden();
     });
 
-    it('still serves documents uploaded before the move, from the public disk', function (string $assetType) {
+    it('serves a document from the disk its stored file is on', function (string $assetType) {
         [$owner, $asset] = FleetCompliance::tenantWithAsset($assetType);
         $document = FleetCompliance::document($asset, FleetCompliance::documentType($assetType), disk: 'public');
 
@@ -80,7 +75,7 @@ describe('FCMP-02: fleet compliance documents are private', function () {
             ->assertOk();
     })->with(['vehicle', 'trailer']);
 
-    it('deletes a legacy file from the public disk when the document is replaced', function () {
+    it('purges a replaced file from the disk it is on', function () {
         [$owner, $asset] = FleetCompliance::tenantWithAsset();
         $type = FleetCompliance::documentType();
         $old = FleetCompliance::document($asset, $type, disk: 'public');
@@ -89,14 +84,14 @@ describe('FCMP-02: fleet compliance documents are private', function () {
             ->post(route('admin.compliance.documents.upload'), FleetCompliance::payload($asset, $type), FleetCompliance::json())
             ->assertOk();
 
-        Storage::disk('public')->assertMissing($old->file_path);
-        Storage::disk('local')->assertExists($old->fresh()->file_path);
+        Storage::disk('public')->assertMissing(Files::pathOf($old->file_id));
+        Storage::disk('local')->assertExists(Files::pathOf($old->fresh()->file_id));
     });
 
     it('returns 404 when the file is missing from both disks', function () {
         [$owner, $asset] = FleetCompliance::tenantWithAsset();
         $document = FleetCompliance::document($asset, FleetCompliance::documentType());
-        Storage::disk('local')->delete($document->file_path);
+        Storage::disk('local')->delete(Files::pathOf($document->file_id));
 
         $this->actingAs($owner)
             ->get(route('admin.compliance.documents.view', [$document->id, 'vehicle']))
@@ -125,7 +120,7 @@ describe('FCMP-02: stored names come from the content, not the client', function
             ->post(route('admin.compliance.documents.upload'), FleetCompliance::payload($asset, $type, ['file' => $file]), FleetCompliance::json())
             ->assertOk();
 
-        $path = FleetCompliance::documentModel($assetType)::withoutTenancy()->where($assetType.'_id', $asset->id)->value('file_path');
+        $path = Files::pathOf(FleetCompliance::documentModel($assetType)::withoutTenancy()->where($assetType.'_id', $asset->id)->value('file_id'));
         expect($path)->toEndWith('.pdf')->not->toContain('x.html')->not->toContain('x_html');
     })->with(['vehicle', 'trailer']);
 
@@ -140,7 +135,7 @@ describe('FCMP-02: stored names come from the content, not the client', function
                 ->assertOk();
         }
 
-        $paths = FleetCompliance::documentModel('vehicle')::withoutTenancy()->pluck('file_path');
+        $paths = FleetCompliance::documentModel('vehicle')::withoutTenancy()->pluck('file_id')->map(fn ($id) => Files::pathOf($id));
         expect($paths->unique())->toHaveCount(2)
             ->and($paths->first())->not->toContain('insurance');
     });

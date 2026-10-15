@@ -6,16 +6,18 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\Companies\Companies;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /*
 | Product decisions of 2026-10-11 (docs/testing/PRODUCT_DECISIONS.md):
-| PO-14  policy PDFs per company, with the platform set as fallback.
+| PO-14  policy PDFs per company (the platform-set fallback is PENDING, see below).
 | PO-22  "Remove current logo" works and a replaced logo's file is deleted; an owner changing
 |        their login email on Profile keeps companies.email in sync.
 */
 
 beforeEach(function () {
     Storage::fake('public');
+    Storage::fake('local');
 });
 
 describe('PO-14: policy PDFs per company', function () {
@@ -25,47 +27,41 @@ describe('PO-14: policy PDFs per company', function () {
 
         $this->actingAs($owner)->get(route('admin.settings.policy.pdf'))->assertOk();
         $this->actingAs($owner)->post(route('admin.settings.policy.pdf.store'), ['alcohol_drug_test_policy_pdf' => Companies::pdf()]);
-        $first = PolicyPdf::where('company_id', $company->id)->sole()->alcohol_drug_test_policy_pdf;
+        $first = Files::pathOf(PolicyPdf::where('company_id', $company->id)->sole()->alcohol_drug_test_policy_file_id);
         $this->actingAs($owner)->post(route('admin.settings.policy.pdf.store'), ['alcohol_drug_test_policy_pdf' => Companies::pdf()]);
-        $second = PolicyPdf::where('company_id', $company->id)->sole()->alcohol_drug_test_policy_pdf;
+        $second = Files::pathOf(PolicyPdf::where('company_id', $company->id)->sole()->alcohol_drug_test_policy_file_id);
 
-        expect($first)->toStartWith('policy_pdfs/'.$company->id.'/')
+        expect($first)->toStartWith('companies/'.$company->id.'/policies/')
             ->and($second)->not->toBe($first);
-        Storage::disk('public')->assertMissing($first);
-        Storage::disk('public')->assertExists($second);
+        Storage::disk('local')->assertMissing($first);
+        Storage::disk('local')->assertExists($second);
     });
 
-    it('keeps the super-admin on the platform set', function () {
-        $this->actingAs(Actors::superAdmin())->post(route('admin.settings.policy.pdf.store'), ['general_work_policy_pdf' => Companies::pdf()]);
+    // The platform set moved to site_settings (F12) and has no upload screen yet
+    it('falls back to the platform policy set when a company has none')->todo('PENDING: platform default policy PDFs');
 
-        expect(PolicyPdf::sole()->company_id)->toBeNull();
-    });
-
-    it('resolves each policy to the company\'s own file, or the platform one', function () {
+    it('resolves each policy to the company\'s own file only', function () {
         $company = Actors::companyOf(Actors::companyOwner());
         $other = Actors::companyOf(Actors::companyOwner());
-        PolicyPdf::create(['company_id' => null, 'alcohol_drug_test_policy_pdf' => 'policy_pdfs/platform-a.pdf', 'general_work_policy_pdf' => 'policy_pdfs/platform-g.pdf']);
-        PolicyPdf::create(['company_id' => $company->id, 'alcohol_drug_test_policy_pdf' => 'policy_pdfs/'.$company->id.'/own-a.pdf']);
+        $file = Files::stored($company->id);
+        PolicyPdf::create(['company_id' => $company->id, 'alcohol_drug_test_policy_file_id' => $file->id]);
 
-        $mine = PolicyPdf::resolveFor($company->id);
-        $theirs = PolicyPdf::resolveFor($other->id);
-
-        expect($mine->alcohol_drug_test_policy_pdf)->toBe('policy_pdfs/'.$company->id.'/own-a.pdf')
-            ->and($mine->general_work_policy_pdf)->toBe('policy_pdfs/platform-g.pdf')
-            ->and($theirs->alcohol_drug_test_policy_pdf)->toBe('policy_pdfs/platform-a.pdf');
+        expect(PolicyPdf::resolveFor($company->id)->alcohol_drug_test_policy_file_id)->toBe($file->id)
+            ->and(PolicyPdf::resolveFor($company->id)->general_work_policy_file_id)->toBeNull()
+            ->and(PolicyPdf::resolveFor($other->id)->alcohol_drug_test_policy_file_id)->toBeNull();
     });
 
-    it('shows a driver the policy of the driver\'s company in the wizard', function () {
+    it('shows staff the policy of the driver\'s company in the wizard', function () {
         $owner = Actors::companyOwner();
         $company = Actors::companyOf($owner);
-        $driver = DriverFactory::new()->create(['company_id' => $company->id]);
-        PolicyPdf::create(['company_id' => null, 'general_work_policy_pdf' => 'policy_pdfs/platform-g.pdf']);
-        PolicyPdf::create(['company_id' => $company->id, 'general_work_policy_pdf' => 'policy_pdfs/'.$company->id.'/own-g.pdf']);
+        $driver = DriverFactory::new()->forCompany($company)->create();
+        PolicyPdf::create(['company_id' => $company->id, 'general_work_policy_file_id' => Files::stored($company->id, 'own-general-work')->id]);
 
         $this->actingAs($owner)->get(route('admin.driver.general.work.policy', $driver->id))
             ->assertOk()
-            ->assertSee('policy_pdfs/'.$company->id.'/own-g.pdf', false)
-            ->assertDontSee('platform-g.pdf', false);
+            ->assertSee(route('admin.settings.policy.pdf.file', 'general_work'), false)
+            ->assertDontSee('/storage/', false);
+        expect($this->actingAs($owner)->get(route('admin.settings.policy.pdf.file', 'general_work'))->streamedContent())->toBe('own-general-work');
     });
 });
 
@@ -74,13 +70,13 @@ describe('PO-22: company logo', function () {
         $owner = Actors::companyOwner();
         $company = Actors::companyOf($owner);
         Storage::disk('public')->put('companies/logos/old.png', 'png');
-        $company->update(['logo' => 'companies/logos/old.png']);
+        $company->update(['logo_path' => 'companies/logos/old.png']);
 
         $this->actingAs($owner)
             ->patch(route('admin.settings.company.update', $company->id), Companies::updatePayload($company, ['remove_logo' => '1']))
             ->assertSessionHasNoErrors();
 
-        expect($company->fresh()->logo)->toBeNull();
+        expect($company->fresh()->logo_path)->toBeNull();
         Storage::disk('public')->assertMissing('companies/logos/old.png');
     });
 
@@ -88,7 +84,7 @@ describe('PO-22: company logo', function () {
         $owner = Actors::companyOwner();
         $company = Actors::companyOf($owner);
         Storage::disk('public')->put('companies/logos/old.png', 'png');
-        $company->update(['logo' => 'companies/logos/old.png']);
+        $company->update(['logo_path' => 'companies/logos/old.png']);
 
         $this->actingAs($owner)
             ->patch(route('admin.settings.company.update', $company->id), Companies::updatePayload($company, [
@@ -96,7 +92,7 @@ describe('PO-22: company logo', function () {
             ]))
             ->assertSessionHasNoErrors();
 
-        $logo = $company->fresh()->logo;
+        $logo = $company->fresh()->logo_path;
         expect($logo)->not->toBe('companies/logos/old.png');
         Storage::disk('public')->assertMissing('companies/logos/old.png');
         Storage::disk('public')->assertExists($logo);
@@ -106,13 +102,13 @@ describe('PO-22: company logo', function () {
         $owner = Actors::companyOwner();
         $company = Actors::companyOf($owner);
         Storage::disk('public')->put('companies/logos/old.png', 'png');
-        $company->update(['logo' => 'companies/logos/old.png']);
+        $company->update(['logo_path' => 'companies/logos/old.png']);
 
         $this->actingAs($owner)
             ->patch(route('admin.settings.company.update', $company->id), Companies::updatePayload($company))
             ->assertSessionHasNoErrors();
 
-        expect($company->fresh()->logo)->toBe('companies/logos/old.png');
+        expect($company->fresh()->logo_path)->toBe('companies/logos/old.png');
         Storage::disk('public')->assertExists('companies/logos/old.png');
     });
 });

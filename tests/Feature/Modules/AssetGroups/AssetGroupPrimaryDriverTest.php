@@ -8,8 +8,8 @@ use Tests\Feature\Modules\AssetGroups\AssetGroupActors;
 
 /*
 | Follow-up: the form's driver <select> was named primary_driver_name with driver ids as values,
-| so the group stored "42" as the driver's name. The select now posts driver_id and the server
-| takes the name from the driver record.
+| so the group stored "42" as the driver's name. The select now posts driver_id, and the group
+| shows the driver record's name (the stored name column was dropped in WP1).
 */
 
 describe('primary driver', function () {
@@ -26,7 +26,10 @@ describe('primary driver', function () {
             'status' => 'active',
         ])->assertOk();
 
-        expect(AssetGroup::withoutTenancy()->sole()->primary_driver_name)->toBe('Ada Lovelace');
+        expect(AssetGroup::withoutTenancy()->sole()->driver_id)->toBe($driver->id);
+        $this->actingAs($tenant)->getJson(route('admin.asset-group.index'), ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()
+            ->assertJsonPath('data.0.drivers_info', fn (string $html) => str_contains($html, 'Ada Lovelace') && ! str_contains($html, '>'.$driver->id.'<'));
     });
 
     it('updates the name when another driver is picked', function () {
@@ -42,9 +45,10 @@ describe('primary driver', function () {
             'status' => 'active',
         ])->assertOk();
 
-        expect($group->fresh())
-            ->driver_id->toBe($newDriver->id)
-            ->primary_driver_name->toBe('Grace Hopper');
+        expect(AssetGroup::withoutTenancy()->find($group->id)->driver_id)->toBe($newDriver->id);
+        $this->actingAs($tenant)->getJson(route('admin.asset-group.index'), ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()
+            ->assertJsonPath('data.0.drivers_info', fn (string $html) => str_contains($html, 'Grace Hopper'));
     });
 
     it('requires a driver on update', function () {
@@ -70,7 +74,7 @@ describe('primary driver', function () {
             'id' => $driver->id,
             'first_name' => $driver->first_name,
             'last_name' => $driver->last_name,
-            'status' => 'inactive',
+            'employment_status' => 'inactive',
         ]);
     });
 

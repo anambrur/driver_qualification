@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Factories\CompanyFactory;
 use Database\Factories\DriverFactory;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Tests\Support\Actors;
@@ -88,6 +89,7 @@ describe('AUTH-03 registration failure handling', function () {
     });
 
     it('does not flash the password into the session when registration fails', function () {
+        // No company name: validation fails
         $this->from('/register')->post('/register', [
             'name' => 'Acme Hauling',
             'email' => 'acme@example.com',
@@ -100,19 +102,21 @@ describe('AUTH-03 registration failure handling', function () {
             ->and(session()->getOldInput('email'))->toBe('acme@example.com');
     });
 
-    it('creates the user, company and company role on success', function () {
-        Actors::seedAccessControl();
+    it('creates the user, the company and its Owner role on success', function () {
 
         $this->post('/register', [
             'name' => 'Acme Hauling',
+            'company_name' => 'Acme Hauling',
             'email' => 'acme@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
         ])->assertRedirect(route('dashboard', absolute: false));
 
         $user = User::where('email', 'acme@example.com')->firstOrFail();
-        expect($user->hasRole('company'))->toBeTrue()
-            ->and(Company::where('user_id', $user->id)->count())->toBe(1);
+        $ownerRole = DB::table('model_has_roles')->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->where('model_has_roles.model_id', $user->id)->where('roles.team_id', $user->company_id)->value('roles.system_key');
+        expect($ownerRole)->toBe('owner')
+            ->and(Company::where('owner_user_id', $user->id)->count())->toBe(1);
         $this->assertAuthenticatedAs($user);
     });
 });
@@ -122,7 +126,6 @@ describe('AUTH-03 registration failure handling', function () {
 */
 describe('AUTH-05 company slug', function () {
     it('picks a different slug when the random suffix collides with an existing company', function () {
-        Actors::seedAccessControl();
         CompanyFactory::new()->create(['slug' => 'acme-hauling-aaaa']);
         // Only the 4-char slug suffix is forced; other Str::random() callers (session, tokens) stay random.
         $suffixes = ['aaaa', 'bbbb'];
@@ -136,26 +139,27 @@ describe('AUTH-05 company slug', function () {
 
         $this->post('/register', [
             'name' => 'Acme Hauling',
+            'company_name' => 'Acme Hauling',
             'email' => 'acme@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
         ])->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertAuthenticated();
-        expect(Company::where('email', 'acme@example.com')->value('slug'))->toBe('acme-hauling-bbbb');
+        expect(User::where('email', 'acme@example.com')->firstOrFail()->company->slug)->toBe('acme-hauling-bbbb');
     });
 
     it('builds a usable slug when the name has no latin characters', function () {
-        Actors::seedAccessControl();
 
         $this->post('/register', [
             'name' => '株式会社',
+            'company_name' => '株式会社',
             'email' => 'kk@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);
 
-        $slug = Company::where('email', 'kk@example.com')->value('slug');
+        $slug = User::where('email', 'kk@example.com')->firstOrFail()->company->slug;
         expect($slug)->toMatch('/^[a-z0-9]+(-[a-z0-9]+)*$/');
     });
 });
@@ -168,7 +172,7 @@ describe('AUTH-05 company slug', function () {
 describe('AUTH-04 closing an account', function () {
     it('deactivates the owner and the company and keeps its drivers (decided PO-17, 2026-10-11)', function () {
         $owner = Actors::companyOwner();
-        $company = Company::where('user_id', $owner->id)->firstOrFail();
+        $company = Company::where('owner_user_id', $owner->id)->firstOrFail();
         $driver = DriverFactory::new()->create(['company_id' => $company->id]);
 
         $this->actingAs($owner)
@@ -177,7 +181,7 @@ describe('AUTH-04 closing an account', function () {
 
         $this->assertGuest();
         expect($owner->fresh()->status)->toBe('inactive')
-            ->and($company->fresh()->status)->toBe('inactive')
+            ->and($company->fresh()->status)->toBe('deactivated')
             ->and(Driver::withoutTenancy()->find($driver->id))->not->toBeNull();
     });
 
@@ -191,19 +195,19 @@ describe('AUTH-04 closing an account', function () {
         expect($owner->fresh()->status)->toBe('active');
     });
 
-    it('refuses sub-users and super-admins', function (string $who) {
-        $user = $who === 'super-admin' ? Actors::superAdmin() : Actors::plainUser();
+    // Platform staff have no tenant profile at all (Platform/PlatformAreaTest)
+    it('refuses users other than the owner', function () {
+        $user = Actors::plainUser();
 
         $this->actingAs($user)
             ->delete('/admin/profile', ['password' => 'password'])
             ->assertForbidden();
 
         expect($user->fresh()->status)->toBe('active');
-    })->with(['sub-user', 'super-admin']);
+    });
 
     it('shows Close Account to owners only', function () {
         $this->actingAs(Actors::companyOwner())->get('/admin/profile')->assertOk()->assertSee('Close Account');
         $this->actingAs(Actors::plainUser())->get('/admin/profile')->assertOk()->assertDontSee('Close Account');
-        $this->actingAs(Actors::superAdmin())->get('/admin/profile')->assertOk()->assertDontSee('Close Account');
     });
 });

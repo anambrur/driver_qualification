@@ -36,16 +36,14 @@ class DriverController extends Controller
     {
         // Check if it's an AJAX request for DataTables
         if ($request->ajax()) {
-            $drivers = Driver::with(['company', 'licenses' => function ($query) {
-                $query->latest('expires');
-            }])->select('drivers.*');
+            $drivers = Driver::with(['company', 'currentLicense', 'medicalCertificate'])->select('drivers.*');
 
-            // Draft drivers are never listed
-            $drivers->where('status', '!=', 'draft');
+            // Draft applications are never listed
+            $drivers->listed();
 
             // Apply status filter if provided
             if ($request->has('status') && $request->status && $request->status !== 'all') {
-                $drivers->where('status', $request->status);
+                $drivers->withStatus((string) $request->status);
             }
 
             return DataTables::of($drivers)
@@ -53,7 +51,7 @@ class DriverController extends Controller
                 ->addColumn('photo', function ($driver) {
                     $initials = strtoupper(substr($driver->first_name ?? 'D', 0, 1).substr($driver->last_name ?? 'R', 0, 1));
 
-                    if ($driver->photo) {
+                    if ($driver->photo_file_id) {
                         $photoUrl = e(route('admin.driver.file', [$driver->id, 'photo']));
 
                         return '<img src="'.$photoUrl.'" alt="'.e($driver->first_name).'" class="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-sm" />';
@@ -71,24 +69,16 @@ class DriverController extends Controller
                     return $driver->company ? $driver->company->company_name : 'N/A';
                 })
                 ->addColumn('state', function ($driver) {
-                    return $driver->state ?? 'N/A';
+                    return $driver->state_code ?? 'N/A';
                 })
                 ->addColumn('hired_at', function ($driver) {
                     return $driver->hired_at ? $driver->hired_at : 'Not Hired';
                 })
                 ->addColumn('license_expiration_date', function ($driver) {
-                    if (isset($driver->licenses) && $driver->licenses->isNotEmpty()) {
-                        $latestLicense = $driver->licenses->sortByDesc('expires')->first();
-
-                        return $latestLicense->expires ?
-                            $latestLicense->expires : 'N/A';
-                    }
-
-                    return 'N/A';
+                    return $driver->currentLicense->expires ?? 'N/A';
                 })
                 ->addColumn('medical_certificate_expiration_date', function ($driver) {
-                    return $driver->medical_certificate_expiration_date ?
-                        $driver->medical_certificate_expiration_date : 'N/A';
+                    return $driver->medicalCertificate?->expiry_date?->toDateString() ?? 'N/A';
                 })
                 ->addColumn('status', function ($driver) {
                     $statusConfigs = [
@@ -163,7 +153,7 @@ class DriverController extends Controller
                                 ->orWhere('middle_name', 'like', "%{$search}%")
                                 ->orWhere('email', 'like', "%{$search}%")
                                 ->orWhere('main_phone', 'like', "%{$search}%")
-                                ->orWhere('state', 'like', "%{$search}%")
+                                ->orWhere('state_code', 'like', "%{$search}%")
                                 ->orWhereHas('company', function ($companyQuery) use ($search) {
                                     $companyQuery->where('company_name', 'like', "%{$search}%")
                                         ->orWhere('company_name', 'like', "%{$search}%")
@@ -190,13 +180,13 @@ class DriverController extends Controller
                                 $query->orderBy('email', $direction);
                                 break;
                             case 3: // Status
-                                $query->orderBy('status', $direction);
+                                $query->orderByRaw(Driver::STATUS_SQL.' '.$direction);
                                 break;
                             case 4: // State
-                                $query->orderBy('state', $direction);
+                                $query->orderBy('state_code', $direction);
                                 break;
                             case 6: // Medical Exp.
-                                $query->orderBy('medical_certificate_expiration_date', $direction);
+                                $query->orderBy(Driver::medicalCertificateExpirySubquery(), $direction);
                                 break;
                             case 7: // Hire Date
                                 $query->orderBy('hired_at', $direction);
@@ -213,13 +203,13 @@ class DriverController extends Controller
 
         $baseQuery = Driver::query();
 
-        // Draft drivers are never listed
-        $baseQuery->where('status', '!=', 'draft');
+        // Draft applications are never listed
+        $baseQuery->listed();
 
         // Calculate status counts in one grouped query
         $byStatus = $baseQuery->toBase()
-            ->selectRaw('status, COUNT(*) as aggregate')
-            ->groupBy('status')
+            ->selectRaw(Driver::STATUS_SQL.' AS status, COUNT(*) as aggregate')
+            ->groupByRaw(Driver::STATUS_SQL)
             ->pluck('aggregate', 'status');
 
         $statusCounts = ['all' => (int) $byStatus->sum()];
@@ -260,6 +250,8 @@ class DriverController extends Controller
             toastr()->success('Driver created successfully!');
 
             return redirect()->route('admin.driver.license', ['driver_id' => $driver->id]);
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('Driver creation failed: '.$e->getMessage(), [
                 'exception' => $e,
@@ -282,7 +274,7 @@ class DriverController extends Controller
                 $query->orderBy('expires', 'desc');
             },
             'driver_documents',
-            'documents.documentType',
+            'documents.documentType', 'documents.file',
             'residence_addresses' => function ($query) {
                 $query->orderBy('is_current', 'desc')->orderBy('created_at', 'desc');
             },
@@ -293,7 +285,7 @@ class DriverController extends Controller
         $compliance = $complianceService->forDriver($driver);
 
         $uploadedDocuments = $driver->documents
-            ->filter(fn ($doc) => filled($doc->file_path))
+            ->filter(fn ($doc) => filled($doc->file?->path))
             ->sortByDesc('updated_at')
             ->values();
 
@@ -404,6 +396,8 @@ class DriverController extends Controller
                 'driver_id' => $id,
                 'edit' => '1',
             ]);
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('Driver update failed: '.$e->getMessage(), [
                 'exception' => $e,
@@ -502,6 +496,8 @@ class DriverController extends Controller
             toastr()->success('License documents saved successfully!');
 
             return $this->wizardRedirect('admin.driver.medical.card', (int) $request->driver_id, $this->isEditFlow($request));
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('License Upload Error: '.$e->getMessage(), [
                 'file' => $e->getFile(),
@@ -526,18 +522,19 @@ class DriverController extends Controller
 
     public function medicalCardStore(Request $request, DriverDocumentWizardService $documents)
     {
-        $request->validate([
-            'medical_card' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'driver_id' => ['required', TenantRule::exists('drivers')],
-        ]);
+        $request->validate(['driver_id' => ['required', TenantRule::exists('drivers')]]);
+        $driver = $this->loadWizardDriver((int) $request->driver_id);
+        // The card's expiry files the medical examiner's certificate (F17)
+        $validated = $request->validate(DriverDocumentWizardService::medicalCardRules($driver));
 
         try {
-            $driver = $this->loadWizardDriver((int) $request->driver_id);
-            $documents->saveMedicalCard($driver, $request->file('medical_card'));
+            $documents->saveMedicalCard($driver, $request->file('medical_card'), $validated['medical_certificate_expiration_date'] ?? null);
 
             toastr()->success('Medical card saved successfully!');
 
             return $this->wizardRedirect('admin.driver.forfeiture', (int) $request->driver_id, $this->isEditFlow($request));
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('Medical Card Upload Error: '.$e->getMessage(), [
                 'file' => $e->getFile(),
@@ -574,6 +571,8 @@ class DriverController extends Controller
             toastr()->success('Forfeiture document saved successfully!');
 
             return $this->wizardRedirect('admin.driver.violation', (int) $request->driver_id, $this->isEditFlow($request));
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('Forfeiture Upload Error: '.$e->getMessage(), [
                 'file' => $e->getFile(),

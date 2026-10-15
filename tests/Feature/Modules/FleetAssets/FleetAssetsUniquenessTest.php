@@ -39,12 +39,13 @@ describe('FLT-02: unit no and VIN are unique per company', function () {
         expect($mine->fresh()->unit_no)->toBe('101');
     })->with('fleet assets');
 
-    it('lets a super-admin add a unit no another company uses', function (string $kind) {
+    it('lets another tenant add a unit no another company uses', function (string $kind) {
         FleetAssets::assetOf(Actors::companyOwner(), $kind, ['unit_no' => '101']);
-        $target = Actors::companyOf(Actors::companyOwner());
+        $owner = Actors::companyOwner();
+        $target = Actors::companyOf($owner);
 
-        $this->actingAs(Actors::superAdmin())
-            ->postJson(route("admin.$kind.store"), FleetAssets::payload($kind, ['unit_no' => '101', 'company_id' => $target->id]))
+        $this->actingAs($owner)
+            ->postJson(route("admin.$kind.store"), FleetAssets::payload($kind, ['unit_no' => '101']))
             ->assertOk();
 
         expect(FleetAssets::model($kind)::withoutTenancy()->where('company_id', $target->id)->where('unit_no', '101')->exists())->toBeTrue();
@@ -84,15 +85,4 @@ describe('FLT-02: unit no and VIN are unique per company', function () {
         expect($mine->fresh()->make)->toBe('Renamed');
     })->with('fleet assets');
 
-    it('checks the target company when a super-admin moves an asset', function (string $kind) {
-        $targetOwner = Actors::companyOwner();
-        FleetAssets::assetOf($targetOwner, $kind, ['unit_no' => '101']);
-        $asset = FleetAssets::assetOf(Actors::companyOwner(), $kind, ['unit_no' => '101']);
-
-        $this->actingAs(Actors::superAdmin())
-            ->putJson(route("admin.$kind.update", $asset->id), FleetAssets::formData($asset, ['company_id' => Actors::companyOf($targetOwner)->id]))
-            ->assertStatus(422)->assertJsonValidationErrors('unit_no');
-
-        expect($asset->fresh()->company_id)->not->toBe(Actors::companyOf($targetOwner)->id);
-    })->with('fleet assets');
 });

@@ -2,136 +2,117 @@
 
 namespace App\Services\Driver;
 
+use App\Models\DocumentType;
 use App\Models\Driver;
+use App\Models\DriverComplianceDocument;
 use App\Models\DriverDocument;
 use App\Models\Violation;
+use App\Services\Files\StoredFileService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DriverDocumentWizardService
 {
-    /**
-     * Driver files (DRV-03) live on the private `local` disk and are served only through
-     * fileResponse(). Files uploaded before that are still on the `public` disk until the
-     * 2026_10_09_000700 migration moves them, so reads and deletes check both.
-     */
-    public const DISK = 'local';
-
-    private const LEGACY_DISK = 'public';
-
     /** Servable files: the photo on `drivers`, the rest on `driver_documents`. */
-    public const FILE_FIELDS = ['photo', 'license_front', 'license_back', 'medical_card', 'forfeiture_document'];
+    public const FILE_FIELDS = ['photo', ...DriverDocument::FILE_FIELDS];
+
+    public function __construct(private StoredFileService $files) {}
 
     public function saveLicense(Driver $driver, ?UploadedFile $front, ?UploadedFile $back): DriverDocument
     {
-        return DB::transaction(function () use ($driver, $front, $back) {
-            $existing = DriverDocument::where('driver_id', $driver->id)->first();
-            $licenseFront = $existing?->license_front;
-            $licenseBack = $existing?->license_back;
+        return $this->files->transaction(fn () => $this->saveFiles($driver, ['license_front' => $front, 'license_back' => $back]));
+    }
 
-            if ($front) {
-                $licenseFront = $this->replaceFile($existing?->license_front, $front, 'license_front');
+    /**
+     * The card is also the driver's medical examiner's certificate in the compliance engine
+     * (F17): the same stored file, with the expiry entered beside it.
+     */
+    public function saveMedicalCard(Driver $driver, ?UploadedFile $file, ?string $expiresOn = null): DriverDocument
+    {
+        return $this->files->transaction(function () use ($driver, $file, $expiresOn) {
+            $document = $this->saveFiles($driver, ['medical_card' => $file]);
+
+            // The expiry belongs to a card: without a new card the certificate stays as it is
+            if ($file === null) {
+                return $document;
             }
 
-            if ($back) {
-                $licenseBack = $this->replaceFile($existing?->license_back, $back, 'license_back');
+            $certificate = $driver->medicalCertificate()->first();
+            $values = ['file_id' => $document->medical_card_file_id, 'expiry_date' => $expiresOn];
+            // The system type comes from DocumentTypeSeeder (checked by the seed smoke test)
+            $typeId = DocumentType::where('system_key', Driver::MEDICAL_CERTIFICATE_KEY)->value('id');
+
+            if ($certificate) {
+                $this->files->purgeWhenUnreferenced($certificate->file_id);
+                $certificate->update($values);
+            } elseif ($typeId !== null) {
+                DriverComplianceDocument::create($values + [
+                    'driver_id' => $driver->id,
+                    'document_type_id' => $typeId,
+                    'uploaded_by_user_id' => Auth::guard('web')->id(),
+                ]);
             }
 
-            return DriverDocument::updateOrCreate(
-                ['driver_id' => $driver->id],
-                [
-                    'license_front' => $licenseFront,
-                    'license_back' => $licenseBack,
-                ]
-            );
+            return $document;
         });
     }
 
-    public function saveMedicalCard(Driver $driver, ?UploadedFile $file): DriverDocument
+    /**
+     * The medical-card step's rules (F17): a driver without a certificate needs a card and a
+     * future expiry. With a certificate on file the card is optional, and the expiry only
+     * counts (and must be in the future) when a new card comes with it.
+     *
+     * @return array<string, mixed>
+     */
+    public static function medicalCardRules(Driver $driver): array
     {
-        return DB::transaction(function () use ($driver, $file) {
-            $existing = DriverDocument::where('driver_id', $driver->id)->first();
-            $medicalCard = $existing?->medical_card;
+        $hasCertificate = $driver->medicalCertificate()->exists();
 
-            if ($file) {
-                $medicalCard = $this->replaceFile($existing?->medical_card, $file, 'medical_card');
-            }
-
-            return DriverDocument::updateOrCreate(
-                ['driver_id' => $driver->id],
-                ['medical_card' => $medicalCard]
-            );
-        });
+        return [
+            'medical_card' => [$hasCertificate ? 'nullable' : 'required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'medical_certificate_expiration_date' => [...($hasCertificate ? ['exclude_without:medical_card'] : []), 'required', 'date', 'after_or_equal:today'],
+        ];
     }
 
     public function saveForfeiture(Driver $driver, ?UploadedFile $file): DriverDocument
     {
-        return DB::transaction(function () use ($driver, $file) {
-            $existing = DriverDocument::where('driver_id', $driver->id)->first();
-            $forfeiture = $existing?->forfeiture_document;
-
-            if ($file) {
-                $forfeiture = $this->replaceFile($existing?->forfeiture_document, $file, 'forfeiture_document');
-            }
-
-            return DriverDocument::updateOrCreate(
-                ['driver_id' => $driver->id],
-                ['forfeiture_document' => $forfeiture]
-            );
-        });
+        return $this->files->transaction(fn () => $this->saveFiles($driver, ['forfeiture_document' => $file]));
     }
 
+    /**
+     * Rows exist only for real violations; the yes/no answer and the signature are on
+     * driver_documents (F19c).
+     */
     public function saveViolationRecord(Driver $driver, array $data): DriverDocument
     {
         return DB::transaction(function () use ($driver, $data) {
             Violation::where('driver_id', $driver->id)->delete();
+            $hasViolations = false;
 
-            $signature = $data['applicant_signature'];
-            $dateSigned = $data['date_signed'];
-
-            if (($data['violation'] ?? 'no') === 'no') {
-                Violation::create([
-                    'driver_id' => $driver->id,
-                    'violation' => 'no',
-                    'violation_record_signature' => $signature,
-                    'violation_record_date_signed' => $dateSigned,
-                ]);
-            } else {
-                $hasViolations = false;
-
+            if (($data['violation'] ?? 'no') === 'yes') {
                 foreach ($data['violation_date'] ?? [] as $index => $date) {
                     if (! empty(trim($date ?? ''))) {
                         $hasViolations = true;
                         Violation::create([
                             'driver_id' => $driver->id,
-                            'violation' => 'yes',
                             'violation_date' => $date,
                             'violation_location' => $data['violation_location'][$index] ?? null,
                             'offense' => $data['offense'][$index] ?? null,
                             'vehicle_type' => $data['vehicle_type'][$index] ?? null,
-                            'violation_record_signature' => $signature,
-                            'violation_record_date_signed' => $dateSigned,
                         ]);
                     }
-                }
-
-                if (! $hasViolations) {
-                    Violation::create([
-                        'driver_id' => $driver->id,
-                        'violation' => 'no',
-                        'violation_record_signature' => $signature,
-                        'violation_record_date_signed' => $dateSigned,
-                    ]);
                 }
             }
 
             return DriverDocument::updateOrCreate(
                 ['driver_id' => $driver->id],
                 [
-                    'violation_record_signature' => $signature,
-                    'violation_record_date_signed' => $dateSigned,
+                    'has_violations' => $hasViolations,
+                    'violation_record_signature' => $data['applicant_signature'],
+                    'violation_record_date_signed' => $data['date_signed'],
                 ]
             );
         });
@@ -207,8 +188,9 @@ class DriverDocumentWizardService
                 ]
             );
 
-            if ($finalizeToPending) {
-                $driver->update(['status' => 'pending']);
+            // A public application is submitted; staff-created drivers have no application (F15)
+            if ($finalizeToPending && $driver->application_status !== null) {
+                $driver->update(['application_status' => 'pending']);
             }
 
             return $document;
@@ -227,43 +209,31 @@ class DriverDocumentWizardService
     {
         abort_unless(in_array($field, self::FILE_FIELDS, true), 404);
 
-        $path = $field === 'photo'
-            ? $driver->photo
-            : DriverDocument::where('driver_id', $driver->id)->value($field);
+        $file = $field === 'photo'
+            ? $driver->photoFile
+            : DriverDocument::where('driver_id', $driver->id)->first()?->{Str::camel($field).'File'};
 
-        foreach ([self::DISK, self::LEGACY_DISK] as $disk) {
-            if ($path && Storage::disk($disk)->exists($path)) {
-                return Storage::disk($disk)->response($path, null, [
-                    'X-Content-Type-Options' => 'nosniff',
-                    'Cache-Control' => 'private, no-store',
-                ]);
-            }
-        }
-
-        abort(404);
+        return $this->files->response($file);
     }
 
     /**
-     * Delete a stored driver file from whichever disk holds it.
+     * Store the uploaded files on the driver's document row; a replaced file is purged after
+     * commit if nothing else uses it.
+     *
+     * Runs inside the caller's StoredFileService::transaction().
+     *
+     * @param  array<string, UploadedFile|null>  $uploads  keyed by DriverDocument::FILE_FIELDS
      */
-    public static function deleteStoredFile(?string $path): void
+    private function saveFiles(Driver $driver, array $uploads): DriverDocument
     {
-        if (! $path) {
-            return;
+        $existing = DriverDocument::where('driver_id', $driver->id)->first();
+        $values = [];
+
+        foreach (array_filter($uploads) as $field => $upload) {
+            $values["{$field}_file_id"] = $this->files->store($upload, 'driver-files')->id;
+            $this->files->purgeWhenUnreferenced($existing?->getAttribute("{$field}_file_id"));
         }
 
-        foreach ([self::DISK, self::LEGACY_DISK] as $disk) {
-            Storage::disk($disk)->delete($path);
-        }
-    }
-
-    private function replaceFile(?string $oldPath, UploadedFile $file, string $prefix): string
-    {
-        self::deleteStoredFile($oldPath);
-
-        // hashName(): random name, extension taken from the file's content, never the client's.
-        $fileName = $prefix . '_' . $file->hashName();
-
-        return $file->storeAs('images/documents', $fileName, self::DISK);
+        return DriverDocument::updateOrCreate(['driver_id' => $driver->id], $values);
     }
 }

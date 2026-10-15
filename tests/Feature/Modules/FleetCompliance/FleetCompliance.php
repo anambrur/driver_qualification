@@ -15,6 +15,7 @@ use Database\Factories\VehicleFactory;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /**
  * Fixtures for the fleet compliance dashboard and its vehicle/trailer document
@@ -83,23 +84,22 @@ final class FleetCompliance
     }
 
     /**
-     * A stored document with its file on $disk.
+     * A stored document with its stored file on $disk.
      */
     public static function document(Vehicle|Trailer $asset, DocumentType $type, array $attributes = [], string $disk = 'local'): VehicleDocument|TrailerDocument
     {
         $assetType = self::typeOf($asset);
         $model = $assetType === 'vehicle' ? VehicleDocument::class : TrailerDocument::class;
 
+        $file = Files::stored($asset->company_id, '%PDF-1.4', 'pdf', $disk);
         $document = app(TenantContext::class)->run($asset->company_id, fn () => $model::create(array_merge([
             $assetType.'_id' => $asset->id,
             'document_type_id' => $type->id,
             'expiry_date' => now()->addYear()->toDateString(),
-            'file_path' => 'documents/'.$assetType.'s/'.bin2hex(random_bytes(8)).'.pdf',
+            'file_id' => $file->id,
         ], $attributes)));
 
-        if ($document->file_path) {
-            Storage::disk($disk)->put($document->file_path, "%PDF-1.4\nbytes-of-{$document->id}");
-        }
+        Storage::disk($disk)->put($file->path, "%PDF-1.4\nbytes-of-{$document->id}");
 
         return $document;
     }

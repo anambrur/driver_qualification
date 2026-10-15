@@ -56,8 +56,8 @@ describe('reference and platform', function () {
     });
 
     it('rejects a duplicate state code within a country', function () {
-        $countryId = DB::table('countries')->insertGetId(['name' => 'United States', 'iso_code' => 'US']);
-        DB::table('states')->insert(['country_id' => $countryId, 'name' => 'Texas', 'code' => 'TX']);
+        $countryId = DB::table('countries')->insertGetId(['name' => 'US', 'iso_code' => 'US']);
+        DB::table('states')->insert(['country_id' => $countryId, 'name' => 'TX', 'code' => 'TX']);
 
         expect(fn () => DB::table('states')->insert(['country_id' => $countryId, 'name' => 'Other', 'code' => 'TX']))
             ->toThrow(QueryException::class);

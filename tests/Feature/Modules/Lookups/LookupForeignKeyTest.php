@@ -11,6 +11,7 @@ use Database\Factories\TrailerFactory;
 use Database\Factories\VehicleFactory;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\Files;
 
 /*
 | LKP-01 follow-up: the database itself refuses to delete a lookup that tenant rows still
@@ -28,9 +29,9 @@ dataset('lookup links', [
     'vehicles.fuel_type_id' => ['fuel_types', 'vehicles', fn () => VehicleFactory::new()->create([
         'fuel_type_id' => FuelType::query()->create(['name' => 'Diesel'])->id,
     ])->fuel_type_id],
-    'trailers.equipment_types_id' => ['equipment_types', 'trailers', fn () => TrailerFactory::new()->create([
-        'equipment_types_id' => EquipmentType::query()->create(['name' => 'Flatbed'])->id,
-    ])->equipment_types_id],
+    'trailers.equipment_type_id' => ['equipment_types', 'trailers', fn () => TrailerFactory::new()->create([
+        'equipment_type_id' => EquipmentType::query()->create(['name' => 'Flatbed'])->id,
+    ])->equipment_type_id],
     'trailers.vehicle_group_id' => ['vehicle_groups', 'trailers', fn () => TrailerFactory::new()->create([
         'vehicle_group_id' => VehicleGroup::query()->create(['name' => 'Reefers'])->id,
     ])->vehicle_group_id],
@@ -59,14 +60,23 @@ dataset('lookup links', [
     }],
     'driver_compliance_documents.document_type_id' => ['document_types', 'driver_compliance_documents', function () {
         $typeId = DocumentType::factory()->create()->id;
-        DB::table('driver_compliance_documents')->insert(['driver_id' => DriverFactory::new()->create()->id, 'document_type_id' => $typeId]);
+        $driver = DriverFactory::new()->create();
+        DB::table('driver_compliance_documents')->insert([
+            'company_id' => $driver->company_id,
+            'driver_id' => $driver->id,
+            'document_type_id' => $typeId,
+            'file_id' => Files::stored($driver->company_id)->id,
+        ]);
 
         return $typeId;
     }],
     'vehicle_documents.document_type_id' => ['document_types', 'vehicle_documents', function () {
         $typeId = DocumentType::factory()->module('vehicle')->create()->id;
+        $vehicle = VehicleFactory::new()->create();
         DB::table('vehicle_documents')->insert([
-            'vehicle_id' => VehicleFactory::new()->create()->id,
+            'company_id' => $vehicle->company_id,
+            'vehicle_id' => $vehicle->id,
+            'file_id' => Files::stored($vehicle->company_id)->id,
             'document_type_id' => $typeId,
             'expiry_date' => now()->addYear()->toDateString(),
         ]);
@@ -75,8 +85,11 @@ dataset('lookup links', [
     }],
     'trailer_documents.document_type_id' => ['document_types', 'trailer_documents', function () {
         $typeId = DocumentType::factory()->module('trailer')->create()->id;
+        $trailer = TrailerFactory::new()->create();
         DB::table('trailer_documents')->insert([
-            'trailer_id' => TrailerFactory::new()->create()->id,
+            'company_id' => $trailer->company_id,
+            'trailer_id' => $trailer->id,
+            'file_id' => Files::stored($trailer->company_id)->id,
             'document_type_id' => $typeId,
             'expiry_date' => now()->addYear()->toDateString(),
         ]);

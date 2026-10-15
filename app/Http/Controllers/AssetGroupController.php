@@ -23,7 +23,7 @@ class AssetGroupController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = AssetGroup::query()->with(['vehicle', 'trailer'])
+            $query = AssetGroup::query()->with(['vehicle', 'trailer', 'driver:id,first_name,last_name,main_phone', 'coDriver:id,first_name,last_name,main_phone'])
                 ->select(['asset_groups.*']);
 
             // Status filter: active / inactive, or the soft-deleted groups (the only place Restore shows)
@@ -59,23 +59,23 @@ class AssetGroupController extends Controller
                                 '.$statusBadge.'
                             </div>
                             <div class="text-sm text-gray-500 dark:text-gray-400">
-                                Primary Driver: '.e($row->primary_driver_name ?: 'N/A').'
+                                Primary Driver: '.e($row->driver ? trim($row->driver->first_name.' '.$row->driver->last_name) : 'N/A').'
                             </div>
                         </div>
                     </div>';
                 })
                 ->addColumn('drivers_info', function ($row) {
-                    $primary = $row->primary_driver_name ?
+                    $primary = $row->driver ?
                         '<div class="text-sm">
-                            <div><span class="font-medium">Primary:</span> '.e($row->primary_driver_name).'</div>
-                            <div><span class="font-medium">Phone:</span> '.e($row->primary_driver_phone ?: 'N/A').'</div>
+                            <div><span class="font-medium">Primary:</span> '.e(trim($row->driver->first_name.' '.$row->driver->last_name)).'</div>
+                            <div><span class="font-medium">Phone:</span> '.e($row->driver->main_phone ?: 'N/A').'</div>
                         </div>' :
                         '<div class="text-sm text-gray-400">No primary driver</div>';
 
-                    $secondary = $row->second_driver_name ?
+                    $secondary = $row->coDriver ?
                         '<div class="text-sm mt-2">
-                            <div><span class="font-medium">Secondary:</span> '.e($row->second_driver_name).'</div>
-                            <div><span class="font-medium">Phone:</span> '.e($row->second_driver_phone ?: 'N/A').'</div>
+                            <div><span class="font-medium">Secondary:</span> '.e(trim($row->coDriver->first_name.' '.$row->coDriver->last_name)).'</div>
+                            <div><span class="font-medium">Phone:</span> '.e($row->coDriver->main_phone ?: 'N/A').'</div>
                         </div>' : '';
 
                     return $primary.$secondary;
@@ -145,7 +145,7 @@ class AssetGroupController extends Controller
         // Get dropdown data for filters
         $vehicles = Vehicle::query()->orderBy('unit_no')->get();
         $trailers = Trailer::query()->orderBy('unit_no')->get();
-        $drivers = Driver::where('status', 'active')->get();
+        $drivers = Driver::where('employment_status', 'active')->get();
 
         return view('admin.asset-group.index', compact('vehicles', 'trailers', 'drivers'));
     }
@@ -157,11 +157,6 @@ class AssetGroupController extends Controller
         $validator = Validator::make($request->all(), [
             'group_name' => ['required', 'string', 'max:100', $this->uniqueGroupNameRule($companyId)],
             'driver_id' => ['required', Rule::exists('drivers', 'id')->where('company_id', $companyId)->withoutTrashed()],
-            'primary_driver_phone' => 'nullable|string|max:20',
-            'primary_driver_email' => 'nullable|email|max:100',
-            'second_driver_name' => 'nullable|string|max:100',
-            'second_driver_phone' => 'nullable|string|max:20',
-            'second_driver_email' => 'nullable|email|max:100',
             'vehicle_id' => ['required', Rule::exists('vehicles', 'id')->where('company_id', $companyId)],
             'trailer_id' => ['nullable', Rule::exists('trailers', 'id')->where('company_id', $companyId)],
             'status' => 'required|in:active,inactive',
@@ -181,12 +176,6 @@ class AssetGroupController extends Controller
                 'company_id' => $companyId,
                 'group_name' => $request->group_name,
                 'driver_id' => $request->driver_id,
-                'primary_driver_name' => $this->driverName((int) $request->driver_id),
-                'primary_driver_phone' => $request->primary_driver_phone,
-                'primary_driver_email' => $request->primary_driver_email,
-                'second_driver_name' => $request->second_driver_name,
-                'second_driver_phone' => $request->second_driver_phone,
-                'second_driver_email' => $request->second_driver_email,
                 'vehicle_id' => $request->vehicle_id,
                 'trailer_id' => $request->trailer_id,
                 'status' => $request->status,
@@ -214,7 +203,7 @@ class AssetGroupController extends Controller
     {
         // Only the driver's id and name: the select needs them when the driver is no longer active
         $assetGroup = AssetGroup::query()
-            ->with(['vehicle', 'trailer', 'driver:id,first_name,last_name,status'])
+            ->with(['vehicle', 'trailer', 'driver:id,first_name,last_name,employment_status'])
             ->findOrFail($id);
         Gate::authorize('view', $assetGroup);
 
@@ -233,11 +222,6 @@ class AssetGroupController extends Controller
         $validator = Validator::make($request->all(), [
             'group_name' => ['required', 'string', 'max:100', $this->uniqueGroupNameRule($companyId, $assetGroup->id)],
             'driver_id' => ['required', Rule::exists('drivers', 'id')->where('company_id', $companyId)->withoutTrashed()],
-            'primary_driver_phone' => 'nullable|string|max:20',
-            'primary_driver_email' => 'nullable|email|max:100',
-            'second_driver_name' => 'nullable|string|max:100',
-            'second_driver_phone' => 'nullable|string|max:20',
-            'second_driver_email' => 'nullable|email|max:100',
             'vehicle_id' => ['required', Rule::exists('vehicles', 'id')->where('company_id', $companyId)],
             'trailer_id' => ['nullable', Rule::exists('trailers', 'id')->where('company_id', $companyId)],
             'status' => 'required|in:active,inactive',
@@ -255,7 +239,6 @@ class AssetGroupController extends Controller
         try {
             $assetGroup->update(array_merge($validator->validated(), [
                 'company_id' => $companyId,
-                'primary_driver_name' => $this->driverName((int) $request->driver_id),
             ]));
 
             DB::commit();
@@ -344,16 +327,6 @@ class AssetGroupController extends Controller
             'trailers' => $trailers,
             'statusOptions' => AssetGroup::getStatusOptions(),
         ]);
-    }
-
-    /**
-     * The group stores the driver's name for display; it always comes from the driver record.
-     */
-    private function driverName(int $driverId): ?string
-    {
-        $driver = Driver::query()->find($driverId, ['first_name', 'last_name']);
-
-        return $driver ? trim($driver->first_name.' '.$driver->last_name) : null;
     }
 
     /**

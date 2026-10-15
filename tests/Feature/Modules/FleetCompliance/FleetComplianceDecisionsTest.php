@@ -163,32 +163,7 @@ describe('PO-02: "upload to all" for fleet', function () {
             ->assertSee('id="upload_company_id" name="company_id"', false);
     });
 
-    it('requires a super-admin to pick a company', function (string $assetType) {
-        FleetCompliance::tenantWithAsset($assetType);
-        $type = FleetCompliance::documentType($assetType);
-
-        $this->actingAs(Actors::superAdmin())
-            ->post(route('admin.compliance.documents.upload'), fcmpUploadAllPayload($assetType, $type->id), FleetCompliance::json())
-            ->assertStatus(422);
-
-        expect(FleetCompliance::documentModel($assetType)::withoutTenancy()->count())->toBe(0)
-            ->and(Storage::disk('local')->allFiles())->toBe([]);
-    })->with(['vehicle', 'trailer']);
-
-    it('uploads only to the assets of the company a super-admin picked', function (string $assetType) {
-        [$x, $xAsset] = FleetCompliance::tenantWithAsset($assetType);
-        $xOther = FleetCompliance::assetOf($x, $assetType);
-        [, $yAsset] = FleetCompliance::tenantWithAsset($assetType);
-        $type = FleetCompliance::documentType($assetType);
-
-        $this->actingAs(Actors::superAdmin())
-            ->post(route('admin.compliance.documents.upload'), fcmpUploadAllPayload($assetType, $type->id, ['company_id' => Actors::companyOf($x)->id]), FleetCompliance::json())
-            ->assertOk()->assertJson(['uploaded_count' => 2]);
-
-        $model = FleetCompliance::documentModel($assetType);
-        expect($model::pluck($assetType.'_id')->sort()->values()->all())->toBe(collect([$xAsset->id, $xOther->id])->sort()->values()->all())
-            ->and($model::where($assetType.'_id', $yAsset->id)->exists())->toBeFalse();
-    })->with(['vehicle', 'trailer']);
+    it('uploads, inside a support session, only to that company\'s assets')->todo('WP8b: read_write support session');
 
     it('ignores a company_id posted by a tenant', function () {
         [$owner, $mine] = FleetCompliance::tenantWithAsset('vehicle');
@@ -216,17 +191,6 @@ describe('PO-02: "upload to all" for fleet', function () {
         expect(FleetCompliance::documentModel($assetType)::withoutTenancy()->where($assetType.'_id', $deleted->id)->exists())->toBeFalse();
     })->with(['vehicle', 'trailer']);
 
-    it('lists only the opened asset\'s company for a super-admin, and returns that company', function () {
-        [$x, $xAsset] = FleetCompliance::tenantWithAsset('vehicle', ['unit_no' => 'X1']);
-        FleetCompliance::tenantWithAsset('vehicle', ['unit_no' => 'Y1']);
-        $type = FleetCompliance::documentType('vehicle');
-
-        $this->actingAs(Actors::superAdmin())
-            ->getJson(route('admin.compliance.vehicles.list', ['document_type_id' => $type->id, 'asset_id' => $xAsset->id]))
-            ->assertOk()
-            ->assertJsonPath('assets.*.unit_no', ['X1'])
-            ->assertJsonPath('company.id', Actors::companyOf($x)->id);
-    });
 });
 
 describe('PO-22: fleet compliance follow-ups', function () {
