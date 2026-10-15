@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Company;
 use App\Models\DocumentType;
 use App\Models\Trailer;
 use App\Models\Vehicle;
 use App\Services\Compliance\FleetComplianceService;
 use App\Traits\CompanyFilterTrait;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
 class ComplianceDashboardController extends Controller
@@ -138,7 +136,6 @@ class ComplianceDashboardController extends Controller
             ? round(($trailerSummary['compliant'] / $totalTrailers) * 100, 1)
             : 0;
 
-        // Get companies for filter (if super-admin)
         $companies = $this->getCompaniesForUser();
 
         return view('admin.compliance.fleet', [
@@ -157,7 +154,6 @@ class ComplianceDashboardController extends Controller
             'vehicleCompliance' => $vehicleCompliance,
             'trailerCompliance' => $trailerCompliance,
             'companies' => $companies,
-            'isSuperAdmin' => Auth::user()->hasRole('super-admin'),
         ]);
     }
 
@@ -372,47 +368,6 @@ class ComplianceDashboardController extends Controller
                 'success' => false,
                 'message' => 'Trailer not found or access denied',
             ], 404);
-        }
-    }
-
-    /**
-     * Get compliance summary by company (for super-admin)
-     */
-    public function getCompanySummary()
-    {
-        if (! Auth::user()->hasRole('super-admin')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized access',
-            ], 403);
-        }
-
-        try {
-            $companies = Company::where('status', 'active')->get();
-            $summary = [];
-
-            foreach ($companies as $company) {
-                $vehicles = Vehicle::where('company_id', $company->id)->count();
-                $trailers = Trailer::where('company_id', $company->id)->count();
-
-                $summary[] = [
-                    'company_id' => $company->id,
-                    'company_name' => $company->company_name,
-                    'vehicles' => $vehicles,
-                    'trailers' => $trailers,
-                    'total_assets' => $vehicles + $trailers,
-                ];
-            }
-
-            return response()->json([
-                'success' => true,
-                'data' => $summary,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch company summary',
-            ], 500);
         }
     }
 }

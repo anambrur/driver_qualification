@@ -38,6 +38,14 @@ final class Actors
         return self::platformUser('platform_owner', $attributes);
     }
 
+    /**
+     * Platform staff with one seeded platform role (04 §3), by system_key.
+     */
+    public static function platformStaff(string $systemKey, array $attributes = []): PlatformUser
+    {
+        return self::platformUser($systemKey, $attributes);
+    }
+
     public static function platformSupport(array $attributes = []): PlatformUser
     {
         return self::platformUser('platform_support', $attributes);

@@ -18,11 +18,12 @@ it('does not let a company owner delete a company', function () {
     $owner = Actors::companyOwner();
     $company = Actors::companyOf($owner);
 
+    // Deactivation is a platform action now (/platform, WP8); tenants can't reach it.
     $this->actingAs($owner)
-        ->deleteJson(route('admin.settings.company.destroy', $company->id))
-        ->assertForbidden();
+        ->postJson(route('platform.companies.status', $company->id), ['status' => 'deactivated', 'reason' => 'x'])
+        ->assertUnauthorized();
 
-    expect($company->fresh())->not->toBeNull();
+    expect($company->fresh()->status)->toBe('active');
 });
 
 it('does not let a plain user with companies.view delete a company', function () {

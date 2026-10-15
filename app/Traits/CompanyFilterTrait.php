@@ -9,19 +9,11 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Interim helpers for the company of new records and the company dropdowns. Row filtering and
- * the access check moved to the tenant scope and policies (WP5); the super-admin branches go
- * with WP8 (03 §7).
+ * the access check moved to the tenant scope and policies (WP5). Tenant code only ever works
+ * in the request's own company; the platform works through /platform (03 §7).
  */
 trait CompanyFilterTrait
 {
-    /**
-     * Super-admins are not filtered. Interim until the platform area replaces them (03 §7).
-     */
-    protected function isSuperAdmin(): bool
-    {
-        return Auth::user()?->hasRole('super-admin') ?? false;
-    }
-
     /**
      * The tenant of this request, from TenantContext (set by ResolveTenant).
      */
@@ -32,19 +24,14 @@ trait CompanyFilterTrait
 
     /**
      * Get the company ID for the authenticated user.
-     * Super-admin returns null (no filtering).
      */
     protected function getUserCompanyId(): ?int
     {
-        if ($this->isSuperAdmin()) {
-            return null;
-        }
-
         return $this->tenantCompanyId();
     }
 
     /**
-     * Get the company ID for the authenticated user (including super-admin's owned company).
+     * Get the company ID for the authenticated user.
      * Used when a company must be selected/forced on create.
      */
     protected function getAllUserCompanyId(): ?int
@@ -61,30 +48,12 @@ trait CompanyFilterTrait
     }
 
     /**
-     * Company a new record belongs to. Tenants always get their own company; a super-admin
-     * acting on another company's resource (e.g. its vehicle) gets that resource's company,
-     * and falls back to their own company when there is none.
-     */
-    protected function getOwningCompanyId(?int $resourceCompanyId): ?int
-    {
-        if ($this->isSuperAdmin()) {
-            return $resourceCompanyId ?? $this->getAllUserCompanyId();
-        }
-
-        return $this->tenantCompanyId();
-    }
-
-    /**
-     * Get companies for dropdown based on user role.
+     * The user's own company, for the company dropdowns.
      *
-     * @return \Illuminate\Database\Eloquent\Collection|Collection
+     * @return Collection<int, Company>
      */
-    protected function getCompaniesForUser()
+    protected function getCompaniesForUser(): Collection
     {
-        if ($this->isSuperAdmin()) {
-            return Company::where('status', 'active')->get();
-        }
-
         $user = Auth::user();
 
         if (! $user) {

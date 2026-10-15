@@ -21,25 +21,20 @@ class UpdateDriverRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        // Always the user's own company; a posted company_id is ignored
         $user = $this->user();
-        if ($user && ! $user->hasRole('super-admin')) {
-            $user->loadMissing('company');
-            if ($user->company) {
-                $this->merge(['company_id' => $user->company->id]);
-            }
+        $user?->loadMissing('company');
+        if ($user?->company) {
+            $this->merge(['company_id' => $user->company->id]);
         }
     }
 
     public function rules(): array
     {
         $user = $this->user();
-        $companyRule = ['required', 'exists:companies,id'];
-
-        if ($user && ! $user->hasRole('super-admin')) {
-            $user->loadMissing('company');
-            $companyId = $user->company?->id;
-            $companyRule = ['required', Rule::in($companyId ? [$companyId] : [-1])];
-        }
+        $user?->loadMissing('company');
+        $companyId = $user?->company?->id;
+        $companyRule = ['required', Rule::in($companyId ? [$companyId] : [-1])];
 
         // No `status` rule: the edit form must not change the status. Hiring and rejecting go
         // through admin.driver.hire-status, which checks, audits and emails (DRV-06).

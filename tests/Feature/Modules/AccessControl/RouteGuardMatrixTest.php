@@ -12,7 +12,7 @@ use Tests\Support\Actors;
 | Route guard matrix. Every registered route must fall into one of the buckets below, so a new
 | route that forgets its middleware fails here instead of shipping open:
 |   - public (no `auth`): listed in ACL_PUBLIC_ROUTES with the reason it is safe;
-|   - every /admin route has `subscribed` or `role:super-admin`;
+|   - every /admin route has `subscribed`; every /platform route has `auth:platform` and `platform`;
 |   - every authenticated route has `permission:` / `role:`, or is listed in ACL_NO_PERMISSION_ROUTES;
 |   - every authenticated route runs ResolveTenant, every public application route ResolvePublicCompany (03 §4.1).
 | Routes are keyed "METHODS uri" (HEAD dropped), because several routes have no name.
@@ -42,6 +42,13 @@ const ACL_PUBLIC_ROUTES = [
     // Company invitations: only usable with the emailed token, throttled (10 §5).
     'GET invitations/{token}',
     'POST invitations/{token}',
+    // Platform staff login and password reset (04 §2), guest-only on the platform guard.
+    'GET platform/login',
+    'POST platform/login',
+    'GET platform/forgot-password',
+    'POST platform/forgot-password',
+    'GET platform/reset-password/{token}',
+    'POST platform/reset-password',
 ];
 
 // Public driver application: OTP-gated session (see PublicApplication module).
@@ -51,6 +58,8 @@ const ACL_GUEST_ROUTES = [
     'GET register', 'POST register', 'GET login', 'POST login',
     'GET forgot-password', 'POST forgot-password', 'GET reset-password/{token}', 'POST reset-password',
     'GET invitations/{token}', 'POST invitations/{token}',
+    'GET platform/login', 'POST platform/login', 'GET platform/forgot-password', 'POST platform/forgot-password',
+    'GET platform/reset-password/{token}', 'POST platform/reset-password',
 ];
 
 const ACL_NO_PERMISSION_ROUTES = [
@@ -74,15 +83,14 @@ const ACL_NO_PERMISSION_ROUTES = [
     'GET subscription/my',
     'GET subscription/renew',
     'GET subscription/expired',
-    // Global lookups: read-only for every tenant, writes need super-admin permissions (LKP-02).
-    'GET admin/vehicle-type',
-    'GET admin/vehicle-group',
-    'GET admin/fuel-type',
-    'GET admin/equipment-type',
-    'GET admin/maintenance-category',
+    // Document types: managed by the platform (LKP-01); every tenant reads them and switches
+    // them off with document-types.toggle.
     'GET admin/settings/document-types',
     'GET admin/settings/document-types/by-module',
     'GET admin/settings/document-types/{id}',
+    // Every platform staff member: the platform dashboard and logout (04 §3).
+    'GET platform',
+    'POST platform/logout',
 ];
 
 /**
@@ -133,14 +141,32 @@ describe('route guard matrix', function () {
         }
     });
 
-    it('puts every /admin route behind subscribed or role:super-admin', function () {
+    it('puts every /admin route behind subscribed', function () {
         $unguarded = aclRoutes()
             ->filter(fn (array $route) => str_starts_with($route['uri'], 'admin/'))
-            ->reject(fn (array $route) => aclHasMiddleware($route, 'subscribed')
-                || in_array('role:super-admin', $route['middleware'], true))
+            ->reject(fn (array $route) => aclHasMiddleware($route, 'subscribed'))
             ->pluck('key')->values()->all();
 
         expect($unguarded)->toBe([]);
+    });
+
+    it('puts every /platform route behind auth:platform and the platform session (11 §5)', function () {
+        $unguarded = aclRoutes()
+            ->filter(fn (array $route) => $route['uri'] === 'platform' || str_starts_with($route['uri'], 'platform/'))
+            ->reject(fn (array $route) => aclIsPublic($route))
+            ->reject(fn (array $route) => in_array('auth:platform', $route['middleware'], true) && in_array('platform', $route['middleware'], true))
+            ->pluck('key')->values()->all();
+
+        expect($unguarded)->toBe([]);
+    });
+
+    it('checks platform permissions on the platform guard', function () {
+        $wrongGuard = aclRoutes()
+            ->filter(fn (array $route) => str_starts_with($route['uri'], 'platform/'))
+            ->filter(fn (array $route) => collect($route['middleware'])->contains(fn ($m) => is_string($m) && str_starts_with($m, 'permission:') && ! str_ends_with($m, ',platform')))
+            ->pluck('key')->values()->all();
+
+        expect($wrongGuard)->toBe([]);
     });
 
     it('resolves the tenant on every authenticated route and the slug company on every public application route', function () {
@@ -235,16 +261,14 @@ describe('ACL-01 → maintenance routes need maintenance/scheduled permissions',
 
 // The page was an unrelated investment calculator; the product owner had it removed (2026-10-09).
 describe('ACL-04 → /profit is removed', function () {
-    it('returns 404 for everyone', function (?Closure $makeUser) {
-        if ($makeUser) {
-            $this->actingAs($makeUser());
-        }
+    it('returns 404 for everyone', function (?Closure $login) {
+        $login?->__invoke();
 
         $this->get('/profit')->assertNotFound();
     })->with([
         'guest' => [null],
-        'tenant' => [fn () => Actors::companyOwner()],
-        'super-admin' => [fn () => Actors::superAdmin()],
+        'tenant' => [fn () => test()->actingAs(Actors::companyOwner())],
+        'platform staff' => [fn () => test()->actingAs(Actors::platformOwner(), 'platform')],
     ]);
 
     it('no longer registers the admin.profit route', function () {

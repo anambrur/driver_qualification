@@ -5,16 +5,14 @@ namespace App\Http\Controllers;
 use App\Exceptions\LimitReached;
 use App\Features\Feature;
 use App\Models\AssetGroup;
+use App\Models\AssetTransfer;
 use App\Models\FuelType;
-use App\Models\MaintenanceSchedule;
-use App\Models\ServiceLog;
 use App\Models\Vehicle;
 use App\Models\VehicleGroup;
 use App\Models\VehicleType;
 use App\Services\Entitlements\Limits;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -151,10 +149,8 @@ class VehicleController extends Controller
 
     public function store(Request $request)
     {
-        // Company users are locked to their company; super-admin may choose
-        if (! Auth::user()->hasRole('super-admin')) {
-            $request->merge(['company_id' => $this->getAllUserCompanyId()]);
-        }
+        // Always the user's own company
+        $request->merge(['company_id' => $this->getAllUserCompanyId()]);
 
         $validator = Validator::make($request->all(), [
             'company_id' => 'required|exists:companies,id',
@@ -264,10 +260,8 @@ class VehicleController extends Controller
         // Check if user has access to this vehicle
         Gate::authorize('update', $vehicle);
 
-        // Ensure user can't change company if not super-admin
-        if (! Auth::user()->hasRole('super-admin')) {
-            $request->merge(['company_id' => $vehicle->company_id]);
-        }
+        // A vehicle never changes company here; the platform's Asset Transfer moves it (PO-08)
+        $request->merge(['company_id' => $vehicle->company_id]);
 
         $validator = Validator::make($request->all(), [
             'company_id' => [
@@ -309,14 +303,7 @@ class VehicleController extends Controller
         DB::beginTransaction();
 
         try {
-            $previousCompanyId = (int) $vehicle->company_id;
-
             $vehicle->update($validator->validated());
-
-            // A super-admin moved the vehicle: its history goes with it (PO-08)
-            if ((int) $vehicle->company_id !== $previousCompanyId) {
-                $this->moveCompanyRecords($vehicle);
-            }
 
             DB::commit();
 
@@ -374,6 +361,14 @@ class VehicleController extends Controller
 
         // Check if user has access to this vehicle
         Gate::authorize('restore', $vehicle);
+
+        // Transferred to another company: its history here stays read-only (04 §7)
+        if (AssetTransfer::retired('vehicle', $vehicle->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This vehicle was transferred to another company and can\'t be restored.',
+            ], 422);
+        }
 
         DB::beginTransaction();
 
@@ -456,23 +451,5 @@ class VehicleController extends Controller
         return Rule::unique('vehicles', $column)
             ->where('company_id', is_scalar($companyId) ? $companyId : null)
             ->ignore($ignoreId);
-    }
-
-    /**
-     * Move the records that carry their own company_id along with a vehicle moved to another
-     * company (PO-08): its service logs and maintenance schedules follow it. Its asset groups
-     * stay with the old company, whose driver they name, and are ended (made inactive and
-     * deleted, as AssetGroupController::destroy() does) so the new company never sees the old
-     * company's driver. Vehicle documents point at the vehicle and follow it already.
-     */
-    private function moveCompanyRecords(Vehicle $vehicle): void
-    {
-        ServiceLog::withTrashed()->where('vehicle_id', $vehicle->id)->update(['company_id' => $vehicle->company_id]);
-        MaintenanceSchedule::withTrashed()->where('vehicle_id', $vehicle->id)->update(['company_id' => $vehicle->company_id]);
-
-        AssetGroup::where('vehicle_id', $vehicle->id)->get()->each(function (AssetGroup $group) {
-            $group->forceFill(['status' => 'inactive'])->save();
-            $group->delete();
-        });
     }
 }

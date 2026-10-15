@@ -48,9 +48,8 @@ class DocumentUploadController extends Controller
 
             $documentType = DocumentType::find($documentTypeId);
 
-            // The company "upload to all" applies to; a super-admin works on the company of the
-            // vehicle the modal was opened for, and only sees that company's vehicles (PO-02).
-            $company = $this->uploadCompany(Vehicle::class, $request->integer('asset_id') ?: null);
+            // The company "upload to all" applies to: always the tenant's own (PO-02)
+            $company = $this->uploadCompany();
 
             // Load has_document in one query (avoid N+1 exists); the tenant scope limits the rows
             $vehiclesQuery = Vehicle::select('vehicles.id', 'vehicles.unit_no')
@@ -59,9 +58,6 @@ class DocumentUploadController extends Controller
                         $query->where('document_type_id', $documentTypeId);
                     },
                 ]);
-            if ($this->isSuperAdmin() && $company) {
-                $vehiclesQuery->where('vehicles.company_id', $company->id);
-            }
 
             $vehicles = $vehiclesQuery->orderBy('vehicles.unit_no')
                 ->get()
@@ -111,9 +107,8 @@ class DocumentUploadController extends Controller
 
             $documentType = DocumentType::find($documentTypeId);
 
-            // The company "upload to all" applies to; a super-admin works on the company of the
-            // trailer the modal was opened for, and only sees that company's trailers (PO-02).
-            $company = $this->uploadCompany(Trailer::class, $request->integer('asset_id') ?: null);
+            // The company "upload to all" applies to: always the tenant's own (PO-02)
+            $company = $this->uploadCompany();
 
             // Load has_document in one query (avoid N+1 exists); the tenant scope limits the rows
             $trailersQuery = Trailer::select('trailers.id', 'trailers.unit_no')
@@ -122,9 +117,6 @@ class DocumentUploadController extends Controller
                         $query->where('document_type_id', $documentTypeId);
                     },
                 ]);
-            if ($this->isSuperAdmin() && $company) {
-                $trailersQuery->where('trailers.company_id', $company->id);
-            }
 
             $trailers = $trailersQuery->orderBy('trailers.unit_no')
                 ->get()
@@ -169,7 +161,6 @@ class DocumentUploadController extends Controller
      */
     public function uploadDocument(Request $request)
     {
-        $isSuperAdmin = $this->isSuperAdmin();
         $uploadToAll = $request->boolean('upload_to_all');
 
         // Validate request
@@ -183,13 +174,8 @@ class DocumentUploadController extends Controller
             // A browser checkbox posts "on" (PO-02)
             'upload_to_all' => 'nullable|in:0,1,on,off,true,false',
             'selected_asset' => Rule::requiredIf(! $uploadToAll),
-            // Tenants always upload to their own company; a super-admin names the company
-            'company_id' => $isSuperAdmin
-                ? [Rule::requiredIf($uploadToAll), 'nullable', 'integer', Rule::exists('companies', 'id')]
-                : ['nullable'],
         ], [
             'document_type_id.exists' => 'The selected document type is invalid.',
-            'company_id.required' => 'Choose the company whose assets should get this document.',
         ]);
 
         if ($validator->fails()) {
@@ -203,9 +189,9 @@ class DocumentUploadController extends Controller
         $assetModel = $assetType === 'vehicle' ? Vehicle::class : Trailer::class;
 
         if ($uploadToAll) {
-            // Upload to all live assets of one company: the tenant's own, or the one a super-admin
-            // chose (PO-02, same rule as drivers). Soft-deleted assets are excluded.
-            $companyId = $isSuperAdmin ? $request->integer('company_id') : $this->getUserCompanyId();
+            // Upload to all live assets of the tenant's own company; the platform does this inside
+            // a read_write support session (PO-02, D11). Soft-deleted assets are excluded.
+            $companyId = $this->getUserCompanyId();
             $assets = $assetModel::where('company_id', $companyId ?? -1)->get();
 
             if ($assets->isEmpty()) {
@@ -406,18 +392,11 @@ class DocumentUploadController extends Controller
     }
 
     /**
-     * The company the upload modal works on: a tenant's own company, or for a super-admin the
-     * company of the given vehicle/trailer (null when there is none).
-     *
-     * @param  class-string<Vehicle>|class-string<Trailer>  $assetModel
+     * The company the upload modal works on: the tenant's own.
      */
-    private function uploadCompany(string $assetModel, ?int $assetId): ?Company
+    private function uploadCompany(): ?Company
     {
-        if (! $this->isSuperAdmin()) {
-            return Company::find($this->getUserCompanyId());
-        }
-
-        return $assetId ? Company::find($assetModel::whereKey($assetId)->value('company_id')) : null;
+        return Company::find($this->getUserCompanyId());
     }
 
     /**

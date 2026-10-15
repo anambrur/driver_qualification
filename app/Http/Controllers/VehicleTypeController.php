@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuditsLookups;
 use App\Models\VehicleType;
 use App\Tenancy\CompanyScope;
 use Illuminate\Http\Request;
@@ -13,6 +14,8 @@ use function Flasher\Toastr\Prime\toastr;
 
 class VehicleTypeController extends Controller
 {
+    use AuditsLookups;
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
@@ -23,7 +26,7 @@ class VehicleTypeController extends Controller
                 ->addColumn('action', function ($row) {
                     return '
                     <div class="flex justify-center space-x-1">
-                        <a href="'.route('admin.vehicle.type.edit', $row->id).'" 
+                        <a href="'.route('platform.lookups.vehicle-types.edit', $row->id).'" 
                            class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors">
                             <i class="fas fa-edit mr-1"></i> Edit
                         </a>
@@ -43,12 +46,12 @@ class VehicleTypeController extends Controller
                 ->make(true);
         }
 
-        return view('admin.vehicle-type.index');
+        return view('platform.lookups.vehicle-types.index');
     }
 
     public function create()
     {
-        return view('admin.vehicle-type.create');
+        return view('platform.lookups.vehicle-types.create');
     }
 
     public function store(Request $request)
@@ -71,6 +74,7 @@ class VehicleTypeController extends Controller
                 'name' => $request->name,
             ]);
 
+            $this->auditLookup('created', $vehicleType);
             DB::commit();
 
             return response()->json([
@@ -91,7 +95,7 @@ class VehicleTypeController extends Controller
     {
         $vehicleType = VehicleType::findOrFail($id);
 
-        return view('admin.vehicle-type.edit', compact('vehicleType'));
+        return view('platform.lookups.vehicle-types.edit', compact('vehicleType'));
     }
 
     public function update(Request $request, $id)
@@ -116,11 +120,12 @@ class VehicleTypeController extends Controller
                 'name' => $request->name,
             ]);
 
+            $this->auditLookup('updated', $vehicleType);
             DB::commit();
 
             toastr('Vehicle type updated successfully!', 'success');
 
-            return redirect()->route('admin.vehicle.type.index');
+            return redirect()->route('platform.lookups.vehicle-types.index');
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -146,6 +151,7 @@ class VehicleTypeController extends Controller
 
         try {
             $vehicleType->delete();
+            $this->auditLookup('deleted', $vehicleType);
             DB::commit();
 
             return response()->json([

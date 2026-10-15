@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuditsLookups;
 use App\Models\FuelType;
 use App\Tenancy\CompanyScope;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Yajra\DataTables\Facades\DataTables;
 
 class FuelTypeController extends Controller
 {
+    use AuditsLookups;
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
@@ -41,7 +44,7 @@ class FuelTypeController extends Controller
                 ->make(true);
         }
 
-        return view('admin.fuel-type.index');
+        return view('platform.lookups.fuel-types.index');
     }
 
     public function store(Request $request)
@@ -64,6 +67,7 @@ class FuelTypeController extends Controller
                 'name' => $request->name,
             ]);
 
+            $this->auditLookup('created', $fuelType);
             DB::commit();
 
             return response()->json([
@@ -113,6 +117,7 @@ class FuelTypeController extends Controller
                 'name' => $request->name,
             ]);
 
+            $this->auditLookup('updated', $fuelType);
             DB::commit();
 
             return response()->json([
@@ -145,6 +150,7 @@ class FuelTypeController extends Controller
 
         try {
             $fuelType->delete();
+            $this->auditLookup('deleted', $fuelType);
             DB::commit();
 
             return response()->json([

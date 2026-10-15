@@ -152,7 +152,7 @@ class AssetGroupController extends Controller
 
     public function store(Request $request)
     {
-        $companyId = $this->owningCompanyId($request);
+        $companyId = $this->owningCompanyId();
 
         $validator = Validator::make($request->all(), [
             'group_name' => ['required', 'string', 'max:100', $this->uniqueGroupNameRule($companyId)],
@@ -228,7 +228,7 @@ class AssetGroupController extends Controller
     {
         $assetGroup = AssetGroup::query()->findOrFail($id);
         Gate::authorize('update', $assetGroup);
-        $companyId = $this->owningCompanyId($request);
+        $companyId = $this->owningCompanyId();
 
         $validator = Validator::make($request->all(), [
             'group_name' => ['required', 'string', 'max:100', $this->uniqueGroupNameRule($companyId, $assetGroup->id)],
@@ -357,24 +357,12 @@ class AssetGroupController extends Controller
     }
 
     /**
-     * The company the submitted driver, vehicle and trailer must all belong to: the tenant's own,
-     * or for a super-admin the company of the chosen vehicle. -1 matches nothing.
+     * The company the submitted driver, vehicle and trailer must all belong to: the tenant's own.
+     * -1 matches nothing.
      */
-    private function owningCompanyId(Request $request): int
+    private function owningCompanyId(): int
     {
-        $companyId = $this->getUserCompanyId();
-
-        if ($companyId !== null) {
-            return $companyId;
-        }
-
-        $vehicleId = $request->input('vehicle_id');
-
-        if (! $this->isSuperAdmin() || ! is_scalar($vehicleId)) {
-            return -1;
-        }
-
-        return (int) (Vehicle::withTrashed()->whereKey($vehicleId)->value('company_id') ?? -1);
+        return $this->getUserCompanyId() ?? -1;
     }
 
     /**

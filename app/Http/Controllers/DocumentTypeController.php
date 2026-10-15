@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuditsLookups;
 use App\Models\DocumentType;
+use App\Models\PlatformUser;
 use App\Tenancy\CompanyScope;
 use Exception;
 use Illuminate\Http\Request;
@@ -13,14 +15,18 @@ use Yajra\DataTables\Facades\DataTables;
 
 class DocumentTypeController extends Controller
 {
+    use AuditsLookups;
+
     /**
      * Display a listing of document types.
      */
     public function index(Request $request)
     {
         try {
+            // The platform manages the list (LKP-01); a company only switches types off for itself
             $user = $request->user();
-            $company = $user->hasRole('super-admin') ? null : $user->company;
+            $platform = $user instanceof PlatformUser;
+            $company = $platform ? null : $user->company;
 
             if ($request->ajax()) {
                 $documentTypes = DocumentType::query();
@@ -98,7 +104,7 @@ class DocumentTypeController extends Controller
 
             $showCompanyColumn = $company !== null;
 
-            return view('admin.settings.document-types.index', compact('modules', 'showCompanyColumn'));
+            return view('admin.settings.document-types.index', compact('modules', 'showCompanyColumn', 'platform'));
         } catch (Exception $e) {
             Log::error('Error fetching document types: '.$e->getMessage(), [
                 'exception' => $e,
@@ -153,6 +159,7 @@ class DocumentTypeController extends Controller
                 'status' => $request->status ?? true,
             ]);
 
+            $this->auditLookup('created', $documentType);
             DB::commit();
 
             return response()->json([
@@ -234,6 +241,7 @@ class DocumentTypeController extends Controller
                 'status' => $request->status,
             ]);
 
+            $this->auditLookup('updated', $documentType);
             DB::commit();
 
             return response()->json([
@@ -279,6 +287,7 @@ class DocumentTypeController extends Controller
 
             $documentType->delete();
 
+            $this->auditLookup('deleted', $documentType);
             DB::commit();
 
             return response()->json([
@@ -313,6 +322,7 @@ class DocumentTypeController extends Controller
                 'status' => ! $documentType->status,
             ]);
 
+            $this->auditLookup('updated', $documentType);
             DB::commit();
 
             return response()->json([

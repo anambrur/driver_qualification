@@ -33,7 +33,7 @@
                     </a>
                 @endif
 
-                <a href="{{ route('admin.plans.index') }}"
+                <a href="{{ route('pricing.plans') }}"
                     class="inline-block bg-white hover:bg-gray-50 text-gray-700 font-bold py-3 px-6 rounded-lg border border-gray-300 mb-3 transition-colors">
                     View All Plans
                 </a>

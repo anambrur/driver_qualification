@@ -14,11 +14,12 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureUserIsActive
 {
     /**
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::user()?->status === 'inactive') {
+        // The tenant guard only: platform staff are checked by EnsurePlatformSession.
+        if (Auth::guard('web')->user()?->status === 'inactive') {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

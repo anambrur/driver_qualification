@@ -33,6 +33,24 @@ class Limits
     }
 
     /**
+     * Storage (05 §5): companies.storage_bytes plus the new bytes must stay within storage_gb.
+     * Same locking rule as assertCanCreate; the caller raises storage_bytes in the transaction.
+     */
+    public static function assertCanStore(Company|int $company, int $bytes): void
+    {
+        if (DB::transactionLevel() === 0) {
+            throw new LogicException('Limits::assertCanStore must run inside the transaction that stores the bytes.');
+        }
+
+        $locked = Company::query()->lockForUpdate()->findOrFail($company instanceof Company ? $company->id : $company);
+        $maxGb = Entitlements::for($locked)->limit(Feature::StorageGb);
+
+        if ($maxGb !== null && $locked->storage_bytes + $bytes > $maxGb * 1024 ** 3) {
+            throw new LimitReached(Feature::StorageGb, $maxGb);
+        }
+    }
+
+    /**
      * Whether an active user counts toward max_users: office users only (see count()).
      */
     public static function isOfficeUser(User $user): bool

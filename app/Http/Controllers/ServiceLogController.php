@@ -11,7 +11,6 @@ use App\Models\Vehicle;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -227,13 +226,6 @@ class ServiceLogController extends Controller
      */
     public function store(Request $request)
     {
-        // Add company validation based on user role
-        $companyId = $this->getAllUserCompanyId();
-
-        if (! Auth::user()->hasRole('super-admin')) {
-            $request->merge(['company_id' => $companyId]);
-        }
-
         $validator = Validator::make($request->all(), [
             'vehicle_id' => ['required', $this->vehicleRule()],
             'service_date' => 'required|date',
@@ -261,8 +253,8 @@ class ServiceLogController extends Controller
             ], 422);
         }
 
-        // A super-admin's log belongs to the vehicle's company, not their own
-        $companyId = $this->getOwningCompanyId(Vehicle::withTrashed()->whereKey($request->vehicle_id)->value('company_id'));
+        // Always the tenant's own company
+        $companyId = $this->tenantCompanyId();
 
         $storedPaths = [];
 
@@ -325,11 +317,6 @@ class ServiceLogController extends Controller
         // Check if user has access to this service log
         Gate::authorize('update', $serviceLog);
 
-        // Ensure user can't change company if not super-admin
-        if (! Auth::user()->hasRole('super-admin')) {
-            $request->merge(['company_id' => $serviceLog->company_id]);
-        }
-
         $validator = Validator::make($request->all(), [
             'vehicle_id' => ['required', $this->vehicleRule()],
             'service_date' => 'required|date',
@@ -388,9 +375,8 @@ class ServiceLogController extends Controller
             $previousOdometer = $serviceLog->current_odometer;
             $previousEngineHours = $serviceLog->current_engine_hours;
 
-            // Update service log; a super-admin moving it to another company's vehicle moves it to that company
+            // Update service log; it never changes company
             $serviceLog->update([
-                'company_id' => $this->getOwningCompanyId(Vehicle::whereKey($request->vehicle_id)->value('company_id')),
                 'vehicle_id' => $request->vehicle_id,
                 'service_date' => $request->service_date,
                 'maintenance_notes' => $request->maintenance_notes,
@@ -623,12 +609,6 @@ class ServiceLogController extends Controller
      */
     private function vehicleRule(): Exists
     {
-        $rule = Rule::exists('vehicles', 'id')->whereNull('deleted_at');
-
-        if (! Auth::user()->hasRole('super-admin')) {
-            $rule->where('company_id', $this->getUserCompanyId() ?? -1);
-        }
-
-        return $rule;
+        return Rule::exists('vehicles', 'id')->whereNull('deleted_at')->where('company_id', $this->getUserCompanyId() ?? -1);
     }
 }

@@ -45,6 +45,7 @@ it('never indexes outside the configured environments', function () {
 it('serves robots.txt with private paths and the sitemap in production', function () {
     $this->get('/robots.txt')->assertOk()
         ->assertSee('Disallow: /admin', false)
+        ->assertSee('Disallow: /platform', false)
         ->assertSee('Sitemap: ', false)
         ->assertHeaderMissing('X-Robots-Tag');
 });

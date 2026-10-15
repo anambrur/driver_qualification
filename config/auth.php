@@ -132,4 +132,7 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    // Platform staff are logged out after this many idle minutes (04 §2: shorter sessions).
+    'platform_idle_minutes' => (int) env('AUTH_PLATFORM_IDLE_MINUTES', 30),
+
 ];

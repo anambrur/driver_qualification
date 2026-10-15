@@ -2,6 +2,7 @@
 
 use App\Console\Commands\IntegrityCheck;
 use App\Models\User;
+use Database\Factories\PlatformUserFactory;
 use Database\Factories\StoredFileFactory;
 use Database\Factories\SubscriptionFactory;
 use Database\Seeders\DatabaseSeeder;
@@ -29,7 +30,7 @@ it('returns no rows on seeded data', function () {
     [$exit, $output] = integrityOutput();
 
     expect($exit)->toBe(0)
-        ->and(substr_count($output, '| ok'))->toBe(6)
+        ->and(substr_count($output, '| ok'))->toBe(7)
         ->and(substr_count($output, 'skipped (table absent'))->toBe(2);
 });
 
@@ -76,8 +77,12 @@ it('reports the rows that break a rule', function (int $query, Closure $breakIt)
         DB::statement('drop index subscriptions_company_id_open_flag_unique');
         SubscriptionFactory::new()->forCompany($c)->create();
     }],
+    // A raw insert bypasses EmailIdentityService and the lowercase mutator
+    'email both a tenant and a platform login' => [9, fn ($c) => DB::table('platform_users')->insert(
+        PlatformUserFactory::new()->raw(['email' => strtoupper((string) $c->owner->email), 'password' => 'x'])
+    )],
 ]);
 
 it('lists every query of 11 §6', function () {
-    expect(array_keys(IntegrityCheck::QUERIES))->toBe([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(array_keys(IntegrityCheck::QUERIES))->toBe([1, 2, 3, 4, 5, 6, 7, 8, 9]);
 });

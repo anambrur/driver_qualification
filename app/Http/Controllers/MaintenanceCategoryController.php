@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuditsLookups;
 use App\Models\MaintenanceCategory;
 use App\Tenancy\CompanyScope;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Yajra\DataTables\Facades\DataTables;
 
 class MaintenanceCategoryController extends Controller
 {
+    use AuditsLookups;
+
     /**
      * Display a listing of the resource.
      */
@@ -44,7 +47,7 @@ class MaintenanceCategoryController extends Controller
                 ->make(true);
         }
 
-        return view('admin.maintenance-category.index');
+        return view('platform.lookups.maintenance-categories.index');
     }
 
     /**
@@ -70,6 +73,7 @@ class MaintenanceCategoryController extends Controller
                 'name' => $request->name,
             ]);
 
+            $this->auditLookup('created', $maintenanceCategory);
             DB::commit();
 
             return response()->json([
@@ -131,6 +135,7 @@ class MaintenanceCategoryController extends Controller
                 'name' => $request->name,
             ]);
 
+            $this->auditLookup('updated', $maintenanceCategory);
             DB::commit();
 
             return response()->json([
@@ -166,6 +171,7 @@ class MaintenanceCategoryController extends Controller
 
         try {
             $maintenanceCategory->delete();
+            $this->auditLookup('deleted', $maintenanceCategory);
             DB::commit();
 
             return response()->json([

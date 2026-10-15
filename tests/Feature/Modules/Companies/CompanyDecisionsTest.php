@@ -117,27 +117,32 @@ describe('PO-22: company logo', function () {
     });
 });
 
-describe('PO-22: owner login email', function () {
-    it('updates the company email when the owner changes their login email', function () {
+// PO-22 tied the company email to the owner's login email; D3b (14 §1) separated them.
+describe('PO-22 as changed by D3b: owner login email', function () {
+    it('leaves the company email alone when the owner changes their login email', function () {
         $owner = Actors::companyOwner();
+        $companyEmail = Actors::companyOf($owner)->email;
 
         $this->actingAs($owner)
             ->patch(route('profile.update'), ['name' => $owner->name, 'email' => 'new-owner@example.test'])
             ->assertSessionHasNoErrors();
 
         expect($owner->fresh()->email)->toBe('new-owner@example.test')
-            ->and(Actors::companyOf($owner)->fresh()->email)->toBe('new-owner@example.test');
+            ->and(Actors::companyOf($owner)->fresh()->email)->toBe($companyEmail);
     });
 
-    it('refuses an email another company uses', function () {
+    it('refuses a login email another user has, but not another company contact email', function () {
         $owner = Actors::companyOwner();
-        $other = Actors::companyOf(Actors::companyOwner());
-        $other->update(['email' => 'taken@example.test']);
+        $otherOwner = Actors::companyOwner();
+        Actors::companyOf($otherOwner)->update(['email' => 'contact@example.test']);
 
         $this->actingAs($owner)
-            ->patch(route('profile.update'), ['name' => $owner->name, 'email' => 'taken@example.test'])
+            ->patch(route('profile.update'), ['name' => $owner->name, 'email' => $otherOwner->email])
             ->assertSessionHasErrors('email');
+        $this->actingAs($owner)
+            ->patch(route('profile.update'), ['name' => $owner->name, 'email' => 'contact@example.test'])
+            ->assertSessionHasNoErrors();
 
-        expect(Actors::companyOf($owner)->fresh()->email)->not->toBe('taken@example.test');
+        expect($owner->fresh()->email)->toBe('contact@example.test');
     });
 });

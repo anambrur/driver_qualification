@@ -1,4 +1,6 @@
-@extends('layouts.main-layout')
+@extends($platform ? 'layouts.platform' : 'layouts.main-layout')
+
+@php($baseUrl = $platform ? url('platform/lookups/document-types') : url('admin/settings/document-types'))
 
 @section('title', 'Document Types')
 
@@ -252,7 +254,7 @@
                 processing: true,
                 serverSide: true,
                 ajax: {
-                    url: '{{ route('admin.settings.document-types.index') }}',
+                    url: '{{ $baseUrl }}',
                     data: function(d) {
                         d.module_filter = $('#moduleFilter').val();
                         d.status_filter = $('#statusFilter').val();
@@ -482,7 +484,7 @@
 
         function openEditModal(id) {
             $.ajax({
-                url: '{{ url('admin/settings/document-types') }}/' + id,
+                url: '{{ $baseUrl }}/' + id,
                 method: 'GET',
                 success: function(response) {
                     if (response.success) {
@@ -538,8 +540,8 @@
             const formData = $(this).serialize();
             const id = $('#documentTypeId').val();
             const url = id ?
-                '{{ url('admin/settings/document-types') }}/' + id :
-                '{{ route('admin.settings.document-types.store') }}';
+                '{{ $baseUrl }}/' + id :
+                '{{ $baseUrl }}';
             const method = id ? 'PUT' : 'POST';
 
             // Show loading state
@@ -590,7 +592,7 @@
             });
 
             $.ajax({
-                url: '{{ url('admin/settings/document-types') }}/' + id,
+                url: '{{ $baseUrl }}/' + id,
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
@@ -615,7 +617,7 @@
         // Switch a type off/on for the current company only
         $(document).on('click', '[data-action="company-toggle"]', function () {
             $.ajax({
-                url: '{{ url('admin/settings/document-types') }}/' + this.dataset.id + '/company-toggle',
+                url: '{{ $baseUrl }}/' + this.dataset.id + '/company-toggle',
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
@@ -647,7 +649,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: '{{ url('admin/settings/document-types') }}/' + id + '/toggle-status',
+                        url: '{{ $baseUrl }}/' + id + '/toggle-status',
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': '{{ csrf_token() }}'

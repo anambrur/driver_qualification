@@ -174,6 +174,27 @@ class RoleAssignmentService
     }
 
     /**
+     * 04 §3, for disabling staff: if $target is a Platform Owner, at least two other active ones
+     * must remain. Locks the Platform Owner role row like remove() does; call it inside the
+     * transaction that changes the target.
+     */
+    public function assertPlatformOwnersRemainWithout(PlatformUser $target): void
+    {
+        $role = Role::query()->where('team_id', 0)->where('system_key', RoleTemplates::PLATFORM_OWNER)->lockForUpdate()->firstOrFail();
+
+        $isOwner = DB::table('model_has_roles')
+            ->where('team_id', 0)
+            ->where('role_id', $role->id)
+            ->where('model_type', $target->getMorphClass())
+            ->where('model_id', $target->getKey())
+            ->exists();
+
+        if ($isOwner) {
+            $this->keepTwoPlatformOwners($role, $target);
+        }
+    }
+
+    /**
      * 04 §3: removing a Platform Owner must leave at least two active ones. The role row is
      * locked by assignableRole(), so concurrent removals queue behind each other.
      */

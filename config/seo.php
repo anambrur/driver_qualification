@@ -13,7 +13,7 @@ return [
 
     // Paths blocked in robots.txt (crawl-budget + defence in depth; noindex is still sent).
     'disallow' => [
-        '/admin', '/billing', '/checkout', '/checkout-success', '/dashboard', '/pricing',
+        '/admin', '/platform', '/billing', '/checkout', '/checkout-success', '/dashboard', '/pricing',
         '/subscription', '/users', '/forgot-password', '/reset-password', '/confirm-password',
         '/verify-email', '/*/application/',
     ],

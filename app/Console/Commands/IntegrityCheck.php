@@ -77,6 +77,11 @@ class IntegrityCheck extends Command
                 LEFT JOIN drivers d ON e.local_type = 'driver' AND d.id = e.local_id AND d.company_id = e.company_id
                 WHERE e.local_type = 'driver' AND d.id IS NULL",
         ],
+        9 => [
+            'rule' => 'No email is both a tenant and a platform login (D3a)',
+            'tables' => ['users', 'platform_users'],
+            'sql' => 'SELECT u.id FROM users u JOIN platform_users p ON LOWER(p.email) = LOWER(u.email)',
+        ],
     ];
 
     public function handle(): int

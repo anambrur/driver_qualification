@@ -9,11 +9,11 @@ use App\Mail\CompanyInvitationMail;
 use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\CompanyInvitation;
-use App\Models\PlatformUser;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Authorization\RoleAssignmentService;
 use App\Services\Entitlements\Limits;
+use App\Services\Platform\EmailIdentityService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -36,6 +36,7 @@ class InvitationService
     public function __construct(
         private RoleAssignmentService $assignments,
         private TenantPermissionResolver $resolver,
+        private EmailIdentityService $emails,
     ) {}
 
     /**
@@ -143,49 +144,58 @@ class InvitationService
 
     public function accept(string $token, string $name, string $password): User
     {
-        return DB::transaction(function () use ($token, $name, $password) {
-            $invitation = $this->findByToken($token, lock: true)
-                ?? throw (new ModelNotFoundException)->setModel(CompanyInvitation::class);
+        $email = $this->findByToken($token)->email
+            ?? throw (new ModelNotFoundException)->setModel(CompanyInvitation::class);
 
-            $company = Company::query()->lockForUpdate()->findOrFail($invitation->company_id);
+        try {
+            // Never also a platform login (D3a); the email lock spans the check and the insert.
+            return $this->emails->claim($email, fn () => $this->createInvitedUser($token, $name, $password));
+        } catch (ValidationException $e) {
+            // The invitation flow keeps its own wording; a lock timeout keeps "try again"
+            throw ($e->errors()['email'][0] ?? null) === EmailIdentityService::TAKEN
+                ? ValidationException::withMessages(['email' => self::EMAIL_TAKEN])
+                : $e;
+        }
+    }
 
-            if ($company->status !== 'active') {
-                throw new AuthorizationException('This company account is not active.');
-            }
+    private function createInvitedUser(string $token, string $name, string $password): User
+    {
+        $invitation = $this->findByToken($token, lock: true)
+            ?? throw (new ModelNotFoundException)->setModel(CompanyInvitation::class);
 
-            Limits::assertCanCreate($company, Feature::MaxUsers);
+        $company = Company::query()->lockForUpdate()->findOrFail($invitation->company_id);
 
-            if (User::query()->where('email', $invitation->email)->exists()
-                || PlatformUser::query()->where('email', $invitation->email)->exists()) {
-                throw ValidationException::withMessages(['email' => self::EMAIL_TAKEN]);
-            }
+        if ($company->status !== 'active') {
+            throw new AuthorizationException('This company account is not active.');
+        }
 
-            $user = new User([
-                'company_id' => $company->id,
-                'user_type' => 'member',
-                'name' => $name,
-                'email' => $invitation->email,
-                'password' => $password,
-                'status' => 'active',
-            ]);
-            // The emailed token proves the address.
-            $user->forceFill(['email_verified_at' => now()]);
+        Limits::assertCanCreate($company, Feature::MaxUsers);
 
-            try {
-                $user->save();
-            } catch (UniqueConstraintViolationException) {
-                throw ValidationException::withMessages(['email' => self::EMAIL_TAKEN]);
-            }
+        $user = new User([
+            'company_id' => $company->id,
+            'user_type' => 'member',
+            'name' => $name,
+            'email' => $invitation->email,
+            'password' => $password,
+            'status' => 'active',
+        ]);
+        // The emailed token proves the address.
+        $user->forceFill(['email_verified_at' => now()]);
 
-            $role = Role::query()->where('team_id', $company->id)->findOrFail($invitation->role_id);
-            TeamScope::run($company->id, fn () => $user->assignRole($role));
+        try {
+            $user->save();
+        } catch (UniqueConstraintViolationException) {
+            throw ValidationException::withMessages(['email' => self::EMAIL_TAKEN]);
+        }
 
-            $invitation->forceFill(['accepted_at' => now(), 'accepted_user_id' => $user->id])->save();
+        $role = Role::query()->where('team_id', $company->id)->findOrFail($invitation->role_id);
+        TeamScope::run($company->id, fn () => $user->assignRole($role));
 
-            AuditLog::record($user, $company->id, 'user.invited_accepted', $user, ['invitation_id' => $invitation->id, 'role' => $role->name]);
+        $invitation->forceFill(['accepted_at' => now(), 'accepted_user_id' => $user->id])->save();
 
-            return $user;
-        });
+        AuditLog::record($user, $company->id, 'user.invited_accepted', $user, ['invitation_id' => $invitation->id, 'role' => $role->name]);
+
+        return $user;
     }
 
     private function open(User $actor, int $invitationId): CompanyInvitation

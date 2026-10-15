@@ -7,7 +7,6 @@ use App\Models\Driver;
 use App\Services\Compliance\DriverComplianceService;
 use App\Traits\CompanyFilterTrait;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
 class DriverComplianceDashboardController extends Controller
@@ -80,7 +79,6 @@ class DriverComplianceDashboardController extends Controller
             ? round(($summary['compliant'] / $totalDrivers) * 100, 1)
             : 0;
 
-        // Get companies for filter (if super-admin)
         $companies = $this->getCompaniesForUser();
 
         return view('admin.compliance.drivers', [
@@ -92,7 +90,6 @@ class DriverComplianceDashboardController extends Controller
             'totalCritical' => $summary['danger'],
             'overallCompliance' => $overallCompliance,
             'companies' => $companies,
-            'isSuperAdmin' => Auth::user()->hasRole('super-admin'),
         ]);
     }
 

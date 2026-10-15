@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 class DriverDocumentUploadController extends Controller
 {
@@ -43,9 +42,8 @@ class DriverDocumentUploadController extends Controller
 
             $documentType = DocumentType::find($documentTypeId);
 
-            // The company "upload to all" applies to; a super-admin works on the company of the
-            // driver the modal was opened for, and only sees that company's drivers.
-            $company = $this->uploadCompany($request->integer('driver_id') ?: null);
+            // The company "upload to all" applies to: always the tenant's own
+            $company = $this->uploadCompany();
 
             // Load has_document in one query (avoid N+1 exists); the tenant scope limits the rows
             $driversQuery = Driver::select('drivers.id', 'drivers.first_name', 'drivers.last_name')
@@ -54,9 +52,6 @@ class DriverDocumentUploadController extends Controller
                         $query->where('document_type_id', $documentTypeId);
                     },
                 ]);
-            if ($this->isSuperAdmin() && $company) {
-                $driversQuery->where('drivers.company_id', $company->id);
-            }
 
             $drivers = $driversQuery->orderBy('drivers.first_name')
                 ->orderBy('drivers.last_name')
@@ -102,8 +97,6 @@ class DriverDocumentUploadController extends Controller
      */
     public function uploadDocument(Request $request)
     {
-        $isSuperAdmin = $this->isSuperAdmin();
-
         // Validate request
         $validator = Validator::make($request->all(), [
             'document_type_id' => 'required|exists:document_types,id',
@@ -114,12 +107,6 @@ class DriverDocumentUploadController extends Controller
             'file' => 'required|file|mimes:jpg,jpeg,png,pdf|max:20480', // 20MB max
             'upload_to_all' => 'nullable|boolean',
             'selected_asset' => 'required_without:upload_to_all',
-            // Tenants always upload to their own company; a super-admin names the company
-            'company_id' => $isSuperAdmin
-                ? [Rule::requiredIf($request->boolean('upload_to_all')), 'nullable', 'integer', Rule::exists('companies', 'id')]
-                : ['nullable'],
-        ], [
-            'company_id.required' => 'Choose the company whose drivers should get this document.',
         ]);
 
         if ($validator->fails()) {
@@ -132,9 +119,9 @@ class DriverDocumentUploadController extends Controller
         $uploadToAll = $request->boolean('upload_to_all');
 
         if ($uploadToAll) {
-            // Upload to all active drivers of one company: the tenant's own, or the one a
-            // super-admin chose (decided 2026-10-10)
-            $companyId = $isSuperAdmin ? $request->integer('company_id') : $this->getUserCompanyId();
+            // Upload to all active drivers of the tenant's own company; the platform does this
+            // inside a read_write support session (PO-02, D11)
+            $companyId = $this->getUserCompanyId();
             $drivers = Driver::where('company_id', $companyId)->where('status', 'active')->get();
 
             if ($drivers->isEmpty()) {
@@ -338,16 +325,11 @@ class DriverDocumentUploadController extends Controller
     }
 
     /**
-     * The company the upload modal works on: a tenant's own company, or for a super-admin the
-     * company of the given driver (null when there is none).
+     * The company the upload modal works on: the tenant's own.
      */
-    private function uploadCompany(?int $driverId): ?Company
+    private function uploadCompany(): ?Company
     {
-        if (! $this->isSuperAdmin()) {
-            return Company::find($this->getUserCompanyId());
-        }
-
-        return $driverId ? Company::find(Driver::whereKey($driverId)->value('company_id')) : null;
+        return Company::find($this->getUserCompanyId());
     }
 
     /**

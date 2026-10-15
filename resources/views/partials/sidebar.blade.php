@@ -220,251 +220,36 @@
 
             
 
-            <!-- GROUP: SETTINGS -->
-            @can('platform.settings.manage')
+            <!-- GROUP: SETTINGS (platform settings and lookups live in /platform) -->
+            @canany(['asset-groups.view', 'document-types.toggle'])
                 <div>
                     <h3 class="mb-4 text-xs uppercase leading-[20px] text-gray-400">
                         <span class="menu-group-title" :class="sidebarToggle ? 'lg:hidden' : ''">SETTINGS</span>
                     </h3>
                     <ul class="flex flex-col gap-2 mb-6">
-
-                        <!-- General Settings -->
-                        <li>
-                            <a href="#" @click.prevent="selected = (selected === 'Settings' ? '':'Settings')"
-                                class="menu-item group"
-                                :class="(selected === 'Settings') || isCurrentPath('admin/settings/site') || isCurrentPath(
-                                        'admin/settings/tawk') || isCurrentPath('admin/settings/company') ||
-                                    isCurrentPath('admin/settings/policy-pdf') ||
-                                    isCurrentPath('admin/settings/document-types') ?
-                                    'menu-item-active' : 'menu-item-inactive'">
-                                <i class="fa-solid fa-gear"
-                                    :class="(selected === 'Settings') || isCurrentPath('admin/settings/site') || isCurrentPath(
-                                            'admin/settings/tawk') || isCurrentPath('admin/settings/company') ||
-                                        isCurrentPath('admin/settings/policy-pdf') ||
-                                        isCurrentPath('admin/settings/document-types') ?
-                                        'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
-                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">System
-                                    Config</span>
-                                <i class="fas fa-angle-down menu-item-arrow"
-                                    :class="[(selected === 'Settings') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive',
-                                        sidebarToggle ? 'lg:hidden' : ''
-                                    ]"></i>
-                            </a>
-
-                            <div class="overflow-hidden transform translate" x-show="selected === 'Settings'"
-                                style="display:none;" x-collapse>
-                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
-                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
-                                    <li>
-                                        <a href="{{ route('admin.settings.site.index') }}"
-                                            class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/settings/site') ? 'menu-dropdown-item-active' :
-                                                'menu-dropdown-item-inactive'">
-                                            Site Configuration
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ route('admin.settings.tawk.index') }}"
-                                            class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/settings/tawk') ? 'menu-dropdown-item-active' :
-                                                'menu-dropdown-item-inactive'">
-                                            Tawk.to Chat
-                                        </a>
-                                    </li>
-                                    @can('platform.companies.view')
-                                        <li>
-                                            <a href="{{ route('admin.settings.company') }}" class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/settings/company') ? 'menu-dropdown-item-active' :
-                                                    'menu-dropdown-item-inactive'">
-                                                Companies List
-                                            </a>
-                                        </li>
-                                    @endcan
-                                    @can('company.edit')
-                                        <li>
-                                            <a href="{{ route('admin.settings.policy.pdf') }}"
-                                                class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/settings/policy-pdf') ?
-                                                    'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                                Policy Configs (PDF)
-                                            </a>
-                                        </li>
-                                    @endcan
-                                    @can('platform.settings.manage')
-                                        <li>
-                                            <a href="{{ route('admin.settings.document-types.index') }}"
-                                                class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/settings/document-types') ?
-                                                    'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                                Document Types
-                                            </a>
-                                        </li>
-                                    @endcan
-                                </ul>
-                            </div>
-                        </li>
-
-                        <!-- Fleet Configurations -->
-                        <li>
-                            <a href="#" @click.prevent="selected = (selected === 'FleetConfig' ? '':'FleetConfig')"
-                                class="menu-item group"
-                                :class="(selected === 'FleetConfig') || isCurrentPath('admin/vehicle-type') || isCurrentPath(
-                                        'admin/vehicle-group') || isCurrentPath('admin/fuel-type') || isCurrentPath(
-                                        'admin/equipment-type') || isCurrentPath('admin/maintenance-category') ||
-                                    isCurrentPath('admin/asset-group') ? 'menu-item-active' : 'menu-item-inactive'">
-                                <i class="fa-solid fa-sliders"
-                                    :class="(selected === 'FleetConfig') || isCurrentPath('admin/vehicle-type') ||
-                                        isCurrentPath('admin/vehicle-group') || isCurrentPath('admin/fuel-type') ||
-                                        isCurrentPath('admin/equipment-type') || isCurrentPath(
-                                            'admin/maintenance-category') || isCurrentPath('admin/asset-group') ?
-                                        'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
-                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Fleet
-                                    Options</span>
-                                <i class="fas fa-angle-down menu-item-arrow"
-                                    :class="[(selected === 'FleetConfig') ? 'menu-item-arrow-active' :
-                                        'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : ''
-                                    ]"></i>
-                            </a>
-
-                            <div class="overflow-hidden transform translate" x-show="selected === 'FleetConfig'"
-                                style="display:none;" x-collapse>
-                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
-                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
-                                    @can('platform.settings.manage')
-                                        <li>
-                                            <a href="{{ route('admin.vehicle.type.index') }}"
-                                                class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/vehicle-type') ? 'menu-dropdown-item-active' :
-                                                    'menu-dropdown-item-inactive'">
-                                                Vehicle Types
-                                            </a>
-                                        </li>
-                                    @endcan
-                                    @can('platform.settings.manage')
-                                        <li>
-                                            <a href="{{ route('admin.vehicle.group.index') }}"
-                                                class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/vehicle-group') ? 'menu-dropdown-item-active' :
-                                                    'menu-dropdown-item-inactive'">
-                                                Vehicle Groups
-                                            </a>
-                                        </li>
-                                    @endcan
-                                    @can('platform.settings.manage')
-                                        <li>
-                                            <a href="{{ route('admin.fuel.type.index') }}" class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/fuel-type') ? 'menu-dropdown-item-active' :
-                                                    'menu-dropdown-item-inactive'">
-                                                Fuel Types
-                                            </a>
-                                        </li>
-                                    @endcan
-                                    @can('platform.settings.manage')
-                                        <li>
-                                            <a href="{{ route('admin.equipment.type.index') }}"
-                                                class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/equipment-type') ? 'menu-dropdown-item-active' :
-                                                    'menu-dropdown-item-inactive'">
-                                                Equipment Types
-                                            </a>
-                                        </li>
-                                    @endcan
-                                    @can('platform.settings.manage')
-                                        <li>
-                                            <a href="{{ route('admin.maintenance.category.index') }}"
-                                                class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/maintenance-category') ?
-                                                    'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                                Maintenance Categories
-                                            </a>
-                                        </li>
-                                    @endcan
-                                    @can('asset-groups.view')
-                                        <li>
-                                            <a href="{{ route('admin.asset-group.index') }}" class="menu-dropdown-item group"
-                                                :class="isCurrentPath('admin/asset-group') ? 'menu-dropdown-item-active' :
-                                                    'menu-dropdown-item-inactive'">
-                                                Asset Groups
-                                            </a>
-                                        </li>
-                                    @endcan
-                                </ul>
-                            </div>
-                        </li>
-
+                        @can('asset-groups.view')
+                            <li>
+                                <a href="{{ route('admin.asset-group.index') }}" class="menu-item group"
+                                    :class="isCurrentPath('admin/asset-group') ? 'menu-item-active' : 'menu-item-inactive'">
+                                    <i class="fas fa-object-group"
+                                        :class="isCurrentPath('admin/asset-group') ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
+                                    <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Asset Groups</span>
+                                </a>
+                            </li>
+                        @endcan
+                        @can('document-types.toggle')
+                            <li>
+                                <a href="{{ route('admin.settings.document-types.index') }}" class="menu-item group"
+                                    :class="isCurrentPath('admin/settings/document-types') ? 'menu-item-active' : 'menu-item-inactive'">
+                                    <i class="fas fa-file-alt"
+                                        :class="isCurrentPath('admin/settings/document-types') ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
+                                    <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Document Types</span>
+                                </a>
+                            </li>
+                        @endcan
                     </ul>
                 </div>
-            @endcan
-
-
-            <!-- GROUP: ADMINISTRATION (Super Admin Only) -->
-            @hasrole('super-admin')
-                <div>
-                    <h3 class="mb-4 text-xs uppercase leading-[20px] text-gray-400">
-                        <span class="menu-group-title" :class="sidebarToggle ? 'lg:hidden' : ''">ADMINISTRATION</span>
-                    </h3>
-                    <ul class="flex flex-col gap-2 mb-6">
-
-                        <!-- System Subscriptions -->
-                        <li>
-                            <a href="#"
-                                @click.prevent="selected = (selected === 'AdminSubscriptions' ? '':'AdminSubscriptions')"
-                                class="menu-item group"
-                                :class="(selected === 'AdminSubscriptions') || isCurrentPath('admin/subscriptions*') ||
-                                    isCurrentPath('admin/plans*') ? 'menu-item-active' : 'menu-item-inactive'">
-                                <i class="fas fa-chart-pie"
-                                    :class="(selected === 'AdminSubscriptions') || isCurrentPath('admin/subscriptions*') ||
-                                        isCurrentPath('admin/plans*') ? 'menu-item-icon-active' :
-                                        'menu-item-icon-inactive'"></i>
-                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Module
-                                    Subscriptions</span>
-                                <i class="fas fa-angle-down menu-item-arrow"
-                                    :class="[(selected === 'AdminSubscriptions') ? 'menu-item-arrow-active' :
-                                        'menu-item-arrow-inactive', sidebarToggle ? 'lg:hidden' : ''
-                                    ]"></i>
-                            </a>
-
-                            <div class="overflow-hidden transform translate" x-show="selected === 'AdminSubscriptions'"
-                                style="display:none;" x-collapse>
-                                <ul :class="sidebarToggle ? 'lg:hidden' : 'flex'"
-                                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9">
-                                    <li>
-                                        <a href="{{ route('admin.subscriptions.dashboard') }}"
-                                            class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/subscriptions') ? 'menu-dropdown-item-active' :
-                                                'menu-dropdown-item-inactive'">
-                                            Revenue Dashboard
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ route('admin.plans.index') }}" class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/plans') ? 'menu-dropdown-item-active' :
-                                                'menu-dropdown-item-inactive'">
-                                            Manage Plans
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ route('admin.subscriptions.index') }}"
-                                            class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/subscriptions/all') ? 'menu-dropdown-item-active' :
-                                                'menu-dropdown-item-inactive'">
-                                            All Subscriptions
-                                        </a>
-                                    </li>
-                                    {{-- <li>
-                                        <a href="{{ route('admin.subscriptions.payments') }}"
-                                            class="menu-dropdown-item group"
-                                            :class="isCurrentPath('admin/subscriptions/payments') ?
-                                                'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                            Payments & Invoices
-                                        </a>
-                                    </li> --}}
-                                </ul>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            @endhasrole
+            @endcanany
 
             <!-- GROUP: TEAM -->
             @canany(['users.view', 'roles.view'])
@@ -522,8 +307,7 @@
                                         Account</span>
                                 </a>
                             </li>
-                            @unlessrole('super-admin')
-                                <!-- The company's own policy PDFs (PO-14) -->
+                            <!-- The company's own policy PDFs (PO-14) -->
                                 <li>
                                     <a href="{{ route('admin.settings.policy.pdf') }}" class="menu-item group"
                                         :class="isCurrentPath('admin/settings/policy-pdf') ? 'menu-item-active' : 'menu-item-inactive'">
@@ -532,7 +316,6 @@
                                         <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Policy PDFs</span>
                                     </a>
                                 </li>
-                            @endunlessrole
                         @endif
                     @endcan
 

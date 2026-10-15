@@ -14,25 +14,20 @@ class StoreDriverRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        // Always the user's own company; a posted company_id is ignored
         $user = $this->user();
-        if ($user && ! $user->hasRole('super-admin')) {
-            $user->loadMissing('company');
-            if ($user->company) {
-                $this->merge(['company_id' => $user->company->id]);
-            }
+        $user?->loadMissing('company');
+        if ($user?->company) {
+            $this->merge(['company_id' => $user->company->id]);
         }
     }
 
     public function rules(): array
     {
         $user = $this->user();
-        $companyRule = ['required', 'exists:companies,id'];
-
-        if ($user && ! $user->hasRole('super-admin')) {
-            $user->loadMissing('company');
-            $companyId = $user->company?->id;
-            $companyRule = ['required', Rule::in($companyId ? [$companyId] : [-1])];
-        }
+        $user?->loadMissing('company');
+        $companyId = $user?->company?->id;
+        $companyRule = ['required', Rule::in($companyId ? [$companyId] : [-1])];
 
         return array_merge(
             self::step1FieldRules(requireMedicalFuture: true, requireLicense: true),
@@ -61,7 +56,7 @@ class StoreDriverRequest extends FormRequest
     public static function step1FieldRules(bool $requireMedicalFuture = true, bool $requireLicense = true): array
     {
         $medical = $requireMedicalFuture
-            ? 'required|date|after_or_equal:' . now()->format('Y-m-d')
+            ? 'required|date|after_or_equal:'.now()->format('Y-m-d')
             : 'nullable|date';
 
         $license = $requireLicense ? [

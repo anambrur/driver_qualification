@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Models\PolicyPdf;
-use App\Models\User;
-use App\Services\Company\CompanyProvisioner;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,183 +13,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
-use Yajra\DataTables\Facades\DataTables;
 
 class CompanyController extends Controller
 {
-    public function index(Request $request)
-    {
-        if ($request->ajax()) {
-            $companies = Company::with('user')->select('companies.*');
-
-            return DataTables::of($companies)
-                ->addIndexColumn()
-                ->addColumn('logo', function ($company) {
-                    if ($company->logo) {
-                        return '<img src="'.e(asset('storage/'.$company->logo)).'" alt="'.e($company->company_name).'" class="w-10 h-10 rounded-full object-cover">';
-                    }
-
-                    return '<div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                            <i class="fas fa-building text-gray-500 dark:text-gray-400"></i>
-                        </div>';
-                })
-                ->addColumn('status', function ($company) {
-                    $status = $company->status === 'active'
-                        ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>'
-                        : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Inactive</span>';
-
-                    return $status;
-                })
-                ->addColumn('user_email', function ($company) {
-                    return $company->user->email ?? 'N/A';
-                })
-                ->addColumn('apply_url', function ($company) {
-                    // Check if slug exists
-                    if ($company->slug) {
-                        // Create the URL
-                        $applyUrl = e(url('/').'/'.$company->slug.'/apply');
-
-                        // Return with copy button
-                        return '<div class="flex items-center space-x-2">
-                                <a href="'.$applyUrl.'" 
-                                   target="_blank" 
-                                   class="inline-flex items-center text-brand-600 hover:text-brand-700 dark:text-brand-400 apply-url-link"
-                                   title="Open Application Form">
-                                    <i class="fas fa-external-link-alt mr-1 text-xs"></i>
-                                    Link
-                                </a>
-                                <button type="button" 
-                                        data-url="'.$applyUrl.'"
-                                        class="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400 copy-url-btn"
-                                        title="Copy URL">
-                                    <i class="fas fa-copy text-xs"></i>
-                                </button>
-                            </div>';
-                    }
-
-                    // Return disabled state if no slug
-                    return '<span class="text-gray-400 dark:text-gray-500 cursor-not-allowed" title="Not available">
-                            <i class="fas fa-ban mr-1 text-xs"></i>
-                            N/A
-                        </span>';
-                })
-                ->addColumn('action', function ($company) {
-                    // Deactivate, never delete (PO-13); not offered for the admin's own company
-                    $deactivateBtn = $company->status === 'active' && ! $this->isOwnCompany($company)
-                        ? '<button type="button" onclick="deleteCompany('.(int) $company->id.')" class="inline-flex items-center justify-center w-8 h-8 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30" title="Deactivate">
-                                <i class="fas fa-ban text-xs"></i>
-                            </button>'
-                        : '';
-
-                    return '<div class="flex items-center space-x-2">
-                            <a href="'.route('admin.settings.company.edit', $company->id).'" class="inline-flex items-center justify-center w-8 h-8 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30" title="Edit">
-                                <i class="fas fa-edit text-xs"></i>
-                            </a>
-                            '.$deactivateBtn.'
-                        </div>';
-                })
-                ->rawColumns(['logo', 'status', 'apply_url', 'action'])
-                ->make(true);
-        }
-
-        return view('admin.settings.company.index');
-    }
-
-    public function create()
-    {
-        return view('admin.settings.company.create');
-    }
-
-    public function store(Request $request, CompanyProvisioner $provisioner)
-    {
-        // Form validation
-        $validator = Validator::make($request->all(), [
-            'company_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:companies,email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-            'address' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
-            'state' => 'required|string|size:2',
-            'zip' => 'required|string|max:20',
-            'description' => 'nullable|string',
-            'phone' => 'nullable|string|max:20',
-            'fax' => 'nullable|string|max:20',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'status' => 'required|in:active,inactive',
-        ]);
-
-        // Any error checking
-        if ($validator->fails()) {
-            foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
-            }
-
-            return back()->withInput()->withErrors($validator);
-        }
-
-        try {
-            // Handle logo upload
-            $logoPath = null;
-            if ($request->hasFile('logo')) {
-                $logoFile = $request->file('logo');
-
-                // Define storage path
-                $storagePath = 'images/companies/logos';
-
-                // Check if directory exists, if not create it
-                $fullPath = storage_path('app/public/'.$storagePath);
-                if (! file_exists($fullPath)) {
-                    File::makeDirectory($fullPath, 0755, true, true);
-                }
-
-                $logoPath = $logoFile->storeAs($storagePath, $logoFile->hashName(), 'public');
-            }
-
-            $isActive = $request->status === 'active';
-
-            $provisioner->provision([
-                'company_name' => $request->company_name,
-                'email' => $request->email,
-                'address' => $request->address,
-                'city' => $request->city,
-                'state_code' => strtoupper($request->state),
-                'zip' => $request->zip,
-                'description' => $request->description,
-                'phone' => $request->phone,
-                'fax' => $request->fax,
-                'logo_path' => $logoPath,
-                'status' => $isActive ? 'active' : 'deactivated',
-                'status_changed_at' => $isActive ? null : now(),
-            ], [
-                'name' => $request->company_name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'email_verified_at' => now(), // Auto-verify company emails
-                'status' => $isActive ? 'active' : 'inactive',
-            ]);
-
-            // CORRECT TOASTR SUCCESS SYNTAX
-            toastr()->success('Company created successfully!');
-
-            // Redirect to company index or show page
-            return redirect()->route('admin.settings.company');
-        } catch (Exception $e) {
-            // Log the error
-            logger()->error('Company creation failed: '.$e->getMessage(), [
-                'exception' => $e,
-                'request_data' => $request->except(['password', 'password_confirmation']),
-            ]);
-
-            // CORRECT TOASTR ERROR SYNTAX
-            toastr()->error('Failed to create company. Please try again.');
-
-            return back()->withInput()->withErrors([
-                'system_error' => 'An error occurred while creating the company. Please try again.',
-            ]);
-        }
-    }
-
     public function edit($id)
     {
         $company = Company::findOrFail($id);
@@ -205,18 +29,10 @@ class CompanyController extends Controller
         $company = Company::findOrFail($id);
         $this->ensureCanManageCompany($company);
 
-        // Status and login email are super-admin fields; owners change their email via Profile
-        $isSuperAdmin = auth()->user()->hasRole('super-admin');
-
+        // Status belongs to the platform (/platform) and the login email to Profile (D3b)
         // Form validation
         $validator = Validator::make($request->all(), [
             'company_name' => 'required|string|max:255',
-            'email' => [
-                Rule::requiredIf($isSuperAdmin),
-                'email',
-                Rule::unique('companies', 'email')->ignore($company->id),
-                Rule::unique('users', 'email')->ignore($company->user_id),
-            ],
             'password' => 'nullable|string|min:8|confirmed',
             'address' => 'required|string|max:255',
             'city' => 'required|string|max:255',
@@ -226,7 +42,6 @@ class CompanyController extends Controller
             'phone' => 'nullable|string|max:20',
             'fax' => 'nullable|string|max:20',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'status' => [Rule::requiredIf($isSuperAdmin), 'in:active,inactive'],
         ]);
 
         // Any error checking
@@ -243,11 +58,6 @@ class CompanyController extends Controller
         try {
             // Update user
             $userData = ['name' => $request->company_name];
-
-            if ($isSuperAdmin) {
-                $userData['email'] = $request->email;
-                $userData['status'] = $request->status === 'active' ? 'active' : 'inactive';
-            }
 
             // Update password only if provided
             if ($request->filled('password')) {
@@ -284,7 +94,6 @@ class CompanyController extends Controller
             $company->update([
                 'company_name' => $request->company_name,
                 'slug' => $slug,
-                'email' => $isSuperAdmin ? $request->email : $company->email,
                 'address' => $request->address,
                 'city' => $request->city,
                 'state' => $request->state,
@@ -293,7 +102,6 @@ class CompanyController extends Controller
                 'phone' => $request->phone,
                 'fax' => $request->fax,
                 'logo' => $logoPath,
-                'status' => $isSuperAdmin ? $request->status : $company->status,
             ]);
 
             // Commit transaction
@@ -305,11 +113,7 @@ class CompanyController extends Controller
 
             toastr()->success('Company updated successfully!');
 
-            if (auth()->user()->hasRole('company')) {
-                return redirect()->route('admin.settings.company.edit', $company->id);
-            }
-
-            return redirect()->route('admin.settings.company');
+            return redirect()->route('admin.settings.company.edit', $company->id);
         } catch (Exception $e) {
             // Rollback transaction on error
             DB::rollBack();
@@ -330,51 +134,8 @@ class CompanyController extends Controller
     }
 
     /**
-     * Deactivate a company (PO-13): the company and its owner become inactive, so the owner
-     * can no longer log in, and every record and file is kept. A company is never hard-deleted
-     * here, and a super-admin can't deactivate their own company.
-     */
-    public function destroy($id)
-    {
-        $company = Company::with('user')->findOrFail($id);
-
-        if ($this->isOwnCompany($company)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You cannot deactivate your own company.',
-            ], 422);
-        }
-
-        DB::beginTransaction();
-
-        try {
-            $company->update(['status' => 'inactive']);
-            $company->user?->update(['status' => 'inactive']);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Company deactivated. Its data is kept and the owner can no longer log in.',
-            ]);
-        } catch (Exception $e) {
-            DB::rollBack();
-
-            logger()->error('Company deactivation failed: '.$e->getMessage(), [
-                'exception' => $e,
-                'company_id' => $id,
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to deactivate company. Please try again.',
-            ], 500);
-        }
-    }
-
-    /**
-     * Policy PDFs (PO-14): a super-admin manages the platform set (company_id null), which every
-     * company falls back to; a company owner manages their own company's set.
+     * Policy PDFs (PO-14): a company owner manages their own company's set. The platform default
+     * set moves to site_settings (14 §3, WP9).
      */
     public function policyPDF()
     {
@@ -383,7 +144,6 @@ class CompanyController extends Controller
 
         return view('admin.settings.company.policy-pdf', [
             'existingPolicies' => $policy ? collect([$policy]) : collect(),
-            'isPlatformSet' => $companyId === null,
         ]);
     }
 
@@ -423,7 +183,7 @@ class CompanyController extends Controller
 
             // Define storage path. Policies are shown to job applicants on the public
             // application form, so they stay on the public disk, under a random name.
-            $storagePath = $companyId === null ? 'policy_pdfs' : 'policy_pdfs/'.$companyId;
+            $storagePath = 'policy_pdfs/'.$companyId;
 
             // Ensure directory exists
             $fullPath = storage_path('app/public/'.$storagePath);
@@ -487,9 +247,7 @@ class CompanyController extends Controller
 
             toastr()->success($message);
 
-            return $companyId === null
-                ? redirect()->route('admin.settings.company')
-                : redirect()->route('admin.settings.policy.pdf');
+            return redirect()->route('admin.settings.policy.pdf');
         } catch (Exception $e) {
             Log::error('Policy PDF Upload Error: '.$e->getMessage(), [
                 'exception' => $e,
@@ -503,29 +261,11 @@ class CompanyController extends Controller
     }
 
     /**
-     * The policy set the user manages: null (the platform set) for a super-admin, or a user who
-     * holds policy-pdf.edit without a company; otherwise the user's own company.
+     * The policy set the user manages: their own company's (the route requires company.edit).
      */
-    private function policyCompanyId(): ?int
+    private function policyCompanyId(): int
     {
-        $user = auth()->user();
-
-        if ($user->hasRole('super-admin')) {
-            return null;
-        }
-
-        $companyId = $user->company?->id;
-
-        if ($companyId === null) {
-            abort_unless($user->can('company.edit'), 403);
-        }
-
-        return $companyId;
-    }
-
-    private function isOwnCompany(Company $company): bool
-    {
-        return (int) $company->user_id === (int) auth()->id();
+        return (int) auth()->user()->company_id;
     }
 
     /**
@@ -534,10 +274,6 @@ class CompanyController extends Controller
     private function ensureCanManageCompany(Company $company): void
     {
         $user = auth()->user();
-
-        if ($user->hasRole('super-admin')) {
-            return;
-        }
 
         // Another company is a 404 (03 §5)
         abort_unless((int) $user->company_id === (int) $company->id, 404);
