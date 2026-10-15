@@ -46,7 +46,7 @@ final class RoleTemplates
     /** Withheld from Support (read/write). */
     private const SUPPORT_WRITE_EXCLUDED = [
         'billing.*', 'users.*', 'roles.*', 'permissions.grant', 'drivers.delete', 'documents.delete',
-        'driver-documents.delete',
+        'driver-documents.delete', 'fleets.delete',
     ];
 
     /**

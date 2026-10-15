@@ -34,8 +34,11 @@ return new class extends Migration
             $table->timestamp('ended_at')->nullable();
             $table->string('end_reason')->nullable();
             $table->foreignId('revoked_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+            // One active session per company: each company has a single support user (04 §4.3)
+            $table->unsignedTinyInteger('active_flag')->nullable()->storedAs("CASE WHEN status = 'active' THEN 1 END");
             $table->timestamps();
 
+            $table->unique(['company_id', 'active_flag']);
             $table->index(['company_id', 'status']);
             $table->index(['platform_user_id', 'status']);
         });

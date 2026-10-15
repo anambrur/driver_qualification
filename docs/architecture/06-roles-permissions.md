@@ -200,7 +200,7 @@ Names keep today's `module.action` form wherever the module already exists, so m
 | `drivers` | `drivers.view` R, `drivers.create` W, `drivers.edit` W, `drivers.delete` W, `drivers.hire` W |
 | `driver_compliance` | `drivers.dashboard` R, `driver-documents.upload` W, `driver-documents.delete` W |
 | `fleet` | `vehicles.*`, `trailers.*`, `asset-groups.*` (view R; create, edit, delete W) |
-| `fleet_compliance` | `fleets.dashboard` R, `fleets.edit` W |
+| `fleet_compliance` | `fleets.dashboard` R, `fleets.edit` W, `fleets.delete` W (WP8b) |
 | `maintenance` | `maintenance.*`, `scheduled.*` (view R; create, edit, delete W) |
 | `compliance_reminders` | `reminders.send` W |
 | `document_folders` | `folders.view` R, `folders.manage` W, `documents.upload` W, `documents.delete` W |
@@ -237,7 +237,7 @@ Provisioning creates these roles in the company's team from code templates (`App
 | Office / Compliance | — | Editable | `drivers.*`, `drivers.dashboard`, `driver-documents.*`, `vehicles.*`, `trailers.*`, `asset-groups.*`, `fleets.*`, `maintenance.*`, `scheduled.*`, `folders.*`, `documents.*`, `exports.*`, `reminders.send` |
 | Driver | `driver` | Locked | `trips.view.own`, `trips.drive.own`, `inspections.perform.own`, `trip-events.create.own`, `fuel.create.own`, `tracking.report.own`, `timesheets.view.own`, `time-entries.create.own`, `time-off.request.own`, `messages.view`, `messages.send`, `mobile.access` |
 | Support (read) | `support_read` | Locked, not assignable by tenants | Every R permission |
-| Support (read/write) | `support_read_write` | Locked, not assignable by tenants | R + W, minus `billing.*`, `users.*`, `roles.*`, `permissions.grant`, `drivers.delete`, `documents.delete`, `driver-documents.delete` |
+| Support (read/write) | `support_read_write` | Locked, not assignable by tenants | R + W, minus `billing.*`, `users.*`, `roles.*`, `permissions.grant`, `drivers.delete`, `documents.delete`, `driver-documents.delete`, `fleets.delete` |
 
 An **owner-operator** is the Owner user linked to their own driver record. A user may hold several roles, for example Dispatcher + Driver.
 

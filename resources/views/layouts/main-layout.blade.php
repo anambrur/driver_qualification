@@ -103,6 +103,7 @@ $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(valu
             @include('partials.header')
             <!-- ===== Header End ===== -->
 
+            <x-support-session-banner />
             <x-subscription-alert />
 
             <!-- ===== Main Content Start ===== -->

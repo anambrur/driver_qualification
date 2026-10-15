@@ -150,6 +150,12 @@ Every FK on a column used in a CHECK is `RESTRICT`, because MySQL forbids refere
   - deleting drivers or documents.
 - A banner shows "Support session by {staff name}, ends {time}".
 - The Owner is notified when the session starts and when it ends.
+- As built (WP8b):
+  - A request, and an approval not yet started, is valid for **24 hours** from `requested_at` [A]. The Owner approves on `/support-access`; the second Platform Owner on `/platform/support-sessions`.
+  - **One active session per company**, because each company has one support user: `UNIQUE(company_id, active_flag)`.
+  - A started session always lasts `support_session_max_minutes`.
+  - It ends when the requester ends it, the Owner revokes it, it expires (scheduled `support-sessions:expire`, and lazily on the next request), the requester logs out of the platform or is disabled, or the company is suspended.
+  - The support user can never log in with a password.
 
 ### 4.4 Audit
 
@@ -159,6 +165,10 @@ Every request made during a session writes an `audit_logs` row with:
 - `company_id`, the action, the subject, and the changes.
 
 Inside a session, DQ file and document **views** are audited too ([08](08-database-schema.md) §10).
+
+As built (WP8b):
+- The per-request row is `action = support_session.request`, subject the session. `changes` holds `{method, route, path, status}`; request bodies and query strings are never stored.
+- Tenant-side audit rows written by the support user are attributed to the staff member (`actor_type = platform_user`).
 
 ## 5. What the platform can do without a support session
 

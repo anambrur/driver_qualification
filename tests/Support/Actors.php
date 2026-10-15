@@ -5,10 +5,12 @@ namespace Tests\Support;
 use App\Authorization\RoleTemplates;
 use App\Models\Company;
 use App\Models\Driver;
+use App\Models\PlatformSupportSession;
 use App\Models\PlatformUser;
 use App\Models\Role;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Platform\SupportSessionService;
 use App\Tenancy\TenantContext;
 use Database\Factories\CompanyFactory;
 use Database\Factories\DriverFactory;
@@ -195,6 +197,29 @@ final class Actors
         Auth::shouldUse('web');
 
         return $user;
+    }
+
+    /**
+     * A started support session on $company (04 §4), built through SupportSessionService: asked by
+     * a Platform Owner, approved by the company Owner and a second Platform Owner. The current
+     * test is logged in on both guards, as the browser of the staff member would be.
+     */
+    public static function inSupportSession(Company $company, string $scope = 'read_write', ?PlatformUser $staff = null): PlatformSupportSession
+    {
+        $sessions = app(SupportSessionService::class);
+        $staff ??= self::platformOwner();
+        $approver = self::platformOwner();
+
+        $session = $sessions->request($staff, $company, $scope, 'Ticket 1234: the owner asked for help');
+        $sessions->approveAsTenant($company->owner()->firstOrFail(), $session);
+        $sessions->approveAsPlatform($approver, $session);
+        $support = $sessions->start($staff, $session->refresh());
+
+        test()->actingAs($staff, 'platform')
+            ->actingAs($support, 'web')
+            ->withSession([SupportSessionService::SESSION_KEY => $session->id]);
+
+        return $session->refresh();
     }
 
     public static function openSubscription(Company $company): ?Subscription

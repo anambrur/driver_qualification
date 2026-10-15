@@ -61,7 +61,18 @@ describe('Upload to all: which drivers', function () {
         expect(DriverComplianceDocument::withoutTenancy()->pluck('driver_id')->all())->toBe([$mine->id]);
     });
 
-    it('uploads, inside a support session, only to that company\'s active drivers')->todo('WP8b: read_write support session');
+    it('uploads, inside a support session, only to that company\'s active drivers (PO-02, D11)', function () {
+        [$owner, $mine] = DriverCompliance::tenantWithDriver();
+        DriverCompliance::driverOf($owner, ['status' => 'pending']);
+        [$other] = DriverCompliance::tenantWithDriver();
+        $type = DriverCompliance::documentType();
+        Actors::inSupportSession(Actors::companyOf($owner), 'read_write');
+
+        $this->post(route('admin.compliance.driver.documents.upload'), uploadToAllPayload($type, ['company_id' => Actors::companyOf($other)->id]), DriverCompliance::json())
+            ->assertOk()->assertJson(['uploaded_count' => 1]);
+
+        expect(DriverComplianceDocument::withoutTenancy()->pluck('driver_id')->all())->toBe([$mine->id]);
+    });
 
     it('refuses, and stores nothing, when the company has no active driver', function () {
         [$owner] = DriverCompliance::tenantWithDriver(['status' => 'pending']);

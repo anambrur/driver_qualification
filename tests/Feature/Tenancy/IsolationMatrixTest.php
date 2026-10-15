@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\ServiceDocument;
 use App\Models\TrailerDocument;
 use App\Models\VehicleDocument;
+use App\Services\Platform\SupportSessionService;
 use App\Tenancy\TenantContext;
 use Database\Factories\AssetGroupFactory;
 use Database\Factories\DocumentTypeFactory;
@@ -38,6 +39,8 @@ const ISO_EXCLUDED = [
     'GET verify-email/{id}/{hash}' => 'signed own-user link',
     // A policy key, not an id: the action only serves the user's own company's file
     'GET admin/settings/policy-pdf/{policy}' => 'policy key; own company only (PolicyPdfTest)',
+    // Platform guard: a tenant user is unauthenticated there; requester-only (SupportSessionTest)
+    'POST platform/support-sessions/{supportSession}/end' => 'platform route; requester only',
 ];
 
 /**
@@ -66,6 +69,8 @@ function isoFixtures(): array
 
         return [$document->id, $type];
     };
+    $supportSession = fn (Company $a) => [app(SupportSessionService::class)
+        ->request(Actors::platformOwner(), $a, 'read', 'Isolation matrix fixture')->id];
     $serviceLog = fn (Company $a) => [ServiceLogFactory::new()->forVehicle(VehicleFactory::new()->forCompany($a)->create())->create()->id];
     $serviceDocument = function (Company $a) {
         $log = ServiceLogFactory::new()->forVehicle(VehicleFactory::new()->forCompany($a)->create())->create();
@@ -176,6 +181,10 @@ function isoFixtures(): array
         'DELETE roles/{role}' => $role,
         'POST users/invitations/{invitation}/resend' => $invitation,
         'DELETE users/invitations/{invitation}' => $invitation,
+        // Support access (WP8b): a session on company A
+        'POST support-access/{supportSession}/approve' => $supportSession,
+        'POST support-access/{supportSession}/reject' => $supportSession,
+        'POST support-access/{supportSession}/revoke' => $supportSession,
     ];
 }
 

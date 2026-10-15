@@ -30,7 +30,7 @@ it('returns no rows on seeded data', function () {
     [$exit, $output] = integrityOutput();
 
     expect($exit)->toBe(0)
-        ->and(substr_count($output, '| ok'))->toBe(7)
+        ->and(substr_count($output, '| ok'))->toBe(8)
         ->and(substr_count($output, 'skipped (table absent'))->toBe(2);
 });
 
@@ -81,8 +81,11 @@ it('reports the rows that break a rule', function (int $query, Closure $breakIt)
     'email both a tenant and a platform login' => [9, fn ($c) => DB::table('platform_users')->insert(
         PlatformUserFactory::new()->raw(['email' => strtoupper((string) $c->owner->email), 'password' => 'x'])
     )],
+    // Activated outside SupportSessionService::start()
+    'support user active without a session' => [10, fn ($c) => DB::table('users')
+        ->where('company_id', $c->id)->where('user_type', 'support')->update(['status' => 'active'])],
 ]);
 
 it('lists every query of 11 §6', function () {
-    expect(array_keys(IntegrityCheck::QUERIES))->toBe([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(array_keys(IntegrityCheck::QUERIES))->toBe([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 });

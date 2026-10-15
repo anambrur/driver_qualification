@@ -55,6 +55,8 @@ final class PermissionCatalogue
 
         'fleets.dashboard' => ['fleet_compliance', false, false],
         'fleets.edit' => ['fleet_compliance', true, false],
+        // Deleting a vehicle or trailer compliance document; withheld from support sessions (04 §4.3)
+        'fleets.delete' => ['fleet_compliance', true, false],
 
         'maintenance.view' => ['maintenance', false, false],
         'maintenance.create' => ['maintenance', true, false],

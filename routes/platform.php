@@ -17,6 +17,7 @@ use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlanPriceController;
 use App\Http\Controllers\Platform\StaffController;
 use App\Http\Controllers\Platform\SubscriptionController;
+use App\Http\Controllers\Platform\SupportSessionController;
 use App\Http\Controllers\SiteSettingController;
 use App\Http\Controllers\TawkToSettingController;
 use App\Http\Controllers\VehicleGroupController;
@@ -134,6 +135,18 @@ Route::prefix('platform')->name('platform.')->group(function () use ($can) {
         });
 
         Route::get('audit', [AuditLogController::class, 'index'])->name('audit.index')->middleware($can('audit.view'));
+
+        // Support sessions (Q1, 04 §4): the company Owner and a second Platform Owner approve;
+        // start and end are for the requester only (checked in SupportSessionService)
+        Route::prefix('support-sessions')->name('support-sessions.')->whereNumber('supportSession')->group(function () use ($can) {
+            Route::get('/', [SupportSessionController::class, 'index'])->name('index');
+            Route::get('/create', [SupportSessionController::class, 'create'])->name('create')->middleware($can('support.request'));
+            Route::post('/', [SupportSessionController::class, 'store'])->name('store')->middleware([$can('support.request'), 'throttle:20,1']);
+            Route::post('/{supportSession}/approve', [SupportSessionController::class, 'approve'])->name('approve')->middleware($can('support.approve'));
+            Route::post('/{supportSession}/reject', [SupportSessionController::class, 'reject'])->name('reject')->middleware($can('support.approve'));
+            Route::post('/{supportSession}/start', [SupportSessionController::class, 'start'])->name('start')->middleware($can('support.request'));
+            Route::post('/{supportSession}/end', [SupportSessionController::class, 'end'])->name('end');
+        });
 
         // Asset Transfer (PO-08, 04 §7)
         Route::prefix('asset-transfers')->name('asset-transfers.')->middleware($can('assets.transfer'))->group(function () {

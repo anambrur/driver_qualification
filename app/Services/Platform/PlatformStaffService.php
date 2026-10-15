@@ -105,6 +105,10 @@ class PlatformStaffService
             $staff->forceFill(['status' => $status])->save();
             AuditLog::record($actor, null, 'platform_user.status_changed', $staff, ['status' => $status]);
         });
+
+        if ($status !== 'active') {
+            app(SupportSessionService::class)->endActiveFor($staff, 'staff disabled');
+        }
     }
 
     /**

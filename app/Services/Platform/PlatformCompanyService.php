@@ -4,6 +4,7 @@ namespace App\Services\Platform;
 
 use App\Models\AuditLog;
 use App\Models\Company;
+use App\Models\PlatformSupportSession;
 use App\Models\PlatformUser;
 use App\Services\Company\CompanyProvisioner;
 use Illuminate\Support\Facades\DB;
@@ -89,5 +90,10 @@ class PlatformCompanyService
             $locked->forceFill(['status' => $status, 'status_changed_at' => now(), 'status_reason' => $reason])->save();
             AuditLog::record($actor, $locked->id, 'company.status_changed', $locked, ['from' => $from, 'to' => $status, 'reason' => $reason]);
         });
+
+        if ($status !== 'active') {
+            PlatformSupportSession::query()->active()->where('company_id', $company->id)->get()
+                ->each(fn (PlatformSupportSession $session) => app(SupportSessionService::class)->end($session, "company {$status}"));
+        }
     }
 }

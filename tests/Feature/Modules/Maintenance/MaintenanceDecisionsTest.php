@@ -123,7 +123,26 @@ describe('PO-06: mileage and engine-hour schedules need a vehicle', function () 
 
 describe('PO-07: a schedule for all vehicles', function () {
     // The platform files one for a chosen company inside a read_write support session (D11)
-    it('is filed by platform support for the company of the support session')->todo('WP8b: read_write support session');
+    it('is filed by platform support for the company of the support session', function () {
+        [$owner] = Maintenance::tenantWithVehicle();
+        [$other] = Maintenance::tenantWithVehicle();
+        $session = Actors::inSupportSession(Actors::companyOf($owner), 'read_write');
+
+        $this->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload(null, ['company_id' => Actors::companyOf($other)->id]))
+            ->assertOk();
+
+        $schedule = MaintenanceSchedule::withoutTenancy()->sole();
+        expect([$schedule->company_id, $schedule->vehicle_id])->toBe([$session->company_id, null]);
+    });
+
+    it('is refused in a read-only support session', function () {
+        [$owner] = Maintenance::tenantWithVehicle();
+        Actors::inSupportSession(Actors::companyOf($owner), 'read');
+
+        $this->postJson(route('admin.maintenance-schedule.store'), Maintenance::schedulePayload(null))->assertForbidden();
+
+        expect(MaintenanceSchedule::withoutTenancy()->exists())->toBeFalse();
+    });
 
     it('ignores a company_id posted by a tenant', function () {
         [$owner] = Maintenance::tenantWithVehicle();

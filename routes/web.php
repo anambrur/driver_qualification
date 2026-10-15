@@ -21,6 +21,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\SupportAccessController;
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPermissionController;
@@ -200,6 +201,15 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/checkout', [CheckoutController::class, 'checkout'])->name('checkout')->middleware(['verified', 'permission:billing.manage', 'throttle:10,1']);
     Route::get('/checkout-success', [CheckoutController::class, 'success'])->name('checkout.success')->middleware(['verified', 'permission:billing.manage']);
 
+    // Support access (Q1, 04 §4): only the company Owner approves, refuses or ends a platform
+    // support session. Reachable in a read-only company too, so support can still help.
+    Route::prefix('support-access')->name('support-access.')->whereNumber('supportSession')->group(function () {
+        Route::get('/', [SupportAccessController::class, 'index'])->name('index');
+        Route::post('/{supportSession}/approve', [SupportAccessController::class, 'approve'])->name('approve');
+        Route::post('/{supportSession}/reject', [SupportAccessController::class, 'reject'])->name('reject');
+        Route::post('/{supportSession}/revoke', [SupportAccessController::class, 'revoke'])->name('revoke');
+    });
+
     // Legacy subscription routes (redirect to new billing flow)
     Route::get('/subscription/plans', fn () => redirect()->route('pricing.plans'));
     Route::get('/subscription/my', fn () => redirect()->route('billing.index'));
@@ -308,7 +318,7 @@ Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
         Route::get('/vehicles/{id}/details', [ComplianceDashboardController::class, 'getVehicleDetails'])->name('admin.compliance.vehicle.details')->middleware('permission:fleets.dashboard');
         Route::get('/trailers/{id}/details', [ComplianceDashboardController::class, 'getTrailerDetails'])->name('admin.compliance.trailer.details')->middleware('permission:fleets.dashboard');
         Route::post('documents/upload', [DocumentUploadController::class, 'uploadDocument'])->name('admin.compliance.documents.upload')->middleware('permission:fleets.edit');
-        Route::delete('documents/delete', [DocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.documents.delete')->middleware('permission:fleets.edit');
+        Route::delete('documents/delete', [DocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.documents.delete')->middleware('permission:fleets.delete');
         Route::get('documents/{documentId}/{assetType}/download', [DocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.documents.download')->middleware('permission:fleets.dashboard');
         Route::get('documents/{documentId}/{assetType}/view', [DocumentUploadController::class, 'viewDocument'])->name('admin.compliance.documents.view')->middleware('permission:fleets.dashboard');
         Route::post('documents/send-reminder', [ComplianceReminderController::class, 'sendVehicleReminder'])->name('admin.compliance.documents.send-reminder')->middleware(['permission:fleets.edit', 'throttle:10,1,compliance-reminder']);
@@ -320,7 +330,7 @@ Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
 
         // Driver document upload routes
         Route::post('driver-documents/upload', [DriverDocumentUploadController::class, 'uploadDocument'])->name('admin.compliance.driver.documents.upload')->middleware('permission:drivers.edit');
-        Route::delete('driver-documents/delete', [DriverDocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.driver.documents.delete')->middleware('permission:drivers.edit');
+        Route::delete('driver-documents/delete', [DriverDocumentUploadController::class, 'deleteDocument'])->name('admin.compliance.driver.documents.delete')->middleware('permission:driver-documents.delete');
         Route::get('driver-documents/{documentId}/download', [DriverDocumentUploadController::class, 'downloadDocument'])->name('admin.compliance.driver.documents.download')->middleware('permission:drivers.dashboard');
         Route::get('driver-documents/{documentId}/view', [DriverDocumentUploadController::class, 'viewDocument'])->name('admin.compliance.driver.documents.view')->middleware('permission:drivers.dashboard');
         Route::post('driver-documents/send-reminder', [ComplianceReminderController::class, 'sendDriverReminder'])->name('admin.compliance.driver.documents.send-reminder')->middleware(['permission:drivers.edit', 'throttle:10,1,compliance-reminder']);

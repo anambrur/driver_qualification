@@ -6,6 +6,8 @@ use App\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 
 /**
+ * @property array<string, mixed>|null $changes
+ *
  * Append-only (08 §10): rows are written through write() and never updated or deleted by the app.
  */
 class AuditLog extends Model
@@ -41,6 +43,14 @@ class AuditLog extends Model
      */
     public static function record(User|PlatformUser $actor, ?int $companyId, string $action, ?Model $subject = null, array $changes = []): self
     {
+        // Inside a support session the company's support user acts for a named staff member (04 §4.4)
+        $sessionId = app(TenantContext::class)->supportSessionId();
+        if ($actor instanceof User && $actor->user_type === 'support' && $sessionId !== null) {
+            $staffId = PlatformSupportSession::query()->whereKey($sessionId)->value('platform_user_id');
+
+            return self::write('platform_user', $staffId, $companyId, $action, $subject, $changes);
+        }
+
         return self::write($actor instanceof PlatformUser ? 'platform_user' : 'user', $actor->getKey(), $companyId, $action, $subject, $changes);
     }
 
@@ -77,6 +87,7 @@ class AuditLog extends Model
         ?Model $subject = null,
         array $changes = [],
         bool $withRequest = true,
+        ?int $supportSessionId = null,
     ): self {
         $request = $withRequest && ! app()->runningInConsole() ? request() : null;
 
@@ -84,7 +95,7 @@ class AuditLog extends Model
             'company_id' => $companyId,
             'actor_type' => $actorType,
             'actor_id' => $actorId,
-            'support_session_id' => app(TenantContext::class)->supportSessionId(),
+            'support_session_id' => $supportSessionId ?? app(TenantContext::class)->supportSessionId(),
             'action' => $action,
             'subject_type' => $subject?->getMorphClass(),
             'subject_id' => $subject?->getKey(),

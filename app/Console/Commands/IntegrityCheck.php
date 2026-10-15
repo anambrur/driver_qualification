@@ -82,6 +82,12 @@ class IntegrityCheck extends Command
             'tables' => ['users', 'platform_users'],
             'sql' => 'SELECT u.id FROM users u JOIN platform_users p ON LOWER(p.email) = LOWER(u.email)',
         ],
+        10 => [
+            'rule' => 'A support user is active only during an active support session (04 §4.3)',
+            'tables' => ['users', 'platform_support_sessions'],
+            'sql' => "SELECT u.id FROM users u WHERE u.user_type = 'support' AND u.status = 'active'
+                AND NOT EXISTS (SELECT 1 FROM platform_support_sessions s WHERE s.company_id = u.company_id AND s.status = 'active')",
+        ],
     ];
 
     public function handle(): int
