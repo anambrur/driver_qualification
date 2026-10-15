@@ -2,9 +2,11 @@
 
 namespace App\Services\Driver;
 
+use App\Features\Feature;
 use App\Mail\DriverHiredMail;
 use App\Mail\DriverRejectedMail;
 use App\Models\Driver;
+use App\Services\Entitlements\Limits;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -18,16 +20,19 @@ class DriverHireService
         $driver = DB::transaction(function () use ($driver, $data, $actorId) {
             $driver = $this->lockPendingDriver($driver);
 
+            // Hiring moves the driver into the counted state (05 §5).
+            Limits::assertCanCreate($driver->company_id, Feature::MaxDrivers);
+
             $driver->update([
-                'status' => 'active',
+                'employment_status' => 'active',
+                'application_status' => $driver->application_status === null ? null : 'approved',
                 'hire_date' => $data['hire_date'],
                 'hazmat' => $data['hazmat'],
                 'lcv_certificate' => $data['lcv_certificate'],
                 'hired_at' => now(),
-                'action_by' => $actorId,
+                'decided_by_user_id' => $actorId,
                 'rejection_reason' => null,
                 'rejection_notes' => null,
-                'rejection_date' => null,
                 'rejected_at' => null,
             ]);
 
@@ -45,14 +50,13 @@ class DriverHireService
             $driver = $this->lockPendingDriver($driver);
 
             $driver->update([
-                'status' => 'rejected',
+                'application_status' => 'rejected',
                 'rejection_reason' => $data['rejection_reason'],
                 'rejection_notes' => $data['additional_info'] ?? null,
-                'rejection_date' => $data['record_date'],
                 'rejected_at' => now(),
-                'action_by' => $actorId,
-                'hazmat' => null,
-                'lcv_certificate' => null,
+                'decided_by_user_id' => $actorId,
+                'hazmat' => false,
+                'lcv_certificate' => false,
                 'hire_date' => null,
                 'hired_at' => null,
             ]);
@@ -108,7 +112,9 @@ class DriverHireService
     {
         $locked = Driver::query()->whereKey($driver->getKey())->lockForUpdate()->first();
 
-        if ($locked === null || $locked->status !== 'pending') {
+        // Staff-created drivers have no application; public ones must have been submitted.
+        if ($locked === null || $locked->employment_status !== 'applicant'
+            || ! in_array($locked->application_status, [null, 'pending', 'submitted', 'under_review'], true)) {
             throw new InvalidArgumentException('This driver is not in pending status.');
         }
 

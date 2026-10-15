@@ -188,7 +188,7 @@ When the new entitlements take effect:
 | Situation | Behaviour |
 |---|---|
 | Over a limit (e.g. 15 drivers on a 10-driver plan) | Nothing is deleted or deactivated. Creating, restoring and hiring are blocked until the company is under the limit. A dashboard banner shows the overage. |
-| A module is no longer included | Decided Q3: the module's data becomes **read-only and exportable**. Write permissions for that feature are denied, read and export are allowed. Driver mobile features stop. |
+| A module is no longer included | Decided Q3: the module's data becomes **read-only and exportable**. Write permissions for that feature are denied, read and export are allowed. Driver mobile features stop. Tracked in `company_retained_features` (decided WP7). A platform edit that disables a module in the plan is **off**, not read-only. |
 | A module is added | Available immediately after the webhook |
 
 ### 7.3 Subscription expiry, grace and suspension

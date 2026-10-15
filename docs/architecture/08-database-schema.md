@@ -128,6 +128,16 @@ Append-only exception history ([05](05-plans-features-entitlements.md) §6).
   - `NOT (is_unlimited AND limit_value IS NOT NULL)`;
   - `ends_at IS NULL OR ends_at > starts_at`.
 
+### `company_retained_features` (Platform-owned, about a company)
+
+Modules the company lost through a plan change, kept read-only and exportable ([05](05-plans-features-entitlements.md) §7.2). Written when a subscription's plan changes; a module the new plan includes again is removed.
+
+- **PK:** `(company_id, feature_key)`.
+- **Columns:** `retained_at`.
+- **FKs:**
+  - `company_id` → `companies`, CASCADE;
+  - `feature_key` → `features`, RESTRICT.
+
 ### `stripe_events` (Platform)
 
 Webhook inbox ([07](07-subscription-billing.md) §6.2).

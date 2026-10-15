@@ -5,8 +5,13 @@ namespace App\Providers;
 use App\Authorization\CatalogueRegistrar;
 use App\Authorization\PermissionGate;
 use App\Authorization\TenantPermissionResolver;
+use App\Models\User;
 use App\Services\Billing\AccessStateResolver;
+use App\Services\Entitlements\EntitlementResolver;
+use App\Services\Entitlements\Entitlements;
 use App\Tenancy\TenantContext;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
@@ -24,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(TenantContext::class);
         $this->app->scoped(TenantPermissionResolver::class);
         $this->app->scoped(AccessStateResolver::class);
+        $this->app->scoped(EntitlementResolver::class);
 
         $this->app->singleton(Client::class, function () {
             return new Client(new Basic(
@@ -42,6 +48,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PermissionRegistrar::class, CatalogueRegistrar::class);
 
         Gate::before(fn ($user, string $ability) => $this->app->make(PermissionGate::class)->before($user, $ability));
+
+        // Display only (05 §4): routes use feature: middleware and Gate::before.
+        Blade::if('feature', function (string $feature) {
+            $user = Auth::user();
+
+            return $user instanceof User && $user->company && Entitlements::for($user->company)->allows($feature);
+        });
 
         $replyTo = config('mail.reply_to.address');
 

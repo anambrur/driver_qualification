@@ -2,8 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Features\Feature;
 use App\Models\Plan;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -42,6 +44,19 @@ class PlanFactory extends Factory
             if ($yearly !== null) {
                 PlanPriceFactory::new()->for($plan)->create(['interval' => 'year', 'amount' => $yearly]);
             }
+        });
+    }
+
+    /**
+     * Every registry feature enabled and unlimited.
+     */
+    public function withAllFeatures(): static
+    {
+        return $this->afterCreating(function (Plan $plan) {
+            DB::table('plan_features')->insertOrIgnore(array_map(fn (Feature $feature) => [
+                'plan_id' => $plan->id, 'feature_key' => $feature->value, 'enabled' => true, 'limit_value' => null,
+                'created_at' => now(), 'updated_at' => now(),
+            ], Feature::cases()));
         });
     }
 

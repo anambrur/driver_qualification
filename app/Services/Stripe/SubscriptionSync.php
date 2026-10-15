@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\PlanPrice;
 use App\Models\Subscription;
 use App\Services\Billing\AccessStateResolver;
+use App\Services\Entitlements\RetainedFeatures;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -55,15 +56,18 @@ class SubscriptionSync
             }
 
             if ($existing) {
+                $fromPriceId = $existing->plan_price_id;
                 $existing->fill($attributes);
                 $changes = $existing->getDirty();
                 $existing->save();
+                RetainedFeatures::priceChanged($company, $fromPriceId, $existing->plan_price_id);
                 $this->changed($company, $existing, $changes);
 
                 return $existing;
             }
 
             $open = $company->subscriptions()->open()->lockForUpdate()->first();
+            $fromPriceId = RetainedFeatures::lastPriceId($company);
 
             if ($open && $attributes['ended_at'] === null) {
                 // An unpaid checkout never displaces a row the company still has (07 §4.1).
@@ -91,6 +95,7 @@ class SubscriptionSync
             $subscription = Subscription::query()->create($attributes + [
                 'actor_user_id' => $this->actorId($company, $stripeSub, $fallbackMeta),
             ]);
+            RetainedFeatures::priceChanged($company, $fromPriceId, $subscription->plan_price_id);
             $this->changed($company, $subscription, $subscription->getAttributes());
 
             return $subscription;

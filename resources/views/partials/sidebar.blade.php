@@ -51,6 +51,7 @@
                 <ul class="flex flex-col gap-2 mb-6">
 
                     <!-- Driver Management -->
+                    @feature('drivers')
                     @can('drivers.view')
                         <li>
                             <a href="#" @click.prevent="selected = (selected === 'Driver' ? '':'Driver')"
@@ -104,8 +105,10 @@
                             </div>
                         </li>
                     @endcan
+                    @endfeature
 
                     <!-- Fleet Management -->
+                    @feature('fleet')
                     @can('fleets.dashboard')
                         <li>
                             <a href="#" @click.prevent="selected = (selected === 'Fleet' ? '':'Fleet')"
@@ -162,8 +165,10 @@
                             </div>
                         </li>
                     @endcan
+                    @endfeature
 
                     <!-- Maintenance -->
+                    @feature('maintenance')
                     @can('maintenance.view')
                         <li>
                             <a href="#" @click.prevent="selected = (selected === 'Maintenance' ? '':'Maintenance')"
@@ -208,6 +213,7 @@
                             </div>
                         </li>
                     @endcan
+                    @endfeature
 
                 </ul>
             </div>

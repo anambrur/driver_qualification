@@ -185,7 +185,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Company roles (10 §4): per team, so another company's role id is a 404
-    Route::prefix('roles')->name('admin.roles.')->whereNumber('role')->group(function () {
+    Route::prefix('roles')->name('admin.roles.')->whereNumber('role')->middleware('feature:custom_roles')->group(function () {
         Route::get('/', [RoleController::class, 'index'])->name('index')->middleware('permission:roles.view');
         Route::get('/create', [RoleController::class, 'create'])->name('create')->middleware('permission:roles.create');
         Route::post('/', [RoleController::class, 'store'])->name('store')->middleware('permission:roles.create');
@@ -251,7 +251,7 @@ Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
 
     // Driver
-    Route::prefix('driver')->group(function () {
+    Route::prefix('driver')->middleware('feature:drivers')->group(function () {
         $wizardPermission = 'permission:drivers.create|drivers.edit';
 
         // Document upload routes (static paths) - MUST COME FIRST
@@ -347,7 +347,7 @@ Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
     });
 
     // Vehicles
-    Route::prefix('vehicle')->group(function () {
+    Route::prefix('vehicle')->middleware('feature:fleet')->group(function () {
         Route::get('/', [VehicleController::class, 'index'])->name('admin.vehicle.index')->middleware('permission:vehicles.view');
         Route::get('/dropdown-data', [VehicleController::class, 'getDropdownData'])->name('admin.vehicle.dropdown.data')->middleware('permission:vehicles.view');
         Route::post('/', [VehicleController::class, 'store'])->name('admin.vehicle.store')->middleware('permission:vehicles.create');
@@ -359,7 +359,7 @@ Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
     });
 
     // Trailers
-    Route::prefix('trailer')->group(function () {
+    Route::prefix('trailer')->middleware('feature:fleet')->group(function () {
         Route::get('/', [TrailerController::class, 'index'])->name('admin.trailer.index')->middleware('permission:trailers.view');
         Route::get('/dropdown-data', [TrailerController::class, 'getDropdownData'])->name('admin.trailer.dropdown.data')->middleware('permission:trailers.view');
         Route::post('/', [TrailerController::class, 'store'])->name('admin.trailer.store')->middleware('permission:trailers.create');
@@ -371,7 +371,7 @@ Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
     });
 
     // Asset Groups
-    Route::prefix('asset-group')->group(function () {
+    Route::prefix('asset-group')->middleware('feature:fleet')->group(function () {
         Route::get('/', [AssetGroupController::class, 'index'])->name('admin.asset-group.index')->middleware('permission:asset-groups.view');
         Route::post('/', [AssetGroupController::class, 'store'])->name('admin.asset-group.store')->middleware('permission:asset-groups.create');
         Route::get('asset-group/get-dropdown-data', [AssetGroupController::class, 'getDropdownData'])->name('admin.asset-group.get-dropdown-data')->middleware('permission:asset-groups.view');
@@ -408,7 +408,7 @@ Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
     });
 
     // Service Logs
-    Route::prefix('service-log')->group(function () {
+    Route::prefix('service-log')->middleware('feature:maintenance')->group(function () {
         Route::get('/', [ServiceLogController::class, 'index'])->name('admin.service-log.index')->middleware('permission:maintenance.view');
         Route::post('/', [ServiceLogController::class, 'store'])->name('admin.service-log.store')->middleware('permission:maintenance.create');
         Route::get('/dropdown-data', [ServiceLogController::class, 'getDropdownData'])->name('admin.service-log.dropdown-data')->middleware('permission:maintenance.view');
@@ -423,7 +423,7 @@ Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
     });
 
     // Maintenance Schedules
-    Route::prefix('maintenance-schedule')->group(function () {
+    Route::prefix('maintenance-schedule')->middleware('feature:maintenance')->group(function () {
         Route::get('/', [MaintenanceScheduleController::class, 'index'])->name('admin.maintenance-schedule.index')->middleware('permission:scheduled.view');
         Route::post('/', [MaintenanceScheduleController::class, 'store'])->name('admin.maintenance-schedule.store')->middleware('permission:scheduled.create');
         Route::get('/dropdown-data', [MaintenanceScheduleController::class, 'getDropdownData'])->name('admin.maintenance-schedule.dropdown-data')->middleware('permission:scheduled.view');

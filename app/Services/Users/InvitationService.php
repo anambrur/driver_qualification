@@ -4,6 +4,7 @@ namespace App\Services\Users;
 
 use App\Authorization\TeamScope;
 use App\Authorization\TenantPermissionResolver;
+use App\Features\Feature;
 use App\Mail\CompanyInvitationMail;
 use App\Models\AuditLog;
 use App\Models\Company;
@@ -12,6 +13,7 @@ use App\Models\PlatformUser;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Authorization\RoleAssignmentService;
+use App\Services\Entitlements\Limits;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -150,6 +152,8 @@ class InvitationService
             if ($company->status !== 'active') {
                 throw new AuthorizationException('This company account is not active.');
             }
+
+            Limits::assertCanCreate($company, Feature::MaxUsers);
 
             if (User::query()->where('email', $invitation->email)->exists()
                 || PlatformUser::query()->where('email', $invitation->email)->exists()) {

@@ -2,10 +2,13 @@
 
 namespace App\Console\Commands;
 
+use App\Features\Feature;
+use App\Features\FeatureState;
 use App\Mail\DriverComplianceDigestMail;
 use App\Models\Company;
 use App\Models\DocumentType;
 use App\Models\Driver;
+use App\Services\Entitlements\Entitlements;
 use App\Tenancy\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -36,11 +39,16 @@ class SendComplianceDigestReminders extends Command
         $sent = 0;
         $disabledTypeIds = DocumentType::disabledIdsByCompany();
 
-        // Drivers are tenant rows: each company runs in its own context (03 §6)
-        $companyIds = Company::query()->where('status', 'active')->orderBy('id')->pluck('id');
+        // Drivers are tenant rows: each company runs in its own context (03 §6). Only companies
+        // with the reminders feature on (full or grace access, 07 §8) get a digest.
+        $companies = Company::query()->where('status', 'active')->lazyById(200);
 
-        foreach ($companyIds as $companyId) {
-            app(TenantContext::class)->run($companyId, function () use ($documentTypes, $disabledTypeIds, &$sent) {
+        foreach ($companies as $company) {
+            if (Entitlements::for($company)->state(Feature::ComplianceReminders) !== FeatureState::On) {
+                continue;
+            }
+
+            app(TenantContext::class)->run($company->id, function () use ($documentTypes, $disabledTypeIds, &$sent) {
                 Driver::query()
                     ->with(['documents', 'company'])
                     ->where('employment_status', 'active')
