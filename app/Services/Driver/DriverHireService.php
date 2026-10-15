@@ -5,7 +5,9 @@ namespace App\Services\Driver;
 use App\Features\Feature;
 use App\Mail\DriverHiredMail;
 use App\Mail\DriverRejectedMail;
+use App\Models\AuditLog;
 use App\Models\Driver;
+use App\Models\User;
 use App\Services\Entitlements\Limits;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,6 +37,7 @@ class DriverHireService
                 'rejection_notes' => null,
                 'rejected_at' => null,
             ]);
+            AuditLog::record(User::query()->findOrFail($actorId), $driver->company_id, 'driver.hired', $driver, ['hire_date' => $data['hire_date']]);
 
             return $driver->fresh(['company']);
         });
@@ -60,6 +63,7 @@ class DriverHireService
                 'hire_date' => null,
                 'hired_at' => null,
             ]);
+            AuditLog::record(User::query()->findOrFail($actorId), $driver->company_id, 'driver.rejected', $driver, ['rejection_reason' => $data['rejection_reason']]);
 
             return $driver->fresh(['company']);
         });

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\Company\CompanyProvisioner;
 use App\Services\Platform\EmailIdentityService;
@@ -54,10 +55,15 @@ class RegisteredUserController extends Controller
         ]);
         try {
             // Never also a platform login (D3a)
-            $company = $emails->claim($request->email, fn (string $email) => $provisioner->provision(
-                ['company_name' => $request->company_name, 'email' => $email],
-                ['name' => $request->name, 'email' => $email, 'password' => Hash::make($request->password)],
-            ));
+            $company = $emails->claim($request->email, function (string $email) use ($provisioner, $request) {
+                $company = $provisioner->provision(
+                    ['company_name' => $request->company_name, 'email' => $email],
+                    ['name' => $request->name, 'email' => $email, 'password' => Hash::make($request->password)],
+                );
+                AuditLog::record($company->owner, $company->id, 'company.created', $company, ['source' => 'signup']);
+
+                return $company;
+            });
             $user = $company->owner;
             event(new Registered($user));
             Auth::login($user);

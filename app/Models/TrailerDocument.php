@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditsDeletes;
 use App\Tenancy\BelongsToCompany;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TrailerDocument extends Model
 {
-    use BelongsToCompany, SoftDeletes;
+    use AuditsDeletes, BelongsToCompany, SoftDeletes;
+
+    protected const AUDIT_NAME = 'trailer_document';
 
     protected $fillable = [
         'company_id',

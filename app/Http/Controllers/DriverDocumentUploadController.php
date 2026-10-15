@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\LimitReached;
+use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\DocumentType;
 use App\Models\Driver;
@@ -190,8 +191,10 @@ class DriverDocumentUploadController extends Controller
     public function downloadDocument(Request $request, $documentId, StoredFileService $files)
     {
         $document = $this->findAuthorizedDocument($documentId, 'view');
+        $response = $files->response($document->file, $document->documentType->name.'_'.basename((string) $document->file?->path));
+        AuditLog::record($request->user(), $document->company_id, 'document.downloaded', $document, ['document_type' => $document->documentType->name]);
 
-        return $files->response($document->file, $document->documentType->name.'_'.basename((string) $document->file?->path));
+        return $response;
     }
 
     /**

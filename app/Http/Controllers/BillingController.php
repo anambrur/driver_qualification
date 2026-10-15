@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Services\Billing\AccessState;
 use App\Services\Stripe\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
@@ -47,6 +48,7 @@ class BillingController extends Controller
 
         try {
             $subscriptions->cancelAtPeriodEnd($subscription);
+            AuditLog::record($request->user(), $subscription->company_id, 'subscription.cancel_requested', $subscription);
             toastr()->success('Your subscription will end at the end of the current billing period.');
         } catch (\Throwable $e) {
             Log::warning('Cancel failed', ['error' => $e->getMessage()]);
@@ -66,6 +68,7 @@ class BillingController extends Controller
 
         try {
             $subscriptions->resume($subscription);
+            AuditLog::record($request->user(), $subscription->company_id, 'subscription.resumed', $subscription);
             toastr()->success('Your subscription has been resumed.');
         } catch (\Throwable $e) {
             Log::warning('Resume failed', ['error' => $e->getMessage()]);

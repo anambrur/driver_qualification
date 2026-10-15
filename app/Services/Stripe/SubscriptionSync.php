@@ -90,6 +90,7 @@ class SubscriptionSync
 
                 // Trial conversion or a new subscription after a lapse: the old row becomes history.
                 $open->update(['ended_at' => now()] + ($open->stripe_subscription_id ? [] : ['status' => 'canceled']));
+                AuditLog::recordStripe($company->id, 'subscription.replaced', $open, ['ended_at' => $open->ended_at?->toIso8601String(), 'replaced_by' => $stripeSub->id]);
             }
 
             $subscription = Subscription::query()->create($attributes + [

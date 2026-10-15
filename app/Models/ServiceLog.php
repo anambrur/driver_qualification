@@ -4,6 +4,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditsDeletes;
 use App\Tenancy\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ServiceLog extends Model
 {
-    use BelongsToCompany, HasFactory, SoftDeletes;
+    use AuditsDeletes, BelongsToCompany, HasFactory, SoftDeletes;
+
+    protected const AUDIT_NAME = 'service_log';
 
     protected $table = 'service_logs';
 
