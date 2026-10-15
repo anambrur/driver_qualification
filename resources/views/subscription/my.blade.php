@@ -55,7 +55,7 @@
                             </div>
                         </div>
                         <div class="border-t border-gray-200 bg-gray-50 px-4 py-3 flex gap-2">
-                            <a href="{{ route('admin.plans.index') }}"
+                            <a href="{{ route('pricing.plans') }}"
                                 class="px-3 py-1 text-sm bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded transition-colors">
                                 Change Plan
                             </a>

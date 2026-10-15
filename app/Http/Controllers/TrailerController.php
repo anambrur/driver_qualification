@@ -4,14 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\LimitReached;
 use App\Features\Feature;
-use App\Models\AssetGroup;
+use App\Models\AssetTransfer;
 use App\Models\EquipmentType;
 use App\Models\Trailer;
 use App\Models\VehicleGroup;
 use App\Services\Entitlements\Limits;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -144,10 +143,8 @@ class TrailerController extends Controller
 
     public function store(Request $request)
     {
-        // Company users are locked to their company; super-admin may choose
-        if (! Auth::user()->hasRole('super-admin')) {
-            $request->merge(['company_id' => $this->getAllUserCompanyId()]);
-        }
+        // Always the user's own company
+        $request->merge(['company_id' => $this->getAllUserCompanyId()]);
 
         $validator = Validator::make($request->all(), [
             'company_id' => 'required|exists:companies,id',
@@ -222,10 +219,8 @@ class TrailerController extends Controller
         // Check if user has access to this trailer
         Gate::authorize('update', $trailer);
 
-        // Ensure user can't change company if not super-admin
-        if (! Auth::user()->hasRole('super-admin')) {
-            $request->merge(['company_id' => $trailer->company_id]);
-        }
+        // A trailer never changes company here; the platform's Asset Transfer moves it (PO-08)
+        $request->merge(['company_id' => $trailer->company_id]);
 
         $validator = Validator::make($request->all(), [
             'company_id' => [
@@ -257,16 +252,7 @@ class TrailerController extends Controller
         DB::beginTransaction();
 
         try {
-            $previousCompanyId = (int) $trailer->company_id;
-
             $trailer->update($validator->validated());
-
-            // A super-admin moved the trailer (PO-08): it leaves the old company's asset groups,
-            // which keep their vehicle and driver. Trailer documents point at the trailer and
-            // follow it already.
-            if ((int) $trailer->company_id !== $previousCompanyId) {
-                AssetGroup::withTrashed()->where('trailer_id', $trailer->id)->update(['trailer_id' => null]);
-            }
 
             DB::commit();
 
@@ -320,6 +306,14 @@ class TrailerController extends Controller
 
         // Check if user has access to this trailer
         Gate::authorize('restore', $trailer);
+
+        // Transferred to another company: its history here stays read-only (04 §7)
+        if (AssetTransfer::retired('trailer', $trailer->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This trailer was transferred to another company and can\'t be restored.',
+            ], 422);
+        }
 
         DB::beginTransaction();
 

@@ -60,33 +60,14 @@
                             </h3>
                         </div>
                         <div class="p-5 sm:p-6">
-                            @if (Auth::user()->hasRole('super-admin'))
-                                <div>
-                                    <label for="company_id"
-                                        class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                        Company <span class="text-error-500">*</span>
-                                    </label>
-                                    <select id="company_id" name="company_id" required
-                                        class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
-                                        <option value="">Select Company</option>
-                                        @foreach ($companies as $company)
-                                            <option value="{{ $company->id }}"
-                                                {{ old('company_id') == $company->id ? 'selected' : '' }}>
-                                                {{ $company->company_name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            @else
-                                <input type="hidden" name="company_id"
-                                    value="{{ old('company_id', $companies->first()->id ?? '') }}">
-                                <div
-                                    class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">Company</p>
-                                    <p class="font-medium text-gray-800 dark:text-white/90">
-                                        {{ $companies->first()->company_name ?? 'Your company' }}</p>
-                                </div>
-                            @endif
+                            <input type="hidden" name="company_id"
+                                value="{{ old('company_id', $companies->first()->id ?? '') }}">
+                            <div
+                                class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Company</p>
+                                <p class="font-medium text-gray-800 dark:text-white/90">
+                                    {{ $companies->first()->company_name ?? 'Your company' }}</p>
+                            </div>
                         </div>
                     </div>
 

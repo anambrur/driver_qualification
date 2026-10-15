@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\Company;
 use App\Models\User;
+use App\Services\Platform\EmailIdentityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,26 +29,22 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request, EmailIdentityService $emails): RedirectResponse
     {
         $user = $request->user();
         $user->fill($request->validated());
 
-        $emailChanged = $user->isDirty('email');
-        if ($emailChanged) {
+        if ($user->isDirty('email')) {
             $user->email_verified_at = null;
+            // Never also a platform login (D3a). The company's contact email no longer follows
+            // the login email (D3b).
+            $emails->claim($user->email, fn () => $user->save(), $user);
+        } else {
+            $user->save();
         }
 
-        DB::transaction(function () use ($user, $emailChanged) {
-            $user->save();
-
-            // The company's contact email is the owner's login email (PO-22)
-            if ($emailChanged) {
-                Company::where('user_id', $user->id)->update(['email' => $user->email]);
-            }
-        });
-
         toastr()->success('Profile updated successfully!');
+
         return Redirect::route('profile.edit');
     }
 
@@ -80,12 +77,11 @@ class ProfileController extends Controller
     }
 
     /**
-     * Only company owners see and may use "Close account"; sub-users and super-admins don't.
+     * Only company owners see and may use "Close account"; sub-users don't.
      */
     private function canCloseAccount(User $user): bool
     {
         return $user->hasRole('company')
-            && ! $user->hasRole('super-admin')
             && Company::where('user_id', $user->id)->exists();
     }
 }

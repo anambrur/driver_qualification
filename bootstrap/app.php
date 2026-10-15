@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureFeature;
+use App\Http\Middleware\EnsurePlatformSession;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SeoRobotsHeader;
@@ -8,6 +9,7 @@ use App\Http\Middleware\Subscribed;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -42,7 +44,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
             'subscribed' => Subscribed::class,
             'feature' => EnsureFeature::class,
+            'platform' => EnsurePlatformSession::class,
         ]);
+        // Each guard has its own login page and home (04 §2)
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('platform', 'platform/*')
+            ? route('platform.login')
+            : route('login'));
+        $middleware->redirectUsersTo(fn (Request $request) => $request->is('platform', 'platform/*')
+            ? route('platform.dashboard')
+            : route('dashboard'));
     })
 
     ->withExceptions(function (Exceptions $exceptions): void {

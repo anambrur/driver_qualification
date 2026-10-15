@@ -10,6 +10,6 @@ class EquipmentType extends Model
 
     public function trailers()
     {
-        return $this->hasMany(Trailer::class, 'equipment_types_id');
+        return $this->hasMany(Trailer::class);
     }
 }

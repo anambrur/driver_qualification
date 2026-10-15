@@ -201,7 +201,7 @@ it('a tenant cannot turn an admin grant into lifetime access via billing cancel 
 it('keeps tenant users out of the platform billing actions', function () {
     $this->actingAs($this->company->owner)
         ->post(route('platform.companies.subscription.grant', $this->company), ['plan_price_id' => $this->price->id, 'ends_at' => now()->addDays(30)->toDateString()])
-        ->assertRedirect(route('login'));
+        ->assertRedirect(route('platform.login'));
 
     expect($this->company->subscriptions()->exists())->toBeFalse();
 });

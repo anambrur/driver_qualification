@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Company;
 use App\Models\Driver;
 use App\Models\DriverComplianceDocument;
 use App\Models\ServiceLog;
@@ -18,7 +17,6 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $isSuperAdmin = $user->hasRole('super-admin');
 
         // Company context (for company dashboards & share links)
         $company = $user->loadMissing('company')->company;
@@ -26,10 +24,8 @@ class DashboardController extends Controller
         // Drivers (tenant-scoped)
         $driversQuery = Driver::query();
 
-        // Drafts are hidden from tenants' driver list, so keep the numbers consistent
-        if (! $isSuperAdmin) {
-            $driversQuery->where('status', '!=', 'draft');
-        }
+        // Drafts are hidden from the driver list, so keep the numbers consistent
+        $driversQuery->where('status', '!=', 'draft');
 
         // One query per table: conditional aggregates instead of a COUNT per stat
         $driverCounts = $driversQuery->toBase()
@@ -79,26 +75,7 @@ class DashboardController extends Controller
         $totalServices = (int) $serviceCounts->total;
         $recentServices30 = (int) $serviceCounts->recent;
 
-        // Company-wide metrics (admin only)
-        $companyStats = null;
-        if ($isSuperAdmin) {
-            $companyCounts = Company::query()->toBase()
-                ->selectRaw('COUNT(*) as total')
-                ->selectRaw("SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active")
-                ->first();
-
-            $totalCompanies = (int) $companyCounts->total;
-            $activeCompanies = (int) $companyCounts->active;
-
-            $companyStats = [
-                'total_companies' => $totalCompanies,
-                'active_companies' => $activeCompanies,
-                'inactive_companies' => $totalCompanies - $activeCompanies,
-            ];
-        }
-
         return view('dashboard', [
-            'isSuperAdmin' => $isSuperAdmin,
             'company' => $company,
             'driverStats' => [
                 'total' => $totalDrivers,
@@ -124,7 +101,6 @@ class DashboardController extends Controller
                 'total_services' => $totalServices,
                 'recent_30_days' => $recentServices30,
             ],
-            'companyStats' => $companyStats,
         ]);
     }
 

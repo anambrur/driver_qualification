@@ -12,6 +12,7 @@ use Database\Factories\LicenseFactory;
 use Database\Factories\PlatformUserFactory;
 use Database\Factories\StoredFileFactory;
 use Database\Factories\SubscriptionFactory;
+use Database\Factories\VehicleFactory;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
@@ -244,5 +245,23 @@ describe('drivers, fleet, billing, files and audit', function () {
             'tenant_approved_by_user_id' => $company->owner_user_id,
             'platform_approved_by_platform_user_id' => PlatformUserFactory::new()->create()->id,
         ]);
+    });
+
+    it('keeps asset transfers between two companies, with ids of the declared kind and company', function () {
+        $source = CompanyFactory::new()->create();
+        $target = CompanyFactory::new()->create();
+        $vehicle = VehicleFactory::new()->forCompany($source)->create();
+        $transfer = fn (array $values) => DB::table('asset_transfers')->insert($values + [
+            'asset_type' => 'vehicle', 'source_company_id' => $source->id, 'target_company_id' => $target->id,
+            'source_vehicle_id' => $vehicle->id, 'reason' => 'sold', 'status' => 'completed',
+            'performed_by_platform_user_id' => PlatformUserFactory::new()->create()->id, 'performed_at' => now(),
+        ]);
+
+        expect(fn () => $transfer(['target_company_id' => $source->id]))->toThrow(QueryException::class)
+            ->and(fn () => $transfer(['asset_type' => 'trailer']))->toThrow(QueryException::class)
+            // The source vehicle must belong to the source company (composite FK)
+            ->and(fn () => $transfer(['source_company_id' => $target->id, 'target_company_id' => $source->id]))->toThrow(QueryException::class);
+
+        $transfer([]);
     });
 });

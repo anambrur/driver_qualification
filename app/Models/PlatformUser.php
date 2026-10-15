@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Authorization\TenantPermissionResolver;
+use App\Notifications\PlatformResetPasswordNotification;
 use BackedEnum;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -45,6 +47,16 @@ class PlatformUser extends Authenticatable
         return app(TenantPermissionResolver::class)->allows($this, $permission, $guardName);
     }
 
+    /**
+     * The reset link points at the platform area, not the tenant one.
+     *
+     * @param  string  $token
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new PlatformResetPasswordNotification($token));
+    }
+
     protected function casts(): array
     {
         return [
@@ -54,5 +66,15 @@ class PlatformUser extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
             'last_login_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Stored lowercase, like users.email, so the D3a check compares like with like.
+     *
+     * @return Attribute<string, string>
+     */
+    protected function email(): Attribute
+    {
+        return Attribute::set(fn (string $value) => mb_strtolower(trim($value)));
     }
 }

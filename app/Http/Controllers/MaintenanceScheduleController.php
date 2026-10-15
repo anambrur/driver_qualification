@@ -10,7 +10,6 @@ use App\Models\ServiceLog;
 use App\Models\Vehicle;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -138,21 +137,8 @@ class MaintenanceScheduleController extends Controller
 
     public function store(Request $request)
     {
-        $companyId = $this->getAllUserCompanyId();
-
-        if (! Auth::user()->hasRole('super-admin')) {
-            $request->merge(['company_id' => $companyId]);
-        }
-
-        $isSuperAdmin = Auth::user()->hasRole('super-admin');
-
         $validator = Validator::make($request->all(), [
             'vehicle_id' => $this->vehicleRules($request),
-            // A super-admin's schedule for all vehicles names its company (PO-07); with a
-            // vehicle, the company comes from the vehicle
-            'company_id' => $isSuperAdmin
-                ? [Rule::requiredIf(! $request->filled('vehicle_id')), 'nullable', 'integer', Rule::exists('companies', 'id')]
-                : ['nullable'],
             'maintenance_category_id' => 'required|exists:maintenance_categories,id',
             'title' => 'nullable|string|max:255',
             'schedule_type' => 'required|in:date,mileage,engine_hours',
@@ -175,13 +161,9 @@ class MaintenanceScheduleController extends Controller
             ], 422);
         }
 
-        // A super-admin's schedule belongs to the vehicle's company, or to the company they
-        // picked for an all-vehicles schedule (PO-07); tenants always get their own
-        $companyId = $this->getOwningCompanyId(
-            $request->vehicle_id
-                ? Vehicle::withTrashed()->whereKey($request->vehicle_id)->value('company_id')
-                : ($isSuperAdmin ? $request->integer('company_id') : null)
-        );
+        // Always the tenant's own company; the platform files an all-vehicles schedule for a
+        // company inside a read_write support session (PO-07, D11)
+        $companyId = $this->tenantCompanyId();
 
         DB::beginTransaction();
 
@@ -256,18 +238,8 @@ class MaintenanceScheduleController extends Controller
 
         Gate::authorize('update', $schedule);
 
-        if (! Auth::user()->hasRole('super-admin')) {
-            $request->merge(['company_id' => $schedule->company_id]);
-        }
-
-        $isSuperAdmin = Auth::user()->hasRole('super-admin');
-
         $validator = Validator::make($request->all(), [
             'vehicle_id' => $this->vehicleRules($request),
-            // A super-admin may move an all-vehicles schedule to another company (PO-07)
-            'company_id' => $isSuperAdmin
-                ? ['nullable', 'integer', Rule::exists('companies', 'id')]
-                : ['nullable'],
             'maintenance_category_id' => 'required|exists:maintenance_categories,id',
             'title' => 'nullable|string|max:255',
             'schedule_type' => 'required|in:date,mileage,engine_hours',
@@ -289,13 +261,9 @@ class MaintenanceScheduleController extends Controller
             ], 422);
         }
 
-        // Only the validated fields; next_due_* is never taken from the request.
-        // A schedule follows its vehicle's company. When it applies to all vehicles it keeps its
-        // company, unless a super-admin picked another one (PO-07).
+        // Only the validated fields; next_due_* is never taken from the request. A schedule
+        // never changes company.
         $data = $validator->validated();
-        $data['company_id'] = $request->vehicle_id
-            ? $this->getOwningCompanyId(Vehicle::whereKey($request->vehicle_id)->value('company_id'))
-            : ($isSuperAdmin && $request->filled('company_id') ? $request->integer('company_id') : $schedule->company_id);
         $data['interval_days'] = $request->schedule_type === 'date' ? $request->interval_days : null;
         $data['interval_miles'] = $request->schedule_type === 'mileage' ? $request->interval_miles : null;
         $data['interval_hours'] = $request->schedule_type === 'engine_hours' ? $request->interval_hours : null;
@@ -480,7 +448,6 @@ class MaintenanceScheduleController extends Controller
     {
         return [
             'vehicle_id.required' => 'Choose a vehicle: mileage and engine-hour schedules are tracked per vehicle.',
-            'company_id.required' => 'Choose the company this schedule belongs to.',
         ];
     }
 
@@ -489,12 +456,6 @@ class MaintenanceScheduleController extends Controller
      */
     private function vehicleRule(): Exists
     {
-        $rule = Rule::exists('vehicles', 'id')->whereNull('deleted_at');
-
-        if (! Auth::user()->hasRole('super-admin')) {
-            $rule->where('company_id', $this->getUserCompanyId() ?? -1);
-        }
-
-        return $rule;
+        return Rule::exists('vehicles', 'id')->whereNull('deleted_at')->where('company_id', $this->getUserCompanyId() ?? -1);
     }
 }

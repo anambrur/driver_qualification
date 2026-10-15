@@ -8,14 +8,14 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
             <div>
                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                    {{ $isSuperAdmin ? 'Admin Dashboard' : 'Company Dashboard' }}
+                    Company Dashboard
                 </h1>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     Monitor your fleet operations and key compliance metrics.
                 </p>
             </div>
 
-            @if(!$isSuperAdmin && $company)
+            @if($company)
                 <div class="flex items-center gap-3">
                     <div class="hidden sm:flex flex-col items-end">
                         <span class="text-xs uppercase tracking-wide text-gray-400">Company</span>
@@ -58,7 +58,7 @@
                         </span>
                     </div>
 
-                    @if(!$isSuperAdmin && $company && $company->slug)
+                    @if($company && $company->slug)
                         @php
                             $applicationUrl = route('application.form', $company->slug);
                         @endphp
@@ -370,46 +370,6 @@
                 </div>
             </section>
 
-            {{-- Companies Overview (Admin only) --}}
-            @if($isSuperAdmin && $companyStats)
-                <section class="col-span-1 md:col-span-2 xl:col-span-1">
-                    <div class="h-full rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 flex flex-col gap-4">
-                        <div class="flex items-center justify-between">
-                            <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
-                                Companies Overview
-                            </h2>
-                            <a href="{{ route('admin.settings.company') }}"
-                               class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
-                                Manage companies →
-                            </a>
-                        </div>
-
-                        <dl class="mt-2 grid grid-cols-3 gap-3 text-center">
-                            <div class="rounded-xl bg-gray-50 dark:bg-gray-800 px-2 py-3">
-                                <dt class="text-[11px] text-gray-500 dark:text-gray-400">Total</dt>
-                                <dd class="text-lg font-semibold text-gray-900 dark:text-white mt-1">
-                                    {{ $companyStats['total_companies'] }}
-                                </dd>
-                            </div>
-                            <div class="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 px-2 py-3">
-                                <dt class="text-[11px] text-emerald-700 dark:text-emerald-300">Active</dt>
-                                <dd class="text-lg font-semibold text-gray-900 dark:text-white mt-1">
-                                    {{ $companyStats['active_companies'] }}
-                                </dd>
-                            </div>
-                            <div class="rounded-xl bg-rose-50 dark:bg-rose-900/20 px-2 py-3">
-                                <dt class="text-[11px] text-rose-700 dark:text-rose-300">Inactive</dt>
-                                <dd class="text-lg font-semibold text-gray-900 dark:text-white mt-1">
-                                    {{ $companyStats['inactive_companies'] }}
-                                </dd>
-                            </div>
-                        </dl>
-                        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                            You are viewing an admin-wide summary across all companies.
-                        </p>
-                    </div>
-                </section>
-            @endif
         </div>
     </div>
 @endsection

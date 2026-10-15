@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Company\CompanyProvisioner;
+use App\Services\Platform\EmailIdentityService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,7 +32,7 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request, CompanyProvisioner $provisioner): RedirectResponse
+    public function store(Request $request, CompanyProvisioner $provisioner, EmailIdentityService $emails): RedirectResponse
     {
         $request->merge([
             'email' => Str::lower(trim((string) $request->input('email'))),
@@ -52,15 +53,18 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
         try {
-            $company = $provisioner->provision(
-                ['company_name' => $request->company_name, 'email' => $request->email],
-                ['name' => $request->name, 'email' => $request->email, 'password' => Hash::make($request->password)],
-            );
+            // Never also a platform login (D3a)
+            $company = $emails->claim($request->email, fn (string $email) => $provisioner->provision(
+                ['company_name' => $request->company_name, 'email' => $email],
+                ['name' => $request->name, 'email' => $email, 'password' => Hash::make($request->password)],
+            ));
             $user = $company->owner;
             event(new Registered($user));
             Auth::login($user);
 
             return redirect(route('dashboard', absolute: false));
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Registration Failed: '.$e->getMessage());
 

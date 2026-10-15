@@ -22,7 +22,8 @@ class ResolveTenant
     {
         $user = Auth::guard('web')->user();
 
-        if (! $user) {
+        // The platform area never runs as a tenant, even when the browser also has a tenant login.
+        if (! $user || $request->is('platform', 'platform/*')) {
             return $next($request);
         }
 

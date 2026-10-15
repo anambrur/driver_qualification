@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuditsLookups;
 use App\Models\EquipmentType;
 use App\Tenancy\CompanyScope;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Yajra\DataTables\Facades\DataTables;
 
 class EquipmentTypeController extends Controller
 {
+    use AuditsLookups;
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
@@ -46,7 +49,7 @@ class EquipmentTypeController extends Controller
                 ->make(true);
         }
 
-        return view('admin.equipment-type.index');
+        return view('platform.lookups.equipment-types.index');
     }
 
     public function store(Request $request)
@@ -69,6 +72,7 @@ class EquipmentTypeController extends Controller
                 'name' => $request->name,
             ]);
 
+            $this->auditLookup('created', $equipmentType);
             DB::commit();
 
             return response()->json([
@@ -119,6 +123,7 @@ class EquipmentTypeController extends Controller
                 'name' => $request->name,
             ]);
 
+            $this->auditLookup('updated', $equipmentType);
             DB::commit();
 
             return response()->json([
@@ -152,6 +157,7 @@ class EquipmentTypeController extends Controller
 
         try {
             $equipmentType->delete();
+            $this->auditLookup('deleted', $equipmentType);
             DB::commit();
 
             return response()->json([

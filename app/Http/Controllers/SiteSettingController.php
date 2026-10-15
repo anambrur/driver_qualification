@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
+use App\Models\Plan;
+use App\Models\PlatformUser;
 use App\Models\SiteSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -13,10 +16,12 @@ class SiteSettingController extends Controller
      */
     public function index()
     {
-        // Using the model's static method to ensure a record always exists 
+        // Using the model's static method to ensure a record always exists
         // and is cached properly.
         $setting = SiteSetting::getSettings();
-        return view('admin.settings.site.index', compact('setting'));
+        $plans = Plan::query()->ordered()->get(['id', 'name']);
+
+        return view('platform.settings.site.index', compact('setting', 'plans'));
     }
 
     /**
@@ -41,6 +46,11 @@ class SiteSettingController extends Controller
             'meta_description' => 'nullable|string|max:1000',
             'meta_keywords' => 'nullable|string|max:500',
             'google_analytics_id' => ['nullable', 'string', 'max:50', 'regex:/^G-[A-Z0-9]+$/D'],
+            // Billing and support (07 §5, 04 §4.2)
+            'trial_plan_id' => 'nullable|integer|exists:plans,id',
+            'trial_days' => 'required|integer|min:1|max:90',
+            'grace_days' => 'required|integer|min:0|max:60',
+            'support_session_max_minutes' => 'required|integer|min:15|max:1440',
         ]);
 
         // Handle File Uploads
@@ -60,8 +70,16 @@ class SiteSettingController extends Controller
             $validated['favicon'] = $request->file('favicon')->store('settings', 'public');
         }
 
-        $setting->update($validated);
-        
+        $setting->fill($validated);
+        $changes = $setting->getDirty();
+        $setting->save();
+
+        if ($changes !== []) {
+            /** @var PlatformUser $actor */
+            $actor = $request->user('platform');
+            AuditLog::record($actor, null, 'site_settings.updated', $setting, $changes);
+        }
+
         toastr()->success('Site settings updated successfully.');
 
         return redirect()->back();

@@ -40,10 +40,8 @@ class DriverController extends Controller
                 $query->latest('expires');
             }])->select('drivers.*');
 
-            // Exclude draft drivers for non-super-admin users
-            if (! Auth::user()->hasRole('super-admin')) {
-                $drivers->where('status', '!=', 'draft');
-            }
+            // Draft drivers are never listed
+            $drivers->where('status', '!=', 'draft');
 
             // Apply status filter if provided
             if ($request->has('status') && $request->status && $request->status !== 'all') {
@@ -215,10 +213,8 @@ class DriverController extends Controller
 
         $baseQuery = Driver::query();
 
-        // Exclude draft drivers for non-super-admin users
-        if (! Auth::user()->hasRole('super-admin')) {
-            $baseQuery->where('status', '!=', 'draft');
-        }
+        // Draft drivers are never listed
+        $baseQuery->where('status', '!=', 'draft');
 
         // Calculate status counts in one grouped query
         $byStatus = $baseQuery->toBase()
@@ -242,7 +238,7 @@ class DriverController extends Controller
     {
         $companies = $this->getCompaniesForUser();
 
-        if ($companies->isEmpty() && ! Auth::user()->hasRole('super-admin')) {
+        if ($companies->isEmpty()) {
             toastr()->error('You do not have a company assigned.');
 
             return redirect()->route('admin.driver.index');

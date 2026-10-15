@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\SubscriptionAdminController;
 use App\Http\Controllers\ApplicationFormController;
 use App\Http\Controllers\AssetGroupController;
 use App\Http\Controllers\BillingController;
@@ -15,25 +14,17 @@ use App\Http\Controllers\DocumentUploadController;
 use App\Http\Controllers\DriverComplianceDashboardController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\DriverDocumentUploadController;
-use App\Http\Controllers\EquipmentTypeController;
-use App\Http\Controllers\FuelTypeController;
-use App\Http\Controllers\MaintenanceCategoryController;
 use App\Http\Controllers\MaintenanceScheduleController;
 use App\Http\Controllers\PlanController;
-use App\Http\Controllers\Platform\CompanySubscriptionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\ServiceLogController;
-use App\Http\Controllers\SiteSettingController;
 use App\Http\Controllers\StripeWebhookController;
-use App\Http\Controllers\TawkToSettingController;
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPermissionController;
 use App\Http\Controllers\VehicleController;
-use App\Http\Controllers\VehicleGroupController;
-use App\Http\Controllers\VehicleTypeController;
 use App\Http\Middleware\ResolvePublicCompany;
 use App\Models\Plan;
 use Illuminate\Support\Facades\Route;
@@ -215,33 +206,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/subscription/expired', fn () => redirect()->route('pricing.plans'));
 });
 
-// ─── Platform billing actions on a company (07 §7); the /platform screens arrive in WP8 ───
-Route::middleware(['auth:platform', 'permission:platform.subscriptions.manage,platform'])
-    ->prefix('platform/companies/{company}/subscription')->name('platform.companies.subscription.')
-    ->whereNumber('company')->group(function () {
-        Route::post('/grant', [CompanySubscriptionController::class, 'grant'])->name('grant');
-        Route::post('/expire', [CompanySubscriptionController::class, 'expire'])->name('expire');
-        Route::post('/suspend', [CompanySubscriptionController::class, 'suspend'])->name('suspend');
-        Route::post('/reactivate', [CompanySubscriptionController::class, 'reactivate'])->name('reactivate');
-        Route::post('/move-price', [CompanySubscriptionController::class, 'movePrice'])->name('move-price');
-    });
-
-// ─── Admin routes ─────────────────────────────────────────────────────────────
-Route::middleware(['auth', 'role:super-admin'])->prefix('admin')->name('admin.')->group(function () {
-
-    Route::get('/subscriptions', [SubscriptionAdminController::class, 'dashboard'])->name('subscriptions.dashboard');
-    Route::get('/subscriptions/all', [SubscriptionAdminController::class, 'index'])->name('subscriptions.index');
-    Route::get('/subscriptions/payments', [SubscriptionAdminController::class, 'payments'])->name('subscriptions.payments');
-
-    Route::get('/plans', [SubscriptionAdminController::class, 'plansIndex'])->name('plans.index');
-    Route::get('/plans/create', [SubscriptionAdminController::class, 'createPlan'])->name('plans.create');
-    Route::post('/plans', [SubscriptionAdminController::class, 'storePlan'])->name('plans.store');
-    Route::get('/plans/{plan}/edit', [SubscriptionAdminController::class, 'editPlan'])->name('plans.edit');
-    Route::put('/plans/{plan}', [SubscriptionAdminController::class, 'updatePlan'])->name('plans.update');
-    Route::delete('/plans/{plan}', [SubscriptionAdminController::class, 'deletePlan'])->name('plans.destroy');
-    Route::post('/plans/{plan}/toggle', [SubscriptionAdminController::class, 'togglePlan'])->name('plans.toggle');
-});
-
 Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -298,52 +262,6 @@ Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
         Route::delete('/{id}', [DriverController::class, 'destroy'])->name('admin.driver.destroy')->middleware('permission:drivers.delete');
         Route::get('/{id}/details', [DriverController::class, 'getDriverDetails'])->name('admin.drivers.get-driver-details')->middleware('permission:drivers.view');
         Route::get('/{id}/file/{field}', [DriverController::class, 'file'])->name('admin.driver.file')->middleware('permission:drivers.view|drivers.create|drivers.edit');
-    });
-
-    // Vehicle types
-    Route::prefix('vehicle-type')->group(function () {
-        Route::get('/', [VehicleTypeController::class, 'index'])->name('admin.vehicle.type.index');
-        Route::get('/create', [VehicleTypeController::class, 'create'])->name('admin.vehicle.type.create')->middleware('permission:platform.settings.manage');
-        Route::post('/', [VehicleTypeController::class, 'store'])->name('admin.vehicle.type.store')->middleware('permission:platform.settings.manage');
-        Route::get('/{id}/edit', [VehicleTypeController::class, 'edit'])->name('admin.vehicle.type.edit')->middleware('permission:platform.settings.manage');
-        Route::put('/{id}', [VehicleTypeController::class, 'update'])->name('admin.vehicle.type.update')->middleware('permission:platform.settings.manage');
-        Route::delete('/{id}', [VehicleTypeController::class, 'destroy'])->name('admin.vehicle.type.destroy')->middleware('permission:platform.settings.manage');
-    });
-
-    // Vehicle groups
-    Route::prefix('vehicle-group')->group(function () {
-        Route::get('/', [VehicleGroupController::class, 'index'])->name('admin.vehicle.group.index');
-        Route::post('/', [VehicleGroupController::class, 'store'])->name('admin.vehicle.group.store')->middleware('permission:platform.settings.manage');
-        Route::get('/{id}/edit', [VehicleGroupController::class, 'edit'])->name('admin.vehicle.group.edit')->middleware('permission:platform.settings.manage');
-        Route::put('/{id}', [VehicleGroupController::class, 'update'])->name('admin.vehicle.group.update')->middleware('permission:platform.settings.manage');
-        Route::delete('/{id}', [VehicleGroupController::class, 'destroy'])->name('admin.vehicle.group.destroy')->middleware('permission:platform.settings.manage');
-    });
-
-    // Fuel types
-    Route::prefix('fuel-type')->group(function () {
-        Route::get('/', [FuelTypeController::class, 'index'])->name('admin.fuel.type.index');
-        Route::post('/', [FuelTypeController::class, 'store'])->name('admin.fuel.type.store')->middleware('permission:platform.settings.manage');
-        Route::get('/{id}/edit', [FuelTypeController::class, 'edit'])->name('admin.fuel.type.edit')->middleware('permission:platform.settings.manage');
-        Route::put('/{id}', [FuelTypeController::class, 'update'])->name('admin.fuel.type.update')->middleware('permission:platform.settings.manage');
-        Route::delete('/{id}', [FuelTypeController::class, 'destroy'])->name('admin.fuel.type.destroy')->middleware('permission:platform.settings.manage');
-    });
-
-    // Equipment types
-    Route::prefix('equipment-type')->group(function () {
-        Route::get('/', [EquipmentTypeController::class, 'index'])->name('admin.equipment.type.index');
-        Route::post('/', [EquipmentTypeController::class, 'store'])->name('admin.equipment.type.store')->middleware('permission:platform.settings.manage');
-        Route::get('/{id}/edit', [EquipmentTypeController::class, 'edit'])->name('admin.equipment.type.edit')->middleware('permission:platform.settings.manage');
-        Route::put('/{id}', [EquipmentTypeController::class, 'update'])->name('admin.equipment.type.update')->middleware('permission:platform.settings.manage');
-        Route::delete('/{id}', [EquipmentTypeController::class, 'destroy'])->name('admin.equipment.type.destroy')->middleware('permission:platform.settings.manage');
-    });
-
-    // Maintenance Categories
-    Route::prefix('maintenance-category')->group(function () {
-        Route::get('/', [MaintenanceCategoryController::class, 'index'])->name('admin.maintenance.category.index');
-        Route::post('/', [MaintenanceCategoryController::class, 'store'])->name('admin.maintenance.category.store')->middleware('permission:platform.settings.manage');
-        Route::get('/{id}/edit', [MaintenanceCategoryController::class, 'edit'])->name('admin.maintenance.category.edit')->middleware('permission:platform.settings.manage');
-        Route::put('/{id}', [MaintenanceCategoryController::class, 'update'])->name('admin.maintenance.category.update')->middleware('permission:platform.settings.manage');
-        Route::delete('/{id}', [MaintenanceCategoryController::class, 'destroy'])->name('admin.maintenance.category.destroy')->middleware('permission:platform.settings.manage');
     });
 
     // Vehicles
@@ -436,44 +354,23 @@ Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
         Route::post('/{id}/mark-completed', [MaintenanceScheduleController::class, 'markAsCompleted'])->name('admin.maintenance-schedule.mark-completed')->middleware('permission:scheduled.edit');
     });
 
-    // Settings
+    // Settings: the company's own profile and policy PDFs (PO-14); platform settings live in /platform
     Route::prefix('settings')->group(function () {
-        // Site Settings
-        Route::get('/site', [SiteSettingController::class, 'index'])->name('admin.settings.site.index')->middleware('permission:platform.settings.manage');
-        Route::put('/site', [SiteSettingController::class, 'update'])->name('admin.settings.site.update')->middleware('permission:platform.settings.manage');
-
-        // Tawk.to Chat Settings
-        Route::get('/tawk', [TawkToSettingController::class, 'index'])
-            ->name('admin.settings.tawk.index')
-            ->middleware('permission:platform.settings.manage');
-        Route::put('/tawk', [TawkToSettingController::class, 'update'])
-            ->name('admin.settings.tawk.update')
-            ->middleware('permission:platform.settings.manage');
-
-        // Company Route
-        Route::get('/company', [CompanyController::class, 'index'])->name('admin.settings.company')->middleware('permission:platform.companies.view');
-        Route::get('/company/create', [CompanyController::class, 'create'])->name('admin.settings.company.create')->middleware('permission:platform.companies.manage');
-        Route::post('/company', [CompanyController::class, 'store'])->name('admin.settings.company.store')->middleware('permission:platform.companies.manage');
         Route::get('/company/{id}/edit', [CompanyController::class, 'edit'])->name('admin.settings.company.edit')->middleware('permission:company.edit');
         Route::patch('/company/{id}', [CompanyController::class, 'update'])->name('admin.settings.company.update')->middleware('permission:company.edit');
-        Route::delete('/company/{id}', [CompanyController::class, 'destroy'])->name('admin.settings.company.destroy')->middleware('permission:platform.companies.lifecycle');
 
-        // Company owners (companies.edit) manage their own company's policy PDFs (PO-14)
         Route::get('/policy-pdf', [CompanyController::class, 'policyPDF'])->name('admin.settings.policy.pdf')->middleware('permission:company.edit');
         Route::post('/policy-pdf', [CompanyController::class, 'policyPDFStore'])->name('admin.settings.policy.pdf.store')->middleware('permission:company.edit');
 
-        // Document Types
+        // Document types are managed by the platform (LKP-01); a company switches them off for itself
         Route::prefix('document-types')->group(function () {
             Route::get('/', [DocumentTypeController::class, 'index'])->name('admin.settings.document-types.index');
-            Route::post('/', [DocumentTypeController::class, 'store'])->name('admin.settings.document-types.store')->middleware('permission:platform.settings.manage');
-            Route::get('/{id}', [DocumentTypeController::class, 'show'])->name('admin.settings.document-types.show');
-            Route::put('/{id}', [DocumentTypeController::class, 'update'])->name('admin.settings.document-types.update')->middleware('permission:platform.settings.manage');
-            Route::delete('/{id}', [DocumentTypeController::class, 'destroy'])->name('admin.settings.document-types.destroy')->middleware('permission:platform.settings.manage');
-            Route::post('/{id}/toggle-status', [DocumentTypeController::class, 'toggleStatus'])->name('admin.settings.document-types.toggle-status')->middleware('permission:platform.settings.manage');
-            Route::post('/{id}/company-toggle', [DocumentTypeController::class, 'toggleForCompany'])->name('admin.settings.document-types.company-toggle')->middleware('permission:document-types.toggle');
             Route::get('/by-module', [DocumentTypeController::class, 'getByModule'])->name('admin.settings.document-types.by-module');
+            Route::get('/{id}', [DocumentTypeController::class, 'show'])->name('admin.settings.document-types.show');
+            Route::post('/{id}/company-toggle', [DocumentTypeController::class, 'toggleForCompany'])->name('admin.settings.document-types.company-toggle')->middleware('permission:document-types.toggle');
         });
     });
 });
 
 require __DIR__.'/auth.php';
+require __DIR__.'/platform.php';

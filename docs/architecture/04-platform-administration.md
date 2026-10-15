@@ -37,6 +37,7 @@ The same email address can never be both a platform login and a tenant login.
 - `EmailIdentityService::assertAvailable($email)` runs before every email write: registration, invitation acceptance, email change, social sign-up, and platform staff invite or edit.
   - It checks both `users.email` and `platform_users.email`, case-insensitively.
   - It takes a short named lock on the normalised email (`GET_LOCK`), so two simultaneous sign-ups can't both pass.
+  - The lock must cover the check **and** the insert, so writes go through `EmailIdentityService::claim($email, $write)`: lock, check, write in its own transaction, release after commit (WP8a).
 - Each table also has its own unique index.
 - The nightly `integrity:check` runs `SELECT u.email FROM users u JOIN platform_users p ON p.email = u.email` and alerts on any row.
 - A single shared "email registry" table was considered and rejected. It would make every email change a two-table cascade, for a race that the lock already closes.

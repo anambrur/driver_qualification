@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
+use App\Models\PlatformUser;
 use App\Models\SiteSetting;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -15,7 +17,7 @@ class TawkToSettingController extends Controller
     {
         $setting = SiteSetting::getSettings();
 
-        return view('admin.settings.tawk.index', compact('setting'));
+        return view('platform.settings.tawk.index', compact('setting'));
     }
 
     /**
@@ -44,6 +46,10 @@ class TawkToSettingController extends Controller
         }
 
         $setting->update($updates);
+
+        /** @var PlatformUser $actor */
+        $actor = $request->user('platform');
+        AuditLog::record($actor, null, 'site_settings.tawk_updated', $setting, ['tawk_enabled' => $updates['tawk_enabled']]);
 
         toastr()->success('Tawk.to chat settings updated successfully.');
 
