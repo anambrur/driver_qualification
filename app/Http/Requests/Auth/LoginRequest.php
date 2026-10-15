@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -72,6 +73,8 @@ class LoginRequest extends FormRequest
 
         if (! $authenticated) {
             RateLimiter::hit($this->throttleKey());
+            $known = User::query()->where('email', $this->string('email')->value())->first(['id', 'company_id']);
+            AuditLog::write('user', $known?->id, $known?->company_id, 'auth.login_failed', null, ['email' => $this->string('email')->value()]);
 
             throw ValidationException::withMessages([
                 'email' => $inactive

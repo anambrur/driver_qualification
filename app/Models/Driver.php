@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditsDeletes;
 use App\Tenancy\BelongsToCompany;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,7 +18,9 @@ use Illuminate\Support\Facades\DB;
 class Driver extends Model
 {
     // Deleting hides the driver; the qualification file (child rows, documents, files) is kept.
-    use BelongsToCompany, SoftDeletes;
+    use AuditsDeletes, BelongsToCompany, SoftDeletes;
+
+    protected const AUDIT_NAME = 'driver';
 
     public const MEDICAL_CERTIFICATE_KEY = 'medical_examiner_certificate';
 

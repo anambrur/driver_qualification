@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\AuditLog;
 use App\Models\PlatformSupportSession;
 use App\Models\PlatformUser;
 use App\Services\Platform\SupportSessionService;
@@ -31,6 +32,9 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = $request->user();
+        AuditLog::record($user, $user->company_id, 'auth.login');
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
@@ -50,6 +54,11 @@ class AuthenticatedSessionController extends Controller
             $request->session()->regenerateToken();
 
             return redirect()->route('platform.support-sessions.index')->with('success', 'Support session ended.');
+        }
+
+        $user = $request->user();
+        if ($user !== null) {
+            AuditLog::record($user, $user->company_id, 'auth.logout');
         }
 
         Auth::guard('web')->logout();

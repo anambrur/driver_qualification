@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\AuditLog;
 use App\Models\Subscription;
 use App\Notifications\SubscriptionExpiredNotification;
 use App\Notifications\SubscriptionExpiringSoonNotification;
@@ -105,6 +106,7 @@ class SendSubscriptionExpiryReminders extends Command
             && ! $subscription->accessEndsAt()?->isFuture()) {
             $endedAt = $subscription->accessEndsAt() ?? now();
             $subscription->update(['status' => 'canceled', 'ends_at' => $endedAt, 'ended_at' => $endedAt]);
+            AuditLog::recordSystem($subscription->company_id, 'subscription.expired', $subscription, ['ended_at' => $endedAt->toIso8601String()]);
             app(AccessStateResolver::class)->forget($subscription->company_id);
         }
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Model;
+use LogicException;
 
 /**
  * @property array<string, mixed>|null $changes
@@ -29,6 +30,13 @@ class AuditLog extends Model
         'ip',
         'user_agent',
     ];
+
+    protected static function booted(): void
+    {
+        $refuse = fn () => throw new LogicException('Audit rows are append-only (08 §10).');
+        static::updating($refuse);
+        static::deleting($refuse);
+    }
 
     protected function casts(): array
     {

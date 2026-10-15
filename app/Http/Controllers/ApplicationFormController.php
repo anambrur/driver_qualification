@@ -16,6 +16,7 @@ use App\Http\Requests\PublicApplication\StoreApplicationStep1Request;
 use App\Http\Requests\PublicApplication\StoreApplicationViolationRequest;
 use App\Http\Requests\PublicApplication\StoreApplicationWorkPolicyRequest;
 use App\Mail\ApplicationSubmittedMail;
+use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\Country;
 use App\Models\Driver;
@@ -1099,6 +1100,7 @@ class ApplicationFormController extends Controller
                 'application_status' => 'withdrawn',
                 'withdrawn_at' => now(),
             ]);
+            AuditLog::recordSystem($driver->company_id, 'driver.withdrawn', $driver);
 
             // Clear session
             Session::forget([
