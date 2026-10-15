@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\AuditLog;
 use App\Models\PlatformUser;
+use App\Services\Platform\SupportSessionService;
 use App\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -57,6 +58,14 @@ class EnsurePlatformSession
      */
     public static function logout(Request $request): void
     {
+        // A support session never outlives its staff member's platform login
+        if ($staff = Auth::guard('platform')->user()) {
+            app(SupportSessionService::class)->endActiveFor($staff, 'platform logout');
+        }
+        if ($request->session()->pull(SupportSessionService::SESSION_KEY) !== null) {
+            Auth::guard('web')->logout();
+        }
+
         Auth::guard('platform')->logout();
         $request->session()->forget(self::LAST_SEEN);
         $request->session()->regenerate();

@@ -7,6 +7,7 @@ use App\Tenancy\TenantContext;
 use Database\Factories\ServiceLogFactory;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\Maintenance\Maintenance;
+use Tests\Support\Actors;
 use Tests\Support\Files;
 
 /*
@@ -112,7 +113,17 @@ describe('MNT-05: download', function () {
         $this->actingAs($owner)->get(route('admin.service-log.download-document', $document->id))->assertOk();
     });
 
-    it('lets platform support download any company\'s document inside a support session')->todo('WP8b: read_write support session');
+    it('lets platform support download a company\'s document inside a support session, and only that company\'s', function () {
+        [$owner, $vehicle] = Maintenance::tenantWithVehicle();
+        $document = mntLogWithDocument($vehicle);
+        [, $otherVehicle] = Maintenance::tenantWithVehicle();
+        $other = mntLogWithDocument($otherVehicle);
+
+        Actors::inSupportSession(Actors::companyOf($owner), 'read');
+
+        $this->get(route('admin.service-log.download-document', $document->id))->assertOk();
+        $this->get(route('admin.service-log.download-document', $other->id))->assertNotFound();
+    });
 
     it('returns 404 to another tenant', function () {
         [$owner] = Maintenance::tenantWithVehicle();

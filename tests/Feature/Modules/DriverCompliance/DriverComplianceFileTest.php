@@ -47,7 +47,17 @@ describe('DCMP-01: compliance documents are private', function () {
             ->assertDownload('Medical Card_'.basename(Files::pathOf($document->file_id)));
     });
 
-    it('lets platform support open any company\'s document inside a support session')->todo('WP8b: read_write support session');
+    it('lets platform support open a company\'s document inside a support session, and only that company\'s', function () {
+        [$owner, $driver] = DriverCompliance::tenantWithDriver();
+        $document = DriverCompliance::document($driver, DriverCompliance::documentType(['name' => 'Medical Card']));
+        [, $otherDriver] = DriverCompliance::tenantWithDriver();
+        $other = DriverCompliance::document($otherDriver, DriverCompliance::documentType(['name' => 'Road Test']));
+
+        Actors::inSupportSession(Actors::companyOf($owner), 'read');
+
+        $this->get(route('admin.compliance.driver.documents.view', $document->id))->assertOk();
+        $this->get(route('admin.compliance.driver.documents.download', $other->id))->assertNotFound();
+    });
 
     it('returns 404 to another tenant', function (string $route) {
         [, $driver] = DriverCompliance::tenantWithDriver();

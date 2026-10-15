@@ -3,6 +3,7 @@
         'Overview' => [
             ['Dashboard', 'platform.dashboard', null, 'fa-th-large'],
             ['Companies', 'platform.companies.index', 'platform.companies.view', 'fa-building'],
+            ['Support sessions', 'platform.support-sessions.index', 'platform.support.request', 'fa-life-ring'],
             ['Asset transfers', 'platform.asset-transfers.index', 'platform.assets.transfer', 'fa-exchange-alt'],
         ],
         'Billing' => [

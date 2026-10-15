@@ -24,6 +24,11 @@ Schedule::command('compliance:send-digest-reminders')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Support access must end on time (04 §4.1); ResolveTenant also ends it lazily
+Schedule::command('support-sessions:expire')
+    ->everyMinute()
+    ->withoutOverlapping();
+
 Schedule::command('model:prune', ['--model' => [OtpVerification::class]])
     ->daily()
     ->withoutOverlapping();

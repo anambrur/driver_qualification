@@ -319,6 +319,26 @@
                         @endif
                     @endcan
 
+                    <!-- Support access: the Owner approves platform support sessions (04 §4) -->
+                    @if (auth()->user()?->company && (int) auth()->user()->company->owner_user_id === (int) auth()->id())
+                        @php
+                            $pendingSupport = \App\Models\PlatformSupportSession::query()->open()
+                                ->where('company_id', auth()->user()->company_id)->whereNull('tenant_approved_at')->exists();
+                        @endphp
+                        <li>
+                            <a href="{{ route('support-access.index') }}" class="menu-item group"
+                                :class="isCurrentPath('support-access') ? 'menu-item-active' : 'menu-item-inactive'">
+                                <i class="fa-solid fa-life-ring"
+                                    :class="isCurrentPath('support-access') ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"></i>
+                                <span class="menu-item-text" :class="sidebarToggle ? 'lg:hidden' : ''">Support access
+                                    @if ($pendingSupport)
+                                        <span class="ml-1 rounded-full bg-amber-500 px-2 text-xs text-white" title="A request waits for you">new</span>
+                                    @endif
+                                </span>
+                            </a>
+                        </li>
+                    @endif
+
                     <!-- Subscription (User) -->
                     <li>
                         <a href="#"

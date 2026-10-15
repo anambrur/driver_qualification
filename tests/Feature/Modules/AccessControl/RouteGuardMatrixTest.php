@@ -91,6 +91,15 @@ const ACL_NO_PERMISSION_ROUTES = [
     // Every platform staff member: the platform dashboard and logout (04 §3).
     'GET platform',
     'POST platform/logout',
+    // Support sessions (04 §4): the list shows only the caller's own requests (approvals need
+    // platform.support.approve); ending is for the session's requester, checked in the service.
+    'GET platform/support-sessions',
+    'POST platform/support-sessions/{supportSession}/end',
+    // Support access: only the company Owner acts, checked in SupportSessionService (Q1).
+    'GET support-access',
+    'POST support-access/{supportSession}/approve',
+    'POST support-access/{supportSession}/reject',
+    'POST support-access/{supportSession}/revoke',
 ];
 
 /**

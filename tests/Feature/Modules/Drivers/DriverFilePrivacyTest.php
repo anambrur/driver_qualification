@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\Driver;
 use App\Models\DriverDocument;
 use Illuminate\Http\UploadedFile;
@@ -97,8 +98,18 @@ describe('DRV-03: driver documents are private', function () {
             ->and($response->headers->get('X-Content-Type-Options'))->toBe('nosniff');
     })->with('driver file fields');
 
-    it('lets platform support open any company\'s file inside a support session')
-        ->todo('WP8b: read_write support session');
+    it('lets platform support open a company\'s file inside a support session, and only that company\'s', function () {
+        [$owner, $driver] = DriverAdmin::tenantWithDriver();
+        driverWithStoredFiles($driver);
+        [, $other] = DriverAdmin::tenantWithDriver();
+        driverWithStoredFiles($other);
+
+        $session = Actors::inSupportSession(Actors::companyOf($owner), 'read');
+
+        $this->get(route('admin.driver.file', [$driver->id, 'license_front']))->assertOk();
+        $this->get(route('admin.driver.file', [$other->id, 'license_front']))->assertNotFound();
+        expect(AuditLog::where('support_session_id', $session->id)->where('action', 'support_session.request')->count())->toBe(2);
+    });
 
     it('returns 404 to another tenant', function (string $field) {
         [, $driver] = DriverAdmin::tenantWithDriver();

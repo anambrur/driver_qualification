@@ -69,13 +69,13 @@ class TenantContext
      * @param  Closure(): TReturn  $callback
      * @return TReturn
      */
-    public function run(int $companyId, Closure $callback, string $mode = 'tenant'): mixed
+    public function run(int $companyId, Closure $callback, string $mode = 'tenant', ?int $supportSessionId = null): mixed
     {
         $previous = [$this->companyId, $this->mode, $this->supportSessionId];
         $registrar = app(PermissionRegistrar::class);
         $previousTeam = $registrar->getPermissionsTeamId();
 
-        $this->set($companyId, $mode);
+        $this->set($companyId, $mode, $supportSessionId);
         $registrar->setPermissionsTeamId($companyId);
 
         try {

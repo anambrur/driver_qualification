@@ -45,7 +45,17 @@ describe('FCMP-02: fleet compliance documents are private', function () {
             ->assertOk()->assertDownload();
     })->with(['vehicle', 'trailer']);
 
-    it('lets platform support open any company\'s document inside a support session')->todo('WP8b: read_write support session');
+    it('lets platform support open a company\'s document inside a support session, and only that company\'s', function (string $assetType) {
+        [$owner, $asset] = FleetCompliance::tenantWithAsset($assetType);
+        $document = FleetCompliance::document($asset, FleetCompliance::documentType($assetType));
+        [, $otherAsset] = FleetCompliance::tenantWithAsset($assetType);
+        $other = FleetCompliance::document($otherAsset, FleetCompliance::documentType($assetType));
+
+        Actors::inSupportSession(Actors::companyOf($owner), 'read');
+
+        $this->get(route('admin.compliance.documents.view', [$document->id, $assetType]))->assertOk();
+        $this->get(route('admin.compliance.documents.view', [$other->id, $assetType]))->assertNotFound();
+    })->with(['vehicle', 'trailer']);
 
     it('refuses another tenant', function (string $assetType, string $route) {
         [, $asset] = FleetCompliance::tenantWithAsset($assetType);

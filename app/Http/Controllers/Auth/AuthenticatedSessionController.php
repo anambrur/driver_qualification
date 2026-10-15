@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\PlatformSupportSession;
+use App\Models\PlatformUser;
+use App\Services\Platform\SupportSessionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,8 +37,21 @@ class AuthenticatedSessionController extends Controller
     /**
      * Destroy an authenticated session.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request, SupportSessionService $sessions): RedirectResponse
     {
+        // Inside a support session: end it, and keep the staff member's platform login
+        if (Auth::guard('web')->user()?->user_type === 'support') {
+            $session = PlatformSupportSession::query()->find($request->session()->pull(SupportSessionService::SESSION_KEY));
+            $staff = Auth::guard('platform')->user();
+            if ($session !== null) {
+                $sessions->end($session, 'ended by staff', $staff instanceof PlatformUser ? $staff : null);
+            }
+            Auth::guard('web')->logout();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('platform.support-sessions.index')->with('success', 'Support session ended.');
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

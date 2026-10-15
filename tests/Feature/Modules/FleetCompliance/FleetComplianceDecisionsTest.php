@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuditLog;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\FleetCompliance\FleetCompliance;
 use Tests\Support\Actors;
@@ -163,7 +164,19 @@ describe('PO-02: "upload to all" for fleet', function () {
             ->assertSee('id="upload_company_id" name="company_id"', false);
     });
 
-    it('uploads, inside a support session, only to that company\'s assets')->todo('WP8b: read_write support session');
+    it('uploads, inside a support session, only to that company\'s assets (PO-02, D11)', function () {
+        [$owner, $mine] = FleetCompliance::tenantWithAsset('vehicle');
+        [, $theirs] = FleetCompliance::tenantWithAsset('vehicle');
+        $type = FleetCompliance::documentType('vehicle');
+        $session = Actors::inSupportSession(Actors::companyOf($owner), 'read_write');
+
+        $this->post(route('admin.compliance.documents.upload'), fcmpUploadAllPayload('vehicle', $type->id, ['company_id' => $theirs->company_id]), FleetCompliance::json())
+            ->assertOk()->assertJson(['uploaded_count' => 1]);
+
+        expect(FleetCompliance::documentModel('vehicle')::withoutTenancy()->where('vehicle_id', $mine->id)->exists())->toBeTrue()
+            ->and(FleetCompliance::documentModel('vehicle')::withoutTenancy()->where('vehicle_id', $theirs->id)->exists())->toBeFalse()
+            ->and(AuditLog::where('support_session_id', $session->id)->where('actor_type', 'platform_user')->where('action', 'support_session.request')->exists())->toBeTrue();
+    });
 
     it('ignores a company_id posted by a tenant', function () {
         [$owner, $mine] = FleetCompliance::tenantWithAsset('vehicle');
