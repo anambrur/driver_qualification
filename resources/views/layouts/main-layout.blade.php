@@ -1,11 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
     <!-- Dynamic Title -->
     <title>
         @hasSection('title')
@@ -14,6 +13,8 @@
             {{ settings('meta_title', settings('site_name', 'Laravel Application')) }}
         @endif
     </title>
+
+    @include('partials.theme-head')
 
     <x-seo />
 
@@ -55,13 +56,15 @@
     <!-- Page Specific Meta Data -->
     @stack('meta')
 
-    <!-- SweetAlert2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css">
-    <!-- Add these Vite directives -->
+    @hasstack('datatable')
+    @else
+        {{-- Legacy DataTables 1.x for pages not yet on <x-ui.datatable> (phase 2) --}}
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css">
+    @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://kit.fontawesome.com/14c3ef5dcc.js" crossorigin="anonymous"></script>
+    @stack('datatable')
+    <script src="https://kit.fontawesome.com/14c3ef5dcc.js" crossorigin="anonymous" defer></script>
 
     <!-- Custom Page Styles -->
     @stack('styles')
@@ -81,49 +84,47 @@
     @endif
 </head>
 
-<body x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }" x-init="darkMode = JSON.parse(localStorage.getItem('darkMode'));
-$watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))" :class="{ 'dark bg-gray-900': darkMode === true }">
-    <!-- ===== Preloader Start ===== -->
-    @include('partials.preloader')
-    <!-- ===== Preloader End ===== -->
+<body class="min-h-dvh bg-background font-sans text-foreground antialiased" x-data="appShell">
+    <a href="#main" class="skip-link">Skip to content</a>
 
-    <!-- ===== Page Wrapper Start ===== -->
-    <div class="flex h-screen overflow-hidden">
-        <!-- ===== Sidebar Start ===== -->
-        @include('partials.sidebar')
-        <!-- ===== Sidebar End ===== -->
+    @php($authUser = auth()->user())
+    @php($menu = \App\Support\Navigation\CompanyMenu::for($authUser, request()))
+    <div class="flex min-h-dvh">
+        <x-layout.sidebar :groups="$menu" :home="route('dashboard')" label="Company navigation" />
 
-        <!-- ===== Content Area Start ===== -->
-        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
-            <!-- Small Device Overlay Start -->
-            @include('partials.overlay')
-            <!-- Small Device Overlay End -->
-
-            <!-- ===== Header Start ===== -->
-            @include('partials.header')
-            <!-- ===== Header End ===== -->
+        <div class="flex min-w-0 flex-1 flex-col">
+            <x-layout.header>
+                @if ($authUser)
+                    <x-slot:user>
+                        <x-layout.user-menu :name="$authUser->name" :email="$authUser->email" :logout="route('logout')">
+                            <a role="menuitem" href="{{ route('profile.edit') }}">{{ svg('lucide-user-round', '', ['aria-hidden' => 'true']) }} Profile</a>
+                            @if ($authUser->company_id)
+                                <a role="menuitem" href="{{ route('admin.settings.company.edit', $authUser->company_id) }}">{{ svg('lucide-building-2', '', ['aria-hidden' => 'true']) }} Company settings</a>
+                            @endif
+                            <a role="menuitem" href="{{ route('billing.index') }}">{{ svg('lucide-credit-card', '', ['aria-hidden' => 'true']) }} Billing</a>
+                        </x-layout.user-menu>
+                    </x-slot:user>
+                @endif
+            </x-layout.header>
 
             <x-support-session-banner />
             <x-subscription-alert />
 
-            <!-- ===== Main Content Start ===== -->
-            <main>
+            <main id="main" tabindex="-1" class="mx-auto w-full max-w-screen-2xl flex-1 outline-hidden">
                 @yield('content')
             </main>
-            <!-- ===== Main Content End ===== -->
         </div>
-        <!-- ===== Content Area End ===== -->
     </div>
-    <!-- ===== Page Wrapper End ===== -->
 
-    <!-- jQuery (required for Toastr and DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <x-ui.toaster />
 
-    <!-- SweetAlert2 JS -->
+    @hasstack('datatable')
+    @else
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
+    @endif
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
 
     <script>
         window.showAppAlert = function(message, icon = 'warning', title = null) {
@@ -137,8 +138,7 @@ $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(valu
             return Swal.fire({
                 icon: icon,
                 title: title || titles[icon] || 'Attention',
-                text: message,
-                confirmButtonColor: '#2563eb'
+                text: message
             });
         };
 
@@ -148,8 +148,6 @@ $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(valu
                 text: message,
                 icon: options.icon || 'question',
                 showCancelButton: true,
-                confirmButtonColor: options.confirmButtonColor || '#2563eb',
-                cancelButtonColor: options.cancelButtonColor || '#6b7280',
                 confirmButtonText: options.confirmButtonText || 'Yes, continue',
                 cancelButtonText: options.cancelButtonText || 'Cancel'
             });

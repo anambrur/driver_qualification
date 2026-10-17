@@ -629,10 +629,10 @@
                     @endif
 
                     @if ($plan->marketing_bullets)
-                    <ul class="space-y-3 mb-8 flex-grow">
+                    <ul class="space-y-3 mb-8 grow">
                         @foreach ($plan->marketing_bullets as $feature)
                         <li class="flex items-start gap-2 text-sm">
-                            <svg class="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-5 h-5 text-success-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                             </svg>
                             <span class="text-gray-600 dark:text-gray-300">{{ $feature }}</span>
@@ -664,9 +664,9 @@
                     <h3 class="text-xl font-bold mb-2">{{ $sp['name'] }}</h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">{{ $sp['desc'] }}</p>
                     <div class="mb-6"><span class="text-4xl font-extrabold">${{ $sp['price'] }}</span><span class="text-sm text-gray-500">/month</span></div>
-                    <ul class="space-y-3 mb-8 flex-grow">
+                    <ul class="space-y-3 mb-8 grow">
                         @foreach ($sp['features'] as $feat)
-                        <li class="flex items-start gap-2 text-sm"><svg class="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <li class="flex items-start gap-2 text-sm"><svg class="w-5 h-5 text-success-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                             </svg><span class="text-gray-600 dark:text-gray-300">{{ $feat }}</span></li>
                         @endforeach
@@ -708,7 +708,7 @@
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                             @endfor
                     </div>
-                    <blockquote class="text-gray-600 dark:text-gray-300 leading-relaxed mb-6 flex-grow italic">"{{ $t['quote'] }}"</blockquote>
+                    <blockquote class="text-gray-600 dark:text-gray-300 leading-relaxed mb-6 grow italic">"{{ $t['quote'] }}"</blockquote>
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold text-sm">{{ substr($t['name'], 0, 1) }}</div>
                         <div>
@@ -777,7 +777,7 @@
                 <div class="glass-card rounded-2xl overflow-hidden transition-all duration-300" :class="openFaq === {{ $i }} ? 'ring-1 ring-brand-500/30' : ''">
                     <button @click="openFaq = openFaq === {{ $i }} ? null : {{ $i }}" class="w-full flex items-center justify-between px-6 py-5 text-left">
                         <span class="font-semibold text-gray-900 dark:text-white pr-4">{{ $faq['q'] }}</span>
-                        <svg class="w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-300" :class="openFaq === {{ $i }} ? 'rotate-180 text-brand-500' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-gray-400 shrink-0 transition-transform duration-300" :class="openFaq === {{ $i }} ? 'rotate-180 text-brand-500' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>

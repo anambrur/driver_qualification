@@ -305,6 +305,59 @@
                 </div>
             </div>
 
+            <!-- Appearance: brand colour, colour mode, dark logo (partials/theme-head) -->
+            @php
+                $brand = old('primary_color', $setting->primary_color ?: \App\Support\Ui\Theme::DEFAULT_BRAND);
+                $highlight = old('accent_color', $setting->accent_color ?: \App\Support\Ui\Theme::DEFAULT_HIGHLIGHT);
+            @endphp
+            <div class="mt-6" x-data="{ brand: @js($brand), highlight: @js($highlight) }"
+                x-effect="if (/^#[0-9a-fA-F]{6}$/.test(brand) && /^#[0-9a-fA-F]{6}$/.test(highlight)) { document.documentElement.style.setProperty('--brand', brand); document.documentElement.style.setProperty('--highlight', highlight); }">
+            <x-ui.card id="appearance" title="Appearance" description="One brand colour styles buttons, links, focus rings and the sidebar across the whole platform. Changes preview live; save to apply for everyone.">
+                <div class="grid gap-6 lg:grid-cols-[1fr_18rem]">
+                    <div class="grid gap-6 sm:grid-cols-2">
+                        @foreach (['primary_color' => ['Brand colour', 'brand', \App\Support\Ui\Theme::DEFAULT_BRAND], 'accent_color' => ['Accent colour', 'highlight', \App\Support\Ui\Theme::DEFAULT_HIGHLIGHT]] as $field => [$label, $model, $default])
+                            <x-ui.field :label="$label" :name="$field" :hint="$field === 'accent_color' ? 'Charts and highlights.' : 'Buttons, links and active states.'">
+                                <div class="flex items-center gap-2">
+                                    <input type="color" x-model="{{ $model }}" class="h-9 w-12 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-1" aria-label="{{ $label }} picker">
+                                    <x-ui.input :name="$field" x-model="{{ $model }}" pattern="^#[0-9a-fA-F]{6}$" maxlength="7" class="font-mono uppercase" />
+                                    <x-ui.button variant="ghost" size="sm" x-on:click="{{ $model }} = '{{ $default }}'">Reset</x-ui.button>
+                                </div>
+                            </x-ui.field>
+                        @endforeach
+
+                        <x-ui.field label="Default colour mode" name="default_color_mode" hint="Users can still switch from the header.">
+                            <x-ui.select name="default_color_mode" :value="$setting->default_color_mode ?: 'system'"
+                                :options="['system' => 'Follow the device', 'light' => 'Light', 'dark' => 'Dark']" />
+                        </x-ui.field>
+
+                        <x-ui.field label="Logo for dark mode" name="logo_dark" hint="PNG, JPG or WebP, up to 2 MB. Falls back to the main logo.">
+                            @if ($setting->logo_dark)
+                                <img src="{{ asset('storage/'.$setting->logo_dark) }}" alt="Current dark-mode logo" class="h-10 w-auto rounded-md bg-gray-900 object-contain p-1.5">
+                            @endif
+                            <x-ui.input type="file" name="logo_dark" accept="image/png,image/jpeg,image/webp,image/gif" />
+                        </x-ui.field>
+                    </div>
+
+                    <div class="rounded-lg border border-border bg-background p-4" aria-hidden="true">
+                        <p class="mb-3 text-xs font-medium text-muted-foreground">Preview</p>
+                        <div class="space-y-3">
+                            <div class="flex flex-wrap gap-2">
+                                <span class="btn" data-size="sm">Primary</span>
+                                <span class="btn" data-variant="outline" data-size="sm">Outline</span>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="badge" data-tone="brand">Brand</span>
+                                <span class="badge" data-tone="success">Active</span>
+                                <span class="badge" data-tone="warning">Pending</span>
+                            </div>
+                            <a class="text-sm font-medium text-primary underline-offset-4 hover:underline">A link</a>
+                            <div class="h-2 overflow-hidden rounded-full bg-muted"><div class="h-full w-2/3 rounded-full bg-highlight"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </x-ui.card>
+            </div>
+
             <!-- Billing and support (07 §5, 04 §4.2) -->
             <div class="mt-6 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
                 <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">Billing and support</h3>

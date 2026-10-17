@@ -88,7 +88,7 @@
                                                     alt="Medical Card"
                                                     class="h-48 w-full object-contain rounded-lg border border-gray-200 dark:border-gray-700">
                                                 <div
-                                                    class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                                                    class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
                                                     <a href="{{ route('admin.driver.file', [$driver->id, 'medical_card']) }}"
                                                         target="_blank"
                                                         class="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-md text-sm">
@@ -136,7 +136,7 @@
                                             </svg>
                                             <div class="flex text-sm text-gray-600 dark:text-gray-400">
                                                 <label for="medical_card"
-                                                    class="relative cursor-pointer rounded-md bg-white font-medium text-brand-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-2 hover:text-brand-500 dark:bg-gray-900">
+                                                    class="relative cursor-pointer rounded-md bg-white font-medium text-brand-600 focus-within:outline-hidden focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-2 hover:text-brand-500 dark:bg-gray-900">
                                                     <span>
                                                         @if ($driver_document && $driver_document->medical_card)
                                                             Replace Medical Card

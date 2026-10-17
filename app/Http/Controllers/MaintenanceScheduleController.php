@@ -65,7 +65,7 @@ class MaintenanceScheduleController extends Controller
 
                     return '
                     <div class="flex items-center">
-                        <div class="flex-shrink-0 h-8 w-8">
+                        <div class="shrink-0 h-8 w-8">
                             <div class="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
                                 <i class="fas fa-truck text-xs"></i>
                             </div>

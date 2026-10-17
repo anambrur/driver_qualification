@@ -63,7 +63,7 @@ class VehicleController extends Controller
 
                     return '
                     <div class="flex items-center">
-                        <div class="flex-shrink-0 h-10 w-10">
+                        <div class="shrink-0 h-10 w-10">
                             <div class="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
                                 <i class="fas fa-truck"></i>
                             </div>

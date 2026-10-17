@@ -138,7 +138,7 @@
                                 <i class="fas fa-phone text-gray-400 group-focus-within:text-brand-500 transition-colors duration-200"></i>
                             </div>
                             <input type="tel" id="swal-phone-input" 
-                                class="block w-full pl-11 pr-4 py-3.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-200 ease-in-out sm:text-base shadow-sm" 
+                                class="block w-full pl-11 pr-4 py-3.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-200 ease-in-out sm:text-base shadow-sm" 
                                 placeholder="(555) 555-5555" maxlength="14" autocomplete="tel">
                         </div>
                         <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Enter the phone number associated with your uncompleted application to seamlessly pick up where you left off.</p>
@@ -199,7 +199,7 @@
                         html: `
                             <div class="text-left mt-4 mb-2">
                                 <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">6-Digit SMS Code</label>
-                                <input type="text" id="swal-otp-input" class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 text-center text-2xl tracking-[0.5em] font-medium text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-200 ease-in-out shadow-sm" placeholder="••••••" maxlength="6" autocomplete="one-time-code">
+                                <input type="text" id="swal-otp-input" class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 text-center text-2xl tracking-[0.5em] font-medium text-gray-900 dark:text-white placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-200 ease-in-out shadow-sm" placeholder="••••••" maxlength="6" autocomplete="one-time-code">
                                 <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 text-center leading-relaxed">We've just sent a secure verification code to <span class="font-semibold text-gray-700 dark:text-gray-300">${document.getElementById('swal-phone-input').value}</span></p>
                             </div>
                         `,

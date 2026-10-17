@@ -36,7 +36,7 @@
                             </div>
                         @endif
 
-                        <div class="p-4 flex flex-col flex-grow">
+                        <div class="p-4 flex flex-col grow">
                             <h4 class="font-bold text-xl">{{ $plan->name }}</h4>
                             <p class="text-gray-500 text-sm mb-3">{{ $plan->description }}</p>
 
@@ -51,7 +51,7 @@
                             </div>
 
                             {{-- Features --}}
-                            <ul class="list-none mb-4 flex-grow">
+                            <ul class="list-none mb-4 grow">
                                 @foreach ($plan->features ?? [] as $feature)
                                     <li class="mb-2 flex items-start">
                                         <i class="bi bi-check-circle-fill text-green-500 mr-2 mt-1"></i>

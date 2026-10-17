@@ -200,7 +200,7 @@
                                             @else border-l-4 border-l-emerald-400 @endif">
 
                                             <div class="flex items-center gap-3 flex-1">
-                                                <svg class="w-4 h-4 text-gray-500 flex-shrink-0"
+                                                <svg class="w-4 h-4 text-gray-500 shrink-0"
                                                     xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
                                                     <path
                                                         d="M14.4998 19H12.4998C9.67139 19 8.25718 19 7.3785 18.1213C6.49982 17.2426 6.49982 15.8284 6.49982 13V8C6.49982 5.17157 6.49982 3.75736 7.3785 2.87868C8.25718 2 9.67139 2 12.4998 2H13.843C14.6605 2 15.0692 2 15.4368 2.15224C15.8043 2.30448 16.0933 2.59351 16.6714 3.17157L19.3282 5.82843C19.9063 6.40648 20.1953 6.69552 20.3476 7.06306C20.4998 7.4306 20.4998 7.83935 20.4998 8.65685V13C20.4998 15.8284 20.4998 17.2426 19.6211 18.1213C18.7425 19 17.3282 19 14.4998 19Z"
@@ -246,7 +246,7 @@
                                                 </div>
                                             </div>
 
-                                            <div class="flex items-center gap-2 ml-3 flex-shrink-0">
+                                            <div class="flex items-center gap-2 ml-3 shrink-0">
                                                 @if ($docDetail['status'] !== 'valid')
                                                     <button type="button"
                                                         onclick="openUploadModal({{ $vehicle['id'] }}, {{ $docDetail['type_id'] }}, 'vehicle')"
@@ -370,7 +370,7 @@
                                             @else border-l-4 border-l-emerald-400 @endif">
 
                                             <div class="flex items-center gap-3 flex-1">
-                                                <svg class="w-4 h-4 text-gray-500 flex-shrink-0"
+                                                <svg class="w-4 h-4 text-gray-500 shrink-0"
                                                     xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
                                                     fill="none">
                                                     <path
@@ -417,7 +417,7 @@
                                                 </div>
                                             </div>
 
-                                            <div class="flex items-center gap-2 ml-3 flex-shrink-0">
+                                            <div class="flex items-center gap-2 ml-3 shrink-0">
                                                 @if ($docDetail['status'] !== 'valid')
                                                     <button type="button"
                                                         onclick="openUploadModal({{ $trailer['id'] }}, {{ $docDetail['type_id'] }}, 'trailer')"
@@ -550,7 +550,7 @@
     <!-- Vehicle Details Modal -->
     <div id="vehicleDetailsModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
         <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
+            <div class="fixed inset-0 transition-opacity bg-gray-500/75"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
             <div
                 class="inline-block w-full overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-2xl dark:bg-gray-800">
@@ -992,7 +992,7 @@
             // Create a modal for image preview
             const modalHtml = `
         <div id="imagePreviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="fixed inset-0 bg-black bg-opacity-75" onclick="closeImagePreview()"></div>
+            <div class="fixed inset-0 bg-black/75" onclick="closeImagePreview()"></div>
             <div class="relative z-50 max-w-4xl max-h-full">
                 <div class="bg-white rounded-lg shadow-xl dark:bg-gray-800">
                     <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">

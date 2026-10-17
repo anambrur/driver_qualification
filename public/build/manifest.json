@@ -1,6 +1,26 @@
 {
+  "node_modules/@fontsource-variable/geist/files/geist-cyrillic-ext-wght-normal.woff2": {
+    "file": "assets/geist-cyrillic-ext-wght-normal-DjL33-gN.woff2",
+    "src": "node_modules/@fontsource-variable/geist/files/geist-cyrillic-ext-wght-normal.woff2"
+  },
+  "node_modules/@fontsource-variable/geist/files/geist-cyrillic-wght-normal.woff2": {
+    "file": "assets/geist-cyrillic-wght-normal-BEAKL7Jp.woff2",
+    "src": "node_modules/@fontsource-variable/geist/files/geist-cyrillic-wght-normal.woff2"
+  },
+  "node_modules/@fontsource-variable/geist/files/geist-latin-ext-wght-normal.woff2": {
+    "file": "assets/geist-latin-ext-wght-normal-DC-KSUi6.woff2",
+    "src": "node_modules/@fontsource-variable/geist/files/geist-latin-ext-wght-normal.woff2"
+  },
+  "node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2": {
+    "file": "assets/geist-latin-wght-normal-BgDaEnEv.woff2",
+    "src": "node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2"
+  },
+  "node_modules/@fontsource-variable/geist/files/geist-vietnamese-wght-normal.woff2": {
+    "file": "assets/geist-vietnamese-wght-normal-6IgcOCM7.woff2",
+    "src": "node_modules/@fontsource-variable/geist/files/geist-vietnamese-wght-normal.woff2"
+  },
   "resources/css/app.css": {
-    "file": "assets/app-DeMCdRGt.css",
+    "file": "assets/app-CNVASjCG.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "names": [
@@ -8,13 +28,18 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-rRfIOM-m.js",
+    "file": "assets/app-C3ZuvPtp.js",
     "name": "app",
     "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/datatable.js": {
+    "file": "assets/datatable-Bp3-_Rqe.js",
+    "name": "datatable",
+    "src": "resources/js/datatable.js",
     "isEntry": true,
     "css": [
-      "assets/app-CksuuEqD.css",
-      "assets/app-DeMCdRGt.css"
+      "assets/datatable-CNkYKQ1N.css"
     ]
   }
 }

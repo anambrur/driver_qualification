@@ -6,8 +6,11 @@ use App\Models\AuditLog;
 use App\Models\Plan;
 use App\Models\PlatformUser;
 use App\Models\SiteSetting;
+use App\Support\Ui\Color;
+use App\Support\Ui\Theme;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class SiteSettingController extends Controller
 {
@@ -36,6 +39,11 @@ class SiteSettingController extends Controller
             // Raster images only: no svg/html/php on the public disk. mimes checks the file content.
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'favicon' => 'nullable|file|mimes:ico,png,jpg,jpeg,gif,webp|max:1024',
+            // Appearance: one brand colour drives the whole UI (partials/theme-head)
+            'logo_dark' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'primary_color' => ['nullable', 'string', 'regex:'.Color::HEX.'D'],
+            'accent_color' => ['nullable', 'string', 'regex:'.Color::HEX.'D'],
+            'default_color_mode' => ['sometimes', 'required', Rule::in(Theme::MODES)],
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
             'address' => 'nullable|string|max:500',
@@ -60,6 +68,19 @@ class SiteSettingController extends Controller
                 Storage::disk('public')->delete($setting->logo);
             }
             $validated['logo'] = $request->file('logo')->store('settings', 'public');
+        }
+
+        if ($request->hasFile('logo_dark')) {
+            if ($setting->logo_dark) {
+                Storage::disk('public')->delete($setting->logo_dark);
+            }
+            $validated['logo_dark'] = $request->file('logo_dark')->store('settings', 'public');
+        }
+
+        foreach (['primary_color', 'accent_color'] as $color) {
+            if (array_key_exists($color, $validated) && $validated[$color] !== null) {
+                $validated[$color] = strtolower($validated[$color]);
+            }
         }
 
         if ($request->hasFile('favicon')) {

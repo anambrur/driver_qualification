@@ -1,7 +1,7 @@
 {{-- resources/views/admin/service-log/partials/view-modal.blade.php --}}
 <div id="viewServiceLogModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
+        <div class="fixed inset-0 transition-opacity bg-gray-500/75"></div>
 
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 

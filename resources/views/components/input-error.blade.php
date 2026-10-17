@@ -1,7 +1,8 @@
+{{-- Breeze compatibility: prefer <x-ui.field name="..."> in new code. --}}
 @props(['messages'])
 
 @if ($messages)
-    <ul {{ $attributes->merge(['class' => 'text-sm text-red-600 dark:text-red-400 space-y-1']) }}>
+    <ul role="alert" {{ $attributes->class('space-y-1 text-sm text-destructive') }}>
         @foreach ((array) $messages as $message)
             <li>{{ $message }}</li>
         @endforeach

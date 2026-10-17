@@ -207,7 +207,7 @@
                         @foreach ($benefits as $b)
                             <div class="flex items-center gap-3">
                                 <div
-                                    class="w-6 h-6 rounded-full bg-{{ $b['color'] }}-400/20 flex items-center justify-center flex-shrink-0">
+                                    class="w-6 h-6 rounded-full bg-{{ $b['color'] }}-400/20 flex items-center justify-center shrink-0">
                                     <svg class="w-3.5 h-3.5 text-{{ $b['color'] }}-300" fill="currentColor"
                                         viewBox="0 0 20 20">
                                         <path fill-rule="evenodd"
@@ -316,7 +316,7 @@
                             </div>
                             <input id="name" type="text" name="name" value="{{ old('name') }}" required
                                 autofocus autocomplete="name"
-                                class="auth-input w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0"
+                                class="auth-input w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-hidden focus:ring-0"
                                 placeholder="John Doe">
                         </div>
                         <x-input-error :messages="$errors->get('name')" class="mt-1.5" />
@@ -336,7 +336,7 @@
                             </div>
                             <input id="company_name" type="text" name="company_name" value="{{ old('company_name') }}" required
                                 autocomplete="organization"
-                                class="auth-input w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0"
+                                class="auth-input w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-hidden focus:ring-0"
                                 placeholder="Acme Trucking LLC">
                         </div>
                         <x-input-error :messages="$errors->get('company_name')" class="mt-1.5" />
@@ -357,7 +357,7 @@
                             </div>
                             <input id="email" type="email" name="email" value="{{ old('email') }}"
                                 required autocomplete="username" autocapitalize="none" spellcheck="false"
-                                class="auth-input w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0 lowercase"
+                                class="auth-input w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-hidden focus:ring-0 lowercase"
                                 placeholder="you@company.com">
                         </div>
                         <x-input-error :messages="$errors->get('email')" class="mt-1.5" />
@@ -377,7 +377,7 @@
                             </div>
                             <input id="password" :type="showPassword ? 'text' : 'password'" name="password" required
                                 autocomplete="new-password" x-model="password"
-                                class="auth-input w-full pl-11 pr-11 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0"
+                                class="auth-input w-full pl-11 pr-11 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-hidden focus:ring-0"
                                 placeholder="Min 8 characters">
                             <button type="button" @click="showPassword = !showPassword"
                                 class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
@@ -432,7 +432,7 @@
                             </div>
                             <input id="password_confirmation" :type="showConfirm ? 'text' : 'password'"
                                 name="password_confirmation" required autocomplete="new-password"
-                                class="auth-input w-full pl-11 pr-11 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0"
+                                class="auth-input w-full pl-11 pr-11 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-hidden focus:ring-0"
                                 placeholder="Repeat password">
                             <button type="button" @click="showConfirm = !showConfirm"
                                 class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
@@ -455,7 +455,7 @@
 
                     {{-- Submit --}}
                     <button type="submit"
-                        class="w-full py-3 px-4 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/40 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                        class="w-full py-3 px-4 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/40 hover:-translate-y-0.5 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                         Create Account
                     </button>
                 </form>

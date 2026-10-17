@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\DataTables\Driver\DriverTable;
 use App\Exceptions\LimitReached;
 use App\Http\Requests\Driver\StoreDriverRequest;
 use App\Http\Requests\Driver\UpdateDriverRequest;
@@ -26,7 +27,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
-use Yajra\DataTables\Facades\DataTables;
 
 class DriverController extends Controller
 {
@@ -34,171 +34,8 @@ class DriverController extends Controller
 
     public function index(Request $request)
     {
-        // Check if it's an AJAX request for DataTables
         if ($request->ajax()) {
-            $drivers = Driver::with(['company', 'currentLicense', 'medicalCertificate'])->select('drivers.*');
-
-            // Draft applications are never listed
-            $drivers->listed();
-
-            // Apply status filter if provided
-            if ($request->has('status') && $request->status && $request->status !== 'all') {
-                $drivers->withStatus((string) $request->status);
-            }
-
-            return DataTables::of($drivers)
-                ->addIndexColumn()
-                ->addColumn('photo', function ($driver) {
-                    $initials = strtoupper(substr($driver->first_name ?? 'D', 0, 1).substr($driver->last_name ?? 'R', 0, 1));
-
-                    if ($driver->photo_file_id) {
-                        $photoUrl = e(route('admin.driver.file', [$driver->id, 'photo']));
-
-                        return '<img src="'.$photoUrl.'" alt="'.e($driver->first_name).'" class="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-sm" />';
-                    }
-
-                    return '<span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700 ring-2 ring-white dark:bg-brand-900/40 dark:text-brand-300 dark:ring-gray-800">'.e($initials).'</span>';
-                })
-                ->addColumn('full_name', function ($driver) {
-                    return $driver->first_name.' '.
-                        ($driver->middle_name ? $driver->middle_name.' ' : '').
-                        $driver->last_name.
-                        ($driver->suffix ? ' '.$driver->suffix : '');
-                })
-                ->addColumn('company_name', function ($driver) {
-                    return $driver->company ? $driver->company->company_name : 'N/A';
-                })
-                ->addColumn('state', function ($driver) {
-                    return $driver->state_code ?? 'N/A';
-                })
-                ->addColumn('hired_at', function ($driver) {
-                    return $driver->hired_at ? $driver->hired_at : 'Not Hired';
-                })
-                ->addColumn('license_expiration_date', function ($driver) {
-                    return $driver->currentLicense->expires ?? 'N/A';
-                })
-                ->addColumn('medical_certificate_expiration_date', function ($driver) {
-                    return $driver->medicalCertificate?->expiry_date?->toDateString() ?? 'N/A';
-                })
-                ->addColumn('status', function ($driver) {
-                    $statusConfigs = [
-                        'draft' => [
-                            'label' => 'Draft',
-                            'classes' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-                        ],
-                        'pending' => [
-                            'label' => 'Pending',
-                            'classes' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                        ],
-                        'active' => [
-                            'label' => 'Active',
-                            'classes' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                        ],
-                        'inactive' => [
-                            'label' => 'Inactive',
-                            'classes' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-                        ],
-                        'submitted' => [
-                            'label' => 'Submitted',
-                            'classes' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                        ],
-                        'under_review' => [
-                            'label' => 'Under Review',
-                            'classes' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                        ],
-                        'approved' => [
-                            'label' => 'Approved',
-                            'classes' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                        ],
-                        'rejected' => [
-                            'label' => 'Rejected',
-                            'classes' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-                        ],
-                    ];
-
-                    $config = $statusConfigs[$driver->status] ?? [
-                        'label' => ucfirst($driver->status),
-                        'classes' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-                    ];
-
-                    return '<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium '.$config['classes'].'">'.$config['label'].'</span>';
-                })
-                ->addColumn('action', function ($driver) {
-                    return '<div class="flex items-center space-x-2">
-                <a href="'.route('admin.driver.show', $driver->id).'" 
-                   class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700" 
-                   title="View">
-                    <i class="fas fa-eye text-xs"></i>
-                </a>
-                <a href="'.route('admin.driver.edit', $driver->id).'" 
-                   class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700" 
-                   title="Edit">
-                    <i class="fas fa-edit text-xs"></i>
-                </a>
-                <button type="button"
-                        data-action="delete-driver" data-driver-id="'.$driver->id.'" data-driver-name="'.e($driver->first_name.' '.$driver->last_name).'"
-                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-red-50 hover:text-red-600 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400" 
-                        title="Delete">
-                    <i class="fas fa-trash text-xs"></i>
-                </button>
-            </div>';
-                })
-                ->rawColumns(['photo', 'status', 'action'])
-                ->filter(function ($query) use ($request) {
-                    if ($request->has('search') && ! empty($request->search['value'])) {
-                        $search = $request->search['value'];
-                        $query->where(function ($q) use ($search) {
-                            $q->where('first_name', 'like', "%{$search}%")
-                                ->orWhere('last_name', 'like', "%{$search}%")
-                                ->orWhere('middle_name', 'like', "%{$search}%")
-                                ->orWhere('email', 'like', "%{$search}%")
-                                ->orWhere('main_phone', 'like', "%{$search}%")
-                                ->orWhere('state_code', 'like', "%{$search}%")
-                                ->orWhereHas('company', function ($companyQuery) use ($search) {
-                                    $companyQuery->where('company_name', 'like', "%{$search}%")
-                                        ->orWhere('company_name', 'like', "%{$search}%")
-                                        ->orWhere('business_name', 'like', "%{$search}%");
-                                });
-                        });
-                    }
-                })
-                ->order(function ($query) use ($request) {
-                    if ($request->has('order') && isset($request->order[0])) {
-                        $columnIndex = (int) ($request->order[0]['column'] ?? 0);
-                        // Whitelist: any other value makes orderBy() throw (DRV-07).
-                        $direction = strtolower((string) ($request->order[0]['dir'] ?? '')) === 'desc' ? 'desc' : 'asc';
-
-                        // Map DataTables columns to database columns
-                        // 0: photo, 1: full_name, 2: email, 3: status, 4: state,
-                        // 5: license_exp, 6: medical_exp, 7: hired_at, 8: action
-                        switch ($columnIndex) {
-                            case 1: // Full Name
-                                $query->orderBy('first_name', $direction)
-                                    ->orderBy('last_name', $direction);
-                                break;
-                            case 2: // Email
-                                $query->orderBy('email', $direction);
-                                break;
-                            case 3: // Status
-                                $query->orderByRaw(Driver::STATUS_SQL.' '.$direction);
-                                break;
-                            case 4: // State
-                                $query->orderBy('state_code', $direction);
-                                break;
-                            case 6: // Medical Exp.
-                                $query->orderBy(Driver::medicalCertificateExpirySubquery(), $direction);
-                                break;
-                            case 7: // Hire Date
-                                $query->orderBy('hired_at', $direction);
-                                break;
-                            default:
-                                $query->orderBy('id', $direction);
-                        }
-                    } else {
-                        $query->orderBy('id', 'desc');
-                    }
-                })
-                ->make(true);
+            return (new DriverTable($request))->json();
         }
 
         $baseQuery = Driver::query();
@@ -217,11 +54,7 @@ class DriverController extends Controller
             $statusCounts[$status] = (int) ($byStatus[$status] ?? 0);
         }
 
-        // Get companies for dropdown (filtered by user role)
-        $companies = $this->getCompaniesForUser();
-
-        // For the initial page load, pass status counts to the view
-        return view('admin.driver.index', compact('statusCounts', 'companies'));
+        return view('admin.driver.index', compact('statusCounts'));
     }
 
     public function create()

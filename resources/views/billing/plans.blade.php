@@ -18,7 +18,7 @@
         @if ($currentSubscription && $currentPlan)
             <div class="mb-8 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
-                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
+                    <div class="shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
                         <i class="fas fa-check text-blue-600 dark:text-blue-400"></i>
                     </div>
                     <div>
@@ -71,7 +71,7 @@
                     $monthly = $plan->currentPrice('month');
                 @endphp
                 <div class="relative flex flex-col rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 bg-white dark:bg-gray-800 overflow-hidden">
-                    <div class="p-6 sm:p-8 flex flex-col flex-grow">
+                    <div class="p-6 sm:p-8 flex flex-col grow">
                         <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">{{ $plan->name }}</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">{{ $plan->description }}</p>
 
@@ -84,10 +84,10 @@
                         @endif
 
                         {{-- Features --}}
-                        <ul class="space-y-3 mb-8 flex-grow">
+                        <ul class="space-y-3 mb-8 grow">
                             @foreach ($plan->marketing_bullets ?? [] as $bullet)
                                 <li class="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-                                    <i class="fas fa-check-circle text-green-500 mt-0.5 flex-shrink-0"></i>
+                                    <i class="fas fa-check-circle text-green-500 mt-0.5 shrink-0"></i>
                                     <span>{{ $bullet }}</span>
                                 </li>
                             @endforeach

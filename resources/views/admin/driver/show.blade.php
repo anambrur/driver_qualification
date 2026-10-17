@@ -47,7 +47,7 @@
             <div class="p-6">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between">
                     <div class="flex items-center space-x-4 mb-4 md:mb-0">
-                        <div class="flex-shrink-0">
+                        <div class="shrink-0">
                             @if ($driverPhotoUrl)
                                 <img src="{{ $driverPhotoUrl }}" alt="{{ $driverFullName }}"
                                     class="h-16 w-16 rounded-full object-cover ring-2 ring-brand-100 dark:ring-brand-900/40 shadow-sm">
@@ -307,7 +307,7 @@
 
                                 {{-- Hire Modal HTML --}}
                                 <div id="hireModal"
-                                    class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+                                    class="fixed inset-0 bg-gray-500/75 flex items-center justify-center p-4 z-50 hidden">
                                     <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md">
                                         <div class="p-6">
                                             <div class="flex justify-between items-center mb-4">
@@ -389,7 +389,7 @@
 
                                 {{-- Not Hire Modal HTML --}}
                                 <div id="notHireModal"
-                                    class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+                                    class="fixed inset-0 bg-gray-500/75 flex items-center justify-center p-4 z-50 hidden">
                                     <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md">
                                         <div class="p-6">
                                             <div class="flex justify-between items-center mb-4">
@@ -634,7 +634,7 @@
                         <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-brand-500/90 via-brand-600/80 to-slate-700/90"></div>
                         <div class="relative px-5 sm:px-6 pt-10 pb-6">
                             <div class="flex flex-col sm:flex-row sm:items-end gap-5">
-                                <div class="flex-shrink-0">
+                                <div class="shrink-0">
                                     @if ($driverPhotoUrl)
                                         <img src="{{ $driverPhotoUrl }}" alt="{{ $driverFullName }}"
                                             class="h-24 w-24 rounded-2xl object-cover ring-4 ring-white shadow-lg dark:ring-gray-900">
@@ -1035,7 +1035,7 @@
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-2 ml-3 flex-shrink-0">
+                                <div class="flex items-center gap-2 ml-3 shrink-0">
                                     @if ($docDetail['document_id'] && $docDetail['file_id'])
                                         <a href="{{ route('admin.compliance.driver.documents.view', $docDetail['document_id']) }}"
                                             target="_blank"

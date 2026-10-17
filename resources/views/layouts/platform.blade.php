@@ -1,10 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>@hasSection('title')@yield('title') | @endif Platform | {{ settings('site_name', config('app.name')) }}</title>
+
+    @include('partials.theme-head')
 
     {{-- Private area: noindex (seo-checklist) --}}
     <x-seo />
@@ -17,66 +19,60 @@
     @endif
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css">
+    @hasstack('datatable')
+    @else
+        {{-- Legacy DataTables 1.x for pages not yet on <x-ui.datatable> (phase 2) --}}
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css">
+    @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://kit.fontawesome.com/14c3ef5dcc.js" crossorigin="anonymous"></script>
+    @stack('datatable')
+    <script src="https://kit.fontawesome.com/14c3ef5dcc.js" crossorigin="anonymous" defer></script>
     @stack('styles')
 </head>
 
-<body x-data="{ 'darkMode': false, 'sidebarToggle': false }" x-init="darkMode = JSON.parse(localStorage.getItem('darkMode'));
-$watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))" :class="{ 'dark bg-gray-900': darkMode === true }">
-    <div class="flex h-screen overflow-hidden">
-        @include('partials.platform-sidebar')
+<body class="min-h-dvh bg-background font-sans text-foreground antialiased" x-data="appShell">
+    <a href="#main" class="skip-link">Skip to content</a>
 
-        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
-            <header class="sticky top-0 z-99 flex w-full items-center justify-between border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
-                <span class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Platform administration</span>
-                @auth('platform')
-                    <div class="flex items-center gap-4">
-                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ auth('platform')->user()->name }}</span>
-                        <form method="POST" action="{{ route('platform.logout') }}">
-                            @csrf
-                            <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-700">Log out</button>
-                        </form>
-                    </div>
-                @endauth
-            </header>
+    @php($platformUser = auth('platform')->user())
+    @php($menu = \App\Support\Navigation\PlatformMenu::for($platformUser, request()))
+    <div class="flex min-h-dvh">
+        <x-layout.sidebar :groups="$menu" :home="route('platform.dashboard')" label="Platform navigation" />
 
-            <main class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6 w-full">
-                @if (session('success'))
-                    <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-900/30 dark:text-green-200">{{ session('success') }}</div>
+        <div class="flex min-w-0 flex-1 flex-col">
+            <x-layout.header>
+                <span class="hidden text-sm font-medium text-muted-foreground sm:inline">Platform administration</span>
+                @if ($platformUser)
+                    <x-slot:user>
+                        <x-layout.user-menu :name="$platformUser->name" :email="$platformUser->email" :logout="route('platform.logout')" />
+                    </x-slot:user>
                 @endif
-                @if (session('error'))
-                    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">{{ session('error') }}</div>
-                @endif
-                @if ($errors->any())
-                    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
-                        <ul class="list-disc pl-5">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
+            </x-layout.header>
+
+            <main id="main" tabindex="-1" class="mx-auto w-full max-w-screen-2xl flex-1 p-4 outline-hidden sm:p-6 lg:p-8">
+                <x-ui.flash />
 
                 @yield('content')
             </main>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <x-ui.toaster />
+
+    @hasstack('datatable')
+    @else
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
+    @endif
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
     <script>
         window.showAppAlert = function(message, icon = 'warning', title = null) {
-            return Swal.fire({ icon: icon, title: title || 'Attention', text: message, confirmButtonColor: '#2563eb' });
+            return Swal.fire({ icon: icon, title: title || 'Attention', text: message });
         };
         window.showAppConfirm = function(message, options = {}) {
             return Swal.fire({
                 title: options.title || 'Please Confirm', text: message, icon: options.icon || 'question',
-                showCancelButton: true, confirmButtonColor: options.confirmButtonColor || '#2563eb',
-                cancelButtonColor: '#6b7280', confirmButtonText: options.confirmButtonText || 'Yes, continue',
+                showCancelButton: true, confirmButtonText: options.confirmButtonText || 'Yes, continue',
             });
         };
     </script>

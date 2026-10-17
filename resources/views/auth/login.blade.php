@@ -215,7 +215,7 @@
                         @foreach ($highlights as $h)
                             <div class="flex items-center gap-3 glass-panel rounded-xl px-4 py-3">
                                 <div
-                                    class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                                    class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                                     <svg class="w-4 h-4 text-brand-200" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -303,7 +303,7 @@
                             </div>
                             <input id="email" type="email" name="email" value="{{ old('email') }}" required
                                 autofocus autocomplete="username" autocapitalize="none" spellcheck="false"
-                                class="auth-input w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0 lowercase"
+                                class="auth-input w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-hidden focus:ring-0 lowercase"
                                 placeholder="you@company.com">
                         </div>
                         <x-input-error :messages="$errors->get('email')" class="mt-1.5" />
@@ -330,7 +330,7 @@
                             </div>
                             <input id="password" :type="showPassword ? 'text' : 'password'" name="password" required
                                 autocomplete="current-password"
-                                class="auth-input w-full pl-11 pr-11 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0"
+                                class="auth-input w-full pl-11 pr-11 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-hidden focus:ring-0"
                                 placeholder="••••••••">
                             <button type="button" @click="showPassword = !showPassword"
                                 class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
@@ -362,7 +362,7 @@
 
                     {{-- Submit --}}
                     <button type="submit"
-                        class="w-full py-3 px-4 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/40 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                        class="w-full py-3 px-4 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/40 hover:-translate-y-0.5 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                         Sign In
                     </button>
                 </form>
