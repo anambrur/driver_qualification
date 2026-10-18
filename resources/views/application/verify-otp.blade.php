@@ -1,147 +1,56 @@
-{{-- resources/views/driver-application/verify-otp.blade.php --}}
 @extends('layouts.application-form-layout')
 
 @section('title', 'Verify OTP | DOT Driver Qualification')
+@section('themed', '1')
 
 @section('content')
-    <div class="min-h-screen bg-gray-50 flex flex-col items-center p-4 md:p-8">
-        <div class="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
-            <!-- Header Section -->
-            <div class="mb-8 md:mb-12 bg-blue-950 p-4 rounded-lg flex items-center justify-between">
-                <h3 class="text-2xl font-bold text-white mb-1">
-                    {{ $company->company_name }}
-                </h3>
-                <p class="text-gray-200 text-sm">
-                    © {{ now()->year }} {{ url('/') }}
-                </p>
-            </div>
-
-            <!-- Main Card -->
-            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-10 border border-gray-200">
-                <!-- Driver's Application Form -->
-                <div class="mb-8 md:mb-12 border-b border-gray-200 pb-4 flex justify-end">
-                    <h3 class="text-4xl md:text-4xl font-bold text-gray-800">
-                        Driver's Application
-                    </h3>
-                </div>
-
-                <!-- Title Section -->
-                <div class="text-center mb-8 md:mb-12">
-                    <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-3">Verify Your Phone</h3>
-                    <p class="text-gray-600 text-lg md:text-xl">
-                        Enter the verification code sent to your phone to continue your application.
-                    </p>
-                </div>
-
-                <!-- Phone Display -->
-                <div class="text-center mb-6">
-                    <div class="inline-flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-full">
-                        <i class="fas fa-mobile-alt text-blue-600"></i>
-                        <span class="font-medium text-gray-800">{{ $phone }}</span>
-                    </div>
-                    <p class="text-sm text-gray-500 mt-2">
-                        OTP sent successfully. Code expires in <span id="timer"
-                            class="font-semibold text-blue-600">5:00</span> minutes
-                    </p>
-                </div>
-
-                <form id="otpVerificationForm" action="{{ route('public.application.submit.otp', $company->slug) }}"
-                    method="POST">
-                    @csrf
-
-                    <!-- OTP Input Fields -->
-                    <div class="max-w-md mx-auto mb-10 md:mb-14">
-                        <label class="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-400 text-center">
-                            Enter 6-digit verification code <span class="text-red-500">*</span>
-                        </label>
-
-                        <div class="flex justify-center gap-2 md:gap-3 mb-2" id="otp-container">
-                            @for ($i = 1; $i <= 6; $i++)
-                                <input type="text" maxlength="1" data-index="{{ $i }}"
-                                    class="otp-digit h-12 w-12 md:h-12 md:w-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
-                                    autocomplete="off" inputmode="numeric" pattern="[0-9]*" />
-                            @endfor
-                        </div>
-
-                        <!-- Hidden field to store the complete OTP -->
-                        <input type="hidden" name="otp" id="otp-input">
-
-                        <div id="otp-error" class="mt-2 text-sm text-red-500 text-center hidden"></div>
-
-                        @error('otp')
-                            <p class="mt-2 text-sm text-red-500 text-center">{{ $message }}</p>
-                        @enderror
-
-                        <!-- Validation Summary -->
-                        <div id="validation-summary" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg hidden">
-                            <p class="text-red-600 font-medium mb-2">Please fix the following errors:</p>
-                            <ul id="error-list" class="text-red-500 text-sm list-disc pl-5"></ul>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="flex flex-col items-center justify-center gap-4 mb-5">
-                        <button type="submit" id="verifyBtn"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
-                            Verify & Continue
-                        </button>
-
-                        <div class="flex flex-col md:flex-row gap-4 items-center">
-                            <button type="button" id="resendBtn"
-                                class="text-blue-600 hover:text-blue-800 transition-colors duration-300 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
-                                disabled>
-                                <span id="resendText">Resend OTP (<span id="countdown">60</span>s)</span>
-                            </button>
-
-                            <span class="hidden md:inline text-gray-300">|</span>
-
-                            <a href="{{ route('application.form', $company->slug) }}"
-                                class="text-gray-600 hover:text-gray-800 transition-colors duration-300 font-medium">
-                                <i class="fas fa-arrow-left mr-1"></i> Change Phone Number
-                            </a>
-                        </div>
-                    </div>
-                </form>
-
-                <!-- Help Section -->
-                <div class="text-center pt-6 md:pt-8 border-t border-gray-200">
-                    <p class="text-gray-600 text-base md:text-lg mb-3 md:mb-4">Need help?</p>
-                    <div class="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6">
-                        <!-- Phone -->
-                        <a href="tel:{{ $company->phone ? $company->phone : '2092776341' }}"
-                            class="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors duration-300 group">
-                            <div
-                                class="bg-blue-100 p-2 md:p-3 rounded-full group-hover:bg-blue-200 transition-colors duration-300">
-                                <i class="fas fa-phone text-blue-600 text-sm md:text-base"></i>
-                            </div>
-                            <span
-                                class="font-medium text-base md:text-lg">{{ $company->phone ? $company->phone : '123456789' }}</span>
-                        </a>
-
-                        <!-- Divider (hidden on mobile) -->
-                        <div class="hidden md:block h-6 w-px bg-gray-300"></div>
-
-                        <!-- Email -->
-                        <a href="mailto:{{ $company->email }}"
-                            class="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors duration-300 group">
-                            <div
-                                class="bg-blue-100 p-2 md:p-3 rounded-full group-hover:bg-blue-200 transition-colors duration-300">
-                                <i class="fas fa-envelope text-blue-600 text-sm md:text-base"></i>
-                            </div>
-                            <span class="font-medium text-base md:text-lg">{{ $company->email }}</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Footer Note -->
-            <div class="text-center mt-6 md:mt-8">
-                <p class="text-gray-500 text-sm md:text-base">
-                    Secure verification process • Your information is protected
-                </p>
-            </div>
+    <x-application.entry :company="$company" icon="smartphone" heading="Verify Your Phone" intro="Enter the verification code sent to your phone to continue your application.">
+        <div class="mb-6 grid justify-items-center gap-2 text-center">
+            <x-ui.badge>{{ $phone }}</x-ui.badge>
+            <p class="text-sm text-muted-foreground">
+                OTP sent successfully. Code expires in <span id="timer" class="font-semibold text-primary">5:00</span> minutes
+            </p>
         </div>
-    </div>
+
+        <form id="otpVerificationForm" action="{{ route('public.application.submit.otp', $company->slug) }}" method="POST" class="grid gap-6">
+            @csrf
+
+            <fieldset class="grid gap-3">
+                <legend class="label mb-3 w-full justify-center text-center">Enter 6-digit verification code <span class="text-destructive" aria-hidden="true">*</span></legend>
+
+                <div class="flex justify-center gap-2" id="otp-container">
+                    @for ($i = 1; $i <= 6; $i++)
+                        <input type="text" maxlength="1" data-index="{{ $i }}" aria-label="Digit {{ $i }}"
+                            class="otp-digit input size-11 p-0 text-center text-xl font-semibold sm:size-12"
+                            autocomplete="{{ $i === 1 ? 'one-time-code' : 'off' }}" inputmode="numeric" pattern="[0-9]*" />
+                    @endfor
+                </div>
+
+                <input type="hidden" name="otp" id="otp-input">
+
+                <p id="otp-error" role="alert" class="hidden text-center text-sm text-destructive"></p>
+
+                @error('otp')
+                    <p role="alert" class="text-center text-sm text-destructive">{{ $message }}</p>
+                @enderror
+
+                <x-ui.alert id="validation-summary" tone="danger" title="Please fix the following errors:" class="hidden">
+                    <ul id="error-list" class="list-disc space-y-1 pl-5"></ul>
+                </x-ui.alert>
+            </fieldset>
+
+            <div class="grid justify-items-center gap-3">
+                <x-ui.button type="submit" id="verifyBtn" variant="primary" class="w-full sm:w-auto">Verify &amp; Continue</x-ui.button>
+
+                <div class="flex flex-col items-center gap-2 sm:flex-row sm:gap-4">
+                    <x-ui.button id="resendBtn" variant="link" disabled>
+                        <span id="resendText">Resend OTP (<span id="countdown">60</span>s)</span>
+                    </x-ui.button>
+                    <x-ui.button :href="route('application.form', $company->slug)" variant="link" icon="arrow-left">Change Phone Number</x-ui.button>
+                </div>
+            </div>
+        </form>
+    </x-application.entry>
 @endsection
 
 @push('scripts')
@@ -245,21 +154,16 @@
 
                 // Remove error styling from all inputs
                 if (!otpExpired) {
-                    otpInputs.forEach(input => {
-                        input.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
-                        input.classList.add('border-gray-300');
-                    });
+                    otpInputs.forEach(input => input.removeAttribute('aria-invalid'));
                 }
 
                 if (otp.length === 6 && !otpExpired) {
                     // All good
                     verifyBtn.disabled = false;
-                    verifyBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                     return true;
                 } else {
                     // Not complete
                     verifyBtn.disabled = true;
-                    verifyBtn.classList.add('opacity-50', 'cursor-not-allowed');
                     return false;
                 }
             }
@@ -270,10 +174,7 @@
                 otpError.classList.remove('hidden');
 
                 // Add error styling to all inputs
-                otpInputs.forEach(input => {
-                    input.classList.add('border-red-500', 'ring-1', 'ring-red-500');
-                    input.classList.remove('border-gray-300');
-                });
+                otpInputs.forEach(input => input.setAttribute('aria-invalid', 'true'));
             }
 
             // Update validation summary
@@ -299,7 +200,6 @@
 
                 countdown = 60;
                 resendBtn.disabled = true;
-                resendBtn.classList.add('disabled:text-gray-400', 'disabled:cursor-not-allowed');
                 document.getElementById('resendText').innerHTML = 'Resend OTP (<span id="countdown">60</span>s)';
 
                 resendCountdownInterval = setInterval(() => {
@@ -313,7 +213,6 @@
                         clearInterval(resendCountdownInterval);
                         resendCountdownInterval = null;
                         resendBtn.disabled = false;
-                        resendBtn.classList.remove('disabled:text-gray-400', 'disabled:cursor-not-allowed');
                         document.getElementById('resendText').innerHTML = 'Resend OTP';
                     }
                 }, 1000);
@@ -329,8 +228,8 @@
                 otpTimer = Number.isFinite(parsedSeconds) ? Math.max(0, parsedSeconds) : defaultOtpSeconds;
                 otpExpired = otpTimer <= 0;
 
-                timerElement.classList.remove('text-red-600');
-                timerElement.classList.add('text-blue-600');
+                timerElement.classList.remove('text-destructive');
+                timerElement.classList.add('text-primary');
 
                 function renderTimer() {
                     const minutes = Math.floor(otpTimer / 60);
@@ -345,12 +244,11 @@
 
                         otpExpired = true;
                         timerElement.textContent = 'Expired';
-                        timerElement.classList.remove('text-blue-600');
-                        timerElement.classList.add('text-red-600');
+                        timerElement.classList.remove('text-primary');
+                        timerElement.classList.add('text-destructive');
 
                         // Disable verify button
                         verifyBtn.disabled = true;
-                        verifyBtn.classList.add('opacity-50', 'cursor-not-allowed');
                         showOtpError('OTP expired. Please request a new verification code.');
                     }
                 }
@@ -369,7 +267,7 @@
 
                 // Show loading state
                 const originalText = resendBtn.innerHTML;
-                resendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sending...';
+                resendBtn.textContent = 'Sending...';
                 resendBtn.disabled = true;
 
                 // Send AJAX request to resend OTP
@@ -380,7 +278,7 @@
                             'X-CSRF-TOKEN': '{{ csrf_token() }}'
                         },
                         body: JSON.stringify({
-                            phone: '{{ $phone }}'
+                            phone: @json($phone)
                         })
                     })
                     .then(response => response.json())
@@ -400,45 +298,18 @@
                             startResendCountdown();
                             startOtpTimer(data.expires_in || defaultOtpSeconds);
 
-                            // Show success message
-                            if (typeof Swal !== 'undefined') {
-                                Swal.fire({
-                                    title: 'OTP Resent',
-                                    text: 'A new verification code has been sent to your phone.',
-                                    icon: 'success',
-                                    confirmButtonColor: '#2563eb',
-                                    timer: 3000
-                                });
-                            }
+                            showAppAlert('A new verification code has been sent to your phone.', 'success', 'OTP Resent');
                         } else {
                             resendBtn.disabled = false;
-                            resendBtn.classList.remove('disabled:text-gray-400', 'disabled:cursor-not-allowed');
 
-                            // Show error message
-                            if (typeof Swal !== 'undefined') {
-                                Swal.fire({
-                                    title: 'Failed to Resend',
-                                    text: data.message ||
-                                        'Failed to resend OTP. Please try again.',
-                                    icon: 'error',
-                                    confirmButtonColor: '#2563eb'
-                                });
-                            }
+                            showAppAlert(data.message || 'Failed to resend OTP. Please try again.', 'error', 'Failed to Resend');
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
                         resendBtn.disabled = false;
-                        resendBtn.classList.remove('disabled:text-gray-400', 'disabled:cursor-not-allowed');
 
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                title: 'Error',
-                                text: 'An error occurred. Please try again.',
-                                icon: 'error',
-                                confirmButtonColor: '#2563eb'
-                            });
-                        }
+                        showAppAlert('An error occurred. Please try again.', 'error', 'Error');
                     })
                     .finally(() => {
                         if (countdown > 0 && !resendCountdownInterval) {
@@ -483,16 +354,8 @@
                 }
 
                 // Show loading state
-                const originalText = verifyBtn.innerHTML;
-                verifyBtn.innerHTML = `
-                    <div class="flex items-center justify-center">
-                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Verifying...
-                    </div>
-                `;
+                verifyBtn.setAttribute('aria-busy', 'true');
+                verifyBtn.textContent = 'Verifying...';
                 verifyBtn.disabled = true;
 
                 // Submit the form
@@ -511,31 +374,4 @@
         });
     </script>
 
-    <style>
-        .otp-digit {
-            transition: all 0.2s ease;
-        }
-
-        .otp-digit:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-            transform: scale(1.05);
-        }
-
-        .otp-digit:not(:placeholder-shown) {
-            border-color: #3b82f6;
-            background-color: #f8fafc;
-        }
-
-        /* Hide number input arrows */
-        .otp-digit::-webkit-outer-spin-button,
-        .otp-digit::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        .otp-digit[type=number] {
-            -moz-appearance: textfield;
-        }
-    </style>
 @endpush

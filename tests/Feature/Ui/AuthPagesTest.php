@@ -154,3 +154,20 @@ it('keeps the platform login on the platform guard', function () {
     $this->assertAuthenticatedAs($staff, 'platform');
     expect($this->isAuthenticated('web'))->toBeFalse();
 });
+
+it('escapes the company name once in the invitation heading', function () {
+    $owner = Actors::companyOwner();
+    $owner->company->forceFill(['company_name' => 'A & B Trucking'])->save();
+    $token = str_repeat('b', 64);
+    app(TenantContext::class)->run($owner->company_id, fn () => CompanyInvitation::create([
+        'email' => 'invitee@example.com',
+        'role_id' => Role::query()->where('team_id', $owner->company_id)->value('id'),
+        'token_hash' => CompanyInvitation::hashToken($token),
+        'invited_by_user_id' => $owner->id,
+        'expires_at' => now()->addDay(),
+    ]));
+
+    $this->get(route('invitations.show', $token))->assertOk()
+        ->assertSee('<h1 class="text-2xl font-semibold tracking-tight">Join A &amp; B Trucking</h1>', false)
+        ->assertDontSee('&amp;amp;', false);
+});

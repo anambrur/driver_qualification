@@ -12,6 +12,7 @@ import collapse from "@alpinejs/collapse";
 import focus from "@alpinejs/focus";
 
 import theme from "./theme";
+import { openDialog } from "./dialogs";
 
 // Legacy helper still used by pages not yet migrated (phase 2).
 window.isCurrentPath = (pattern) => {
@@ -61,12 +62,11 @@ document.addEventListener('click', (event) => {
     }
 });
 
-// <form data-confirm="Title" data-confirm-text="..." data-confirm-button="Delete"> asks in the
-// layout's <x-ui.confirm-dialog> first, and submits only on confirm.
+// <form data-confirm="Title" data-confirm-text="..." data-confirm-button="Delete" data-confirm-cancel="Keep">
+// asks in the layout's <x-ui.confirm-dialog> first, and submits only on confirm.
 document.addEventListener("submit", (event) => {
     const form = event.target;
-    const dialog = document.getElementById("confirm-dialog");
-    if (!(form instanceof HTMLFormElement) || !form.dataset.confirm || !dialog) return;
+    if (!(form instanceof HTMLFormElement) || !form.dataset.confirm || !document.getElementById("confirm-dialog")) return;
     if (form.dataset.confirmed) {
         delete form.dataset.confirmed;
         return;
@@ -74,20 +74,17 @@ document.addEventListener("submit", (event) => {
 
     event.preventDefault();
     const submitter = event.submitter;
-    dialog.querySelector("#confirm-dialog-title").textContent = form.dataset.confirm;
-    dialog.querySelector("#confirm-dialog-text").textContent = form.dataset.confirmText ?? "";
-    dialog.querySelector("[data-confirm-ok]").textContent = form.dataset.confirmButton ?? "Confirm";
-    dialog.returnValue = "";
-    dialog.addEventListener(
-        "close",
-        () => {
-            if (dialog.returnValue !== "ok") return;
-            form.dataset.confirmed = "1";
-            form.requestSubmit(submitter);
-        },
-        { once: true },
-    );
-    dialog.showModal();
+    openDialog({
+        title: form.dataset.confirm,
+        text: form.dataset.confirmText ?? "",
+        confirmText: form.dataset.confirmButton ?? "Confirm",
+        cancelText: form.dataset.confirmCancel ?? "Cancel",
+        variant: "destructive",
+    }).then(({ isConfirmed }) => {
+        if (!isConfirmed) return;
+        form.dataset.confirmed = "1";
+        form.requestSubmit(submitter);
+    });
 });
 
 Alpine.start();

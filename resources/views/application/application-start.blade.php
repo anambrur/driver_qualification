@@ -1,128 +1,34 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Driver\'s Application | DOT Driver Qualification')
+@section('themed', '1')
 
 @section('content')
-    <div class="min-h-screen bg-gray-50 flex flex-col items-center p-4 md:p-8">
-        <div class="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
-            <!-- Header Section -->
-            <div class="mb-8 md:mb-12 bg-blue-950 p-4 rounded-lg flex items-center justify-between">
-                <h3 class="text-2xl font-bold text-white mb-1">
-                    {{ $company->company_name }}
-                </h3>
-                <p class="text-gray-200 text-sm">
-                    © {{ now()->year }} {{ url('/') }}
-                </p>
+    <x-application.entry :company="$company" heading="Start New Application" intro="Please complete the fields below to register and begin the application.">
+        <form id="applicationForm" action="{{ route('public.application.send.otp', $company->slug) }}" method="POST" class="grid gap-6">
+            @csrf
+            <div class="grid gap-5 sm:grid-cols-2">
+                <x-ui.field label="Phone" name="phone" for="phone" required>
+                    <x-ui.input id="phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="+1 (555) 123-4567" />
+                    <p id="phone-error" role="alert" class="hidden text-sm text-destructive"></p>
+                </x-ui.field>
+
+                <x-ui.field label="Confirm Phone" name="confirm_phone" for="confirm_phone" required>
+                    <x-ui.input id="confirm_phone" name="confirm_phone" inputmode="tel" autocomplete="tel" placeholder="+1 (555) 123-4567" />
+                    <p id="confirm-phone-error" role="alert" class="hidden text-sm text-destructive"></p>
+                </x-ui.field>
             </div>
 
-            <!-- Main Card -->
-            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-10 border border-gray-200">
-                <!-- Driver's Application Form -->
-                <div class="mb-8 md:mb-12 border-b border-gray-200 pb-4 flex justify-end">
-                    <h3 class="text-4xl md:text-4xl font-bold text-gray-800">
-                        Driver's Application
-                    </h3>
-                </div>
+            <x-ui.alert id="validation-summary" tone="danger" title="Please fix the following errors:" class="hidden">
+                <ul id="error-list" class="list-disc space-y-1 pl-5"></ul>
+            </x-ui.alert>
 
-                <!-- Title Section -->
-                <div class="text-center mb-8 md:mb-12">
-                    <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-3">Start New Application</h3>
-                    <p class="text-gray-600 text-lg md:text-xl">
-                        Please complete the fields below to register and begin the application.
-                    </p>
-                </div>
-
-                <form id="applicationForm" action="{{ route('public.application.send.otp', $company->slug) }}"
-                    method="POST">
-                    @csrf
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-10 md:mb-14">
-                        <div>
-                            <label for="phone" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                Phone <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" id="phone" name="phone"
-                                class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-                                placeholder="+1 (555) 123-4567" value="{{ old('phone') }}" />
-                            <div id="phone-error" class="mt-1 text-sm text-red-500 hidden"></div>
-                            @error('phone')
-                                <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="confirm_phone"
-                                class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                Confirm Phone <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" id="confirm_phone" name="confirm_phone"
-                                class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-                                placeholder="+1 (555) 123-4567" value="{{ old('confirm_phone') }}" />
-                            <div id="confirm-phone-error" class="mt-1 text-sm text-red-500 hidden"></div>
-                            @error('confirm_phone')
-                                <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <!-- Validation Summary -->
-                    <div id="validation-summary" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg hidden">
-                        <p class="text-red-600 font-medium mb-2">Please fix the following errors:</p>
-                        <ul id="error-list" class="text-red-500 text-sm list-disc pl-5"></ul>
-                    </div>
-
-                    <!-- Stacked vertical layout -->
-                    <div class="flex flex-col items-center justify-center gap-4 mb-5">
-                        <button type="submit" id="submitBtn"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
-                            Start Application
-                        </button>
-
-                        <a href="{{ url('/') }}"
-                            class="text-blue-600 hover:text-blue-800 transition-colors duration-300 font-medium">
-                            Go Back
-                        </a>
-                    </div>
-                </form>
-
-                <!-- Help Section -->
-                <div class="text-center pt-6 md:pt-8 border-t border-gray-200">
-                    <p class="text-gray-600 text-base md:text-lg mb-3 md:mb-4">Need help?</p>
-                    <div class="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6">
-                        <!-- Phone -->
-                        <a href="tel:2092776341"
-                            class="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors duration-300 group">
-                            <div
-                                class="bg-blue-100 p-2 md:p-3 rounded-full group-hover:bg-blue-200 transition-colors duration-300">
-                                <i class="fas fa-phone text-blue-600 text-sm md:text-base"></i>
-                            </div>
-                            <span
-                                class="font-medium text-base md:text-lg">{{ $company->phone ? $company->phone : '123456789' }}</span>
-                        </a>
-
-                        <!-- Divider (hidden on mobile) -->
-                        <div class="hidden md:block h-6 w-px bg-gray-300"></div>
-
-                        <!-- Email -->
-                        <a href="mailto:{{ $company->email }}"
-                            class="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors duration-300 group">
-                            <div
-                                class="bg-blue-100 p-2 md:p-3 rounded-full group-hover:bg-blue-200 transition-colors duration-300">
-                                <i class="fas fa-envelope text-blue-600 text-sm md:text-base"></i>
-                            </div>
-                            <span class="font-medium text-base md:text-lg">{{ $company->email }}</span>
-                        </a>
-                    </div>
-                </div>
+            <div class="grid justify-items-center gap-3">
+                <x-ui.button type="submit" id="submitBtn" variant="primary" class="w-full sm:w-auto">Start Application</x-ui.button>
+                <x-ui.button :href="route('application.form', $company->slug)" variant="link" icon="arrow-left">Go Back</x-ui.button>
             </div>
-
-            <!-- Footer Note -->
-            <div class="text-center mt-6 md:mt-8">
-                <p class="text-gray-500 text-sm md:text-base">
-                    Secure application process • Your information is protected
-                </p>
-            </div>
-        </div>
-    </div>
+        </form>
+    </x-application.entry>
 @endsection
 
 @push('scripts')
@@ -296,15 +202,13 @@
             function showError(inputElement, errorElement, message) {
                 errorElement.textContent = message;
                 errorElement.classList.remove('hidden');
-                inputElement.classList.add('border-red-500', 'ring-1', 'ring-red-500');
-                inputElement.classList.remove('border-gray-300');
+                inputElement.setAttribute('aria-invalid', 'true');
             }
 
             // Hide error
             function hideError(inputElement, errorElement) {
                 errorElement.classList.add('hidden');
-                inputElement.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
-                inputElement.classList.add('border-gray-300');
+                inputElement.removeAttribute('aria-invalid');
             }
 
             // Update validation summary
@@ -408,8 +312,6 @@
                 const isValid = phone1Valid && phone2Valid && phonesMatch;
 
                 submitBtn.disabled = !isValid;
-                submitBtn.classList.toggle('opacity-50', !isValid);
-                submitBtn.classList.toggle('cursor-not-allowed', !isValid);
             }
 
             // Form submission handler
@@ -439,7 +341,7 @@
                     updateValidationSummary(errors);
 
                     // Scroll to first error
-                    const firstErrorField = document.querySelector('.border-red-500');
+                    const firstErrorField = form.querySelector('[aria-invalid="true"]');
                     if (firstErrorField) {
                         firstErrorField.scrollIntoView({
                             behavior: 'smooth',
@@ -447,19 +349,7 @@
                         });
                     }
 
-                    // Show error notification
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            title: 'Validation Error',
-                            html: 'Please fix the errors in the form before submitting.',
-                            icon: 'error',
-                            confirmButtonColor: '#2563eb',
-                            background: document.documentElement.classList.contains('dark') ?
-                                '#1f2937' : '#ffffff',
-                            color: document.documentElement.classList.contains('dark') ? '#ffffff' :
-                                '#000000'
-                        });
-                    }
+                    showAppAlert('Please fix the errors in the form before submitting.', 'error', 'Validation Error');
 
                     return;
                 }
@@ -468,16 +358,8 @@
                 validationSummary.classList.add('hidden');
 
                 // Show loading state
-                const originalText = submitBtn.innerHTML;
-                submitBtn.innerHTML = `
-            <div class="flex items-center justify-center">
-                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Processing...
-            </div>
-        `;
+                submitBtn.setAttribute('aria-busy', 'true');
+                submitBtn.textContent = 'Processing...';
                 submitBtn.disabled = true;
 
                 const cleanedPhone = phone1Result.normalized;

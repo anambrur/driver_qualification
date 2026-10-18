@@ -507,6 +507,18 @@
         color: var(--primary);
         background-color: color-mix(in oklch, var(--primary) 12%, transparent);
     }
+    .dialog-icon[data-tone="danger"] {
+        color: var(--destructive);
+        background-color: color-mix(in oklch, var(--destructive) 12%, transparent);
+    }
+    .dialog-icon[data-tone="success"] {
+        color: var(--success);
+        background-color: color-mix(in oklch, var(--success) 12%, transparent);
+    }
+    .dialog-icon[data-tone="warning"] {
+        color: var(--warning);
+        background-color: color-mix(in oklch, var(--warning) 14%, transparent);
+    }
     .dialog > * > section {
         min-height: 0;
         overflow-y: auto;

@@ -1,4 +1,4 @@
-<x-layout.auth title="Accept invitation" heading="Join {{ $companyName }}">
+<x-layout.auth title="Accept invitation" :heading="'Join '.$companyName">
     <x-slot:intro>You have been invited to join {{ $companyName }}. Choose your name and password to continue.</x-slot:intro>
 
     <form method="POST" action="{{ route('invitations.accept', $token) }}" class="grid gap-5">

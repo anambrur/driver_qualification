@@ -1,71 +1,28 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Check Application Status | DOT Driver Qualification')
+@section('themed', '1')
 
 @section('content')
-    <div class="min-h-screen bg-gray-50 flex flex-col items-center p-4 md:p-8">
-        <div class="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
-            <div class="mb-8 md:mb-12 bg-blue-950 p-4 rounded-lg flex items-center justify-between">
-                <h3 class="text-2xl font-bold text-white mb-1">
-                    {{ $company->company_name }}
-                </h3>
-                <p class="text-gray-200 text-sm">
-                    © {{ now()->year }} {{ url('/') }}
-                </p>
+    <x-application.entry :company="$company" icon="clipboard-list" heading="Check Application Status" intro="Enter the phone number and date of birth used on your application.">
+        <form id="statusForm" action="{{ route('public.application.check.status', $company->slug) }}" method="POST" class="grid gap-6">
+            @csrf
+            <div class="grid gap-5 sm:grid-cols-2">
+                <x-ui.field label="Phone" name="phone" for="phone" required>
+                    <x-ui.input id="phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="+1 (555) 123-4567" required />
+                </x-ui.field>
+
+                <x-ui.field label="Date of Birth" name="date_of_birth" for="date_of_birth" required>
+                    <x-ui.input type="date" id="date_of_birth" name="date_of_birth" autocomplete="bday" required />
+                </x-ui.field>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-10 border border-gray-200">
-                <div class="text-center mb-8 md:mb-12">
-                    <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-3">Check Application Status</h2>
-                    <p class="text-gray-600 text-lg md:text-xl">
-                        Enter the phone number and date of birth used on your application.
-                    </p>
-                </div>
-
-                <form id="statusForm" action="{{ route('public.application.check.status', $company->slug) }}"
-                    method="POST">
-                    @csrf
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-10">
-                        <div>
-                            <label for="phone" class="mb-1.5 block text-sm font-medium text-gray-700">
-                                Phone <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" id="phone" name="phone" value="{{ old('phone') }}"
-                                class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden"
-                                placeholder="+1 (555) 123-4567" required />
-                            @error('phone')
-                                <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="date_of_birth" class="mb-1.5 block text-sm font-medium text-gray-700">
-                                Date of Birth <span class="text-red-500">*</span>
-                            </label>
-                            <input type="date" id="date_of_birth" name="date_of_birth"
-                                value="{{ old('date_of_birth') }}"
-                                class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:ring-3 focus:outline-hidden"
-                                required />
-                            @error('date_of_birth')
-                                <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col items-center justify-center gap-4">
-                        <button type="submit"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto">
-                            Check Status
-                        </button>
-                    <a href="{{ route('application.form', $company->slug) }}"
-                        class="text-blue-600 hover:text-blue-800 transition-colors duration-300 font-medium">
-                        Back to Application Home
-                    </a>
-                    </div>
-                </form>
+            <div class="grid justify-items-center gap-3">
+                <x-ui.button type="submit" variant="primary" class="w-full sm:w-auto">Check Status</x-ui.button>
+                <x-ui.button :href="route('application.form', $company->slug)" variant="link" icon="arrow-left">Back to Application Home</x-ui.button>
             </div>
-        </div>
-    </div>
+        </form>
+    </x-application.entry>
 @endsection
 
 @push('scripts')

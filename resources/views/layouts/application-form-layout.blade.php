@@ -1,85 +1,41 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport"
-        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>@yield('title')</title>
-    <x-seo />
 
-    <!-- SweetAlert2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css">
-    <!-- Add these Vite directives -->
+    {{-- Pages with @section('themed') follow light/dark/system; the 10 steps stay light until batch 4d. --}}
+    @include('partials.theme-head', ['colorMode' => View::hasSection('themed') ? null : 'light'])
+
+    {{-- Private applicant flow: noindex (seo-checklist) --}}
+    <x-seo />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    @if (settings('favicon'))
+        <link rel="icon" type="image/png" href="{{ asset('storage/' . settings('favicon')) }}">
+    @else
+        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    @endif
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://kit.fontawesome.com/14c3ef5dcc.js" crossorigin="anonymous"></script>
+    {{-- The application steps still use Font Awesome icons; removed in batch 4d. --}}
+    @unless (View::hasSection('themed'))
+        <script src="https://kit.fontawesome.com/14c3ef5dcc.js" crossorigin="anonymous"></script>
+    @endunless
 
     @stack('styles')
 </head>
 
-<body x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }" x-init="darkMode = JSON.parse(localStorage.getItem('darkMode'));
-$watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))" :class="{ 'dark bg-gray-900': darkMode === true }">
-    <!-- ===== Preloader Start ===== -->
-    @include('partials.preloader')
-    <!-- ===== Preloader End ===== -->
+<body class="min-h-dvh bg-background font-sans text-foreground antialiased">
+    <a href="#main" class="skip-link">Skip to content</a>
 
-    <!-- ===== Page Wrapper Start ===== -->
-    <div class="flex h-screen overflow-hidden">
+    <main id="main">
+        @yield('content')
+    </main>
 
-        <!-- ===== Content Area Start ===== -->
-        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
-            <!-- ===== Main Content Start ===== -->
-            <main>
-                @yield('content')
-            </main>
-            <!-- ===== Main Content End ===== -->
-        </div>
-        <!-- ===== Content Area End ===== -->
-    </div>
-    <!-- ===== Page Wrapper End ===== -->
-
-    <!-- jQuery (required for Toastr and DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <!-- SweetAlert2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
-
-    <script>
-        window.showAppAlert = function(message, icon = 'warning', title = null) {
-            const titles = {
-                warning: 'Attention',
-                error: 'Error',
-                success: 'Success',
-                info: 'Notice',
-                question: 'Please Confirm'
-            };
-            return Swal.fire({
-                icon: icon,
-                title: title || titles[icon] || 'Attention',
-                text: message,
-                confirmButtonColor: '#2563eb'
-            });
-        };
-
-        window.showAppConfirm = function(message, options = {}) {
-            return Swal.fire({
-                title: options.title || 'Please Confirm',
-                text: message,
-                icon: options.icon || 'question',
-                showCancelButton: true,
-                confirmButtonColor: options.confirmButtonColor || '#2563eb',
-                cancelButtonColor: options.cancelButtonColor || '#6b7280',
-                confirmButtonText: options.confirmButtonText || 'Yes, continue',
-                cancelButtonText: options.cancelButtonText || 'Cancel'
-            });
-        };
-    </script>
+    <x-ui.confirm-dialog />
 
     @stack('scripts')
     @include('partials.tawk-widget')

@@ -1,285 +1,158 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Driver\'s Application')
+@section('themed', '1')
 
 @section('content')
-    <div class="min-h-screen bg-gray-50 flex flex-col items-center p-4 md:p-8">
-        <div class="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
-            <!-- Header Section -->
-            <div class="mb-8 md:mb-12 bg-blue-950 p-4 rounded-lg flex items-center justify-between">
-                <h3 class="text-2xl font-bold text-white mb-1">
-                    {{ $company->company_name }}
-                </h3>
-                <p class="text-gray-200 text-sm">
-                    © {{ now()->year }} {{ url('/') }}
-                </p>
+    <x-application.entry :company="$company" heading="Driver's Application" intro="New applicant or return to an existing application?" width="max-w-2xl">
+        <div class="grid gap-4 sm:grid-cols-2" x-data="resumeApplication">
+            <button type="button" id="startNewBtn" x-on:click="startNew"
+                class="group grid justify-items-center gap-2 rounded-xl border bg-primary p-6 text-center text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                <x-ui.icon name="file-plus" class="size-8" />
+                <span class="text-lg font-semibold">Start New Application</span>
+                <span class="text-sm opacity-90">Begin a new driver application</span>
+            </button>
 
-            </div>
+            <button type="button" id="returnToBtn" x-on:click="open"
+                class="group grid justify-items-center gap-2 rounded-xl border bg-card p-6 text-center shadow-sm transition hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                <x-ui.icon name="rotate-ccw" class="size-8 text-primary" />
+                <span class="text-lg font-semibold">Return to Application</span>
+                <span class="text-sm text-muted-foreground">Continue your saved application</span>
+            </button>
 
-            <!-- Main Card -->
-            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-10 border border-gray-200">
-                <!-- Title Section -->
-                <div class="text-center mb-8 md:mb-12">
-                    <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-3">Driver's Application</h2>
-                    <p class="text-gray-600 text-lg md:text-xl">
-                        New applicant or return to an existing application?
-                    </p>
+            {{-- Resume: phone → SMS code → redirect. Same endpoints and messages as before batch 4c. --}}
+            <x-ui.dialog id="resume-dialog" size="sm" icon="rotate-ccw" :close-on-overlay="false" title="Return to Application">
+                <form x-show="step === 'phone'" x-on:submit.prevent="checkPhone" id="resume-phone-form" class="grid gap-4" novalidate>
+                    <x-ui.field label="Phone Number" for="resume-phone" hint="Enter the phone number associated with your uncompleted application to pick up where you left off.">
+                        <x-ui.input type="tel" id="resume-phone" x-bind:value="phone" x-on:input="formatPhone" maxlength="14" autocomplete="tel" placeholder="(555) 555-5555"
+                            x-bind:aria-invalid="error ? 'true' : null" />
+                    </x-ui.field>
+                </form>
+
+                <form x-show="step === 'otp'" x-cloak x-on:submit.prevent="checkOtp" id="resume-otp-form" class="grid gap-4" novalidate>
+                    <x-ui.field label="6-Digit SMS Code" for="resume-otp">
+                        <x-ui.input id="resume-otp" x-model="otp" x-on:input="otp = otp.replace(/[^0-9]/g, '')" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="••••••"
+                            class="text-center text-xl tracking-[0.5em]" x-bind:aria-invalid="error ? 'true' : null" />
+                    </x-ui.field>
+                    <p class="text-sm text-muted-foreground">We've just sent a secure verification code to <span class="font-medium text-foreground" x-text="phone"></span></p>
+                </form>
+
+                <div x-show="step === 'done'" x-cloak>
+                    <x-ui.alert tone="success" title="Identity Verified!">Resuming your application...</x-ui.alert>
                 </div>
 
-                <!-- Buttons Section -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-10 md:mb-14">
-                    <!-- Start New Application Button -->
-                    <button id="startNewBtn"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 md:py-6 px-4 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg flex flex-col items-center justify-center gap-2 md:gap-3 group">
-                        <div class="text-3xl md:text-4xl mb-1">
-                            <i class="fas fa-file-circle-plus group-hover:rotate-12 transition-transform duration-300"></i>
-                        </div>
-                        <span class="text-xl md:text-2xl">Start New Application</span>
-                        <span class="text-sm md:text-base opacity-90">Begin a new driver application</span>
-                    </button>
+                <p x-show="error" x-cloak role="alert" class="mt-4 text-sm text-destructive" x-text="error"></p>
 
-                    <!-- Return to Application Button -->
-                    <button id="returnToBtn"
-                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-5 md:py-6 px-4 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg flex flex-col items-center justify-center gap-2 md:gap-3 group">
-                        <div class="text-3xl md:text-4xl mb-1">
-                            <i class="fas fa-rotate-left group-hover:-rotate-12 transition-transform duration-300"></i>
-                        </div>
-                        <span class="text-xl md:text-2xl">Return to Application</span>
-                        <span class="text-sm md:text-base opacity-90">Continue your saved application</span>
-                    </button>
-                </div>
-
-                <!-- Help Section -->
-                <div class="text-center pt-6 md:pt-8 border-t border-gray-200">
-                    <p class="text-gray-600 text-base md:text-lg mb-3 md:mb-4">Need help?</p>
-                    <div class="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6">
-                        <!-- Phone -->
-                        <a href="tel:2092776341"
-                            class="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors duration-300 group">
-                            <div
-                                class="bg-blue-100 p-2 md:p-3 rounded-full group-hover:bg-blue-200 transition-colors duration-300">
-                                <i class="fas fa-phone text-blue-600 text-sm md:text-base"></i>
-                            </div>
-                            <span
-                                class="font-medium text-base md:text-lg">{{ $company->phone ? $company->phone : '123456789' }}</span>
-                        </a>
-
-                        <!-- Divider (hidden on mobile) -->
-                        <div class="hidden md:block h-6 w-px bg-gray-300"></div>
-
-                        <!-- Email -->
-                        <a href="mailto:{{ $company->email }}"
-                            class="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors duration-300 group">
-                            <div
-                                class="bg-blue-100 p-2 md:p-3 rounded-full group-hover:bg-blue-200 transition-colors duration-300">
-                                <i class="fas fa-envelope text-blue-600 text-sm md:text-base"></i>
-                            </div>
-                            <span class="font-medium text-base md:text-lg">{{ $company->email }}</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Footer Note -->
-            <div class="text-center mt-6 md:mt-8">
-                <p class="text-gray-500 text-sm md:text-base">
-                    Secure application process • Your information is protected
-                </p>
-            </div>
+                <x-slot:footer class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end" x-show="step !== 'done'">
+                    <x-ui.button variant="outline" x-on:click="close" x-bind:disabled="busy">Cancel</x-ui.button>
+                    <x-ui.button type="submit" variant="primary" x-bind:form="step === 'otp' ? 'resume-otp-form' : 'resume-phone-form'" x-bind:aria-busy="busy" x-bind:disabled="busy">
+                        <span x-text="step === 'otp' ? 'Verify Code' : 'Retrieve Application'">Retrieve Application</span>
+                    </x-ui.button>
+                </x-slot:footer>
+            </x-ui.dialog>
         </div>
-    </div>
+    </x-application.entry>
 @endsection
 
 @push('scripts')
     <script>
-        // Button click handlers
-        var currentSlug = '{{ request()->route('slug') ?? '' }}';
+        document.addEventListener('alpine:init', () => {
+            const slug = @json(request()->route('slug') ?? '');
+            const startUrl = @json(route('public.application.start', ['slug' => ':slug']));
+            const csrf = @json(csrf_token());
 
-        document.getElementById('startNewBtn').addEventListener('click', function() {
-            // Check if slug is available
-            if (!currentSlug) {
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Unable to determine company. Please contact support.',
-                    icon: 'error',
-                    confirmButtonColor: '#2563eb',
-                });
-                return;
-            }
-
-            Swal.fire({
-                title: 'Start New Application',
-                text: 'You are about to start a new driver application. All required documents will be needed.',
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonColor: '#2563eb',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Continue',
-                cancelButtonText: 'Cancel',
-                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
-                color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Redirect to new application form with slug
-                    window.location.href = "{{ route('public.application.start', ['slug' => ':slug']) }}".replace(
-                        ':slug', currentSlug);
-                }
+            const post = (url, body) => fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                body: JSON.stringify(body),
+            }).then((response) => {
+                if (!response.ok) throw new Error(response.statusText);
+                return response.json();
             });
-        });
 
-        document.getElementById('returnToBtn').addEventListener('click', function() {
-            Swal.fire({
-                title: 'Return to Application',
-                html: `
-                    <div class="text-left mt-4 mb-2">
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Phone Number</label>
-                        <div class="relative mt-1 group">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <i class="fas fa-phone text-gray-400 group-focus-within:text-brand-500 transition-colors duration-200"></i>
-                            </div>
-                            <input type="tel" id="swal-phone-input" 
-                                class="block w-full pl-11 pr-4 py-3.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-200 ease-in-out sm:text-base shadow-sm" 
-                                placeholder="(555) 555-5555" maxlength="14" autocomplete="tel">
-                        </div>
-                        <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Enter the phone number associated with your uncompleted application to seamlessly pick up where you left off.</p>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonColor: '#16a34a',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Retrieve Application',
-                cancelButtonText: 'Cancel',
-                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
-                color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000',
-                didOpen: () => {
-                    const phoneInput = document.getElementById('swal-phone-input');
-                    phoneInput.addEventListener('input', function (e) {
-                        var x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/);
-                        e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
-                    });
-                },
-                preConfirm: () => {
-                    const phone = document.getElementById('swal-phone-input').value;
-                    if (!phone || phone.length < 14) {
-                        Swal.showValidationMessage('Please enter a valid complete US phone number');
-                        return false;
+            window.Alpine.data('resumeApplication', () => ({
+                step: 'phone',
+                phone: '',
+                verifiedPhone: '',
+                otp: '',
+                error: '',
+                busy: false,
+
+                async startNew() {
+                    if (!slug) {
+                        showAppAlert('Unable to determine company. Please contact support.', 'error', 'Error');
+                        return;
                     }
-                    
-                    return fetch(`/${currentSlug}/application/check-resume`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({ phone: phone })
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(response.statusText)
-                        }
-                        return response.json()
-                    })
-                    .then(data => {
-                        if (!data.success) {
-                            Swal.showValidationMessage(data.message || 'No application found with this phone number.');
-                            return false;
-                        }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(`Request failed: ${error}`);
+                    const result = await showAppConfirm('You are about to start a new driver application. All required documents will be needed.', {
+                        title: 'Start New Application',
+                        icon: 'info',
+                        confirmButtonText: 'Continue',
                     });
+                    if (result.isConfirmed) window.location.href = startUrl.replace(':slug', slug);
                 },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
-                if (result.isConfirmed && result.value.success && result.value.requires_otp) {
-                    const phoneVal = result.value.phone;
-                    Swal.fire({
-                        title: 'Verify Your Identity',
-                        html: `
-                            <div class="text-left mt-4 mb-2">
-                                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">6-Digit SMS Code</label>
-                                <input type="text" id="swal-otp-input" class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 text-center text-2xl tracking-[0.5em] font-medium text-gray-900 dark:text-white placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-200 ease-in-out shadow-sm" placeholder="••••••" maxlength="6" autocomplete="one-time-code">
-                                <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 text-center leading-relaxed">We've just sent a secure verification code to <span class="font-semibold text-gray-700 dark:text-gray-300">${document.getElementById('swal-phone-input').value}</span></p>
-                            </div>
-                        `,
-                        showCancelButton: true,
-                        confirmButtonColor: '#16a34a',
-                        cancelButtonColor: '#6b7280',
-                        confirmButtonText: 'Verify Code',
-                        cancelButtonText: 'Cancel',
-                        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
-                        color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000',
-                        didOpen: () => {
-                            // Only allow numbers
-                            const otpInput = document.getElementById('swal-otp-input');
-                            otpInput.addEventListener('input', function(e) {
-                                e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                            });
-                        },
-                        preConfirm: () => {
-                            const otp = document.getElementById('swal-otp-input').value;
-                            if (!otp || otp.length !== 6) {
-                                Swal.showValidationMessage('Please enter the full 6-digit verification code sent to your phone');
-                                return false;
-                            }
-                            
-                            return fetch(`/${currentSlug}/application/check-resume-otp`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                                },
-                                body: JSON.stringify({ phone: phoneVal, otp: otp })
-                            })
-                            .then(response => {
-                                if (!response.ok) throw new Error(response.statusText);
-                                return response.json();
-                            })
-                            .then(data => {
-                                if (!data.success) {
-                                    Swal.showValidationMessage(data.message || 'Invalid verification code');
-                                    return false;
-                                }
-                                return data;
-                            })
-                            .catch(error => {
-                                Swal.showValidationMessage(`Request failed: ${error}`);
-                            });
-                        },
-                        allowOutsideClick: () => !Swal.isLoading()
-                    }).then((otpResult) => {
-                        if (otpResult.isConfirmed && otpResult.value.success) {
-                            Swal.fire({
-                                title: 'Identity Verified!',
-                                text: 'Resuming your application...',
-                                icon: 'success',
-                                showConfirmButton: false,
-                                timer: 1500,
-                                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
-                                color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000',
-                                timerProgressBar: true
-                            }).then(() => {
-                                window.location.href = otpResult.value.redirect;
-                            });
-                        }
-                    });
-                }
-            });
-        });
 
-        // Add keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // Ctrl/Cmd + N for new application
-            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-                e.preventDefault();
-                document.getElementById('startNewBtn').click();
-            }
-            // Ctrl/Cmd + R for return to application
-            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
-                e.preventDefault();
-                document.getElementById('returnToBtn').click();
-            }
+                open() {
+                    Object.assign(this, { step: 'phone', phone: '', otp: '', error: '', busy: false });
+                    document.getElementById('resume-dialog').showModal();
+                },
+
+                close() {
+                    if (!this.busy) document.getElementById('resume-dialog').close();
+                },
+
+                formatPhone(e) {
+                    const x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/);
+                    this.phone = e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
+                },
+
+                async checkPhone() {
+                    this.error = '';
+                    if (!this.phone || this.phone.length < 14) {
+                        this.error = 'Please enter a valid complete US phone number';
+                        return;
+                    }
+                    this.busy = true;
+                    try {
+                        const data = await post(`/${slug}/application/check-resume`, { phone: this.phone });
+                        if (!data.success) {
+                            this.error = data.message || 'No application found with this phone number.';
+                        } else if (data.requires_otp) {
+                            this.verifiedPhone = data.phone;
+                            this.step = 'otp';
+                            this.$nextTick(() => document.getElementById('resume-otp').focus());
+                        } else {
+                            this.busy = false;
+                            this.close();
+                        }
+                    } catch (error) {
+                        this.error = `Request failed: ${error}`;
+                    } finally {
+                        this.busy = false;
+                    }
+                },
+
+                async checkOtp() {
+                    this.error = '';
+                    if (!this.otp || this.otp.length !== 6) {
+                        this.error = 'Please enter the full 6-digit verification code sent to your phone';
+                        return;
+                    }
+                    this.busy = true;
+                    try {
+                        const data = await post(`/${slug}/application/check-resume-otp`, { phone: this.verifiedPhone, otp: this.otp });
+                        if (!data.success) {
+                            this.error = data.message || 'Invalid verification code';
+                            this.busy = false;
+                            return;
+                        }
+                        this.step = 'done';
+                        setTimeout(() => { window.location.href = data.redirect; }, 1500);
+                    } catch (error) {
+                        this.error = `Request failed: ${error}`;
+                        this.busy = false;
+                    }
+                },
+            }));
         });
     </script>
 @endpush
