@@ -19,11 +19,6 @@
     @endif
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    @hasstack('datatable')
-    @else
-        {{-- Legacy DataTables 1.x for pages not yet on <x-ui.datatable> (phase 2) --}}
-        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css">
-    @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('datatable')
     <script src="https://kit.fontawesome.com/14c3ef5dcc.js" crossorigin="anonymous" defer></script>
@@ -58,12 +53,6 @@
 
     <x-ui.toaster />
 
-    @hasstack('datatable')
-    @else
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-        <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
-    @endif
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.showAppAlert = function(message, icon = 'warning', title = null) {

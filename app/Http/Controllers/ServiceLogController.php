@@ -4,6 +4,7 @@
 
 namespace App\Http\Controllers;
 
+use App\DataTables\Maintenance\ServiceLogTable;
 use App\Exceptions\LimitReached;
 use App\Models\MaintenanceCategory;
 use App\Models\ServiceDocument;
@@ -19,7 +20,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
-use Yajra\DataTables\Facades\DataTables;
 
 class ServiceLogController extends Controller
 {
@@ -31,147 +31,14 @@ class ServiceLogController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = ServiceLog::with(['vehicle', 'company', 'maintenanceCategories'])
-                ->select(['service_logs.*'])
-                ->withCount('documents');
-
-            // Apply filters
-            if ($request->filled('vehicle_id')) {
-                $query->where('vehicle_id', $request->vehicle_id);
-            }
-
-            if ($request->filled('date_from')) {
-                $query->whereDate('service_date', '>=', $request->date_from);
-            }
-
-            if ($request->filled('date_to')) {
-                $query->whereDate('service_date', '<=', $request->date_to);
-            }
-
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
-
-            if ($request->filled('category_id')) {
-                // Categories are a pivot table (service_log_category), not a JSON column
-                $query->withCategory((int) $request->category_id);
-            }
-
-            return DataTables::of($query)
-                ->addIndexColumn()
-                ->addColumn('vehicle_info', function ($row) {
-                    $vehicle = $row->vehicle;
-                    if (! $vehicle) {
-                        return '<span class="text-gray-400">Deleted Vehicle</span>';
-                    }
-
-                    $documentIcon = $row->documents_count > 0 ?
-                        '<i class="fas fa-paperclip ml-2 text-blue-500 text-xs" title="Has documents"></i>' : '';
-
-                    return '
-                    <div class="flex items-center">
-                        <div class="shrink-0 h-10 w-10">
-                            <div class="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
-                                <i class="fas fa-truck"></i>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center">
-                                '.e($vehicle->unit_no.' - '.$vehicle->year.' '.$vehicle->make.' '.$vehicle->model).'
-                                '.$documentIcon.'
-                            </div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">
-                                VIN: '.e($vehicle->vin).'
-                            </div>
-                        </div>
-                    </div>';
-                })
-                ->addColumn('service_info', function ($row) {
-                    $categories = $row->maintenanceCategories;
-                    $categoriesHtml = '';
-
-                    if ($categories->count() > 0) {
-                        $categoriesHtml = '<div class="mt-1 flex flex-wrap gap-1">';
-                        foreach ($categories->take(2) as $category) {
-                            $categoriesHtml .= '<span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">'.e($category->name).'</span>';
-                        }
-                        if ($categories->count() > 2) {
-                            $categoriesHtml .= '<span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-800 rounded-full">+'.($categories->count() - 2).'</span>';
-                        }
-                        $categoriesHtml .= '</div>';
-                    }
-
-                    return '
-                    <div class="text-sm">
-                        <div><span class="font-medium">Date:</span> '.$row->service_date->format('M d, Y').'</div>
-                        <div><span class="font-medium">Categories:</span> </div>
-                        '.$categoriesHtml.'
-                    </div>';
-                })
-                ->addColumn('metrics', function ($row) {
-                    $engineHours = $row->engine_hours_at_service ?
-                        '<div><span class="font-medium">Engine Hrs:</span> '.number_format($row->engine_hours_at_service).'</div>' : '';
-
-                    return '
-                    <div class="text-sm">
-                        <div><span class="font-medium">Odometer:</span> '.number_format($row->odometer_at_service).' mi</div>
-                        '.$engineHours.'
-                        <div><span class="font-medium">Current:</span> '.number_format($row->current_odometer).' mi</div>
-                    </div>';
-                })
-                ->addColumn('cost', function ($row) {
-                    return '
-                    <div class="text-sm">
-                        <div class="font-medium text-gray-900 dark:text-white">'.$row->formatted_total_cost.'</div>
-                    </div>';
-                })
-                ->addColumn('status', function ($row) {
-                    $badgeClass = [
-                        'completed' => 'bg-green-100 text-green-800',
-                        'pending' => 'bg-yellow-100 text-yellow-800',
-                        'cancelled' => 'bg-red-100 text-red-800',
-                    ][$row->status] ?? 'bg-gray-100 text-gray-800';
-
-                    $statusText = ucfirst($row->status);
-
-                    return '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full '.$badgeClass.'">
-                        '.$statusText.'
-                    </span>';
-                })
-                ->addColumn('action', function ($row) {
-                    $viewBtn = '<button onclick="viewServiceLog('.$row->id.')" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors mr-1"
-                                title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </button>';
-
-                    $editBtn = '<button onclick="editServiceLog('.$row->id.')" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-indigo-600 bg-indigo-100 rounded-md hover:bg-indigo-200 transition-colors mr-1"
-                                title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>';
-
-                    $deleteBtn = '<button onclick="deleteServiceLog('.$row->id.')" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
-                                title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>';
-
-                    return '<div class="flex justify-center space-x-1">'.$viewBtn.$editBtn.$deleteBtn.'</div>';
-                })
-                ->addColumn('created_at_formatted', function ($row) {
-                    return $row->created_at->format('M d, Y');
-                })
-                ->rawColumns(['vehicle_info', 'service_info', 'metrics', 'cost', 'status', 'action'])
-                ->make(true);
+            return (new ServiceLogTable($request))->json();
         }
 
         // Get dropdown data for filters
-        $vehicles = Vehicle::orderBy('unit_no')->get();
-        $maintenanceCategories = MaintenanceCategory::orderBy('name')->get();
-        $companies = $this->getCompaniesForUser();
+        $vehicles = Vehicle::orderBy('unit_no')->get(['id', 'unit_no', 'year', 'make', 'model']);
+        $maintenanceCategories = MaintenanceCategory::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.service-log.index', compact('vehicles', 'maintenanceCategories', 'companies'));
+        return view('admin.service-log.index', compact('vehicles', 'maintenanceCategories'));
     }
 
     /**

@@ -36,12 +36,13 @@ const setErrors = (form, errors = {}) => {
     first?.focus();
 };
 
-/** Fill named controls from a record; missing keys clear the control. */
+/** Fill named controls from a record; missing keys clear the control. `name[]` checkboxes take an array. */
 const fill = (form, data = {}) => {
     [...form.elements].forEach((el) => {
         if (!el.name || el.type === "file" || el.name.startsWith("_")) return;
-        const value = data[el.name] ?? "";
-        if (el.type === "checkbox") el.checked = Boolean(value) && value !== "0";
+        const value = data[el.name] ?? data[el.name.replace(/\[\]$/, "")] ?? "";
+        if (el.type === "checkbox" && Array.isArray(value)) el.checked = value.map(String).includes(el.value);
+        else if (el.type === "checkbox") el.checked = Boolean(value) && value !== "0";
         else if (el.type === "radio") el.checked = String(el.value) === String(value === true ? 1 : value === false ? 0 : value);
         else el.value = value;
     });
@@ -66,9 +67,10 @@ const at = (url, id) => url.replace(":id", encodeURIComponent(id));
  *   dqCrud.page({ table, dialog: '#vehicle-dialog', singular: 'vehicle',
  *                 routes: { store, edit, update, destroy, restore } })   // ':id' placeholders
  *
- * Optional hooks: defaults (a blank record), toForm(record) before filling, afterFill(form, record).
+ * Optional hooks: defaults (a blank record), toForm(record) before filling, afterFill(form, record),
+ * and actions: { view: (id, button) => … } for any other data-action.
  */
-const page = ({ table, dialog, singular, routes, defaults = {}, toForm = (record) => record, afterFill = () => {} }) => {
+const page = ({ table, dialog, singular, routes, defaults = {}, toForm = (record) => record, afterFill = () => {}, actions = {} }) => {
     const dialogEl = typeof dialog === "string" ? document.querySelector(dialog) : dialog;
     const form = dialogEl?.querySelector("form");
     const title = dialogEl?.querySelector("h2");
@@ -90,7 +92,9 @@ const page = ({ table, dialog, singular, routes, defaults = {}, toForm = (record
         if (!button || button.closest("dialog")) return;
         const { action, id, name } = button.dataset;
 
-        if (action === "create" && form) {
+        if (actions[action]) {
+            actions[action](id, button);
+        } else if (action === "create" && form) {
             open(`Add ${singular}`);
         } else if (action === "edit" && form) {
             button.disabled = true;

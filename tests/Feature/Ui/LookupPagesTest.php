@@ -87,3 +87,14 @@ describe('document types', function () {
             ->not->toContain('data-action="toggle-status"');
     });
 });
+
+it('no longer loads jQuery or DataTables 1.x from a CDN on any app page', function () {
+    $this->actingAs(Actors::companyOwner())->get(route('dashboard'))
+        ->assertOk()
+        ->assertDontSee('code.jquery.com', false)
+        ->assertDontSee('cdn.datatables.net', false);
+
+    $this->actingAs(Actors::platformOwner(), 'platform')->get(route('platform.lookups.fuel-types.index'))
+        ->assertOk()
+        ->assertDontSee('code.jquery.com', false);
+});

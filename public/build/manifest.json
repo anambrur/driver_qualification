@@ -20,7 +20,7 @@
     "src": "node_modules/@fontsource-variable/geist/files/geist-vietnamese-wght-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-B-KLBjS1.css",
+    "file": "assets/app-Cpzc6cce.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "names": [
@@ -34,7 +34,7 @@
     "isEntry": true
   },
   "resources/js/datatable.js": {
-    "file": "assets/datatable-BuWfXjEw.js",
+    "file": "assets/datatable-CAYeLpc1.js",
     "name": "datatable",
     "src": "resources/js/datatable.js",
     "isEntry": true,

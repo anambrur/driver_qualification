@@ -41,7 +41,7 @@ describe('MNT-02: the list escapes tenant-controlled data', function () {
         expect($html)->not->toContain('<img')
             ->and($row['vehicle_info'])->toContain(e(MNT_PAYLOAD))
             ->and($row['vehicle_info'])->toContain(e(MNT_VIN_PAYLOAD))
-            ->and($row['vehicle_info'])->toContain('fa-paperclip')
+            ->and($row['vehicle_info'])->toContain('aria-label="1 document"')
             ->and($row['service_info'])->toContain(e(MNT_PAYLOAD.'c'));
     });
 
@@ -84,20 +84,21 @@ describe('MNT-02: the modals build HTML from escaped values', function () {
         foreach (['>${category.name}<', '>${doc.original_name}<', '>${file.name}<', '>${message}<', 'cat.name +', "'\">' + vehicle.unit_no"] as $sink) {
             expect($html)->not->toContain($sink);
         }
-        expect($html)->toContain('function escapeHtml(')
-            ->and($html)->toContain('escapeHtml(doc.original_name)')
-            ->and($html)->toContain('new Option(');
+        // File names and categories are written with textContent, never into HTML
+        expect($html)->toContain('link.textContent = doc.original_name')
+            ->and($html)->toContain('badge.textContent = category.name');
     });
 
-    it('builds the schedule dropdowns with text options', function () {
-        [$owner] = Maintenance::tenantWithVehicle();
+    it('renders the schedule dropdowns on the server, not from strings in JS', function () {
+        [$owner] = Maintenance::tenantWithVehicle(['unit_no' => 'UNIT-77']);
 
         $html = $this->actingAs($owner)->get(route('admin.maintenance-schedule.index'))->assertOk()->getContent();
 
+        // Blade escapes the options (see the next test); the script only writes textContent
         expect($html)->not->toContain("'\">' + vehicle.unit_no")
             ->and($html)->not->toContain("category.name + '</option>'")
             ->and($html)->not->toContain('>${message}<')
-            ->and($html)->toContain('new Option(');
+            ->and($html)->toMatch('/<option value="\d+"\s*>UNIT-77 ·/');
     });
 
     it('escapes vehicle and category names in the server-rendered filters', function (string $route) {

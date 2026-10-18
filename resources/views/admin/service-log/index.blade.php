@@ -1,1246 +1,251 @@
-{{-- resources/views/admin/service-log/index.blade.php --}}
 @extends('layouts.main-layout')
 
 @section('title', 'Service Logs')
 
+@php
+    $vehicleOptions = $vehicles->mapWithKeys(fn ($v) => [$v->id => trim($v->unit_no.' · '.$v->year.' '.$v->make.' '.$v->model)])->all();
+    $categoryOptions = $maintenanceCategories->pluck('name', 'id')->all();
+    $statuses = ['completed' => 'Completed', 'pending' => 'Pending', 'cancelled' => 'Cancelled'];
+@endphp
+
 @section('content')
-    <div class="p-4 mx-auto md:p-6">
-        <!-- Page Header -->
-        <div class="mb-6">
-            <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white/90">Service Logs</h2>
-                    <p class="text-gray-600 dark:text-gray-400 mt-2">Record and track maintenance service details for fleet
-                        vehicles</p>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button id="refresh-table"
-                        class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800">
-                        <i class="fas fa-sync-alt mr-2"></i>Refresh
-                    </button>
-                    <button onclick="showCreateModal()"
-                        class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2">
-                        <i class="fas fa-plus mr-2"></i>Create New Service Log
-                    </button>
-                </div>
-            </div>
-        </div>
+    <div class="p-4 sm:p-6 lg:p-8">
+        <x-ui.page-header title="Service logs" description="Every service done on your vehicles, with cost and documents.">
+            @can('maintenance.create')
+                <x-slot:actions>
+                    <x-ui.button icon="plus" data-action="create">Log service</x-ui.button>
+                </x-slot:actions>
+            @endcan
+        </x-ui.page-header>
 
-        <!-- Filters Card -->
-        <div class="p-4 mb-6 bg-white rounded-lg shadow-sm dark:bg-gray-800">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
-                <!-- Vehicle Filter -->
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Vehicle
-                    </label>
-                    <select id="filter-vehicle"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                        <option value="">All Vehicles</option>
-                        @foreach ($vehicles as $vehicle)
-                            <option value="{{ $vehicle->id }}">{{ $vehicle->unit_no }} - {{ $vehicle->year }}
-                                {{ $vehicle->make }} {{ $vehicle->model }}</option>
-                        @endforeach
-                    </select>
+        <x-ui.datatable id="service-logs" title="All service logs">
+            <x-slot:toolbar>
+                <div class="flex flex-wrap items-center gap-2">
+                    <x-ui.select data-dt-filter="vehicle_id" aria-label="Filter by vehicle" :options="['' => 'All vehicles'] + $vehicleOptions" class="w-auto! max-w-56" />
+                    <x-ui.select data-dt-filter="category_id" aria-label="Filter by category" :options="['' => 'All categories'] + $categoryOptions" class="w-auto!" />
+                    <x-ui.select data-dt-filter="status" aria-label="Filter by status" :options="['' => 'Any status'] + $statuses" class="w-auto!" />
+                    <x-ui.input type="date" data-dt-filter="date_from" aria-label="Service date from" class="w-auto!" />
+                    <x-ui.input type="date" data-dt-filter="date_to" aria-label="Service date to" class="w-auto!" />
+                    <x-ui.button variant="ghost" size="sm" data-dt-reset>Clear</x-ui.button>
                 </div>
+            </x-slot:toolbar>
 
-                <!-- Category Filter -->
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Category
-                    </label>
-                    <select id="filter-category"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                        <option value="">All Categories</option>
-                        @foreach ($maintenanceCategories as $category)
-                            <option value="{{ $category->id }}">{{ $category->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+            <th class="w-12">#</th>
+            <th>Vehicle</th>
+            <th>Service</th>
+            <th>Odometer</th>
+            <th>Cost</th>
+            <th>Status</th>
+            <th class="text-right"><span class="sr-only">Actions</span></th>
 
-                <!-- Date Range -->
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        From Date
-                    </label>
-                    <input type="date" id="filter-date-from"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                </div>
-
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        To Date
-                    </label>
-                    <input type="date" id="filter-date-to"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                </div>
-
-                <!-- Status Filter -->
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Status
-                    </label>
-                    <select id="filter-status"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                        <option value="">All Status</option>
-                        <option value="completed">Completed</option>
-                        <option value="pending">Pending</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Filter Actions -->
-            <div class="flex justify-end mt-4 space-x-2">
-                <button onclick="applyFilters()"
-                    class="px-4 py-2 text-white bg-brand-500 rounded-lg hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500">
-                    <i class="fas fa-filter mr-2"></i>Apply Filters
-                </button>
-                <button onclick="clearFilters()"
-                    class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
-                    <i class="fas fa-times mr-2"></i>Clear
-                </button>
-            </div>
-        </div>
-
-        <!-- Service Logs Table Card -->
-        <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="px-5 py-4 sm:px-6 sm:py-5">
-                <div class="flex flex-col justify-between sm:flex-row sm:items-center">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                        <i class="fas fa-clipboard-list mr-2"></i>Maintenance Service Records
-                    </h3>
-                    <div class="mt-2 text-sm text-gray-600 dark:text-gray-400 sm:mt-0">
-                        Total: <span id="total-records" class="font-medium">Loading...</span> records
-                    </div>
-                </div>
-            </div>
-
-            <div class="border-t border-gray-100 dark:border-gray-800">
-                <div class="p-5 sm:p-6">
-                    <div class="overflow-hidden">
-                        <table id="service-logs-table" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead>
-                                <tr>
-                                    <th
-                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        #</th>
-                                    <th
-                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Vehicle Information</th>
-                                    <th
-                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Service Details</th>
-                                    <th
-                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Metrics</th>
-                                    <th
-                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Cost</th>
-                                    <th
-                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Status</th>
-                                    <th
-                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Created At</th>
-                                    <th
-                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
-                                <!-- Data will be loaded via AJAX -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+            <x-slot:empty>
+                <x-ui.empty-state icon="wrench" title="No service logged yet" description="Log a service to keep the vehicle’s maintenance file complete." class="border-0">
+                    @can('maintenance.create')
+                        <x-ui.button icon="plus" size="sm" data-action="create">Log service</x-ui.button>
+                    @endcan
+                </x-ui.empty-state>
+            </x-slot:empty>
+        </x-ui.datatable>
     </div>
 
-    <!-- Create/Edit Modal -->
-    @include('admin.service-log.partials.form-modal')
+    @canany(['maintenance.create', 'maintenance.edit'])
+        <x-ui.dialog id="service-log-dialog" title="Log service" :close-on-overlay="false" class="w-full sm:max-w-3xl">
+            <form id="service-log-form" class="grid gap-4 sm:grid-cols-2" novalidate>
+                <x-ui.field label="Vehicle" name="vehicle_id" required>
+                    <x-ui.select name="vehicle_id" :options="$vehicleOptions" placeholder="Select vehicle" required />
+                </x-ui.field>
+                <x-ui.field label="Service date" name="service_date" required>
+                    <x-ui.input type="date" name="service_date" required max="{{ now()->toDateString() }}" />
+                </x-ui.field>
 
-    <!-- View Details Modal -->
-    @include('admin.service-log.partials.view-modal')
+                <fieldset class="grid gap-2 sm:col-span-2" id="f-maintenance_categories">
+                    <legend class="label mb-2">Work done <span class="text-destructive" aria-hidden="true">*</span></legend>
+                    <div class="grid max-h-48 gap-2 overflow-y-auto rounded-lg border border-border p-3 custom-scrollbar sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach ($categoryOptions as $id => $name)
+                            <x-ui.checkbox name="maintenance_categories[]" :id="'category-'.$id" :value="$id" :label="$name" />
+                        @endforeach
+                    </div>
+                </fieldset>
 
-    <!-- Toast Container -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+                <x-ui.field label="Odometer at service (mi)" name="odometer_at_service" required>
+                    <x-ui.input type="number" name="odometer_at_service" required min="0" />
+                </x-ui.field>
+                <x-ui.field label="Current odometer (mi)" name="current_odometer" required hint="Filled in from the vehicle; not lower than the service reading.">
+                    <x-ui.input type="number" name="current_odometer" required min="0" />
+                </x-ui.field>
+                <x-ui.field label="Engine hours at service" name="engine_hours_at_service">
+                    <x-ui.input type="number" name="engine_hours_at_service" min="0" />
+                </x-ui.field>
+                <x-ui.field label="Current engine hours" name="current_engine_hours">
+                    <x-ui.input type="number" name="current_engine_hours" min="0" />
+                </x-ui.field>
+                <x-ui.field label="Total cost ($)" name="total_cost" required>
+                    <x-ui.input type="number" name="total_cost" required min="0" step="0.01" placeholder="0.00" />
+                </x-ui.field>
+                <x-ui.field label="Status" name="status" required>
+                    <x-ui.select name="status" :options="$statuses" required />
+                </x-ui.field>
+                <x-ui.field label="Notes" name="maintenance_notes" class="sm:col-span-2">
+                    <x-ui.textarea name="maintenance_notes" rows="2" class="w-full" placeholder="What was done, parts used…" />
+                </x-ui.field>
+
+                <div class="grid gap-2 sm:col-span-2">
+                    <x-ui.field label="Documents" name="documents" hint="Invoices or work orders: PDF, image or Word, up to 10 MB each.">
+                        <x-ui.input type="file" name="documents[]" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+                    </x-ui.field>
+                    <ul data-existing-documents class="grid gap-1" role="list"></ul>
+                </div>
+            </form>
+            <x-slot:footer>
+                <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
+                <button type="submit" form="service-log-form" class="btn">Save service log</button>
+            </x-slot:footer>
+        </x-ui.dialog>
+    @endcanany
+
+    <x-ui.dialog id="service-log-view-dialog" title="Service details" class="w-full sm:max-w-xl">
+        <dl class="grid gap-4 sm:grid-cols-2">
+            <x-ui.detail label="Vehicle" class="sm:col-span-2"><span data-view="vehicle"></span></x-ui.detail>
+            <x-ui.detail label="Service date"><span data-view="date"></span></x-ui.detail>
+            <x-ui.detail label="Status"><span data-view="status" class="badge"></span></x-ui.detail>
+            <x-ui.detail label="Work done" class="sm:col-span-2"><span data-view="categories" class="flex flex-wrap gap-1"></span></x-ui.detail>
+            <x-ui.detail label="Odometer at service"><span data-view="odometer"></span></x-ui.detail>
+            <x-ui.detail label="Current odometer"><span data-view="current_odometer"></span></x-ui.detail>
+            <x-ui.detail label="Engine hours at service"><span data-view="engine"></span></x-ui.detail>
+            <x-ui.detail label="Current engine hours"><span data-view="current_engine"></span></x-ui.detail>
+            <x-ui.detail label="Total cost"><span data-view="cost"></span></x-ui.detail>
+            <x-ui.detail label="Notes" class="sm:col-span-2"><span data-view="notes" class="whitespace-pre-line"></span></x-ui.detail>
+            <x-ui.detail label="Documents" class="sm:col-span-2"><ul data-view="documents" class="grid gap-1" role="list"></ul></x-ui.detail>
+        </dl>
+        <x-slot:footer>
+            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Close</button>
+        </x-slot:footer>
+    </x-ui.dialog>
 @endsection
 
-@push('styles')
-    <style>
-        /* Custom styles for DataTables */
-        .dataTables_wrapper {
-            position: relative;
-        }
-
-        .dataTables_filter {
-            float: right;
-            margin-bottom: 1rem;
-        }
-
-        .dataTables_filter input {
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            padding: 0.5rem 0.75rem;
-            background-color: white;
-        }
-
-        .dark .dataTables_filter input {
-            background-color: #1f2937;
-            border-color: #4b5563;
-            color: white;
-        }
-
-        .dataTables_length {
-            float: left;
-            margin-bottom: 1rem;
-        }
-
-        .dataTables_length select {
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            padding: 0.5rem 2rem 0.5rem 0.75rem;
-            background-color: white;
-        }
-
-        .dark .dataTables_length select {
-            background-color: #1f2937;
-            border-color: #4b5563;
-            color: white;
-        }
-
-        .dataTables_info {
-            padding-top: 0.75rem !important;
-            color: #6b7280;
-        }
-
-        .dark .dataTables_info {
-            color: #9ca3af;
-        }
-
-        .dataTables_paginate {
-            padding-top: 0.75rem !important;
-        }
-
-        /* Form styles */
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        /* Modal styles */
-        .modal-lg {
-            max-width: 800px;
-        }
-
-        /* Category checkbox styles */
-        .category-checkbox-group {
-            max-height: 200px;
-            overflow-y: auto;
-            padding: 10px;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.375rem;
-        }
-
-        .dark .category-checkbox-group {
-            border-color: #4b5563;
-        }
-
-        /* Document preview */
-        .document-preview {
-            position: relative;
-            display: inline-block;
-            margin-right: 10px;
-            margin-bottom: 10px;
-        }
-
-        .document-preview img {
-            width: 100px;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 0.375rem;
-        }
-
-        .document-preview .remove-doc {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background-color: #ef4444;
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        /* File upload area */
-        #service-dropzone {
-            border: 2px dashed #e5e7eb;
-            border-radius: 0.5rem;
-            background: #f9fafb;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        #service-dropzone:hover {
-            border-color: #3b82f6;
-            background: #f3f4f6;
-        }
-
-        .dark #service-dropzone {
-            border-color: #4b5563;
-            background: #1f2937;
-        }
-
-        .dark #service-dropzone:hover {
-            border-color: #3b82f6;
-            background: #2d3748;
-        }
-
-        #service-dropzone i {
-            font-size: 2rem;
-            color: #9ca3af;
-            margin-bottom: 0.5rem;
-        }
-
-        .dark #service-dropzone i {
-            color: #6b7280;
-        }
-
-        #service-dropzone .file-info {
-            font-size: 0.875rem;
-            color: #6b7280;
-        }
-
-        .dark #service-dropzone .file-info {
-            color: #9ca3af;
-        }
-
-        /* File preview items */
-        .file-preview-item {
-            transition: all 0.2s ease;
-        }
-
-        .file-preview-item:hover {
-            background-color: #f9fafb;
-        }
-
-        .dark .file-preview-item:hover {
-            background-color: #374151;
-        }
-    </style>
-@endpush
-
 @push('scripts')
-    <script>
-        $(document).ready(function() {
-            // Initialize DataTable
-            var table = $('#service-logs-table').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: {
-                    url: '{{ route('admin.service-log.index') }}',
-                    type: 'GET',
-                    data: function(d) {
-                        d.vehicle_id = $('#filter-vehicle').val();
-                        d.category_id = $('#filter-category').val();
-                        d.date_from = $('#filter-date-from').val();
-                        d.date_to = $('#filter-date-to').val();
-                        d.status = $('#filter-status').val();
-                    },
-                    error: function(xhr, error, thrown) {
-                        console.error('DataTables AJAX Error:', error);
-                        showToast('Failed to load service logs', 'error');
-                    }
-                },
-                columns: [{
-                        data: 'DT_RowIndex',
-                        name: 'DT_RowIndex',
-                        orderable: false,
-                        searchable: false,
-                        width: '3%',
-                        className: 'text-center'
-                    },
-                    {
-                        data: 'vehicle_info',
-                        name: 'vehicle_id',
-                        orderable: true,
-                        searchable: true,
-                        width: '22%'
-                    },
-                    {
-                        data: 'service_info',
-                        name: 'service_date',
-                        orderable: true,
-                        searchable: false,
-                        width: '20%'
-                    },
-                    {
-                        data: 'metrics',
-                        name: 'odometer_at_service',
-                        orderable: true,
-                        searchable: false,
-                        width: '15%'
-                    },
-                    {
-                        data: 'cost',
-                        name: 'total_cost',
-                        orderable: true,
-                        searchable: false,
-                        width: '10%',
-                        className: 'text-right'
-                    },
-                    {
-                        data: 'status',
-                        name: 'status',
-                        orderable: true,
-                        searchable: false,
-                        width: '8%',
-                        className: 'text-center'
-                    },
-                    {
-                        data: 'created_at_formatted',
-                        name: 'created_at',
-                        orderable: true,
-                        searchable: false,
-                        width: '10%',
-                        className: 'text-center'
-                    },
-                    {
-                        data: 'action',
-                        name: 'action',
-                        orderable: false,
-                        searchable: false,
-                        width: '12%',
-                        className: 'text-center'
-                    }
-                ],
-                language: {
-                    search: "",
-                    searchPlaceholder: "Search service logs...",
-                    lengthMenu: "Show _MENU_ entries",
-                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                    infoEmpty: "Showing 0 to 0 of 0 entries",
-                    infoFiltered: "(filtered from _MAX_ total entries)",
-                    emptyTable: "No service logs found",
-                    zeroRecords: "No matching records found",
-                    processing: '<div class="spinner-border text-brand-500" role="status"></div> Loading...',
-                    paginate: {
-                        first: '<i class="fas fa-angle-double-left"></i>',
-                        last: '<i class="fas fa-angle-double-right"></i>',
-                        next: '<i class="fas fa-angle-right"></i>',
-                        previous: '<i class="fas fa-angle-left"></i>'
-                    }
-                },
-                responsive: true,
-                autoWidth: false,
-                dom: '<"flex flex-col lg:flex-row lg:items-center lg:justify-between"<"mb-4"l><"mb-4"f>>rt<"flex flex-col lg:flex-row lg:items-center lg:justify-between"<"mb-4"i><"mb-4"p>>',
-                lengthMenu: [10, 25, 50, 100],
-                pageLength: 10,
-                order: [
-                    [2, 'desc']
-                ],
-                drawCallback: function(settings) {
-                    var info = this.api().page.info();
-                    $('#total-records').text(info.recordsTotal);
-                    updateTableDarkMode();
-                },
-                initComplete: function() {
-                    var searchInput = $('.dataTables_filter input');
-                    searchInput.addClass(
-                        'border border-gray-300 rounded-lg px-4 py-2 w-full lg:w-64 focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:focus:ring-brand-400'
-                    );
-                    searchInput.wrap('<div class="relative"></div>');
-                    searchInput.before(
-                        '<i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>'
-                    );
-                    searchInput.css('padding-left', '2.5rem');
+    <script type="module">
+        const routes = {
+            index: @json(route('admin.service-log.index')),
+            store: @json(route('admin.service-log.store')),
+            edit: @json(route('admin.service-log.edit', ':id')),
+            show: @json(route('admin.service-log.show', ':id')),
+            update: @json(route('admin.service-log.update', ':id')),
+            destroy: @json(route('admin.service-log.destroy', ':id')),
+            vehicle: @json(route('admin.service-log.get-vehicle-details', ':id')),
+            download: @json(route('admin.service-log.download-document', ':id')),
+            deleteDocument: @json(route('admin.service-log.delete-document', ':id')),
+        };
+        const canEdit = @json(auth()->user()->can('maintenance.edit'));
+        const tones = { completed: 'success', pending: 'warning', cancelled: 'danger' };
+        const { request, at, report, confirm } = window.dqCrud;
+        const number = (value, unit = '') => (value || value === 0) && value !== '' ? `${Number(value).toLocaleString()}${unit}` : '—';
 
-                    var lengthSelect = $('.dataTables_length select');
-                    lengthSelect.addClass(
-                        'border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:focus:ring-brand-400'
-                    );
-
-                    var info = this.api().page.info();
-                    $('#total-records').text(info.recordsTotal);
-                }
-            });
-
-            function updateTableDarkMode() {
-                $('.dataTables_length select').addClass('dark:bg-gray-800 dark:border-gray-700 dark:text-white');
-                $('.dataTables_filter input').addClass('dark:bg-gray-800 dark:border-gray-700 dark:text-white');
-                $('.dataTables_info').addClass('dark:text-gray-400');
-                $('.dataTables_paginate .paginate_button').addClass(
-                    'dark:text-gray-400 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800');
-            }
-
-            updateTableDarkMode();
-
-            if (typeof MutationObserver !== 'undefined') {
-                const darkModeObserver = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.attributeName === 'class') {
-                            setTimeout(updateTableDarkMode, 100);
-                        }
-                    });
-                });
-
-                darkModeObserver.observe(document.documentElement, {
-                    attributes: true,
-                    attributeFilter: ['class']
-                });
-            }
-
-            $('#refresh-table').on('click', function() {
-                table.ajax.reload(null, false);
-                showToast('Table refreshed successfully', 'success');
-            });
-
-            $('#closeModal, #closeViewModal').on('click', function() {
-                $('#serviceLogModal').addClass('hidden');
-                $('#viewServiceLogModal').addClass('hidden');
-                resetForm();
-            });
-
-            $(document).on('click', function(event) {
-                if ($(event.target).hasClass('fixed')) {
-                    $('#serviceLogModal').addClass('hidden');
-                    $('#viewServiceLogModal').addClass('hidden');
-                    resetForm();
-                }
-            });
-
-            $('#submitForm').on('click', function() {
-                submitServiceLogForm();
-            });
-
-            $('#vehicle_id').on('change', function() {
-                var vehicleId = $(this).val();
-                if (vehicleId) {
-                    $.ajax({
-                        url: '{{ route('admin.service-log.get-vehicle-details', ':id') }}'.replace(
-                            ':id', vehicleId),
-                        type: 'GET',
-                        success: function(response) {
-                            if (response.success) {
-                                $('#current_odometer').val(response.data.current_odometer);
-                                $('#odometer_at_service').attr('max', response.data
-                                    .current_odometer);
-                            }
-                        }
-                    });
-                }
-            });
-
-            window.applyFilters = function() {
-                table.ajax.reload();
-            }
-
-            window.clearFilters = function() {
-                $('#filter-vehicle').val('');
-                $('#filter-category').val('');
-                $('#filter-date-from').val('');
-                $('#filter-date-to').val('');
-                $('#filter-status').val('');
-                table.ajax.reload();
-            }
+        const table = window.dqTable('#service-logs', {
+            ajax: routes.index,
+            primary: 1,
+            order: [[2, 'desc']],
+            columns: [
+                { data: 'DT_RowIndex', orderable: false, searchable: false },
+                { data: 'vehicle_info', orderable: false, searchable: false },
+                { data: 'service_info', name: 'service_info', searchable: false },
+                { data: 'metrics', name: 'metrics', searchable: false },
+                { data: 'cost', name: 'cost', searchable: false },
+                { data: 'status', orderable: false, searchable: false },
+                { data: 'action', orderable: false, searchable: false, className: 'text-right' },
+            ],
         });
 
-        // Global variables
-        let selectedFiles = [];
-        let dropdownDataCache = null; // Cache dropdown data
-
-        // Load dropdown data with caching
-        function loadDropdownData(callback) {
-            if (dropdownDataCache) {
-                populateDropdowns(dropdownDataCache);
-                if (callback) callback();
-                return;
+        // A document row: the name links to the download; in the form it can be removed.
+        const documentItem = (doc, removable) => {
+            const item = document.createElement('li');
+            item.className = 'flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm';
+            const link = document.createElement('a');
+            link.href = at(routes.download, doc.id);
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.className = 'min-w-0 truncate underline-offset-2 hover:underline';
+            link.textContent = doc.original_name || 'Document';
+            item.append(link);
+            if (removable) {
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'btn text-destructive';
+                remove.dataset.variant = 'ghost';
+                remove.dataset.size = 'sm';
+                remove.textContent = 'Remove';
+                remove.addEventListener('click', () => confirm(
+                    { title: 'Remove document?', text: `${doc.original_name || 'The document'} will be deleted.`, confirmButtonText: 'Remove', customClass: { confirmButton: 'swal2-deny' } },
+                    async () => { if (report(table, await request(at(routes.deleteDocument, doc.id), 'DELETE'), 'Could not remove the document.')) item.remove(); },
+                ));
+                item.append(remove);
             }
+            return item;
+        };
 
-            $.ajax({
-                url: '{{ route('admin.service-log.dropdown-data') }}',
-                type: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        dropdownDataCache = response;
-                        populateDropdowns(response);
-                        if (callback) callback();
-                    } else {
-                        showToast('Failed to load form data', 'error');
-                    }
-                },
-                error: function(xhr) {
-                    console.error('Failed to load dropdown data:', xhr);
-                    showToast('Failed to load form data', 'error');
-                }
-            });
-        }
+        const form = document.getElementById('service-log-form');
+        const fileInput = form?.querySelector('input[type="file"]');
+        const existing = form?.querySelector('[data-existing-documents]');
 
-        // Populate dropdowns with data
-        function populateDropdowns(response) {
-            // Populate vehicles
-            var vehicleSelect = $('#vehicle_id');
-            vehicleSelect.empty().append('<option value="">Select Vehicle</option>');
-            response.vehicles.forEach(function(vehicle) {
-                vehicleSelect.append(new Option(vehicle.unit_no + ' - ' + vehicle.year + ' ' + vehicle.make + ' ' +
-                    vehicle.model, vehicle.id));
-            });
-
-            // Populate categories
-            var categoriesContainer = $('#categories-container');
-            categoriesContainer.empty();
-            response.maintenanceCategories.forEach(function(category) {
-                categoriesContainer.append(`
-                <div class="flex items-center">
-                    <input type="checkbox" name="maintenance_categories[]" id="category_${category.id}" value="${category.id}" class="h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded">
-                    <label for="category_${category.id}" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">${escapeHtml(category.name)}</label>
-                </div>
-            `);
-            });
-        }
-
-        // Show create modal
-        function showCreateModal() {
-            $('#modalTitle').text('Create New Service Log');
-            $('#submitText').text('Save Service Log');
-            $('#service_log_id').val('');
-            resetFormErrors();
-            resetForm();
-
-            // Load dropdown data and then reset form
-            loadDropdownData(function() {
-                // Reset form after dropdowns are loaded
-                resetForm();
-            });
-
-            // Reset file selection
-            selectedFiles = [];
-            updateFilePreview();
-
-            $('#serviceLogModal').removeClass('hidden');
-        }
-
-        // Show edit modal
-        function editServiceLog(id) {
-            resetFormErrors();
-
-            $('#modalTitle').html('<i class="fas fa-spinner fa-spin mr-2"></i>Loading...');
-            $('#submitText').html('<i class="fas fa-spinner fa-spin mr-2"></i>Loading');
-            $('#serviceLogModal').removeClass('hidden');
-
-            // Reset file selection
-            selectedFiles = [];
-            updateFilePreview();
-
-            // First load dropdown data, then load service log data
-            loadDropdownData(function() {
-                loadServiceLogData(id);
-            });
-        }
-
-        // Load service log data for editing
-        function loadServiceLogData(id) {
-            $.ajax({
-                url: '{{ route('admin.service-log.edit', ':id') }}'.replace(':id', id),
-                type: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        $('#modalTitle').text('Edit Service Log');
-                        $('#submitText').text('Update Service Log');
-                        $('#service_log_id').val(id);
-
-                        // Fill form fields
-                        fillFormFields(response.data);
-
-                        if (response.data.documents && response.data.documents.length > 0) {
-                            renderExistingDocuments(response.data.documents);
-                        }
-                    } else {
-                        showToast('Failed to load service log data', 'error');
-                        $('#serviceLogModal').addClass('hidden');
-                    }
-                },
-                error: function(xhr) {
-                    console.error('Edit error:', xhr);
-                    showToast('Failed to load service log data', 'error');
-                    $('#serviceLogModal').addClass('hidden');
-                }
-            });
-        }
-
-        // Fill form fields with data
-        function fillFormFields(data) {
-            // Set vehicle selection
-            if (data.vehicle_id) {
-                $('#vehicle_id').val(data.vehicle_id);
-            }
-
-            // Set service date
-            if (data.service_date) {
-                $('#service_date').val(data.service_date.split('T')[0]);
-            }
-
-            // Set maintenance notes
-            $('#maintenance_notes').val(data.maintenance_notes || '');
-
-            // Set metrics
-            $('#odometer_at_service').val(data.odometer_at_service || '');
-            $('#current_odometer').val(data.current_odometer || '');
-            $('#engine_hours_at_service').val(data.engine_hours_at_service || '');
-            $('#current_engine_hours').val(data.current_engine_hours || '');
-
-            // Set cost
-            $('#total_cost').val(data.total_cost || '');
-
-            // Set status
-            $('#status').val(data.status || 'completed');
-
-            // Set categories (checkboxes)
-            $('input[name="maintenance_categories[]"]').prop('checked', false);
-            if (data.maintenance_categories && Array.isArray(data.maintenance_categories)) {
-                data.maintenance_categories.forEach(function(cat) {
-                    let catId = typeof cat === 'object' ? cat.id : cat;
-                    $('#category_' + catId).prop('checked', true);
-                });
-            }
-        }
-
-        // View service log details
-        function viewServiceLog(id) {
-            $.ajax({
-                url: '{{ route('admin.service-log.show', ':id') }}'.replace(':id', id),
-                type: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        const data = response.data;
-                        const vehicle = response.vehicle_info;
-
-                        $('#view_vehicle').text(vehicle ? vehicle.full_name : 'N/A');
-                        $('#view_service_date').text(data.service_date ? new Date(data.service_date)
-                            .toLocaleDateString() : 'N/A');
-
-                        let categoriesHtml = '';
-                        if (data.maintenance_categories && data.maintenance_categories.length > 0) {
-                            data.maintenance_categories.forEach(function(cat) {
-                                categoriesHtml +=
-                                    '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs mr-1">' +
-                                    escapeHtml(cat.name) + '</span>';
-                            });
-                        } else {
-                            categoriesHtml = '<span class="text-gray-500">None selected</span>';
-                        }
-                        $('#view_categories').html(categoriesHtml);
-
-                        $('#view_notes').text(data.maintenance_notes || 'No notes provided');
-                        $('#view_odometer_service').text(data.odometer_at_service ? data.odometer_at_service
-                            .toLocaleString() + ' mi' : '0 mi');
-                        $('#view_current_odometer').text(data.current_odometer ? data.current_odometer
-                            .toLocaleString() + ' mi' : '0 mi');
-
-                        if (data.engine_hours_at_service) {
-                            $('#view_engine_service').text(data.engine_hours_at_service.toLocaleString() +
-                                ' hrs');
-                            $('#view_engine_row').show();
-                        } else {
-                            $('#view_engine_row').hide();
-                        }
-
-                        if (data.current_engine_hours) {
-                            $('#view_current_engine').text(data.current_engine_hours.toLocaleString() + ' hrs');
-                            $('#view_current_engine_row').show();
-                        } else {
-                            $('#view_current_engine_row').hide();
-                        }
-
-                        $('#view_total_cost').text('$' + parseFloat(data.total_cost).toFixed(2));
-
-                        const statusBadge = {
-                                'completed': '<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Completed</span>',
-                                'pending': '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Pending</span>',
-                                'cancelled': '<span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">Cancelled</span>'
-                            } [data.status] ||
-                            '<span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">' + escapeHtml(data
-                            .status) + '</span>';
-
-                        $('#view_status').html(statusBadge);
-
-                        if (data.documents && data.documents.length > 0) {
-                            let docsHtml = '<div class="grid grid-cols-2 gap-2">';
-                            data.documents.forEach(function(doc) {
-                                let downloadUrl = "{{ url('admin/service-log/document') }}/" + doc.id +
-                                    "/download";
-                                let fileIcon = doc.file_icon || 'fa-file-alt text-gray-500';
-
-                                docsHtml += `
-                                <div class="flex items-center p-2 border rounded">
-                                    <i class="fas ${fileIcon} mr-2"></i>
-                                    <span class="text-sm truncate flex-1">${escapeHtml(doc.original_name)}</span>
-                                    <a href="${downloadUrl}" class="text-blue-500 hover:text-blue-700 ml-2" target="_blank">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                </div>
-                            `;
-                            });
-                            docsHtml += '</div>';
-                            $('#view_documents').html(docsHtml);
-                        } else {
-                            $('#view_documents').html('<p class="text-gray-500">No documents uploaded</p>');
-                        }
-
-                        $('#viewServiceLogModal').removeClass('hidden');
-                    } else {
-                        showToast('Failed to load service log details', 'error');
-                    }
-                },
-                error: function(xhr) {
-                    console.error('View error:', xhr);
-                    showToast('Failed to load service log details', 'error');
-                }
-            });
-        }
-
-        // File input change handler
-        $(document).on('change', '#service_documents', function(e) {
-            const files = Array.from(e.target.files);
-
-            const validFiles = files.filter(file => {
-                if (file.size > 10 * 1024 * 1024) {
-                    showToast(`File ${file.name} exceeds 10MB limit`, 'error');
-                    return false;
-                }
-
-                const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf', 'application/msword',
-                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                ];
-                if (!allowedTypes.includes(file.type) && !file.name.match(
-                        /\.(jpg|jpeg|png|pdf|doc|docx)$/i)) {
-                    showToast(`File ${file.name} has invalid type. Allowed: PDF, JPG, PNG, DOC, DOCX`,
-                        'error');
-                    return false;
-                }
-
-                return true;
-            });
-
-            selectedFiles = [...selectedFiles, ...validFiles];
-            updateFilePreview();
-            $(this).val('');
+        form?.elements.vehicle_id.addEventListener('change', async () => {
+            const id = form.elements.vehicle_id.value;
+            if (!id) return;
+            const { ok, json } = await request(at(routes.vehicle, id));
+            if (!ok) return;
+            form.elements.current_odometer.value = json.data.current_odometer ?? '';
+            form.elements.odometer_at_service.max = json.data.current_odometer ?? '';
         });
 
-        // Drag and drop handlers
-        const dropzone = document.getElementById('service-dropzone');
-        if (dropzone) {
-            dropzone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropzone.classList.add('border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/10');
-            });
+        window.dqCrud.page({
+            table,
+            dialog: '#service-log-dialog',
+            singular: 'service log',
+            routes,
+            defaults: { status: 'completed', service_date: new Date().toISOString().slice(0, 10) },
+            toForm: (record) => ({
+                ...record,
+                service_date: record.service_date ? String(record.service_date).slice(0, 10) : undefined,
+                maintenance_categories: (record.maintenance_categories ?? []).map((category) => category.id),
+            }),
+            afterFill: (form, record) => {
+                // store() reads documents[], update() reads new_documents[] (it keeps the existing ones)
+                fileInput.name = record.id ? 'new_documents[]' : 'documents[]';
+                fileInput.value = '';
+                existing.replaceChildren(...(record.documents ?? []).map((doc) => documentItem(doc, canEdit)));
+            },
+            actions: { view },
+        });
 
-            dropzone.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/10');
-            });
-
-            dropzone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/10');
-
-                const files = Array.from(e.dataTransfer.files);
-
-                const validFiles = files.filter(file => {
-                    if (file.size > 10 * 1024 * 1024) {
-                        showToast(`File ${file.name} exceeds 10MB limit`, 'error');
-                        return false;
-                    }
-
-                    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf',
-                        'application/msword',
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                    ];
-                    if (!allowedTypes.includes(file.type) && !file.name.match(
-                            /\.(jpg|jpeg|png|pdf|doc|docx)$/i)) {
-                        showToast(`File ${file.name} has invalid type`, 'error');
-                        return false;
-                    }
-
-                    return true;
-                });
-
-                selectedFiles = [...selectedFiles, ...validFiles];
-                updateFilePreview();
-            });
+        const viewDialog = document.getElementById('service-log-view-dialog');
+        async function view(id) {
+            const { ok, json } = await request(at(routes.show, id));
+            if (!ok) return window.notify('error', json.message || 'Could not load the service log.');
+            const data = json.data;
+            const set = (key, value) => { viewDialog.querySelector(`[data-view="${key}"]`).textContent = value || '—'; };
+            set('vehicle', json.vehicle_info?.full_name ?? 'Deleted vehicle');
+            set('date', data.service_date ? new Date(data.service_date).toLocaleDateString(undefined, { timeZone: 'UTC' }) : '');
+            set('odometer', number(data.odometer_at_service, ' mi'));
+            set('current_odometer', number(data.current_odometer, ' mi'));
+            set('engine', number(data.engine_hours_at_service, ' hrs'));
+            set('current_engine', number(data.current_engine_hours, ' hrs'));
+            set('cost', data.total_cost !== null ? `$${Number(data.total_cost).toFixed(2)}` : '');
+            set('notes', data.maintenance_notes);
+            const status = viewDialog.querySelector('[data-view="status"]');
+            status.textContent = data.status ? data.status[0].toUpperCase() + data.status.slice(1) : '—';
+            status.dataset.tone = tones[data.status] ?? 'neutral';
+            const categories = viewDialog.querySelector('[data-view="categories"]');
+            categories.replaceChildren(...(data.maintenance_categories ?? []).map((category) => {
+                const badge = document.createElement('span');
+                badge.className = 'badge';
+                badge.dataset.variant = 'secondary';
+                badge.textContent = category.name;
+                return badge;
+            }));
+            if (!categories.children.length) categories.textContent = '—';
+            const documents = viewDialog.querySelector('[data-view="documents"]');
+            documents.replaceChildren(...(data.documents ?? []).map((doc) => documentItem(doc, false)));
+            if (!documents.children.length) documents.textContent = 'No documents uploaded';
+            viewDialog.showModal();
         }
-
-        // Update file preview
-        function updateFilePreview() {
-            const container = $('#service-file-preview-container');
-            container.empty();
-
-            if (selectedFiles.length === 0) {
-                return;
-            }
-
-            selectedFiles.forEach((file, index) => {
-                const fileIcon = getFileIcon(file.name);
-                const fileSize = formatFileSize(file.size);
-
-                const previewHtml = `
-                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg dark:border-gray-700 file-preview-item" data-file-index="${index}">
-                    <div class="flex items-center flex-1">
-                        <i class="mr-3 text-2xl ${fileIcon}"></i>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">${escapeHtml(file.name)}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">${fileSize}</p>
-                        </div>
-                    </div>
-                    <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700 ml-2">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `;
-
-                container.append(previewHtml);
-            });
-        }
-
-        // Remove file
-        function removeFile(index) {
-            selectedFiles.splice(index, 1);
-            updateFilePreview();
-
-            if (selectedFiles.length === 0) {
-                $('#service_documents').val('');
-            }
-        }
-
-        // Get file icon based on extension
-        function getFileIcon(filename) {
-            const ext = filename.split('.').pop().toLowerCase();
-
-            const icons = {
-                'pdf': 'fa-file-pdf text-red-500',
-                'doc': 'fa-file-word text-blue-500',
-                'docx': 'fa-file-word text-blue-500',
-                'jpg': 'fa-file-image text-purple-500',
-                'jpeg': 'fa-file-image text-purple-500',
-                'png': 'fa-file-image text-purple-500'
-            };
-
-            return icons[ext] || 'fa-file-alt text-gray-500';
-        }
-
-        // Format file size
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        // Submit form
-        function submitServiceLogForm() {
-            var formData = new FormData(document.getElementById('serviceLogForm'));
-            var id = $('#service_log_id').val();
-            var url = id ? '{{ route('admin.service-log.update', ':id') }}'.replace(':id', id) :
-                '{{ route('admin.service-log.store') }}';
-
-            if (id) {
-                formData.append('_method', 'PUT');
-            }
-
-            var selectedCategories = [];
-            $('input[name="maintenance_categories[]"]:checked').each(function() {
-                selectedCategories.push($(this).val());
-            });
-
-            // Clear existing categories and add selected ones
-            formData.delete('maintenance_categories[]');
-            selectedCategories.forEach(function(catId) {
-                formData.append('maintenance_categories[]', catId);
-            });
-
-            // Add new files
-            selectedFiles.forEach((file, index) => {
-                formData.append('new_documents[' + index + ']', file);
-            });
-
-            resetFormErrors();
-
-            var originalText = $('#submitText').html();
-            $('#submitText').html('<i class="fas fa-spinner fa-spin mr-2"></i>Processing...');
-
-            $.ajax({
-                url: url,
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-                    $('#submitText').html(originalText);
-                    if (response.success) {
-                        $('#serviceLogModal').addClass('hidden');
-                        $('#service-logs-table').DataTable().ajax.reload();
-                        showToast(response.message, 'success');
-                        resetForm();
-                    } else {
-                        showToast(response.message || 'Operation failed', 'error');
-                    }
-                },
-                error: function(xhr) {
-                    $('#submitText').html(originalText);
-                    if (xhr.status === 422) {
-                        var errors = xhr.responseJSON.errors;
-                        $.each(errors, function(key, value) {
-                            if (key === 'maintenance_categories') {
-                                $('#categories_error').html(value[0]);
-                            } else if (key.startsWith('new_documents.')) {
-                                $('#documents_error').html(value[0]);
-                            } else {
-                                $('#' + key + '_error').html(value[0]);
-                            }
-                        });
-                        var firstError = Object.keys(errors)[0];
-                        if (firstError) {
-                            $('#' + firstError).focus();
-                        }
-                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                        showToast(xhr.responseJSON.message, 'error');
-                    } else {
-                        showToast('An error occurred. Please try again.', 'error');
-                    }
-                }
-            });
-        }
-
-        // Delete service log
-        function deleteServiceLog(id) {
-            Swal.fire({
-                title: 'Are you sure?',
-                text: "You won't be able to revert this!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Deleting...',
-                        allowOutsideClick: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-
-                    $.ajax({
-                        url: '{{ route('admin.service-log.destroy', ':id') }}'.replace(':id', id),
-                        type: 'DELETE',
-                        data: {
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function(response) {
-                            Swal.close();
-                            if (response.success) {
-                                $('#service-logs-table').DataTable().ajax.reload();
-                                Swal.fire({
-                                    title: 'Deleted!',
-                                    text: response.message,
-                                    icon: 'success',
-                                    confirmButtonColor: '#3085d6',
-                                    timer: 2000,
-                                    showConfirmButton: false
-                                });
-                            }
-                        },
-                        error: function(xhr) {
-                            Swal.close();
-                            let errorMessage = 'Failed to delete service log.';
-                            if (xhr.responseJSON && xhr.responseJSON.message) {
-                                errorMessage = xhr.responseJSON.message;
-                            }
-                            Swal.fire({
-                                title: 'Error!',
-                                text: errorMessage,
-                                icon: 'error',
-                                confirmButtonColor: '#3085d6'
-                            });
-                        }
-                    });
-                }
-            });
-        }
-
-        // Render existing documents
-        function renderExistingDocuments(documents) {
-            var container = $('#existing-documents');
-            container.empty();
-
-            if (documents.length > 0) {
-                documents.forEach(function(doc) {
-                    let fileIcon = getFileIcon(doc.original_name);
-                    container.append(`
-                    <div class="document-preview" data-id="${doc.id}">
-                        <div class="file-icon">
-                            <i class="fas ${fileIcon} text-4xl"></i>
-                        </div>
-                        <div class="text-xs mt-1 max-w-[100px] truncate">${escapeHtml(doc.original_name)}</div>
-                        <div class="remove-doc" onclick="deleteDocument(${doc.id})">
-                            <i class="fas fa-times"></i>
-                        </div>
-                    </div>
-                `);
-                });
-            }
-        }
-
-        // Delete document
-        function deleteDocument(docId) {
-            Swal.fire({
-                title: 'Remove Document?',
-                text: "This action cannot be undone",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, remove it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: '{{ route('admin.service-log.delete-document', ':id') }}'.replace(':id',
-                            docId),
-                        type: 'DELETE',
-                        data: {
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function(response) {
-                            if (response.success) {
-                                $('.document-preview[data-id="' + docId + '"]').remove();
-                                showToast('Document removed successfully', 'success');
-                            } else {
-                                showToast('Failed to remove document', 'error');
-                            }
-                        },
-                        error: function() {
-                            showToast('Failed to remove document', 'error');
-                        }
-                    });
-                }
-            });
-        }
-
-        // Reset form
-        function resetForm() {
-            $('#serviceLogForm')[0].reset();
-            $('#service_log_id').val('');
-            resetFormErrors();
-
-            // Uncheck all categories
-            $('input[name="maintenance_categories[]"]').prop('checked', false);
-
-            $('#existing-documents').empty();
-
-            selectedFiles = [];
-            updateFilePreview();
-        }
-
-        // Reset form errors
-        function resetFormErrors() {
-            $('.text-red-600').html('');
-        }
-
-        // Vehicle names, category names and file names come from users: never put them in HTML unescaped.
-        function escapeHtml(value) {
-            return String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-
-        // Toast notification function
-        function showToast(message, type = 'success') {
-            const types = {
-                success: {
-                    bg: 'bg-green-500',
-                    icon: 'fa-check-circle',
-                    border: 'border-green-600'
-                },
-                error: {
-                    bg: 'bg-red-500',
-                    icon: 'fa-exclamation-circle',
-                    border: 'border-red-600'
-                },
-                info: {
-                    bg: 'bg-blue-500',
-                    icon: 'fa-info-circle',
-                    border: 'border-blue-600'
-                },
-                warning: {
-                    bg: 'bg-yellow-500',
-                    icon: 'fa-exclamation-triangle',
-                    border: 'border-yellow-600'
-                }
-            };
-
-            const toastType = types[type] || types.success;
-
-            const toastId = 'toast-' + Date.now();
-            const toast = document.createElement('div');
-            toast.id = toastId;
-            toast.className =
-                `${toastType.bg} ${toastType.border} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 transform transition-all duration-300 translate-x-full`;
-            toast.innerHTML = `
-            <i class="fas ${toastType.icon} text-xl"></i>
-            <div>
-                <p class="font-medium">${escapeHtml(message)}</p>
-            </div>
-            <button onclick="document.getElementById('${toastId}').remove()" class="ml-4 text-white hover:text-gray-200">
-                <i class="fas fa-times"></i>
-            </button>
-        `;
-
-            document.getElementById('toast-container').appendChild(toast);
-
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full');
-                toast.classList.add('translate-x-0');
-            }, 10);
-
-            setTimeout(() => {
-                toast.classList.remove('translate-x-0');
-                toast.classList.add('translate-x-full');
-                setTimeout(() => {
-                    if (document.getElementById(toastId)) {
-                        document.getElementById(toastId).remove();
-                    }
-                }, 300);
-            }, 3000);
-        }
-
-        // Make functions available globally
-        window.showCreateModal = showCreateModal;
-        window.editServiceLog = editServiceLog;
-        window.viewServiceLog = viewServiceLog;
-        window.deleteServiceLog = deleteServiceLog;
-        window.deleteDocument = deleteDocument;
-        window.removeFile = removeFile;
-        window.showToast = showToast;
     </script>
 @endpush

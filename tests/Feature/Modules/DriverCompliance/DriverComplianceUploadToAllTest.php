@@ -103,7 +103,7 @@ describe('Upload to all: the modal', function () {
 
         expect($html)->toContain('name="upload_to_all" value="1"')
             ->and($html)->toContain('name="company_id"')
-            ->and($html)->toContain('&driver_id=');
+            ->and($html)->toContain('driver_id: driverId');
     });
 
     it('lists the tenant\'s own drivers and company', function () {

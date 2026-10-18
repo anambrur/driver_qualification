@@ -4,6 +4,7 @@
 
 namespace App\Http\Controllers;
 
+use App\DataTables\Maintenance\MaintenanceScheduleTable;
 use App\Models\MaintenanceCategory;
 use App\Models\MaintenanceSchedule;
 use App\Models\ServiceLog;
@@ -16,7 +17,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
-use Yajra\DataTables\Facades\DataTables;
 
 class MaintenanceScheduleController extends Controller
 {
@@ -25,114 +25,14 @@ class MaintenanceScheduleController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = MaintenanceSchedule::with(['vehicle', 'maintenanceCategory', 'company'])
-                ->select(['maintenance_schedules.*']);
-
-            // Apply filters
-            if ($request->filled('vehicle_id')) {
-                $query->where('vehicle_id', $request->vehicle_id);
-            }
-
-            if ($request->filled('category_id')) {
-                $query->where('maintenance_category_id', $request->category_id);
-            }
-
-            if ($request->filled('schedule_type')) {
-                $query->where('schedule_type', $request->schedule_type);
-            }
-
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
-
-            return DataTables::of($query)
-                ->addIndexColumn()
-                ->addColumn('schedule_info', function ($row) {
-                    $category = $row->maintenanceCategory ? $row->maintenanceCategory->name : 'N/A';
-
-                    return '
-                    <div class="text-sm">
-                        <div class="font-medium text-gray-900 dark:text-white">'.e($row->title ?: $category).'</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">'.$row->schedule_type_label.'</div>
-                    </div>';
-                })
-                ->addColumn('vehicle_info', function ($row) {
-                    if (! $row->vehicle) {
-                        return '<span class="text-sm text-gray-500 dark:text-gray-400">All Vehicles</span>';
-                    }
-
-                    $vehicle = $row->vehicle;
-
-                    return '
-                    <div class="flex items-center">
-                        <div class="shrink-0 h-8 w-8">
-                            <div class="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
-                                <i class="fas fa-truck text-xs"></i>
-                            </div>
-                        </div>
-                        <div class="ml-3">
-                            <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                '.e($vehicle->unit_no).'
-                            </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                '.e($vehicle->year.' '.$vehicle->make.' '.$vehicle->model).'
-                            </div>
-                        </div>
-                    </div>';
-                })
-                ->addColumn('interval', function ($row) {
-                    return '
-                    <div class="text-sm">
-                        <div class="font-medium text-gray-900 dark:text-white">'.$row->interval_text.'</div>
-                    </div>';
-                })
-                ->addColumn('next_due', function ($row) {
-                    $isDue = $row->isDue();
-                    $dueClass = $isDue ? 'text-red-600 font-bold' : 'text-gray-900';
-
-                    return '
-                    <div class="text-sm">
-                        <div class="'.$dueClass.' dark:text-white">'.$row->next_due_text.'</div>
-                        '.($isDue ? '<span class="text-xs text-red-500">Due now!</span>' : '').'
-                    </div>';
-                })
-                ->addColumn('status', function ($row) {
-                    return $row->status_badge;
-                })
-                ->addColumn('action', function ($row) {
-                    $viewBtn = '<button onclick="viewSchedule('.$row->id.')" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors mr-1"
-                                title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </button>';
-
-                    $editBtn = '<button onclick="editSchedule('.$row->id.')" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-indigo-600 bg-indigo-100 rounded-md hover:bg-indigo-200 transition-colors mr-1"
-                                title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>';
-
-                    $deleteBtn = '<button onclick="deleteSchedule('.$row->id.')" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
-                                title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>';
-
-                    return '<div class="flex justify-center space-x-1">'.$viewBtn.$editBtn.$deleteBtn.'</div>';
-                })
-                ->addColumn('created_at_formatted', function ($row) {
-                    return $row->created_at->format('M d, Y');
-                })
-                ->rawColumns(['schedule_info', 'vehicle_info', 'interval', 'next_due', 'status', 'action'])
-                ->make(true);
+            return (new MaintenanceScheduleTable($request))->json();
         }
 
         // Get dropdown data for filters
-        $vehicles = Vehicle::orderBy('unit_no')->get();
-        $maintenanceCategories = MaintenanceCategory::orderBy('name')->get();
-        $companies = $this->getCompaniesForUser();
+        $vehicles = Vehicle::orderBy('unit_no')->get(['id', 'unit_no', 'year', 'make', 'model']);
+        $maintenanceCategories = MaintenanceCategory::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.maintenance-schedule.index', compact('vehicles', 'maintenanceCategories', 'companies'));
+        return view('admin.maintenance-schedule.index', compact('vehicles', 'maintenanceCategories'));
     }
 
     public function store(Request $request)
