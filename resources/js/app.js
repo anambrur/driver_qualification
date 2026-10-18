@@ -62,6 +62,22 @@ document.addEventListener('click', (event) => {
     }
 });
 
+// <a href="..." data-confirm="Title" data-confirm-text="..."> asks in the same dialog before following the link.
+document.addEventListener("click", (event) => {
+    const link = event.target instanceof Element ? event.target.closest("a[data-confirm]") : null;
+    if (!link || !document.getElementById("confirm-dialog") || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+
+    event.preventDefault();
+    openDialog({
+        title: link.dataset.confirm,
+        text: link.dataset.confirmText ?? "",
+        confirmText: link.dataset.confirmButton ?? "Continue",
+        cancelText: link.dataset.confirmCancel ?? "Cancel",
+    }).then(({ isConfirmed }) => {
+        if (isConfirmed) window.location.href = link.href;
+    });
+});
+
 // <form data-confirm="Title" data-confirm-text="..." data-confirm-button="Delete" data-confirm-cancel="Keep">
 // asks in the layout's <x-ui.confirm-dialog> first, and submits only on confirm.
 document.addEventListener("submit", (event) => {

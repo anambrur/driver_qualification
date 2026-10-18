@@ -8,7 +8,6 @@
         <form id="step-form" action="{{ route('public.application.store.step7', ['slug' => $company->slug]) }}" method="POST" class="grid gap-6">
             @csrf
             <input type="hidden" name="driver_id" value="{{ $driver->id }}">
-            <input type="hidden" name="from_edit" value="0">
             <input type="hidden" name="consent_type" value="multiple_unlimited">
 
             <x-ui.card id="consent-card" title="General Consent for Limited Queries">

@@ -504,22 +504,18 @@ class ApplicationFormController extends Controller
     /**
      * STEP 2: Driver License Upload
      */
-    public function step2($slug, $driver_id, Request $request)
+    public function step2($slug, $driver_id)
     {
         $company = $this->activeCompany($slug);
         $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 2;
         $driver_document = DriverDocument::where('driver_id', $driver->id)->first();
 
-        // Check if we're in edit mode
-        $isEditMode = $request->has('edit') && $request->edit == '1';
-
         return view('application.steps.step2-license', compact(
             'company',
             'driver',
             'currentStep',
-            'driver_document',
-            'isEditMode'
+            'driver_document'
         ));
     }
 
@@ -551,22 +547,18 @@ class ApplicationFormController extends Controller
     /**
      * STEP 3: Medical Card Upload
      */
-    public function step3($slug, $driver_id, Request $request)
+    public function step3($slug, $driver_id)
     {
         $company = $this->activeCompany($slug);
         $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 3;
         $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
 
-        // Check if we're in edit mode
-        $isEditMode = $request->has('edit') && $request->edit == '1';
-
         return view('application.steps.step3-medical-card', compact(
             'company',
             'driver',
             'currentStep',
-            'driverDocument',
-            'isEditMode'
+            'driverDocument'
         ));
     }
 
@@ -599,22 +591,18 @@ class ApplicationFormController extends Controller
     /**
      * STEP 4: Forfeiture Document Upload
      */
-    public function step4($slug, $driver_id, Request $request)
+    public function step4($slug, $driver_id)
     {
         $company = $this->activeCompany($slug);
         $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 4;
         $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
 
-        // Check if we're in edit mode
-        $isEditMode = $request->has('edit') && $request->edit == '1';
-
         return view('application.steps.step4-forfeiture', compact(
             'company',
             'driver',
             'currentStep',
-            'driverDocument',
-            'isEditMode'
+            'driverDocument'
         ));
     }
 
@@ -646,7 +634,7 @@ class ApplicationFormController extends Controller
     /**
      * STEP 5: Violation Record
      */
-    public function step5($slug, $driver_id, Request $request)
+    public function step5($slug, $driver_id)
     {
         $company = $this->activeCompany($slug);
         $driver = $this->applicationDriver($company, $driver_id);
@@ -654,16 +642,12 @@ class ApplicationFormController extends Controller
         $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
         $violations = Violation::where('driver_id', $driver->id)->get();
 
-        // Check if we're in edit mode
-        $isEditMode = $request->has('edit') && $request->edit == '1';
-
         return view('application.steps.step5-violation', compact(
             'company',
             'driver',
             'currentStep',
             'driverDocument',
-            'violations',
-            'isEditMode'
+            'violations'
         ));
     }
 
@@ -693,22 +677,18 @@ class ApplicationFormController extends Controller
     /**
      * STEP 6: Alcohol & Drug Test Statement
      */
-    public function step6($slug, $driver_id, Request $request)
+    public function step6($slug, $driver_id)
     {
         $company = $this->activeCompany($slug);
         $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 6;
         $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
 
-        // Check if we're in edit mode
-        $isEditMode = $request->has('edit') && $request->edit == '1';
-
         return view('application.steps.step6-alcohol-drug', compact(
             'company',
             'driver',
             'currentStep',
-            'driverDocument',
-            'isEditMode'
+            'driverDocument'
         ));
     }
 
@@ -738,22 +718,18 @@ class ApplicationFormController extends Controller
     /**
      * STEP 7: FMCSA Clearinghouse Consent
      */
-    public function step7($slug, $driver_id, Request $request)
+    public function step7($slug, $driver_id)
     {
         $company = $this->activeCompany($slug);
         $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 7;
         $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
 
-        // Check if we're in edit mode
-        $isEditMode = $request->has('edit') && $request->edit == '1';
-
         return view('application.steps.step7-fmcsa-consent', compact(
             'company',
             'driver',
             'currentStep',
-            'driverDocument',
-            'isEditMode'
+            'driverDocument'
         ));
     }
 
@@ -783,22 +759,18 @@ class ApplicationFormController extends Controller
     /**
      * STEP 8: PSP Driver Disclosure & Authorization
      */
-    public function step8($slug, $driver_id, Request $request)
+    public function step8($slug, $driver_id)
     {
         $company = $this->activeCompany($slug);
         $driver = $this->applicationDriver($company, $driver_id);
         $currentStep = 8;
         $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
 
-        // Check if we're in edit mode
-        $isEditMode = $request->has('edit') && $request->edit == '1';
-
         return view('application.steps.step8-psp', compact(
             'company',
             'driver',
             'currentStep',
-            'driverDocument',
-            'isEditMode'
+            'driverDocument'
         ));
     }
 
@@ -828,7 +800,7 @@ class ApplicationFormController extends Controller
     /**
      * STEP 9: Alcohol & Drug Testing Policy
      */
-    public function step9($slug, $driver_id, Request $request)
+    public function step9($slug, $driver_id)
     {
         $company = $this->activeCompany($slug);
         $driver = $this->applicationDriver($company, $driver_id);
@@ -836,16 +808,12 @@ class ApplicationFormController extends Controller
         $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
         $policyPdf = PolicyPdf::resolveFor($company->id);
 
-        // Check if we're in edit mode
-        $isEditMode = $request->has('edit') && $request->edit == '1';
-
         return view('application.steps.step9-alcohol-drug-policy', compact(
             'company',
             'driver',
             'currentStep',
             'driverDocument',
-            'policyPdf',
-            'isEditMode'
+            'policyPdf'
         ));
     }
 
@@ -875,7 +843,7 @@ class ApplicationFormController extends Controller
     /**
      * STEP 10: General Work Policy & Final Review
      */
-    public function step10($slug, $driver_id, Request $request)
+    public function step10($slug, $driver_id)
     {
         $company = $this->activeCompany($slug);
         $driver = $this->applicationDriver($company, $driver_id)->load(['driver_documents', 'licenses']);
@@ -883,16 +851,12 @@ class ApplicationFormController extends Controller
         $driverDocument = DriverDocument::where('driver_id', $driver->id)->first();
         $policyPdf = PolicyPdf::resolveFor($company->id);
 
-        // Check if we're in edit mode
-        $isEditMode = $request->has('edit') && $request->edit == '1';
-
         return view('application.steps.step10-general-policy', compact(
             'company',
             'driver',
             'currentStep',
             'driverDocument',
-            'policyPdf',
-            'isEditMode'
+            'policyPdf'
         ));
     }
 

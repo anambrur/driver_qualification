@@ -3,6 +3,8 @@
 use App\Models\Driver;
 use App\Models\DriverDocument;
 use App\Models\PolicyPdf;
+use Database\Seeders\DocumentTypeSeeder;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
 use Tests\Feature\Modules\Drivers\DriverAdmin;
@@ -55,7 +57,7 @@ it('renders the step on the shared shell without Font Awesome, SweetAlert or inl
 it('keeps every field the step posts, the action and the hidden values', function (int $step) {
     $response = stepPage($step)->assertOk()
         ->assertSee('action="'.route('public.application.store.step'.$step, ['slug' => $this->company->slug]).'"', false)
-        ->assertSee(['name="_token"', 'name="driver_id" value="'.$this->driver->id.'"', 'name="from_edit" value="0"', 'name="action" value="save"'], false);
+        ->assertSee(['name="_token"', 'name="driver_id" value="'.$this->driver->id.'"', 'name="action" value="save"'], false);
 
     foreach (array_keys(Applicant::stepPayload($step, $this->driver)) as $field) {
         $response->assertSee('name="'.$field.'"', false);
@@ -104,7 +106,7 @@ it('keeps the old input on the medical card date', function () {
 it('renders the normal step instead of a 500 for ?edit=1, without admin links', function (int $step) {
     $this->withSession(Applicant::session($this->driver))->get(stepUrl($step, $this->driver, '?edit=1'))
         ->assertOk()
-        ->assertSee('name="from_edit" value="0"', false)
+        ->assertDontSee('name="from_edit"', false)
         ->assertDontSee('/admin/', false)
         ->assertDontSee('Skip to Next Step');
 })->with('migrated steps');
@@ -171,4 +173,45 @@ it('keeps the step 1 repeaters, jump menus and old input', function () {
         ->assertSee(['id="residence_fields"', 'id="residence_add"', 'id="accident_fields"', 'id="violation_fields"', 'id="employment_record_fields"', 'id="employment_record_add"'], false)
         ->assertSee(['id="driver-section-jump"', 'id="driver-section-jump-mobile"', 'id="section-applicant"'], false)
         ->assertSee(['value="Janet"', 'value="Austin"'], false);
+});
+
+it('prefills the medical card expiry saved on step 3', function () {
+    Storage::fake('local');
+    $this->seed(DocumentTypeSeeder::class);
+    $session = Applicant::session($this->driver);
+
+    $this->withSession($session)
+        ->post(route('public.application.store.step3', $this->company->slug), ['medical_certificate_expiration_date' => '2031-05-06'] + Applicant::stepPayload(3, $this->driver))
+        ->assertSessionHasNoErrors();
+
+    $this->withSession($session)->get(stepUrl(3, $this->driver))->assertOk()
+        ->assertSee('value="2031-05-06"', false)
+        ->assertSee('Medical Certificate Information');
+});
+
+it('shows the company contact on the policy steps', function (int $step) {
+    $this->company->forceFill(['phone' => '(209) 555-0142', 'email' => 'hr@acme.test'])->save();
+    PolicyPdf::create(['company_id' => $this->company->id, ($step === 9 ? 'alcohol_drug_test' : 'general_work').'_policy_file_id' => Files::stored($this->company->id)->id]);
+
+    stepPage($step)->assertOk()
+        ->assertSee('Need help? Call (209) 555-0142 or email hr@acme.test')
+        ->assertSee(json_encode($this->company->company_name), false)
+        ->assertDontSee('N/A or email');
+})->with([9, 10]);
+
+it('sends Finish Later to the company application page after a confirm', function () {
+    stepPage(4)->assertOk()
+        ->assertSee('href="'.route('application.form', $this->company->slug).'"', false)
+        ->assertSee('data-confirm="Finish later?"', false)
+        ->assertSee('Finish Later')
+        ->assertDontSee('Save & Finish Later');
+});
+
+it('shows no inert Finish Later button on the admin wizard', function () {
+    [$owner, $driver] = DriverAdmin::tenantWithDriver();
+
+    $this->actingAs($owner)->get(route('admin.driver.license', $driver->id))
+        ->assertOk()
+        ->assertSee('Application Process')
+        ->assertDontSee('Finish Later');
 });

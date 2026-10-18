@@ -10,7 +10,6 @@
         <form id="step-form" action="{{ route('public.application.store.step2', ['slug' => $company->slug]) }}" method="POST" enctype="multipart/form-data" class="grid gap-6">
             @csrf
             <input type="hidden" name="driver_id" value="{{ $driver->id }}">
-            <input type="hidden" name="from_edit" value="0">
 
             <x-ui.card title="Driver License Upload">
                 <div class="grid gap-8 md:grid-cols-2">

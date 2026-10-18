@@ -8,7 +8,6 @@
         <form id="step-form" action="{{ route('public.application.store.step6', ['slug' => $company->slug]) }}" method="POST" class="grid gap-6">
             @csrf
             <input type="hidden" name="driver_id" value="{{ $driver->id }}">
-            <input type="hidden" name="from_edit" value="0">
 
             <x-ui.card title="49 CFR Part 40.25(j) Compliance Statement">
                 <div class="grid gap-8">

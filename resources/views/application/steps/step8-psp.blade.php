@@ -8,7 +8,6 @@
         <form id="step-form" action="{{ route('public.application.store.step8', ['slug' => $company->slug]) }}" method="POST" class="grid gap-6">
             @csrf
             <input type="hidden" name="driver_id" value="{{ $driver->id }}">
-            <input type="hidden" name="from_edit" value="0">
 
             <x-ui.card id="disclosure-card" title="IMPORTANT DISCLOSURE REGARDING BACKGROUND REPORTS FROM THE PSP ONLINE SERVICE">
                 <div class="grid gap-4 text-sm">

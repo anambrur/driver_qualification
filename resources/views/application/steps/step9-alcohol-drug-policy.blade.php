@@ -11,7 +11,6 @@
         <form id="step-form" action="{{ route('public.application.store.step9', ['slug' => $company->slug]) }}" method="POST" class="grid gap-6">
             @csrf
             <input type="hidden" name="driver_id" value="{{ $driver->id }}">
-            <input type="hidden" name="from_edit" value="0">
 
             <x-ui.card id="policy-card" title="Alcohol & Drug Testing Policy Acknowledgment">
                 <div class="grid gap-6">
@@ -23,7 +22,7 @@
                     <x-application.policy-pdf title="Alcohol & Drug Testing Policy"
                         :url="$hasPolicy ? route('public.application.policy', [$company->slug, 'alcohol_drug_test']) : null"
                         :updated-at="$hasPolicy ? $policyPdf->updated_at : null"
-                        :contact-phone="$authUser->company->phone ?? null" :contact-email="$authUser->email ?? null" />
+                        :contact-phone="$company->phone" :contact-email="$company->email" />
 
                     <x-ui.alert tone="warning"><p><strong>Important:</strong> I have read, fully understand and agree to all terms as set forth in the company alcohol and drug testing policy. My signature below confirms my acknowledgment and agreement.</p></x-ui.alert>
 
@@ -73,7 +72,7 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const employerName = @json($authUser->name ?? 'Employer');
+            const employerName = @json($company->company_name);
             const isEditMode = false;
             const hasExistingPolicyAck =
                 {{ $driverDocument && $driverDocument->alcohol_drug_test_policy_signature ? 'true' : 'false' }};

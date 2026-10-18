@@ -4,6 +4,8 @@
     $totalSteps = $totalSteps ?? 10;
     $isEditMode = $isEditMode ?? false;
     $driverId = $driver_id ?? ($driverId ?? null);
+    // Public application only: where "Finish Later" goes (the company's application page).
+    $finishLaterUrl = $finishLaterUrl ?? null;
 
     // Function to get edit step URL (guarded: the partial can render more than once per process)
     if (! function_exists('getEditStepUrl')) {
@@ -81,12 +83,18 @@
         @endforeach
     </ol>
 
+    @if (($isEditMode && $driverId) || $finishLaterUrl)
     <x-slot:footer class="grid border-t pt-4">
         @if ($isEditMode && $driverId)
             <x-ui.button :href="route('admin.driver.edit', ['id' => $driverId])" variant="outline" icon="arrow-left" class="w-full">Back to Driver Edit</x-ui.button>
-        @else
-            <x-ui.button variant="outline" class="w-full">Save & Finish Later</x-ui.button>
+        @elseif ($finishLaterUrl)
+            <x-ui.button :href="$finishLaterUrl" variant="outline" icon="log-out" class="w-full"
+                data-confirm="Finish later?" data-confirm-button="Leave" data-confirm-cancel="Stay on this step"
+                data-confirm-text="Changes on this step that you have not saved will be lost. The steps you saved are kept: come back any time with Return to Application and your phone number.">
+                Finish Later
+            </x-ui.button>
             <p class="mt-2 text-center text-xs text-muted-foreground">Your application is not sent or visible to the employer until it is 100% complete.</p>
         @endif
     </x-slot:footer>
+    @endif
 </x-ui.card>

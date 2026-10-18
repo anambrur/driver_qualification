@@ -14,6 +14,7 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
 use Tests\Support\Actors;
@@ -179,6 +180,12 @@ it('keeps the platform login private (noindex)', function () {
 
 describe('companies', function () {
     it('creates a company through the provisioner and emails the owner a reset link', function () {
+        // The seeder calls two public APIs; fake them so the test never depends on the network.
+        Http::preventStrayRequests();
+        Http::fake([
+            'restcountries.com/*' => Http::response([['name' => ['common' => 'United States'], 'cca2' => 'US', 'idd' => ['root' => '+1', 'suffixes' => ['']], 'currencies' => ['USD' => ['name' => 'US Dollar']]]]),
+            'countriesnow.space/*' => Http::response(['data' => ['states' => [['name' => 'Texas', 'state_code' => 'TX']]]]),
+        ]);
         $this->seed(CountryStateSeeder::class);
 
         $this->actingAs(Actors::platformOwner(), 'platform')

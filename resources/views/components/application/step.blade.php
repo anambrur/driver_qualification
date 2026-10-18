@@ -39,7 +39,7 @@
             <aside class="grid content-start gap-6" aria-label="Application progress">
                 {{ $aside ?? '' }}
 
-                @include('components.progress-bar', ['currentStep' => $step, 'totalSteps' => 10, 'isEditMode' => false])
+                @include('components.progress-bar', ['currentStep' => $step, 'totalSteps' => 10, 'isEditMode' => false, 'finishLaterUrl' => route('application.form', $company->slug)])
 
                 @include('application.partials.withdraw-application', ['company' => $company, 'driver' => $driver])
 
