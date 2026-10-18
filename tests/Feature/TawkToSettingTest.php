@@ -75,7 +75,8 @@ test('authorized admin can view tawk settings page', function () {
     $this->actingAs($admin, 'platform')
         ->get(route('platform.settings.tawk.index'))
         ->assertOk()
-        ->assertSee('Tawk.to Chat Settings', false);
+        ->assertSee('Live chat', false)
+        ->assertSee('Enable Tawk.to chat', false);
 });
 
 test('authorized admin can update tawk settings', function () {
