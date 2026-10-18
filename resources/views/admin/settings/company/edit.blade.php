@@ -12,7 +12,7 @@
         @if ($errors->has('system_error'))
             <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:border-red-800">
                 <div class="flex items-center">
-                    <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                    <x-ui.icon name="circle-alert" class="inline-block size-4 align-[-0.125em] text-red-500 mr-3" />
                     <p class="text-red-700 dark:text-red-400">{{ $errors->first('system_error') }}</p>
                 </div>
             </div>
@@ -30,7 +30,7 @@
                         class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
                         <div class="px-5 py-4 sm:px-6 sm:py-5">
                             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <i class="fas fa-building mr-2"></i>Company Information
+                                <x-ui.icon name="building-2" class="inline-block size-4 align-[-0.125em] mr-2" />Company Information
                             </h3>
                         </div>
                         <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
@@ -118,7 +118,7 @@
                                     </select>
                                     <span
                                         class="pointer-events-none absolute top-1/2 right-4 z-30 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                                        <i class="fas fa-chevron-down"></i>
+                                        <x-ui.icon name="chevron-down" class="inline-block size-4 align-[-0.125em]" />
                                     </span>
                                 </div>
                                 @error('status')
@@ -133,7 +133,7 @@
                         class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
                         <div class="px-5 py-4 sm:px-6 sm:py-5">
                             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <i class="fas fa-image mr-2"></i>Company Logo
+                                <x-ui.icon name="image" class="inline-block size-4 align-[-0.125em] mr-2" />Company Logo
                             </h3>
                         </div>
                         <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
@@ -168,8 +168,7 @@
                                     <label for="logo"
                                         class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
                                         <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <i
-                                                class="fas fa-cloud-upload-alt mb-3 text-2xl text-gray-500 dark:text-gray-400"></i>
+                                            <x-ui.icon name="cloud-upload" class="inline-block size-6 align-[-0.125em] mb-3 text-gray-500 dark:text-gray-400" />
                                             <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span
                                                     class="font-semibold">Click to upload</span> or drag and drop</p>
                                             <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF, SVG (MAX.
@@ -194,7 +193,7 @@
                         class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
                         <div class="px-5 py-4 sm:px-6 sm:py-5">
                             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <i class="fas fa-map-marker-alt mr-2"></i>Address Information
+                                <x-ui.icon name="map-pin" class="inline-block size-4 align-[-0.125em] mr-2" />Address Information
                             </h3>
                         </div>
                         <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
@@ -261,7 +260,7 @@
                         class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
                         <div class="px-5 py-4 sm:px-6 sm:py-5">
                             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <i class="fas fa-align-left mr-2"></i>Company Description
+                                <x-ui.icon name="align-left" class="inline-block size-4 align-[-0.125em] mr-2" />Company Description
                             </h3>
                         </div>
                         <div class="border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
@@ -286,11 +285,11 @@
             <div class="mt-8 flex justify-end space-x-3">
                 <a href="{{ route('admin.dashboard') }}"
                     class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700">
-                    <i class="fas fa-times mr-2"></i>Cancel
+                    <x-ui.icon name="x" class="inline-block size-4 align-[-0.125em] mr-2" />Cancel
                 </a>
                 <button type="submit"
                     class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2">
-                    <i class="fas fa-save mr-2"></i>Update Company
+                    <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />Update Company
                 </button>
             </div>
         </form>

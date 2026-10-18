@@ -193,7 +193,7 @@
                 remove.dataset.size = 'sm';
                 remove.textContent = 'Remove';
                 remove.addEventListener('click', () => confirm(
-                    { title: 'Remove document?', text: `${doc.original_name || 'The document'} will be deleted.`, confirmButtonText: 'Remove', customClass: { confirmButton: 'swal2-deny' } },
+                    { title: 'Remove document?', text: `${doc.original_name || 'The document'} will be deleted.`, confirmText: 'Remove' },
                     async () => { if (report(table, await request(at(routes.deleteDocument, doc.id), 'DELETE'), 'Could not remove the document.')) item.remove(); },
                 ));
                 item.append(remove);

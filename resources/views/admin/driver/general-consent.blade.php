@@ -20,11 +20,11 @@
                 @endif
             </p>
             <div class="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                <i class="fas fa-user mr-2"></i>
+                <x-ui.icon name="user" class="inline-block size-4 align-[-0.125em] mr-2" />
                 <span>Driver: {{ $driver->first_name }} {{ $driver->last_name }}</span>
                 @if ($driver->company)
                     <span class="mx-2">•</span>
-                    <i class="fas fa-building mr-2"></i>
+                    <x-ui.icon name="building-2" class="inline-block size-4 align-[-0.125em] mr-2" />
                     <span>Company: {{ $driver->company->company_name }}</span>
                 @endif
             </div>
@@ -99,7 +99,7 @@
                                     </div>
                                 </div>
                                 <p class="mt-4 text-sm text-blue-700 dark:text-blue-300">
-                                    <i class="fas fa-info-circle mr-2"></i>
+                                    <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-2" />
                                     Updating this form will create a new consent record.
                                 </p>
                             </div>
@@ -139,7 +139,7 @@
                                     <div
                                         class="mt-4 p-4 bg-white border border-blue-100 rounded-lg dark:bg-gray-900 dark:border-blue-800">
                                         <p class="text-md font-semibold text-gray-800 dark:text-white/90">
-                                            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                            <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] text-green-500 mr-2" />
                                             I am consenting to multiple unlimited queries and for the duration of employment
                                             with {{ $authUser->name }}.
                                         </p>
@@ -251,7 +251,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
                                     <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-2">
-                                        <i class="fas fa-database mr-2"></i>What is the Clearinghouse?
+                                        <x-ui.icon name="database" class="inline-block size-4 align-[-0.125em] mr-2" />What is the Clearinghouse?
                                     </h4>
                                     <p class="text-sm text-gray-600 dark:text-gray-400">
                                         A secure online database that gives employers, FMCSA, State Driver Licensing
@@ -262,7 +262,7 @@
                                 </div>
                                 <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
                                     <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-2">
-                                        <i class="fas fa-search mr-2"></i>Limited Queries
+                                        <x-ui.icon name="search" class="inline-block size-4 align-[-0.125em] mr-2" />Limited Queries
                                     </h4>
                                     <p class="text-sm text-gray-600 dark:text-gray-400">
                                         A check to see if there is any information in the Clearinghouse about a current or
@@ -281,13 +281,13 @@
                         @if ($isEditMode)
                             <a href="{{ route('admin.driver.edit', ['id' => $driver_id]) }}"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                                <i class="fas fa-arrow-left mr-2"></i>
+                                <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Driver Edit
                             </a>
                         @else
                             <a href="{{ route('admin.driver.alcohol.and.drug.test', ['driver_id' => $driver_id]) }}"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                                <i class="fas fa-arrow-left mr-2"></i>
+                                <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Step 6
                             </a>
                         @endif
@@ -295,7 +295,7 @@
                         <div class="flex gap-4">
                             <button type="submit" name="action" value="save"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
-                                <i class="fas fa-save mr-2"></i>
+                                <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 {{ $isEditMode ? 'Update & Continue to Step 8' : 'Save & Continue to Step 8' }}
                             </button>
 
@@ -354,7 +354,7 @@
                             <div class="flex items-center text-sm">
                                 <span class="w-24 text-gray-500 dark:text-gray-400">FMCSA Consent:</span>
                                 <span class="font-medium text-green-600 dark:text-green-400">
-                                    <i class="fas fa-check-circle mr-1"></i> Granted
+                                    <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] mr-1" /> Granted
                                 </span>
                             </div>
                             <div class="flex items-center text-sm">
@@ -373,7 +373,7 @@
                             <div class="flex items-center text-sm">
                                 <span class="w-24 text-gray-500 dark:text-gray-400">FMCSA Consent:</span>
                                 <span class="font-medium text-red-600 dark:text-red-400">
-                                    <i class="fas fa-times-circle mr-1"></i> Not Granted
+                                    <x-ui.icon name="circle-x" class="inline-block size-4 align-[-0.125em] mr-1" /> Not Granted
                                 </span>
                             </div>
                         @endif
@@ -384,23 +384,23 @@
                 <div
                     class="mt-6 rounded-lg border border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-900/10 p-4">
                     <h3 class="font-medium text-purple-800 dark:text-purple-200 mb-3">
-                        <i class="fas fa-shield-alt mr-2"></i>FMCSA Clearinghouse
+                        <x-ui.icon name="shield" class="inline-block size-4 align-[-0.125em] mr-2" />FMCSA Clearinghouse
                     </h3>
                     <ul class="space-y-2 text-sm text-purple-700 dark:text-purple-300">
                         <li class="flex items-start">
-                            <i class="fas fa-user-shield mr-2 mt-0.5"></i>
+                            <x-ui.icon name="shield-user" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
                             <span>Drug & Alcohol Violations Database</span>
                         </li>
                         <li class="flex items-start">
-                            <i class="fas fa-clock mr-2 mt-0.5"></i>
+                            <x-ui.icon name="clock" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
                             <span>Mandatory for CDL Drivers</span>
                         </li>
                         <li class="flex items-start">
-                            <i class="fas fa-exclamation-triangle mr-2 mt-0.5"></i>
+                            <x-ui.icon name="triangle-alert" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
                             <span>Refusal = No Driving</span>
                         </li>
                         <li class="flex items-start">
-                            <i class="fas fa-search mr-2 mt-0.5"></i>
+                            <x-ui.icon name="search" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
                             <span>Employers Must Query Annually</span>
                         </li>
                     </ul>

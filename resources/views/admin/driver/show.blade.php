@@ -74,14 +74,8 @@
         }
 
         function deleteComplianceDocument(documentId, documentName) {
-            Swal.fire({
-                title: 'Delete document?',
-                text: `Remove “${documentName}” for this driver?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Delete',
-                reverseButtons: true,
-                customClass: { confirmButton: 'swal2-deny' },
+            showAppConfirm(`Remove “${documentName}” for this driver?`, {
+                title: 'Delete document?', icon: 'warning', confirmButtonText: 'Delete', variant: 'destructive',
             }).then((result) => {
                 if (!result.isConfirmed) return;
                 fetch(@json(route('admin.compliance.driver.documents.delete')), {

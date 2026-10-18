@@ -16,19 +16,19 @@
                     <!-- Reports & Records Button -->
                     <a href=""
                         class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-200 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">
-                        <i class="fas fa-file-alt mr-2"></i>Reports & Records
+                        <x-ui.icon name="file-text" class="inline-block size-4 align-[-0.125em] mr-2" />Reports & Records
                     </a>
 
                     <!-- Add Driver Button -->
                     <a href="{{ route('admin.driver.create') }}"
                         class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white transition-colors duration-200 bg-brand-600 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-700 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2">
-                        <i class="fas fa-user-plus mr-2"></i>Add Driver
+                        <x-ui.icon name="user-plus" class="inline-block size-4 align-[-0.125em] mr-2" />Add Driver
                     </a>
 
                     <!-- Refresh Button -->
                     <button id="refresh-dashboard"
                         class="inline-flex items-center justify-center p-2.5 text-gray-700 transition-colors duration-200 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">
-                        <i class="fas fa-sync-alt"></i>
+                        <x-ui.icon name="refresh-cw" class="inline-block size-4 align-[-0.125em]" />
                         <span class="sr-only">Refresh</span>
                     </button>
                 </div>
@@ -41,7 +41,7 @@
                     class="p-4 bg-white border border-gray-200 rounded-xl shadow-theme-xs dark:bg-gray-800 dark:border-gray-700">
                     <div class="flex items-center">
                         <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/20">
-                            <i class="text-lg text-brand-600 fas fa-users dark:text-brand-400"></i>
+                            <x-ui.icon name="users" class="inline-block size-5 align-[-0.125em] text-brand-600 dark:text-brand-400" />
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Drivers</p>
@@ -56,7 +56,7 @@
                     <div class="flex items-center">
                         <div
                             class="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
-                            <i class="text-lg text-emerald-600 fas fa-check-circle dark:text-emerald-400"></i>
+                            <x-ui.icon name="circle-check" class="inline-block size-5 align-[-0.125em] text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Compliant</p>
@@ -70,7 +70,7 @@
                     class="p-4 bg-white border border-gray-200 rounded-xl shadow-theme-xs dark:bg-gray-800 dark:border-gray-700">
                     <div class="flex items-center">
                         <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/20">
-                            <i class="text-lg text-amber-600 fas fa-exclamation-triangle dark:text-amber-400"></i>
+                            <x-ui.icon name="triangle-alert" class="inline-block size-5 align-[-0.125em] text-amber-600 dark:text-amber-400" />
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Warning</p>
@@ -84,7 +84,7 @@
                     class="p-4 bg-white border border-gray-200 rounded-xl shadow-theme-xs dark:bg-gray-800 dark:border-gray-700">
                     <div class="flex items-center">
                         <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/20">
-                            <i class="text-lg text-red-600 fas fa-times-circle dark:text-red-400"></i>
+                            <x-ui.icon name="circle-x" class="inline-block size-5 align-[-0.125em] text-red-600 dark:text-red-400" />
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Critical</p>
@@ -132,11 +132,7 @@
                                             @if ($driver['compliance_status'] === 'warning') bg-amber-100 dark:bg-amber-900/30 
                                             @elseif($driver['compliance_status'] === 'danger') bg-red-100 dark:bg-red-900/30 
                                             @else bg-emerald-100 dark:bg-emerald-900/30 @endif">
-                                            <i
-                                                class="text-sm 
-                                                @if ($driver['compliance_status'] === 'warning') text-amber-600 dark:text-amber-400 
-                                                @elseif($driver['compliance_status'] === 'danger') text-red-600 dark:text-red-400 
-                                                @else text-emerald-600 dark:text-emerald-400 @endif fas fa-user"></i>
+                                            <span class="inline-flex @if ($driver['compliance_status'] === 'warning') text-amber-600 dark:text-amber-400 @elseif($driver['compliance_status'] === 'danger') text-red-600 dark:text-red-400 @else text-emerald-600 dark:text-emerald-400 @endif">{{ svg('lucide-user', 'size-3.5') }}</span>
                                         </div>
                                         <div>
                                             <div class="flex items-center">
@@ -160,7 +156,7 @@
                                                 </span>
                                                 <span class="mx-2">•</span>
                                                 <span class="flex items-center">
-                                                    <i class="mr-1 text-xs fas fa-id-card"></i>
+                                                    <x-ui.icon name="id-card" class="inline-block size-3 align-[-0.125em] mr-1" />
                                                     {{ $driver['license_state'] ?? 'N/A' }}
                                                 </span>
                                                 @if ($driver['hire_date'])
@@ -173,7 +169,7 @@
                                     </div>
                                     <button type="button" onclick="showDriverDetails({{ $driver['id'] }})"
                                         class="px-3 py-1.5 text-sm font-medium text-brand-600 transition-colors duration-200 bg-white border border-brand-300 rounded-lg hover:bg-brand-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 dark:bg-gray-800 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-900/20">
-                                        <i class="fas fa-eye mr-1"></i>View Details
+                                        <x-ui.icon name="eye" class="inline-block size-4 align-[-0.125em] mr-1" />View Details
                                     </button>
                                 </div>
 
@@ -263,13 +259,13 @@
                             </div>
                         @empty
                             <div class="p-8 text-center border border-gray-200 rounded-lg dark:border-gray-700">
-                                <i class="mb-3 text-3xl text-gray-400 fas fa-users"></i>
+                                <x-ui.icon name="users" class="inline-block size-8 align-[-0.125em] mb-3 text-gray-400" />
                                 <h3 class="mb-2 text-lg font-medium text-gray-700 dark:text-gray-300">No Drivers Found
                                 </h3>
                                 <p class="text-gray-500 dark:text-gray-400">Add drivers to start tracking compliance</p>
                                 <a href="{{ route('admin.driver.create') }}"
                                     class="inline-flex items-center mt-4 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700">
-                                    <i class="fas fa-plus mr-2"></i>Add First Driver
+                                    <x-ui.icon name="plus" class="inline-block size-4 align-[-0.125em] mr-2" />Add First Driver
                                 </a>
                             </div>
                         @endforelse
@@ -295,14 +291,14 @@
                             <div class="flex items-center">
                                 <div
                                     class="flex items-center justify-center w-8 h-8 mr-3 rounded-lg bg-brand-50 dark:bg-brand-900/20">
-                                    <i class="text-brand-600 fas fa-user-plus dark:text-brand-400"></i>
+                                    <x-ui.icon name="user-plus" class="inline-block size-4 align-[-0.125em] text-brand-600 dark:text-brand-400" />
                                 </div>
                                 <div>
                                     <h4 class="font-medium text-gray-900 dark:text-white">Add New Driver</h4>
                                     <p class="text-xs text-gray-600 dark:text-gray-400">Register a new driver</p>
                                 </div>
                             </div>
-                            <i class="text-gray-400 fas fa-chevron-right"></i>
+                            <x-ui.icon name="chevron-right" class="inline-block size-4 align-[-0.125em] text-gray-400" />
                         </a>
 
                         <a href="{{ route('admin.driver.index') }}"
@@ -310,7 +306,7 @@
                             <div class="flex items-center">
                                 <div
                                     class="flex items-center justify-center w-8 h-8 mr-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                                    <i class="text-blue-600 fas fa-list dark:text-blue-400"></i>
+                                    <x-ui.icon name="list" class="inline-block size-4 align-[-0.125em] text-blue-600 dark:text-blue-400" />
                                 </div>
                                 <div>
                                     <h4 class="font-medium text-gray-900 dark:text-white">Manage Drivers</h4>
@@ -318,7 +314,7 @@
                                     </p>
                                 </div>
                             </div>
-                            <i class="text-gray-400 fas fa-chevron-right"></i>
+                            <x-ui.icon name="chevron-right" class="inline-block size-4 align-[-0.125em] text-gray-400" />
                         </a>
 
                         <a href="{{ route('admin.settings.document-types.index') }}?module=driver"
@@ -326,7 +322,7 @@
                             <div class="flex items-center">
                                 <div
                                     class="flex items-center justify-center w-8 h-8 mr-3 rounded-lg bg-purple-50 dark:bg-purple-900/20">
-                                    <i class="text-purple-600 fas fa-file-alt dark:text-purple-400"></i>
+                                    <x-ui.icon name="file-text" class="inline-block size-4 align-[-0.125em] text-purple-600 dark:text-purple-400" />
                                 </div>
                                 <div>
                                     <h4 class="font-medium text-gray-900 dark:text-white">Document Types</h4>
@@ -334,7 +330,7 @@
                                         requirements</p>
                                 </div>
                             </div>
-                            <i class="text-gray-400 fas fa-chevron-right"></i>
+                            <x-ui.icon name="chevron-right" class="inline-block size-4 align-[-0.125em] text-gray-400" />
                         </a>
                     </div>
                 </div>
@@ -426,7 +422,7 @@
                                     id="driverModalTitle"></h3>
                                 <button type="button" onclick="closeDriverModal()"
                                     class="text-gray-400 hover:text-gray-500">
-                                    <i class="fas fa-times"></i>
+                                    <x-ui.icon name="x" class="inline-block size-4 align-[-0.125em]" />
                                 </button>
                             </div>
                             <div id="driverDetailsContent">
@@ -443,7 +439,6 @@
     @include('admin.compliance.partials.driver-upload-document-modal')
 
     <!-- Toast Container -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
 @endsection
 
 @push('styles')
@@ -467,6 +462,10 @@
 
 @push('scripts')
     <script>
+        // Lucide icons for markup built in JS (the same SVGs the Blade icon component renders).
+        const lucide = {{ \Illuminate\Support\Js::from(collect(['circle-alert', 'download', 'eye', 'file-text', 'triangle-alert', 'x'])->mapWithKeys(fn ($n) => [$n => svg('lucide-'.$n, 'lucide-icon')->toHtml()])) }};
+        const icon = (name, cls = 'size-4') => lucide[name].replace('class="lucide-icon"', `class="inline-block align-[-0.125em] ${cls}"`);
+
         // Refresh Dashboard
         document.getElementById('refresh-dashboard')?.addEventListener('click', function() {
             showToast('Refreshing dashboard...', 'info');
@@ -550,16 +549,16 @@
                                                         ${isImage ? `
                                                         <button type="button" data-action="preview-document" data-url="${escapeHtml(fileUrl)}" data-title="${escapeHtml(doc.type_name)}" 
                                                             class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="Preview">
-                                                            <i class="fas fa-eye"></i>
+                                                            ${icon('eye', 'size-4')}
                                                         </button>
                                                     ` : ''}
                                                         <a href="/admin/compliance/driver-documents/${doc.id}/download" 
                                                             class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="Download">
-                                                            <i class="fas fa-download"></i>
+                                                            ${icon('download', 'size-4')}
                                                         </a>
                                                         <button type="button" onclick="viewDocument('${doc.id}', 'driver')" 
                                                             class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors dark:text-brand-400 dark:hover:bg-brand-900/20" title="View">
-                                                            <i class="fas fa-file-pdf"></i>
+                                                            ${icon('file-text', 'size-4')}
                                                         </button>
                                                     </div>
                                                 ` : ''}
@@ -578,7 +577,7 @@
                                 <div class="space-y-2">
                                     ${driver.missing_documents.map(doc => `
                                             <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
-                                                <i class="mr-3 text-red-500 fas fa-exclamation-circle"></i>
+                                                ${icon('circle-alert', 'size-4 mr-3 text-red-500')}
                                                 <span class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(doc)}</span>
                                             </div>
                                         `).join('')}
@@ -592,7 +591,7 @@
                                 <div class="space-y-2">
                                     ${driver.expiring_documents.map(doc => `
                                             <div class="flex items-center p-2 border border-gray-200 rounded-lg dark:border-gray-700">
-                                                <i class="mr-3 text-amber-500 fas fa-exclamation-triangle"></i>
+                                                ${icon('triangle-alert', 'size-4 mr-3 text-amber-500')}
                                                 <span class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(doc)}</span>
                                             </div>
                                         `).join('')}
@@ -667,7 +666,7 @@
                     } else {
                         document.getElementById('driverDetailsContent').innerHTML = `
                             <div class="py-12 text-center">
-                                <i class="mb-3 text-3xl text-red-500 fas fa-exclamation-circle"></i>
+                                ${icon('circle-alert', 'size-8 mb-3 text-red-500')}
                                 <p class="text-gray-700 dark:text-gray-300">Failed to load driver details</p>
                             </div>
                         `;
@@ -677,7 +676,7 @@
                     console.error('Error:', error);
                     document.getElementById('driverDetailsContent').innerHTML = `
                         <div class="py-12 text-center">
-                            <i class="mb-3 text-3xl text-red-500 fas fa-exclamation-circle"></i>
+                            ${icon('circle-alert', 'size-8 mb-3 text-red-500')}
                             <p class="text-gray-700 dark:text-gray-300">Error loading driver details</p>
                         </div>
                     `;
@@ -714,7 +713,7 @@
                             <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
                                 <h3 class="text-lg font-bold text-gray-900 dark:text-white">${escapeHtml(title)}</h3>
                                 <button type="button" onclick="closeImagePreview()" class="text-gray-400 hover:text-gray-500">
-                                    <i class="fas fa-times"></i>
+                                    ${icon('x', 'size-4')}
                                 </button>
                             </div>
                             <div class="p-4">
@@ -722,7 +721,7 @@
                             </div>
                             <div class="flex justify-end p-4 border-t dark:border-gray-700">
                                 <a href="${escapeHtml(fileUrl)}" download class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700">
-                                    <i class="fas fa-download mr-2"></i>Download
+                                    ${icon('download', 'size-4 mr-2')}Download
                                 </a>
                             </div>
                         </div>
@@ -779,49 +778,8 @@
         // Send reminder email function
         @include('admin.compliance.partials.send-reminder-script')
 
-        // Toast Notification Function
         function showToast(message, type = 'info') {
-            const toastContainer = document.getElementById('toast-container');
-            const toastId = 'toast-' + Date.now();
-            const toast = document.createElement('div');
-            toast.id = toastId;
-
-            const bgColor = type === 'success' ?
-                'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' :
-                type === 'error' ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' :
-                'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800';
-
-            const icon = type === 'success' ? 'fas fa-check-circle text-emerald-500' :
-                type === 'error' ? 'fas fa-exclamation-circle text-red-500' :
-                'fas fa-info-circle text-blue-500';
-
-            toast.className =
-                `flex items-center p-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full ${bgColor} border`;
-            toast.innerHTML = `
-                <i class="${icon} mr-3"></i>
-                <span class="text-sm font-medium text-gray-900 dark:text-white">${message}</span>
-                <button onclick="document.getElementById('${toastId}').remove()" class="ml-4 text-gray-400 hover:text-gray-500">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-
-            toastContainer.appendChild(toast);
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full');
-                toast.classList.add('translate-x-0');
-            }, 10);
-
-            setTimeout(() => {
-                if (document.getElementById(toastId)) {
-                    toast.classList.remove('translate-x-0');
-                    toast.classList.add('translate-x-full');
-                    setTimeout(() => {
-                        if (document.getElementById(toastId)) {
-                            document.getElementById(toastId).remove();
-                        }
-                    }, 300);
-                }
-            }, 5000);
+            window.notify(type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info'), message);
         }
 
         // Close modal when clicking outside

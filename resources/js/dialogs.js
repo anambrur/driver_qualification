@@ -1,5 +1,5 @@
 // Alerts and confirms on the layout's <x-ui.confirm-dialog>. The result has the SweetAlert shape
-// ({ isConfirmed, isDismissed, value }) so callers written for Swal keep working unchanged.
+// ({ isConfirmed, isDismissed, value }) so callers written for SweetAlert keep working unchanged.
 const tones = {
     warning: ["triangle-alert", "warning"],
     question: ["circle-help", null],
@@ -53,10 +53,9 @@ export function openDialog({ title, text = "", icon = "warning", confirmText = "
     });
 }
 
-// Layouts that still load SweetAlert define their own versions inline (before this module runs).
-window.showAppAlert ??= (message, icon = "warning", title = null) => openDialog({ title, text: message, icon });
+window.showAppAlert = (message, icon = "warning", title = null) => openDialog({ title, text: message, icon });
 
-window.showAppConfirm ??= (message, options = {}) =>
+window.showAppConfirm = (message, options = {}) =>
     openDialog({
         title: options.title || "Please Confirm",
         text: message,

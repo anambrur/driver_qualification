@@ -20,11 +20,11 @@
                 @endif
             </p>
             <div class="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                <i class="fas fa-user mr-2"></i>
+                <x-ui.icon name="user" class="inline-block size-4 align-[-0.125em] mr-2" />
                 <span>Driver: {{ $driver->first_name }} {{ $driver->last_name }}</span>
                 @if ($driver->company)
                     <span class="mx-2">•</span>
-                    <i class="fas fa-building mr-2"></i>
+                    <x-ui.icon name="building-2" class="inline-block size-4 align-[-0.125em] mr-2" />
                     <span>Company: {{ $driver->company->company_name }}</span>
                 @endif
             </div>
@@ -98,7 +98,7 @@
                                     </div>
                                 </div>
                                 <p class="mt-4 text-sm text-blue-700 dark:text-blue-300">
-                                    <i class="fas fa-info-circle mr-2"></i>
+                                    <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-2" />
                                     Updating this form will create a new policy acknowledgment.
                                 </p>
                             </div>
@@ -146,7 +146,7 @@
                                                 <a href="{{ route('admin.settings.policy.pdf.file', 'alcohol_drug_test') }}"
                                                     target="_blank"
                                                     class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
-                                                    <i class="fas fa-download mr-2"></i>
+                                                    <x-ui.icon name="download" class="inline-block size-4 align-[-0.125em] mr-2" />
                                                     Download PDF
                                                 </a>
                                             </div>
@@ -175,7 +175,7 @@
                                     @else
                                         <div
                                             class="p-8 text-center border-2 border-dashed border-gray-300 rounded-lg dark:border-gray-700">
-                                            <i class="fas fa-file-pdf text-4xl text-gray-400 dark:text-gray-500 mb-4"></i>
+                                            <x-ui.icon name="file-text" class="inline-block size-10 align-[-0.125em] text-gray-400 dark:text-gray-500 mb-4" />
                                             <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                 Policy Document Not Available
                                             </h4>
@@ -191,8 +191,7 @@
                                     <div
                                         class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/10 dark:border-yellow-800">
                                         <div class="flex items-start">
-                                            <i
-                                                class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3"></i>
+                                            <x-ui.icon name="triangle-alert" class="inline-block size-4 align-[-0.125em] text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3" />
                                             <p class="text-sm text-yellow-800 dark:text-yellow-300">
                                                 <strong>Important:</strong> I have read, fully understand and agree to all
                                                 terms as set forth in the company alcohol and drug testing policy. My
@@ -229,7 +228,7 @@
                                     </div>
                                 </div>
                                 <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                                    <i class="fas fa-info-circle mr-2"></i>
+                                    <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-2" />
                                     By signing, you acknowledge that you have read and understood the Alcohol & Drug Testing
                                     Policy.
                                 </p>
@@ -249,7 +248,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
                                     <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-2">
-                                        <i class="fas fa-flask mr-2"></i>Testing Requirements
+                                        <x-ui.icon name="flask-conical" class="inline-block size-4 align-[-0.125em] mr-2" />Testing Requirements
                                     </h4>
                                     <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                                         <li>• Pre-employment testing</li>
@@ -261,7 +260,7 @@
                                 </div>
                                 <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
                                     <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-2">
-                                        <i class="fas fa-balance-scale mr-2"></i>Policy Coverage
+                                        <x-ui.icon name="scale" class="inline-block size-4 align-[-0.125em] mr-2" />Policy Coverage
                                     </h4>
                                     <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                                         <li>• DOT and non-DOT testing</li>
@@ -281,13 +280,13 @@
                         @if ($isEditMode)
                             <a href="{{ route('admin.driver.edit', ['id' => $driver_id]) }}"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                                <i class="fas fa-arrow-left mr-2"></i>
+                                <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Driver Edit
                             </a>
                         @else
                             <a href="{{ route('admin.driver.psp', ['driver_id' => $driver_id]) }}"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                                <i class="fas fa-arrow-left mr-2"></i>
+                                <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Step 8
                             </a>
                         @endif
@@ -295,7 +294,7 @@
                         <div class="flex gap-4">
                             <button type="submit" name="action" value="save"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
-                                <i class="fas fa-save mr-2"></i>
+                                <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 {{ $isEditMode ? 'Update & Continue to Step 10' : 'Save & Continue to Step 10' }}
                             </button>
 
@@ -354,7 +353,7 @@
                             <div class="flex items-center text-sm">
                                 <span class="w-24 text-gray-500 dark:text-gray-400">Policy Status:</span>
                                 <span class="font-medium text-green-600 dark:text-green-400">
-                                    <i class="fas fa-check-circle mr-1"></i> Acknowledged
+                                    <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] mr-1" /> Acknowledged
                                 </span>
                             </div>
                             <div class="flex items-center text-sm">
@@ -367,7 +366,7 @@
                             <div class="flex items-center text-sm">
                                 <span class="w-24 text-gray-500 dark:text-gray-400">Policy Status:</span>
                                 <span class="font-medium text-red-600 dark:text-red-400">
-                                    <i class="fas fa-times-circle mr-1"></i> Not Acknowledged
+                                    <x-ui.icon name="circle-x" class="inline-block size-4 align-[-0.125em] mr-1" /> Not Acknowledged
                                 </span>
                             </div>
                         @endif
@@ -378,23 +377,23 @@
                 <div
                     class="mt-6 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/10 p-4">
                     <h3 class="font-medium text-green-800 dark:text-green-200 mb-3">
-                        <i class="fas fa-file-contract mr-2"></i>Policy Details
+                        <x-ui.icon name="file-signature" class="inline-block size-4 align-[-0.125em] mr-2" />Policy Details
                     </h3>
                     <ul class="space-y-2 text-sm text-green-700 dark:text-green-300">
                         <li class="flex items-start">
-                            <i class="fas fa-user-check mr-2 mt-0.5"></i>
+                            <x-ui.icon name="user-check" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
                             <span>Mandatory for Employment</span>
                         </li>
                         <li class="flex items-start">
-                            <i class="fas fa-shield-alt mr-2 mt-0.5"></i>
+                            <x-ui.icon name="shield" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
                             <span>Safety & Compliance</span>
                         </li>
                         <li class="flex items-start">
-                            <i class="fas fa-clock mr-2 mt-0.5"></i>
+                            <x-ui.icon name="clock" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
                             <span>Annual Review Required</span>
                         </li>
                         <li class="flex items-start">
-                            <i class="fas fa-exclamation-circle mr-2 mt-0.5"></i>
+                            <x-ui.icon name="circle-alert" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
                             <span>Zero Tolerance Policy</span>
                         </li>
                     </ul>

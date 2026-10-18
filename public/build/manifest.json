@@ -1,4 +1,8 @@
 {
+  "_dialogs-BA9lKAbG.js": {
+    "file": "assets/dialogs-BA9lKAbG.js",
+    "name": "dialogs"
+  },
   "node_modules/@fontsource-variable/geist/files/geist-cyrillic-ext-wght-normal.woff2": {
     "file": "assets/geist-cyrillic-ext-wght-normal-DjL33-gN.woff2",
     "src": "node_modules/@fontsource-variable/geist/files/geist-cyrillic-ext-wght-normal.woff2"
@@ -20,7 +24,7 @@
     "src": "node_modules/@fontsource-variable/geist/files/geist-vietnamese-wght-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-uc4HIs1X.css",
+    "file": "assets/app-DdKIP9k_.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "names": [
@@ -28,16 +32,22 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-BgXf-iRG.js",
+    "file": "assets/app-B_mcqEW5.js",
     "name": "app",
     "src": "resources/js/app.js",
-    "isEntry": true
+    "isEntry": true,
+    "imports": [
+      "_dialogs-BA9lKAbG.js"
+    ]
   },
   "resources/js/datatable.js": {
-    "file": "assets/datatable-BynoSct6.js",
+    "file": "assets/datatable-CosuOJwk.js",
     "name": "datatable",
     "src": "resources/js/datatable.js",
     "isEntry": true,
+    "imports": [
+      "_dialogs-BA9lKAbG.js"
+    ],
     "css": [
       "assets/datatable-B36VSIQh.css"
     ]

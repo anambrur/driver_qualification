@@ -14,7 +14,7 @@
 
                 <a href="{{ route('admin.roles.index') }}"
                     class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 mt-4 sm:mt-0">
-                    <i class="fas fa-arrow-left mr-2"></i>Back to Roles
+                    <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />Back to Roles
                 </a>
             </div>
         </div>
@@ -23,7 +23,7 @@
         @if (session('success'))
             <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
                 <div class="flex items-center">
-                    <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                    <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] text-green-500 mr-3" />
                     <p class="text-green-700 dark:text-green-400">{{ session('success') }}</p>
                 </div>
             </div>
@@ -33,7 +33,7 @@
         @if ($errors->any())
             <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
                 <div class="flex items-center">
-                    <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                    <x-ui.icon name="circle-alert" class="inline-block size-4 align-[-0.125em] text-red-500 mr-3" />
                     <div>
                         <p class="font-medium text-red-700 dark:text-red-400">Please fix the following errors:</p>
                         <ul class="mt-1 list-disc list-inside text-sm text-red-600 dark:text-red-400">
@@ -60,7 +60,7 @@
                         class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
                         <div class="px-5 py-4 sm:px-6 sm:py-5">
                             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <i class="fas fa-info-circle mr-2"></i>Role Information
+                                <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-2" />Role Information
                             </h3>
                         </div>
                         <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
@@ -91,7 +91,7 @@
                         class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
                         <div class="px-5 py-4 sm:px-6 sm:py-5">
                             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <i class="fas fa-key mr-2"></i>Permissions
+                                <x-ui.icon name="key-round" class="inline-block size-4 align-[-0.125em] mr-2" />Permissions
                             </h3>
                             <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
                                 Select permissions for this role
@@ -148,7 +148,7 @@
                                 <div class="text-center py-8">
                                     <div
                                         class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                                        <i class="fas fa-key text-gray-400 dark:text-gray-500"></i>
+                                        <x-ui.icon name="key-round" class="inline-block size-4 align-[-0.125em] text-gray-400 dark:text-gray-500" />
                                     </div>
                                     <p class="text-sm text-gray-600 dark:text-gray-400">No permissions available</p>
                                 </div>
@@ -162,11 +162,11 @@
             <div class="mt-8 flex justify-end space-x-3">
                 <a href="{{ route('admin.roles.index') }}"
                     class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700">
-                    <i class="fas fa-times mr-2"></i>Cancel
+                    <x-ui.icon name="x" class="inline-block size-4 align-[-0.125em] mr-2" />Cancel
                 </a>
                 <button type="submit"
                     class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2">
-                    <i class="fas fa-save mr-2"></i>{{ $role ? 'Update Role' : 'Create Role' }}
+                    <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />{{ $role ? 'Update Role' : 'Create Role' }}
                 </button>
             </div>
         </form>

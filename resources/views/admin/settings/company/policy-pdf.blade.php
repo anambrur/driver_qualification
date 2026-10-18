@@ -12,7 +12,7 @@
         @if (session('success'))
             <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-900/20 dark:border-green-800">
                 <div class="flex items-center">
-                    <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                    <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] text-green-500 mr-3" />
                     <p class="text-green-700 dark:text-green-400">{{ session('success') }}</p>
                 </div>
             </div>
@@ -21,7 +21,7 @@
         @if ($errors->has('system_error'))
             <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:border-red-800">
                 <div class="flex items-center">
-                    <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                    <x-ui.icon name="circle-alert" class="inline-block size-4 align-[-0.125em] text-red-500 mr-3" />
                     <p class="text-red-700 dark:text-red-400">{{ $errors->first('system_error') }}</p>
                 </div>
             </div>
@@ -40,7 +40,7 @@
                                 <div
                                     class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                                     <div class="flex items-center">
-                                        <i class="fas fa-file-pdf text-red-500 mr-3 text-xl"></i>
+                                        <x-ui.icon name="file-text" class="inline-block size-5 align-[-0.125em] text-red-500 mr-3" />
                                         <div>
                                             <p class="font-medium text-gray-800 dark:text-white/90">Alcohol & Drug Policy
                                             </p>
@@ -51,7 +51,7 @@
                                     <a href="{{ route('admin.settings.policy.pdf.file', 'alcohol_drug_test') }}"
                                         target="_blank"
                                         class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-                                        <i class="fas fa-eye"></i> View
+                                        <x-ui.icon name="eye" class="inline-block size-4 align-[-0.125em]" /> View
                                     </a>
                                 </div>
                             @endif
@@ -60,7 +60,7 @@
                                 <div
                                     class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                                     <div class="flex items-center">
-                                        <i class="fas fa-file-pdf text-red-500 mr-3 text-xl"></i>
+                                        <x-ui.icon name="file-text" class="inline-block size-5 align-[-0.125em] text-red-500 mr-3" />
                                         <div>
                                             <p class="font-medium text-gray-800 dark:text-white/90">General Work Policy</p>
                                             <p class="text-sm text-gray-600 dark:text-gray-400">
@@ -69,7 +69,7 @@
                                     </div>
                                     <a href="{{ route('admin.settings.policy.pdf.file', 'general_work') }}" target="_blank"
                                         class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-                                        <i class="fas fa-eye"></i> View
+                                        <x-ui.icon name="eye" class="inline-block size-4 align-[-0.125em]" /> View
                                     </a>
                                 </div>
                             @endif
@@ -85,7 +85,7 @@
                         class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
                         <div class="px-5 py-4 sm:px-6 sm:py-5">
                             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <i class="fas fa-file-medical mr-2"></i>Alcohol & Drug Testing Policy
+                                <x-ui.icon name="file-heart" class="inline-block size-4 align-[-0.125em] mr-2" />Alcohol & Drug Testing Policy
                             </h3>
                         </div>
                         <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
@@ -98,7 +98,7 @@
                                     <label for="alcohol_drug_test_policy_pdf"
                                         class="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600 transition-colors duration-200">
                                         <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <i class="fas fa-file-pdf mb-3 text-3xl text-red-500 dark:text-red-400"></i>
+                                            <x-ui.icon name="file-text" class="inline-block size-8 align-[-0.125em] mb-3 text-red-500 dark:text-red-400" />
                                             <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
                                                 <span class="font-semibold">Click to upload</span> or drag and drop
                                             </p>
@@ -113,7 +113,7 @@
                                     </label>
                                 </div>
                                 <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                    <i class="fas fa-info-circle mr-1"></i>Upload a PDF file containing the Alcohol & Drug
+                                    <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-1" />Upload a PDF file containing the Alcohol & Drug
                                     Testing Policy
                                 </div>
                                 @error('alcohol_drug_test_policy_pdf')
@@ -130,7 +130,7 @@
                         class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
                         <div class="px-5 py-4 sm:px-6 sm:py-5">
                             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <i class="fas fa-briefcase mr-2"></i>General Work Policy
+                                <x-ui.icon name="briefcase" class="inline-block size-4 align-[-0.125em] mr-2" />General Work Policy
                             </h3>
                         </div>
                         <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
@@ -143,7 +143,7 @@
                                     <label for="general_work_policy_pdf"
                                         class="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600 transition-colors duration-200">
                                         <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <i class="fas fa-file-pdf mb-3 text-3xl text-red-500 dark:text-red-400"></i>
+                                            <x-ui.icon name="file-text" class="inline-block size-8 align-[-0.125em] mb-3 text-red-500 dark:text-red-400" />
                                             <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
                                                 <span class="font-semibold">Click to upload</span> or drag and drop
                                             </p>
@@ -158,7 +158,7 @@
                                     </label>
                                 </div>
                                 <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                    <i class="fas fa-info-circle mr-1"></i>Upload a PDF file containing the General Work
+                                    <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-1" />Upload a PDF file containing the General Work
                                     Policy
                                 </div>
                                 @error('general_work_policy_pdf')
@@ -174,11 +174,11 @@
             <div class="mt-8 flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-800">
                 <a href="{{ route('admin.dashboard') }}"
                     class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors duration-200">
-                    <i class="fas fa-times mr-2"></i>Cancel
+                    <x-ui.icon name="x" class="inline-block size-4 align-[-0.125em] mr-2" />Cancel
                 </a>
                 <button type="submit"
                     class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 transition-colors duration-200">
-                    <i class="fas fa-save mr-2"></i>Upload Policies
+                    <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />Upload Policies
                 </button>
             </div>
         </form>

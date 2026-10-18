@@ -56,10 +56,8 @@
     <!-- Page Specific Meta Data -->
     @stack('meta')
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('datatable')
-    <script src="https://kit.fontawesome.com/14c3ef5dcc.js" crossorigin="anonymous" defer></script>
 
     <!-- Custom Page Styles -->
     @stack('styles')
@@ -113,36 +111,6 @@
 
     <x-ui.toaster />
     <x-ui.confirm-dialog />
-
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <script>
-        window.showAppAlert = function(message, icon = 'warning', title = null) {
-            const titles = {
-                warning: 'Attention',
-                error: 'Error',
-                success: 'Success',
-                info: 'Notice',
-                question: 'Please Confirm'
-            };
-            return Swal.fire({
-                icon: icon,
-                title: title || titles[icon] || 'Attention',
-                text: message
-            });
-        };
-
-        window.showAppConfirm = function(message, options = {}) {
-            return Swal.fire({
-                title: options.title || 'Please Confirm',
-                text: message,
-                icon: options.icon || 'question',
-                showCancelButton: true,
-                confirmButtonText: options.confirmButtonText || 'Yes, continue',
-                cancelButtonText: options.cancelButtonText || 'Cancel'
-            });
-        };
-    </script>
 
     @stack('scripts')
 </body>

@@ -137,14 +137,8 @@
         });
 
         function remove(id, name) {
-            Swal.fire({
-                title: `Delete ${singular}?`,
-                text: `“${name}” will be removed. This cannot be undone.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Delete',
-                reverseButtons: true,
-                customClass: { confirmButton: 'swal2-deny' },
+            showAppConfirm(`“${name}” will be removed. This cannot be undone.`, {
+                title: `Delete ${singular}?`, icon: 'warning', confirmButtonText: 'Delete', variant: 'destructive',
             }).then(async (result) => {
                 if (!result.isConfirmed) return;
                 const { ok, json } = await request(routes.item.replace(':id', id), 'DELETE');

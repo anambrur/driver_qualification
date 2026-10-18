@@ -18,7 +18,6 @@
         <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @endif
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('datatable')
     @stack('styles')
@@ -53,18 +52,6 @@
     <x-ui.toaster />
     <x-ui.confirm-dialog />
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        window.showAppAlert = function(message, icon = 'warning', title = null) {
-            return Swal.fire({ icon: icon, title: title || 'Attention', text: message });
-        };
-        window.showAppConfirm = function(message, options = {}) {
-            return Swal.fire({
-                title: options.title || 'Please Confirm', text: message, icon: options.icon || 'question',
-                showCancelButton: true, confirmButtonText: options.confirmButtonText || 'Yes, continue',
-            });
-        };
-    </script>
     @stack('scripts')
 </body>
 

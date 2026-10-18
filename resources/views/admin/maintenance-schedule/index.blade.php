@@ -199,7 +199,7 @@
             const id = viewDialog.dataset.id;
             viewDialog.close();
             confirm(
-                { icon: 'question', title: 'Record service done?', text: 'The last service moves to today’s reading and the next due date is recalculated.', confirmButtonText: 'Record' },
+                { icon: 'question', title: 'Record service done?', text: 'The last service moves to today’s reading and the next due date is recalculated.', confirmText: 'Record', variant: 'primary' },
                 async () => report(table, await request(at(routes.complete, id), 'POST'), 'Could not update the schedule.'),
             );
         });

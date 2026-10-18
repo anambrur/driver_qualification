@@ -20,11 +20,11 @@
                 @endif
             </p>
             <div class="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                <i class="fas fa-user mr-2"></i>
+                <x-ui.icon name="user" class="inline-block size-4 align-[-0.125em] mr-2" />
                 <span>Driver: {{ $driver->first_name }} {{ $driver->last_name }}</span>
                 @if ($driver->company)
                     <span class="mx-2">•</span>
-                    <i class="fas fa-building mr-2"></i>
+                    <x-ui.icon name="building-2" class="inline-block size-4 align-[-0.125em] mr-2" />
                     <span>Company: {{ $driver->company->company_name }}</span>
                 @endif
             </div>
@@ -99,7 +99,7 @@
                                     </div>
                                 </div>
                                 <p class="mt-4 text-sm text-blue-700 dark:text-blue-300">
-                                    <i class="fas fa-info-circle mr-2"></i>
+                                    <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-2" />
                                     Updating this form will create a new authorization record.
                                 </p>
                             </div>
@@ -343,13 +343,13 @@
                         @if ($isEditMode)
                             <a href="{{ route('admin.driver.edit', ['id' => $driver_id]) }}"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                                <i class="fas fa-arrow-left mr-2"></i>
+                                <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Driver Edit
                             </a>
                         @else
                             <a href="{{ route('admin.driver.fmcsa.consent', ['driver_id' => $driver_id]) }}"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                                <i class="fas fa-arrow-left mr-2"></i>
+                                <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Step 7
                             </a>
                         @endif
@@ -357,7 +357,7 @@
                         <div class="flex gap-4">
                             <button type="submit" name="action" value="save"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
-                                <i class="fas fa-save mr-2"></i>
+                                <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 {{ $isEditMode ? 'Update & Continue to Step 9' : 'Save & Continue to Step 9' }}
                             </button>
 
@@ -416,7 +416,7 @@
                             <div class="flex items-center text-sm">
                                 <span class="w-24 text-gray-500 dark:text-gray-400">PSP Authorization:</span>
                                 <span class="font-medium text-green-600 dark:text-green-400">
-                                    <i class="fas fa-check-circle mr-1"></i> Authorized
+                                    <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] mr-1" /> Authorized
                                 </span>
                             </div>
                             <div class="flex items-center text-sm">
@@ -429,7 +429,7 @@
                             <div class="flex items-center text-sm">
                                 <span class="w-24 text-gray-500 dark:text-gray-400">PSP Authorization:</span>
                                 <span class="font-medium text-red-600 dark:text-red-400">
-                                    <i class="fas fa-times-circle mr-1"></i> Not Authorized
+                                    <x-ui.icon name="circle-x" class="inline-block size-4 align-[-0.125em] mr-1" /> Not Authorized
                                 </span>
                             </div>
                         @endif
@@ -440,23 +440,23 @@
                 <div
                     class="mt-6 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/10 p-4">
                     <h3 class="font-medium text-blue-800 dark:text-blue-200 mb-3">
-                        <i class="fas fa-info-circle mr-2"></i>About PSP Reports
+                        <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-2" />About PSP Reports
                     </h3>
                     <ul class="space-y-2 text-sm text-blue-700 dark:text-blue-300">
                         <li class="flex items-start">
-                            <i class="fas fa-shield-alt mr-2 mt-0.5"></i>
+                            <x-ui.icon name="shield" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
                             <span>FMCSA Pre-Employment Screening Program</span>
                         </li>
                         <li class="flex items-start">
-                            <i class="fas fa-car-crash mr-2 mt-0.5"></i>
+                            <x-ui.icon name="car-front" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
                             <span>5 years of crash data</span>
                         </li>
                         <li class="flex items-start">
-                            <i class="fas fa-search mr-2 mt-0.5"></i>
+                            <x-ui.icon name="search" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
                             <span>3 years of inspection history</span>
                         </li>
                         <li class="flex items-start">
-                            <i class="fas fa-balance-scale mr-2 mt-0.5"></i>
+                            <x-ui.icon name="scale" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
                             <span>FMCSR violation records</span>
                         </li>
                     </ul>

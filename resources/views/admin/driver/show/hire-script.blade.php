@@ -6,15 +6,14 @@
             reject: document.getElementById('notHireForm'),
         };
 
-        const summary = (rows) => rows
-            .map(([label, value]) => `<strong>${escapeHtml(label)}:</strong> ${escapeHtml(value || 'None')}`)
-            .join('<br>');
+        // Plain text: the confirm dialog keeps the line breaks.
+        const summary = (rows) => rows.map(([label, value]) => `${label}: ${value || 'None'}`).join('\n');
 
-        // One popup at a time: close the form dialog while SweetAlert confirms, reopen it on cancel.
-        const confirmFrom = (dialogId, options, onConfirm) => {
+        // One dialog at a time: close the form dialog while confirming, reopen it on cancel.
+        const confirmFrom = (dialogId, [text, options], onConfirm) => {
             const dialog = document.getElementById(dialogId);
             dialog.close();
-            Swal.fire(options).then((result) => {
+            showAppConfirm(text, options).then((result) => {
                 if (result.isConfirmed) onConfirm();
                 else dialog.showModal();
             });
@@ -23,32 +22,23 @@
         forms.hire.addEventListener('submit', (event) => {
             event.preventDefault();
             const data = new FormData(forms.hire);
-            confirmFrom('hire-dialog', {
-                title: 'Confirm hire?',
-                html: summary([['Date hired', data.get('hire_date')], ['Hazmat', data.get('hazmat')], ['LCV certificate', data.get('lcv_certificate')]]),
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Hire driver',
-                reverseButtons: true,
-            }, () => updateDriverStatus('hire', data, 'hire-dialog'));
+            confirmFrom('hire-dialog', [
+                summary([['Date hired', data.get('hire_date')], ['Hazmat', data.get('hazmat')], ['LCV certificate', data.get('lcv_certificate')]]),
+                { title: 'Confirm hire?', icon: 'question', confirmButtonText: 'Hire driver' },
+            ], () => updateDriverStatus('hire', data, 'hire-dialog'));
         });
 
         forms.reject.addEventListener('submit', (event) => {
             event.preventDefault();
             const data = new FormData(forms.reject);
-            confirmFrom('not-hire-dialog', {
-                title: 'Confirm not hiring?',
-                html: summary([['Reason', forms.reject.querySelector('[name="rejection_reason"] option:checked').textContent], ['Additional info', data.get('additional_info')]]),
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Do not hire',
-                reverseButtons: true,
-                customClass: { confirmButton: 'swal2-deny' },
-            }, () => updateDriverStatus('reject', data, 'not-hire-dialog'));
+            confirmFrom('not-hire-dialog', [
+                summary([['Reason', forms.reject.querySelector('[name="rejection_reason"] option:checked').textContent], ['Additional info', data.get('additional_info')]]),
+                { title: 'Confirm not hiring?', icon: 'warning', confirmButtonText: 'Do not hire', variant: 'destructive' },
+            ], () => updateDriverStatus('reject', data, 'not-hire-dialog'));
         });
 
         function updateDriverStatus(action, formData, dialogId) {
-            Swal.fire({ title: 'Processing…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            window.notify('info', 'Processing…');
 
             fetch(statusUrl, {
                     method: 'POST',
@@ -61,10 +51,10 @@
                     return data;
                 })
                 .then((data) => {
-                    Swal.fire({ title: 'Done', text: data.message, icon: 'success' }).then(() => window.location.reload());
+                    showAppAlert(data.message, 'success', 'Done').then(() => window.location.reload());
                 })
                 // Back to the form so the user can correct it.
-                .catch((error) => Swal.fire({ title: 'Error', text: error.message, icon: 'error' })
+                .catch((error) => showAppAlert(error.message, 'error', 'Error')
                     .then(() => document.getElementById(dialogId).showModal()));
         }
     })();

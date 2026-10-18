@@ -1,446 +1,202 @@
-<!-- Document Upload Modal -->
-<div id="uploadDocumentModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog"
-    aria-modal="true">
-    <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <!-- Background overlay -->
-        <div class="fixed inset-0 transition-opacity bg-gray-500/75" aria-hidden="true"></div>
+{{--
+    Vehicle and trailer compliance document upload (compliance > fleet). The page opens it with
+    openUploadModal(assetId, documentTypeId, 'vehicle'|'trailer') and may call closeUploadModal().
+--}}
+<x-ui.dialog id="uploadDocumentModal" title="Upload document" description="Fleet document upload" icon="upload" size="xl" :close-on-overlay="false">
+    <form id="uploadDocumentForm" enctype="multipart/form-data" class="grid gap-4 lg:grid-cols-2" novalidate>
+        <input type="hidden" id="upload_document_type_id" name="document_type_id">
+        <input type="hidden" id="upload_asset_type" name="asset_type" value="vehicle">
+        <input type="hidden" id="upload_asset_id" name="asset_id">
+        <input type="hidden" id="upload_company_id" name="company_id">
 
-        <!-- Center modal -->
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <x-ui.alert tone="info" class="lg:col-span-2"><span id="upload-info-text">Upload documents for this document type.</span></x-ui.alert>
 
-        <!-- Modal panel -->
-        <div
-            class="inline-block w-full overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-2xl dark:bg-gray-800">
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="flex items-center">
-                    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/20">
-                        <i class="text-lg text-brand-600 fas fa-upload dark:text-brand-400"></i>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white" id="upload-modal-title">
-                            Upload Document
-                        </h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400" id="upload-modal-subtitle">
-                            Insurance Certificate for Vehicle #313
-                        </p>
+        <div class="grid content-start gap-4">
+            <div class="field gap-2">
+                <label for="upload_selected_asset" class="label" id="select-asset-label">Select Vehicles</label>
+                <select id="upload_selected_asset" name="selected_asset" class="select w-full">
+                    <option value="">Loading…</option>
+                </select>
+            </div>
+            <label for="upload_to_all" class="label inline-flex items-start gap-3 font-normal">
+                <input type="checkbox" name="upload_to_all" value="1" id="upload_to_all" class="input mt-0.5">
+                <span>
+                    <span class="block font-medium text-foreground" id="upload-all-label">Upload to All Vehicles</span>
+                    <span class="block text-xs text-muted-foreground">This will override individual selection and apply to all of this company</span>
+                </span>
+            </label>
+            <x-ui.field label="Expiration date" name="expiry_date" for="upload_expiry_date" hint="When does this document expire?" required>
+                <x-ui.input type="date" id="upload_expiry_date" name="expiry_date" min="{{ date('Y-m-d') }}" required />
+            </x-ui.field>
+            <x-ui.field label="Description" name="description" for="upload_description">
+                <x-ui.textarea id="upload_description" name="description" rows="3" class="w-full" placeholder="Add any additional notes about this document…" />
+            </x-ui.field>
+        </div>
+
+        <div class="grid content-start gap-3">
+            <span class="label">File <span class="text-destructive" aria-hidden="true">*</span></span>
+            <label for="upload_file" id="dropzone"
+                class="flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6 text-center transition-colors hover:bg-muted/50 data-[over]:border-primary data-[over]:bg-primary/5">
+                {{ svg('lucide-cloud-upload', 'size-8 text-muted-foreground', ['aria-hidden' => 'true']) }}
+                <span class="text-sm font-medium">Drop file here or click to browse</span>
+                <span class="text-xs text-muted-foreground">JPG, PNG, PDF up to 20MB</span>
+                <input type="file" id="upload_file" name="file" accept=".jpg,.jpeg,.png,.pdf" required class="sr-only">
+            </label>
+            <div id="filePreview" class="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2" hidden>
+                <div class="flex min-w-0 items-center gap-2">
+                    {{ svg('lucide-file-text', 'size-5 shrink-0 text-muted-foreground', ['aria-hidden' => 'true']) }}
+                    <div class="min-w-0">
+                        <p id="fileName" class="truncate text-sm font-medium"></p>
+                        <p id="fileSize" class="text-xs text-muted-foreground"></p>
                     </div>
                 </div>
-                <button type="button" onclick="closeUploadModal()"
-                    class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                    <i class="fas fa-times"></i>
+                <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" aria-label="Remove file" onclick="removeFile()">
+                    {{ svg('lucide-x', '', ['aria-hidden' => 'true']) }}
                 </button>
             </div>
-
-            <!-- Modal Body -->
-            <form id="uploadDocumentForm" enctype="multipart/form-data" class="px-6 py-5">
-                <!-- Info Alert -->
-                <div
-                    class="flex items-start p-3 mb-5 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
-                    <i class="mt-0.5 mr-3 text-blue-500 fas fa-info-circle"></i>
-                    <p class="text-sm text-blue-800 dark:text-blue-300" id="upload-info-text">
-                        Upload documents for Insurance Certificate. You can select multiple vehicles or upload to all
-                        vehicles at once.
-                    </p>
-                </div>
-
-                <!-- Hidden Fields -->
-                <input type="hidden" id="upload_document_type_id" name="document_type_id">
-                <input type="hidden" id="upload_asset_type" name="asset_type" value="vehicle">
-                <input type="hidden" id="upload_asset_id" name="asset_id">
-                <input type="hidden" id="upload_company_id" name="company_id">
-
-                <!-- Select Vehicles/Trailers -->
-                <div class="mb-5">
-                    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <span id="select-asset-label">Select Vehicles</span>
-                    </label>
-                    <select id="upload_selected_asset" name="selected_asset"
-                        class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        <option value="">Loading...</option>
-                    </select>
-                </div>
-
-                <!-- Upload to All Checkbox -->
-                <div class="mb-5">
-                    <label class="flex items-start cursor-pointer">
-                        <input type="checkbox" id="upload_to_all" name="upload_to_all" value="1"
-                            class="w-4 h-4 mt-0.5 text-brand-600 border-gray-300 rounded focus:ring-brand-500 dark:bg-gray-700 dark:border-gray-600">
-                        <div class="ml-3">
-                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300" id="upload-all-label">
-                                Upload to All Vehicles
-                            </span>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">
-                                This will override individual vehicle selection and apply to all vehicles of this company
-                            </p>
-                        </div>
-                    </label>
-                </div>
-
-                <!-- Expiration Date -->
-                <div class="mb-5">
-                    <label for="upload_expiry_date"
-                        class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Expiration Date
-                    </label>
-                    <p class="mb-2 text-xs text-gray-500 dark:text-gray-400">When does this document expire?</p>
-                    <div class="relative">
-                        <input type="date" id="upload_expiry_date" name="expiry_date" required
-                            class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                            min="{{ date('Y-m-d') }}">
-                        <!-- Remove this icon or place it outside the input -->
-                    </div>
-                </div>
-
-                <!-- Description (Optional) -->
-                <div class="mb-5">
-                    <label for="upload_description"
-                        class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Description (Optional)
-                    </label>
-                    <textarea id="upload_description" name="description" rows="4"
-                        class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-none"
-                        placeholder="Add any additional notes about this document..."></textarea>
-                </div>
-
-                <!-- Upload File -->
-                <div class="mb-5">
-                    <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Upload File
-                    </label>
-                    <div class="relative">
-                        <input type="file" id="upload_file" name="file" accept=".jpg,.jpeg,.png,.pdf" required
-                            class="hidden">
-                        <div id="dropzone"
-                            class="flex flex-col items-center justify-center w-full px-4 py-8 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-brand-400 dark:border-gray-600 dark:hover:border-brand-500 transition-colors"
-                            onclick="document.getElementById('upload_file').click()">
-                            <i class="mb-3 text-3xl text-gray-400 fas fa-cloud-upload-alt"></i>
-                            <p class="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Drop file here or click to browse
-                            </p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">
-                                JPG, PNG, PDF up to 20MB
-                            </p>
-                        </div>
-
-                        <!-- File Preview -->
-                        <div id="filePreview" class="hidden mt-3">
-                            <div
-                                class="flex items-center justify-between p-3 border border-gray-200 rounded-lg dark:border-gray-700">
-                                <div class="flex items-center">
-                                    <i class="mr-3 text-2xl text-brand-600 fas fa-file-alt dark:text-brand-400"></i>
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-900 dark:text-white" id="fileName"></p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400" id="fileSize"></p>
-                                    </div>
-                                </div>
-                                <button type="button" onclick="removeFile()" class="text-red-500 hover:text-red-700">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Error Display -->
-                <div id="uploadError"
-                    class="hidden p-3 mb-4 border border-red-200 rounded-lg bg-red-50 dark:bg-red-900/10 dark:border-red-800">
-                    <div class="flex items-start">
-                        <i class="mt-0.5 mr-3 text-red-500 fas fa-exclamation-circle"></i>
-                        <p class="text-sm text-red-800 dark:text-red-300" id="uploadErrorText"></p>
-                    </div>
-                </div>
-
-                <!-- Modal Footer -->
-                <div class="flex justify-end pt-4 space-x-3 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" onclick="closeUploadModal()"
-                        class="px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors duration-200 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-gray-500/20 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
-                        <i class="mr-2 fas fa-times"></i>Cancel
-                    </button>
-                    <button type="submit" id="uploadSubmitBtn"
-                        class="px-4 py-2.5 text-sm font-medium text-white transition-colors duration-200 bg-brand-600 border border-transparent rounded-lg hover:bg-brand-700 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <i class="mr-2 fas fa-upload"></i>Upload Document
-                    </button>
-                </div>
-            </form>
+            <x-ui.alert tone="danger" id="uploadError" hidden><span id="uploadErrorText"></span></x-ui.alert>
         </div>
-    </div>
-</div>
+    </form>
+    <x-slot:footer>
+        <button type="button" class="btn" data-variant="outline" onclick="closeUploadModal()">Cancel</button>
+        <button type="submit" form="uploadDocumentForm" id="uploadSubmitBtn" class="btn">
+            {{ svg('lucide-upload', '', ['data-icon' => 'inline-start', 'aria-hidden' => 'true']) }} Upload Document
+        </button>
+    </x-slot:footer>
+</x-ui.dialog>
 
 <script>
-    let uploadModalData = {
-        assetType: 'vehicle',
-        assetId: null,
-        documentTypeId: null,
-        documentTypeName: ''
-    };
+    (() => {
+        const dialog = document.getElementById('uploadDocumentModal');
+        const form = document.getElementById('uploadDocumentForm');
+        const select = document.getElementById('upload_selected_asset');
+        const uploadAll = document.getElementById('upload_to_all');
+        const fileInput = document.getElementById('upload_file');
+        const dropzone = document.getElementById('dropzone');
+        const preview = document.getElementById('filePreview');
+        const submit = document.getElementById('uploadSubmitBtn');
+        const subtitle = dialog.querySelector('header p');
+        const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
-    // Open upload modal
-    function openUploadModal(assetId, documentTypeId, assetType = 'vehicle') {
-        uploadModalData = {
-            assetId,
-            documentTypeId,
-            assetType,
-            documentTypeName: ''
+        const showError = (message) => {
+            document.getElementById('uploadErrorText').textContent = message;
+            document.getElementById('uploadError').hidden = !message;
+        };
+        const size = (bytes) => bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
+        window.showUploadError = showError;
+
+        window.removeFile = () => {
+            fileInput.value = '';
+            preview.hidden = true;
+            dropzone.hidden = false;
         };
 
-        // Set hidden fields
-        document.getElementById('upload_document_type_id').value = documentTypeId;
-        document.getElementById('upload_asset_type').value = assetType;
-        document.getElementById('upload_asset_id').value = assetId;
-
-        // Load assets for dropdown
-        loadAssetsForUpload(assetType, assetId, documentTypeId);
-
-        // Show modal
-        document.getElementById('uploadDocumentModal').classList.remove('hidden');
-        document.body.classList.add('overflow-hidden');
-    }
-
-    // Load assets for the dropdown
-    function loadAssetsForUpload(assetType, selectedAssetId, documentTypeId) {
-        const endpoint = (assetType === 'vehicle' ? '/admin/compliance/vehicles/list' : '/admin/compliance/trailers/list') +
-            `?document_type_id=${encodeURIComponent(documentTypeId)}&asset_id=${encodeURIComponent(selectedAssetId ?? '')}`;
-
-        fetch(endpoint)
-            .then(response => response.json())
-            .then(data => {
-                const select = document.getElementById('upload_selected_asset');
-                const label = document.getElementById('select-asset-label');
-                const uploadAllLabel = document.getElementById('upload-all-label');
-                const subtitle = document.getElementById('upload-modal-subtitle');
-                const infoText = document.getElementById('upload-info-text');
-
-                // Update labels
-                const assetLabel = assetType === 'vehicle' ? 'Vehicle' : 'Trailer';
-                const assetLabelPlural = assetType === 'vehicle' ? 'Vehicles' : 'Trailers';
-
-                label.textContent = `Select ${assetLabelPlural}`;
-                uploadAllLabel.textContent = `Upload to All ${assetLabelPlural}`;
-
-                if (data.success) {
-                    const documentTypeName = data.document_type_name || 'Document';
-                    uploadModalData.documentTypeName = documentTypeName;
-
-                    // Find selected asset
-                    const selectedAsset = data.assets.find(a => a.id == selectedAssetId);
-                    const unitNo = selectedAsset ? selectedAsset.unit_no : selectedAssetId;
-
-                    subtitle.textContent = `${documentTypeName} for ${assetLabel} #${unitNo}`;
-
-                    // "Upload to all" covers the assets of one company (PO-02)
-                    const uploadAll = document.getElementById('upload_to_all');
-                    document.getElementById('upload_company_id').value = data.company ? data.company.id : '';
-                    uploadAll.disabled = !data.company;
-                    if (data.company) {
-                        uploadAllLabel.textContent = `Upload to All ${assetLabelPlural} of ` + data.company.name;
-                    }
-                    infoText.textContent =
-                        `Upload documents for ${documentTypeName}. You can select multiple ${assetLabelPlural.toLowerCase()} or upload to all ${assetLabelPlural.toLowerCase()} at once.`;
-
-                    // Populate dropdown (as text: unit numbers come from tenant users)
-                    select.replaceChildren(...data.assets.map(asset => new Option(
-                        assetLabel + ' #' + asset.unit_no + (asset.has_document ? ' (Has Document)' : ' (Missing)'),
-                        asset.id,
-                        false,
-                        asset.id == selectedAssetId
-                    )));
-                } else {
-                    showUploadError('Failed to load assets');
-                }
-            })
-            .catch(error => {
-                showUploadError('Error loading assets: ' + error.message);
-            });
-    }
-
-    // Close upload modal
-    function closeUploadModal() {
-        document.getElementById('uploadDocumentModal').classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
-
-        // Reset form
-        document.getElementById('uploadDocumentForm').reset();
-        removeFile();
-        hideUploadError();
-
-        const select = document.getElementById('upload_selected_asset');
-        if (select) {
+        window.closeUploadModal = () => {
+            dialog.close();
+            form.reset();
+            window.removeFile();
+            showError('');
             select.disabled = false;
-            select.classList.remove('opacity-50', 'cursor-not-allowed');
+        };
+
+        window.openUploadModal = (assetId, documentTypeId, assetType = 'vehicle') => {
+            form.reset();
+            window.removeFile();
+            showError('');
+            document.getElementById('upload_document_type_id').value = documentTypeId;
+            document.getElementById('upload_asset_type').value = assetType;
+            document.getElementById('upload_asset_id').value = assetId;
+            select.replaceChildren(new Option('Loading…', ''));
+            select.disabled = false;
+            dialog.showModal();
+            loadAssets(assetType, assetId, documentTypeId);
+        };
+
+        async function loadAssets(assetType, selectedAssetId, documentTypeId) {
+            const label = assetType === 'vehicle' ? 'Vehicle' : 'Trailer';
+            const plural = assetType === 'vehicle' ? 'Vehicles' : 'Trailers';
+            const params = new URLSearchParams({ document_type_id: documentTypeId, asset_id: selectedAssetId ?? '' });
+            const endpoint = assetType === 'vehicle' ? '/admin/compliance/vehicles/list' : '/admin/compliance/trailers/list';
+            document.getElementById('select-asset-label').textContent = `Select ${plural}`;
+            document.getElementById('upload-all-label').textContent = `Upload to All ${plural}`;
+
+            try {
+                const response = await fetch(`${endpoint}?${params}`, { headers: { Accept: 'application/json' } });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Failed to load assets');
+
+                const name = data.document_type_name || 'Document';
+                const selected = data.assets.find((asset) => String(asset.id) === String(selectedAssetId));
+                subtitle.textContent = `${name} for ${label} #${selected ? selected.unit_no : selectedAssetId}`;
+                document.getElementById('upload-info-text').textContent =
+                    `Upload documents for ${name}. You can select multiple ${plural.toLowerCase()} or upload to all ${plural.toLowerCase()} at once.`;
+                // "Upload to all" covers the assets of one company (PO-02)
+                document.getElementById('upload_company_id').value = data.company ? data.company.id : '';
+                uploadAll.disabled = !data.company;
+                if (data.company) document.getElementById('upload-all-label').textContent = `Upload to All ${plural} of ${data.company.name}`;
+                // Options as text: unit numbers come from tenant users
+                select.replaceChildren(...data.assets.map((asset) => new Option(
+                    label + ' #' + asset.unit_no + (asset.has_document ? ' (Has Document)' : ' (Missing)'), asset.id, false, String(asset.id) === String(selectedAssetId),
+                )));
+            } catch (error) {
+                showError('Error loading assets: ' + error.message);
+            }
         }
-    }
 
-    // Handle file selection
-    document.getElementById('upload_file')?.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            // Validate file size (20MB)
-            if (file.size > 20 * 1024 * 1024) {
-                showUploadError('File size must be less than 20MB');
-                this.value = '';
-                return;
-            }
-
-            // Validate file type
-            const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-            if (!allowedTypes.includes(file.type)) {
-                showUploadError('Only JPG, PNG, and PDF files are allowed');
-                this.value = '';
-                return;
-            }
-
-            // Show file preview
-            document.getElementById('dropzone').classList.add('hidden');
-            document.getElementById('filePreview').classList.remove('hidden');
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+            if (file.size > 20 * 1024 * 1024) return showError('File size must be less than 20MB'), window.removeFile();
+            if (!['image/jpeg', 'image/png', 'application/pdf'].includes(file.type)) return showError('Only JPG, PNG, and PDF files are allowed'), window.removeFile();
             document.getElementById('fileName').textContent = file.name;
-            document.getElementById('fileSize').textContent = formatFileSize(file.size);
-            hideUploadError();
-        }
-    });
+            document.getElementById('fileSize').textContent = size(file.size);
+            dropzone.hidden = true;
+            preview.hidden = false;
+            showError('');
+        });
 
-    // Remove selected file
-    function removeFile() {
-        document.getElementById('upload_file').value = '';
-        document.getElementById('dropzone').classList.remove('hidden');
-        document.getElementById('filePreview').classList.add('hidden');
-    }
+        ['dragenter', 'dragover'].forEach((type) => dropzone.addEventListener(type, (event) => {
+            event.preventDefault();
+            dropzone.dataset.over = '';
+        }));
+        ['dragleave', 'drop'].forEach((type) => dropzone.addEventListener(type, (event) => {
+            event.preventDefault();
+            delete dropzone.dataset.over;
+        }));
+        dropzone.addEventListener('drop', (event) => {
+            if (!event.dataTransfer.files.length) return;
+            fileInput.files = event.dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change'));
+        });
 
-    // Format file size
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-    }
+        uploadAll.addEventListener('change', () => { select.disabled = uploadAll.checked; });
 
-    // Drag and drop functionality
-    const dropzone = document.getElementById('dropzone');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!fileInput.files[0]) return showError('Please select a file to upload');
+            if (!document.getElementById('upload_expiry_date').value) return showError('Please enter an expiration date');
 
-    dropzone?.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropzone.classList.add('border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/10');
-    });
-
-    dropzone?.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        dropzone.classList.remove('border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/10');
-    });
-
-    dropzone?.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropzone.classList.remove('border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/10');
-
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            document.getElementById('upload_file').files = files;
-            document.getElementById('upload_file').dispatchEvent(new Event('change'));
-        }
-    });
-
-    // Toggle upload to all checkbox
-    document.getElementById('upload_to_all')?.addEventListener('change', function() {
-        const select = document.getElementById('upload_selected_asset');
-        select.disabled = this.checked;
-        if (this.checked) {
-            select.classList.add('opacity-50', 'cursor-not-allowed');
-        } else {
-            select.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
-    });
-
-    // Handle form submission
-    document.getElementById('uploadDocumentForm')?.addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const submitBtn = document.getElementById('uploadSubmitBtn');
-        const formData = new FormData(this);
-
-        // Validate
-        if (!document.getElementById('upload_file').files[0]) {
-            showUploadError('Please select a file to upload');
-            return;
-        }
-
-        if (!document.getElementById('upload_expiry_date').value) {
-            showUploadError('Please enter an expiration date');
-            return;
-        }
-
-        // Disable submit button
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="mr-2 fas fa-spinner fa-spin"></i>Uploading...';
-        hideUploadError();
-
-        const csrfToken = getCsrfToken();
-        if (!csrfToken) {
-            showUploadError('Security token not found. Please refresh the page.');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="mr-2 fas fa-upload"></i>Upload Document';
-            return;
-        }
-
-        // Submit form
-        fetch('/admin/compliance/documents/upload', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                },
-                body: formData
-            })
-            .then(response => {
+            submit.disabled = true;
+            showError('');
+            try {
+                const response = await fetch('/admin/compliance/documents/upload', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrf(), Accept: 'application/json' },
+                    body: new FormData(form),
+                });
+                const data = await response.json().catch(() => ({}));
                 // Validation errors (422) carry a message to show
-                if (!response.ok && response.status !== 422) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Remove the dd() from your controller first!
-                    showToast(data.message || 'Document uploaded successfully', 'success');
-                    closeUploadModal();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Failed to upload document');
 
-                    // Refresh the page after a short delay
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1500);
-                } else {
-                    showUploadError(data.message || 'Failed to upload document');
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="mr-2 fas fa-upload"></i>Upload Document';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showUploadError('Error uploading document: ' + error.message);
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="mr-2 fas fa-upload"></i>Upload Document';
-            });
-    });
-
-    // Show upload error
-    function showUploadError(message) {
-        const errorDiv = document.getElementById('uploadError');
-        const errorText = document.getElementById('uploadErrorText');
-        errorText.textContent = message;
-        errorDiv.classList.remove('hidden');
-    }
-
-    // Hide upload error
-    function hideUploadError() {
-        document.getElementById('uploadError').classList.add('hidden');
-    }
+                window.closeUploadModal();
+                window.notify('success', data.message || 'Document uploaded successfully');
+                setTimeout(() => location.reload(), 1500);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                submit.disabled = false;
+            }
+        });
+    })();
 </script>
-
-<style>
-    /* Custom styles for the upload modal */
-    
-
-    #uploadDocumentModal .dropzone-active {
-        border-color: var(--color-brand-500);
-        background-color: var(--color-brand-50);
-    }
-</style>

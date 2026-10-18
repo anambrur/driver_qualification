@@ -15,7 +15,7 @@
                 @can('roles.create')
                     <a href="{{ route('admin.roles.create') }}"
                         class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 mt-4 sm:mt-0">
-                        <i class="fas fa-plus mr-2"></i>Add New Role
+                        <x-ui.icon name="plus" class="inline-block size-4 align-[-0.125em] mr-2" />Add New Role
                     </a>
                 @endcan
             </div>
@@ -25,7 +25,7 @@
         @if (session('success'))
             <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
                 <div class="flex items-center">
-                    <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                    <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] text-green-500 mr-3" />
                     <p class="text-green-700 dark:text-green-400">{{ session('success') }}</p>
                 </div>
             </div>
@@ -34,7 +34,7 @@
         @if (session('error'))
             <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
                 <div class="flex items-center">
-                    <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                    <x-ui.icon name="circle-alert" class="inline-block size-4 align-[-0.125em] text-red-500 mr-3" />
                     <p class="text-red-700 dark:text-red-400">{{ session('error') }}</p>
                 </div>
             </div>
@@ -44,7 +44,7 @@
         <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="px-5 py-4 sm:px-6 sm:py-5">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    <i class="fas fa-user-shield mr-2"></i>Roles List
+                    <x-ui.icon name="shield-user" class="inline-block size-4 align-[-0.125em] mr-2" />Roles List
                 </h3>
             </div>
 
@@ -106,7 +106,7 @@
                                             @if (auth()->user()->can('roles.edit') && in_array($role->id, $manageable))
                                                 <a href="{{ route('admin.roles.edit', $role->id) }}"
                                                     class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-                                                    <i class="fas fa-edit mr-1.5"></i>Edit
+                                                    <x-ui.icon name="pencil" class="inline-block size-4 align-[-0.125em] mr-1.5" />Edit
                                                 </a>
                                             @endif
 
@@ -115,7 +115,7 @@
                                                     data-url="{{ route('admin.roles.destroy', $role->id) }}"
                                                     data-name="{{ $role->name }}"
                                                     class="inline-flex items-center rounded-lg border border-transparent bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 shadow-theme-xs hover:bg-red-100 focus:outline-hidden focus:ring-2 focus:ring-red-500/20 focus:ring-offset-2 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
-                                                    <i class="fas fa-trash-alt mr-1.5"></i>Delete
+                                                    <x-ui.icon name="trash-2" class="inline-block size-4 align-[-0.125em] mr-1.5" />Delete
                                                 </button>
                                             @endif
                                         </td>
@@ -128,7 +128,7 @@
                     <div class="text-center py-12">
                         <div
                             class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                            <i class="fas fa-user-shield text-gray-400 dark:text-gray-500"></i>
+                            <x-ui.icon name="shield-user" class="inline-block size-4 align-[-0.125em] text-gray-400 dark:text-gray-500" />
                         </div>
                         <h3 class="mb-2 text-sm font-medium text-gray-900 dark:text-white/90">No roles found</h3>
                         <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">Get started by creating your first role.
@@ -136,7 +136,7 @@
                         @can('roles.create')
                             <a href="{{ route('admin.roles.create') }}"
                                 class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2">
-                                <i class="fas fa-plus mr-2"></i>Create Role
+                                <x-ui.icon name="plus" class="inline-block size-4 align-[-0.125em] mr-2" />Create Role
                             </a>
                         @endcan
                     </div>
@@ -168,21 +168,8 @@
         });
 
         function deleteRole(url, name) {
-            Swal.fire({
-                title: 'Delete Role?',
-                text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc2626',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true,
-                customClass: {
-                    popup: 'rounded-2xl',
-                    confirmButton: 'rounded-lg',
-                    cancelButton: 'rounded-lg'
-                }
+            showAppConfirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`, {
+                title: 'Delete Role?', icon: 'warning', confirmButtonText: 'Yes, delete it!', variant: 'destructive',
             }).then((result) => {
                 if (result.isConfirmed) {
                     const form = document.getElementById('deleteRoleForm');

@@ -5,7 +5,7 @@
     also drives it for window.showAppAlert / showAppConfirm, swapping in one of the icons below.
 --}}
 <x-ui.dialog id="confirm-dialog" size="sm" icon="triangle-alert" title="Please confirm" aria-describedby="confirm-dialog-text">
-    <p id="confirm-dialog-text" class="text-sm text-muted-foreground"></p>
+    <p id="confirm-dialog-text" class="text-sm whitespace-pre-line text-muted-foreground"></p>
     @foreach (['triangle-alert', 'circle-help', 'circle-x', 'circle-check', 'info'] as $icon)
         <template data-dialog-icon="{{ $icon }}">{{ svg('lucide-'.$icon, 'size-5', ['aria-hidden' => 'true']) }}</template>
     @endforeach

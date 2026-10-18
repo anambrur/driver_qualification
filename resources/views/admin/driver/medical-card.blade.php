@@ -20,11 +20,11 @@
                 @endif
             </p>
             <div class="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                <i class="fas fa-user mr-2"></i>
+                <x-ui.icon name="user" class="inline-block size-4 align-[-0.125em] mr-2" />
                 <span>Driver: {{ $driver->first_name }} {{ $driver->last_name }}</span>
                 @if ($driver->company)
                     <span class="mx-2">•</span>
-                    <i class="fas fa-building mr-2"></i>
+                    <x-ui.icon name="building-2" class="inline-block size-4 align-[-0.125em] mr-2" />
                     <span>Company: {{ $driver->company->company_name }}</span>
                 @endif
             </div>
@@ -244,13 +244,13 @@
                         @if ($isEditMode)
                             <a href="{{ route('admin.driver.edit', ['id' => $driver_id]) }}"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                                <i class="fas fa-arrow-left mr-2"></i>
+                                <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Driver Edit
                             </a>
                         @else
                             <a href="{{ route('admin.driver.license', ['driver_id' => $driver_id]) }}"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                                <i class="fas fa-arrow-left mr-2"></i>
+                                <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Step 2
                             </a>
                         @endif
@@ -258,7 +258,7 @@
                         <div class="flex gap-4">
                             <button type="submit" name="action" value="save"
                                 class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
-                                <i class="fas fa-save mr-2"></i>
+                                <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 {{ $isEditMode ? 'Update & Continue to Step 4' : 'Save & Continue to Step 4' }}
                             </button>
 

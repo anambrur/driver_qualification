@@ -144,7 +144,7 @@
                 if (ok) open('Edit document type', json.data);
                 else window.notify('error', json.message || 'Could not load the document type.');
             } else if (action === 'delete') {
-                confirmThen({ title: 'Delete document type?', text: `“${name}” will be removed. This cannot be undone.`, confirmButtonText: 'Delete', customClass: { confirmButton: 'swal2-deny' } },
+                confirmThen({ title: 'Delete document type?', text: `“${name}” will be removed. This cannot be undone.`, confirmButtonText: 'Delete', variant: 'destructive' },
                     async () => done(await request(at(routes.item, id), 'DELETE'), 'Could not delete the document type.'));
             } else if (action === 'toggle-status') {
                 const active = button.dataset.active === '1';
@@ -158,7 +158,7 @@
         });
 
         function confirmThen(options, onConfirm) {
-            Swal.fire({ icon: 'warning', showCancelButton: true, reverseButtons: true, ...options })
+            showAppConfirm(options.text, { icon: 'warning', ...options })
                 .then((result) => result.isConfirmed && onConfirm());
         }
 

@@ -71,23 +71,4 @@ class ServiceDocument extends Model
         // Files are on the private disk; only the authorized download route serves them
         return route('admin.service-log.download-document', $this->id);
     }
-
-    public function getFileIconAttribute()
-    {
-        $extension = pathinfo($this->file->original_name, PATHINFO_EXTENSION);
-
-        $icons = [
-            'pdf' => 'fa-file-pdf text-red-500',
-            'doc' => 'fa-file-word text-blue-500',
-            'docx' => 'fa-file-word text-blue-500',
-            'xls' => 'fa-file-excel text-green-500',
-            'xlsx' => 'fa-file-excel text-green-500',
-            'jpg' => 'fa-file-image text-purple-500',
-            'jpeg' => 'fa-file-image text-purple-500',
-            'png' => 'fa-file-image text-purple-500',
-            'txt' => 'fa-file-alt text-gray-500',
-        ];
-
-        return $icons[strtolower($extension)] ?? 'fa-file text-gray-500';
-    }
 }

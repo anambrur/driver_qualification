@@ -72,16 +72,11 @@
         });
 
         function deleteDriver(id, name) {
-            Swal.fire({
-                title: 'Delete driver?',
-                text: `${name} will be removed. This cannot be undone.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Delete',
-                reverseButtons: true,
-                customClass: { confirmButton: 'swal2-deny' },
-                showLoaderOnConfirm: true,
-                preConfirm: () => fetch(`/admin/driver/${encodeURIComponent(id)}`, {
+            showAppConfirm(`${name} will be removed. This cannot be undone.`, {
+                title: 'Delete driver?', icon: 'warning', confirmButtonText: 'Delete', variant: 'destructive',
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+                fetch(`/admin/driver/${encodeURIComponent(id)}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -89,13 +84,9 @@
                     },
                 }).then((response) => {
                     if (!response.ok) throw new Error(response.statusText);
-                    return response.json();
-                }).catch((error) => Swal.showValidationMessage(`Request failed: ${error.message}`)),
-            }).then((result) => {
-                if (result.isConfirmed) {
                     window.notify('success', 'Driver deleted');
                     table.ajax.reload(null, false);
-                }
+                }).catch((error) => window.notify('error', `Request failed: ${error.message}`));
             });
         }
     </script>

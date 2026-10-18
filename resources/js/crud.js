@@ -1,5 +1,7 @@
 // Small helpers for list pages that add/edit/delete rows in a dialog (loaded with datatable.js).
 
+import { openDialog } from "./dialogs";
+
 const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? "";
 
 /** fetch() with the CSRF token and JSON accept; resolves to { ok, status, json }. */
@@ -48,9 +50,9 @@ const fill = (form, data = {}) => {
     });
 };
 
-/** SweetAlert confirm, then run the async action; returns its result or null. */
-const confirm = (options, action) =>
-    window.Swal.fire({ icon: "warning", showCancelButton: true, reverseButtons: true, ...options }).then((result) => (result.isConfirmed ? action() : null));
+/** Confirm in the layout's dialog, then run the async action; returns its result or null. */
+const confirm = ({ title, text = "", icon = "warning", confirmText = "Confirm", variant = "destructive" }, action) =>
+    openDialog({ title, text, icon, confirmText, cancelText: "Cancel", variant }).then((result) => (result.isConfirmed ? action() : null));
 
 /** Toast the JSON message and reload the table when ok. */
 const report = (table, { ok, json }, fallback) => {
@@ -104,12 +106,12 @@ const page = ({ table, dialog, singular, routes, defaults = {}, toForm = (record
             else window.notify("error", json.message || `Could not load the ${singular}.`);
         } else if (action === "delete") {
             confirm(
-                { title: `Delete ${singular}?`, text: `${name} will be deleted.`, confirmButtonText: "Delete", customClass: { confirmButton: "swal2-deny" } },
+                { title: `Delete ${singular}?`, text: `${name} will be deleted.`, confirmText: "Delete" },
                 async () => report(table, await request(at(routes.destroy, id), "DELETE"), `Could not delete the ${singular}.`),
             );
         } else if (action === "restore") {
             confirm(
-                { icon: "question", title: `Restore ${singular}?`, text: `${name} will be active again.`, confirmButtonText: "Restore" },
+                { icon: "question", title: `Restore ${singular}?`, text: `${name} will be active again.`, confirmText: "Restore", variant: "primary" },
                 async () => report(table, await request(at(routes.restore, id), "POST"), `Could not restore the ${singular}.`),
             );
         }
