@@ -20,7 +20,14 @@ class FuelTypeController extends Controller
             return (new LookupTable(FuelType::query()))->json();
         }
 
-        return view('platform.lookups.fuel-types.index');
+        return view('platform.lookups.index', ['lookup' => [
+            'title' => 'Fuel types',
+            'singular' => 'fuel type',
+            'route' => 'platform.lookups.fuel-types',
+            'description' => 'The fuel or power sources companies can pick for their vehicles.',
+            'hint' => 'For example Diesel, Petrol, Electric or Hybrid.',
+            'icon' => 'fuel',
+        ]]);
     }
 
     public function store(Request $request)

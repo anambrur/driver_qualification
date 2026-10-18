@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\DataTables\Lookups\LookupTable;
 use App\Http\Controllers\Concerns\AuditsLookups;
 use App\Models\VehicleGroup;
 use App\Tenancy\CompanyScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Yajra\DataTables\Facades\DataTables;
 
 class VehicleGroupController extends Controller
 {
@@ -17,34 +17,17 @@ class VehicleGroupController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = VehicleGroup::query();
-
-            return DataTables::of($query)
-                ->addIndexColumn()
-                ->addColumn('action', function ($row) {
-                    return '
-                    <div class="flex justify-center space-x-1">
-                        <button onclick="editVehicleGroup('.$row->id.')" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors">
-                            <i class="fas fa-edit mr-1"></i> Edit
-                        </button>
-                        <button data-action="delete" data-id="'.$row->id.'" data-name="'.e($row->name).'" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
-                            <i class="fas fa-trash mr-1"></i> Delete
-                        </button>
-                    </div>';
-                })
-                ->addColumn('created_at_formatted', function ($row) {
-                    return $row->created_at->format('M d, Y');
-                })
-                ->addColumn('updated_at_formatted', function ($row) {
-                    return $row->updated_at->format('M d, Y');
-                })
-                ->rawColumns(['action'])
-                ->make(true);
+            return (new LookupTable(VehicleGroup::query()))->json();
         }
 
-        return view('platform.lookups.vehicle-groups.index');
+        return view('platform.lookups.index', ['lookup' => [
+            'title' => 'Vehicle groups',
+            'singular' => 'vehicle group',
+            'route' => 'platform.lookups.vehicle-groups',
+            'description' => 'Groups companies can sort their vehicles and trailers into.',
+            'hint' => 'For example Long haul, Local or Spare.',
+            'icon' => 'layers',
+        ]]);
     }
 
     public function store(Request $request)

@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\DataTables\Lookups\LookupTable;
 use App\Http\Controllers\Concerns\AuditsLookups;
 use App\Models\VehicleType;
 use App\Tenancy\CompanyScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Yajra\DataTables\Facades\DataTables;
-
-use function Flasher\Toastr\Prime\toastr;
 
 class VehicleTypeController extends Controller
 {
@@ -19,39 +17,17 @@ class VehicleTypeController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = VehicleType::query();
-
-            return DataTables::of($query)
-                ->addIndexColumn()
-                ->addColumn('action', function ($row) {
-                    return '
-                    <div class="flex justify-center space-x-1">
-                        <a href="'.route('platform.lookups.vehicle-types.edit', $row->id).'" 
-                           class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors">
-                            <i class="fas fa-edit mr-1"></i> Edit
-                        </a>
-                        <button data-action="delete" data-id="'.$row->id.'" data-name="'.e($row->name).'" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
-                            <i class="fas fa-trash mr-1"></i> Delete
-                        </button>
-                    </div>';
-                })
-                ->addColumn('created_at_formatted', function ($row) {
-                    return $row->created_at->format('M d, Y');
-                })
-                ->addColumn('updated_at_formatted', function ($row) {
-                    return $row->updated_at->format('M d, Y');
-                })
-                ->rawColumns(['action'])
-                ->make(true);
+            return (new LookupTable(VehicleType::query()))->json();
         }
 
-        return view('platform.lookups.vehicle-types.index');
-    }
-
-    public function create()
-    {
-        return view('platform.lookups.vehicle-types.create');
+        return view('platform.lookups.index', ['lookup' => [
+            'title' => 'Vehicle types',
+            'singular' => 'vehicle type',
+            'route' => 'platform.lookups.vehicle-types',
+            'description' => 'The kinds of vehicle companies can register, such as tractor or straight truck.',
+            'hint' => 'For example Tractor, Straight truck or Pickup.',
+            'icon' => 'truck',
+        ]]);
     }
 
     public function store(Request $request)
@@ -95,7 +71,10 @@ class VehicleTypeController extends Controller
     {
         $vehicleType = VehicleType::findOrFail($id);
 
-        return view('platform.lookups.vehicle-types.edit', compact('vehicleType'));
+        return response()->json([
+            'success' => true,
+            'data' => $vehicleType,
+        ]);
     }
 
     public function update(Request $request, $id)
@@ -123,9 +102,11 @@ class VehicleTypeController extends Controller
             $this->auditLookup('updated', $vehicleType);
             DB::commit();
 
-            toastr('Vehicle type updated successfully!', 'success');
-
-            return redirect()->route('platform.lookups.vehicle-types.index');
+            return response()->json([
+                'success' => true,
+                'message' => 'Vehicle type updated successfully!',
+                'data' => $vehicleType,
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
 

@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\DataTables\Lookups\LookupTable;
 use App\Http\Controllers\Concerns\AuditsLookups;
 use App\Models\EquipmentType;
 use App\Tenancy\CompanyScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Yajra\DataTables\Facades\DataTables;
 
 class EquipmentTypeController extends Controller
 {
@@ -17,39 +17,17 @@ class EquipmentTypeController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = EquipmentType::query();
-
-            return DataTables::of($query)
-                ->addIndexColumn()
-                ->addColumn('action', function ($row) {
-                    return '
-                    <div class="flex justify-center space-x-1">
-                        <button onclick="editEquipmentType('.$row->id.')" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors">
-                            <i class="fas fa-edit mr-1"></i> Edit
-                        </button>
-                        <button data-action="delete" data-id="'.$row->id.'" data-name="'.e($row->name).'" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
-                            <i class="fas fa-trash mr-1"></i> Delete
-                        </button>
-                    </div>';
-                })
-                ->addColumn('created_at_formatted', function ($row) {
-                    return $row->created_at->format('M d, Y');
-                })
-                ->addColumn('updated_at_formatted', function ($row) {
-                    return $row->updated_at->format('M d, Y');
-                })
-                ->addColumn('equipment_count', function ($row) {
-                    // If you have an equipment relationship, uncomment this:
-                    // return $row->equipment->count() . ' equipment';
-                    return '<span class="text-gray-400">-</span>';
-                })
-                ->rawColumns(['action', 'equipment_count'])
-                ->make(true);
+            return (new LookupTable(EquipmentType::query()))->json();
         }
 
-        return view('platform.lookups.equipment-types.index');
+        return view('platform.lookups.index', ['lookup' => [
+            'title' => 'Equipment types',
+            'singular' => 'equipment type',
+            'route' => 'platform.lookups.equipment-types',
+            'description' => 'The kinds of trailer or equipment companies can register.',
+            'hint' => 'For example Dry van, Reefer or Flatbed.',
+            'icon' => 'container',
+        ]]);
     }
 
     public function store(Request $request)

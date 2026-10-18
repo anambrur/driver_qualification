@@ -90,19 +90,16 @@ Route::prefix('platform')->name('platform.')->group(function () use ($can) {
 
         // Global lookups (LKP-01) and platform settings
         Route::prefix('lookups')->name('lookups.')->middleware($can('settings.manage'))->group(function () {
-            $lookup = function (string $prefix, string $controller, bool $createPage = false) {
-                Route::prefix($prefix)->name("{$prefix}.")->group(function () use ($controller, $createPage) {
+            $lookup = function (string $prefix, string $controller) {
+                Route::prefix($prefix)->name("{$prefix}.")->group(function () use ($controller) {
                     Route::get('/', [$controller, 'index'])->name('index');
-                    if ($createPage) {
-                        Route::get('/create', [$controller, 'create'])->name('create');
-                    }
                     Route::post('/', [$controller, 'store'])->name('store');
                     Route::get('/{id}/edit', [$controller, 'edit'])->name('edit');
                     Route::put('/{id}', [$controller, 'update'])->name('update');
                     Route::delete('/{id}', [$controller, 'destroy'])->name('destroy');
                 });
             };
-            $lookup('vehicle-types', VehicleTypeController::class, createPage: true);
+            $lookup('vehicle-types', VehicleTypeController::class);
             $lookup('vehicle-groups', VehicleGroupController::class);
             $lookup('fuel-types', FuelTypeController::class);
             $lookup('equipment-types', EquipmentTypeController::class);

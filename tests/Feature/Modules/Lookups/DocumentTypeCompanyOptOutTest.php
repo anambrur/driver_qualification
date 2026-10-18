@@ -68,14 +68,14 @@ describe('switching a type off', function () {
         $this->actingAs(Actors::companyOwner())
             ->get(route('admin.settings.document-types.index'))
             ->assertOk()
-            ->assertSee('My Company')
-            ->assertDontSee('Add Document Type');
+            ->assertSee('My company')
+            ->assertDontSee('Add document type');
 
         $this->actingAs(Actors::platformOwner(), 'platform')
             ->get(route('platform.lookups.document-types.index'))
             ->assertOk()
-            ->assertDontSee('My Company')
-            ->assertSee('Add Document Type');
+            ->assertDontSee('My company')
+            ->assertSee('Add document type');
     });
 
     it('shows a tenant which types are switched off for their company', function () {
@@ -88,9 +88,9 @@ describe('switching a type off', function () {
             ->assertOk()
             ->json('data.0');
 
-        expect($row['company_enabled'])->toContain('Off')
+        expect($row['company_enabled'])->toContain('Switched off')
             ->and($row['action'])->toContain('data-action="company-toggle"')
-            ->not->toContain('editDocumentType');
+            ->not->toContain('data-action="edit"');
     });
 });
 

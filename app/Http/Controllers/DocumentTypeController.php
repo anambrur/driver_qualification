@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\DataTables\Settings\DocumentTypeTable;
 use App\Http\Controllers\Concerns\AuditsLookups;
 use App\Models\DocumentType;
 use App\Models\PlatformUser;
@@ -11,7 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Yajra\DataTables\Facades\DataTables;
 
 class DocumentTypeController extends Controller
 {
@@ -29,75 +29,12 @@ class DocumentTypeController extends Controller
             $company = $platform ? null : $user->company;
 
             if ($request->ajax()) {
-                $documentTypes = DocumentType::query();
-                $disabledIds = $company ? $company->disabledDocumentTypes()->pluck('document_types.id')->all() : [];
-                $canEdit = $user->can('platform.settings.manage');
-                $canDelete = $user->can('platform.settings.manage');
-                $canOptOut = $company && $user->can('document-types.toggle');
-
-                return DataTables::of($documentTypes)
-                    ->addIndexColumn()
-                    ->addColumn('module', function ($documentType) {
-                        return '<span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">'.
-                            e($documentType->module_label).'</span>';
-                    })
-                    ->addColumn('status', function ($documentType) {
-                        if ($documentType->status) {
-                            return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                    <i class="fas fa-check-circle mr-1"></i> Active
-                                </span>';
-                        } else {
-                            return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                    <i class="fas fa-times-circle mr-1"></i> Inactive
-                                </span>';
-                        }
-                    })
-                    ->addColumn('created_at', function ($documentType) {
-                        return $documentType->created_at->format('M d, Y h:i A');
-                    })
-                    ->addColumn('company_enabled', function ($documentType) use ($disabledIds) {
-                        if (in_array($documentType->id, $disabledIds, true)) {
-                            return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                                    <i class="fas fa-ban mr-1"></i> Off
-                                </span>';
-                        }
-
-                        return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                <i class="fas fa-check mr-1"></i> On
-                            </span>';
-                    })
-                    ->addColumn('action', function ($documentType) use ($disabledIds, $canEdit, $canDelete, $canOptOut) {
-                        $buttons = '';
-
-                        if ($canOptOut) {
-                            $enabled = ! in_array($documentType->id, $disabledIds, true);
-                            $buttons .= '<button type="button" data-action="company-toggle" data-id="'.$documentType->id.'"
-                                    class="inline-flex items-center px-3 py-1 text-sm rounded-md '.($enabled ? 'text-gray-700 bg-gray-100 hover:bg-gray-200' : 'text-green-700 bg-green-100 hover:bg-green-200').'"
-                                    title="'.($enabled ? 'Stop requiring this document for your company' : 'Require this document for your company').'">
-                                    <i class="fas '.($enabled ? 'fa-toggle-on' : 'fa-toggle-off').' mr-1"></i> '.($enabled ? 'Switch off' : 'Switch on').'
-                                </button>';
-                        }
-
-                        return '<div class="flex items-center space-x-2">'.$buttons.'
-                                '.($canEdit ? '<button type="button" onclick="editDocumentType('.$documentType->id.')" 
-                                    class="inline-flex items-center justify-center w-8 h-8 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30" 
-                                    title="Edit">
-                                    <i class="fas fa-edit text-xs"></i>
-                                </button>' : '').'
-                                '.($canDelete ? '<button type="button" onclick="deleteDocumentType('.$documentType->id.')" 
-                                    class="inline-flex items-center justify-center w-8 h-8 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30" 
-                                    title="Delete">
-                                    <i class="fas fa-trash text-xs"></i>
-                                </button>' : '').'
-                                '.($canEdit ? '<button type="button" onclick="toggleStatus('.$documentType->id.', '.($documentType->status ? '0' : '1').')" 
-                                    class="inline-flex items-center justify-center w-8 h-8 '.($documentType->status ? 'text-green-600 border-green-200 dark:text-green-400 dark:border-green-800' : 'text-yellow-600 border-yellow-200 dark:text-yellow-400 dark:border-yellow-800').' border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800" 
-                                    title="'.($documentType->status ? 'Activate' : 'Deactivate').'">
-                                    <i class="fas '.($documentType->status ? 'fa-toggle-on' : 'fa-toggle-off').' text-xs"></i>
-                                </button>' : '').'
-                            </div>';
-                    })
-                    ->rawColumns(['module', 'status', 'company_enabled', 'action'])
-                    ->make(true);
+                return (new DocumentTypeTable(
+                    $request,
+                    $company ? $company->disabledDocumentTypes()->pluck('document_types.id')->all() : [],
+                    $user->can('platform.settings.manage'),
+                    $company && $user->can('document-types.toggle'),
+                ))->json();
             }
 
             $modules = DocumentType::getModules();
