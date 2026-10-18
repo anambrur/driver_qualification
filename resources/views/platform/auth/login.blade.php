@@ -1,31 +1,21 @@
-<x-guest-layout>
-    <h1 class="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">Platform staff login</h1>
+<x-layout.auth area="platform" title="Platform sign in" heading="Platform staff login">
+    <x-slot:intro>For platform staff only. Company users sign in at the main login page.</x-slot:intro>
 
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <form method="POST" action="{{ route('platform.login.store') }}">
+    <form method="POST" action="{{ route('platform.login.store') }}" class="grid gap-5">
         @csrf
 
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
+        <x-ui.field label="Email address" name="email">
+            <x-ui.input type="email" name="email" required autofocus autocomplete="username" autocapitalize="none" spellcheck="false" />
+        </x-ui.field>
 
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-            <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="current-password" />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+        <x-ui.field name="password">
+            <div class="flex items-center justify-between gap-2">
+                <label for="f-password" class="label">Password</label>
+                <a href="{{ route('platform.password.request') }}" class="text-sm font-medium text-primary underline-offset-4 hover:underline">Forgot your password?</a>
+            </div>
+            <x-ui.password required autocomplete="current-password" />
+        </x-ui.field>
 
-        <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900" href="{{ route('platform.password.request') }}">
-                {{ __('Forgot your password?') }}
-            </a>
-
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
-        </div>
+        <x-ui.button type="submit" variant="primary" class="w-full">Log in</x-ui.button>
     </form>
-</x-guest-layout>
+</x-layout.auth>

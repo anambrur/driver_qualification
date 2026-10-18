@@ -1,23 +1,17 @@
-<x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Enter your platform staff email and we will send you a link to choose a new password.
-    </div>
+<x-layout.auth area="platform" title="Platform password reset" heading="Reset your staff password">
+    <x-slot:intro>Enter your platform staff email and we will send you a link to choose a new password.</x-slot:intro>
 
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <form method="POST" action="{{ route('platform.password.email') }}">
+    <form method="POST" action="{{ route('platform.password.email') }}" class="grid gap-5">
         @csrf
 
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
+        <x-ui.field label="Email address" name="email">
+            <x-ui.input type="email" name="email" required autofocus autocomplete="username" />
+        </x-ui.field>
 
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Email Password Reset Link') }}
-            </x-primary-button>
-        </div>
+        <x-ui.button type="submit" variant="primary" class="w-full">Email password reset link</x-ui.button>
     </form>
-</x-guest-layout>
+
+    <x-slot:footer>
+        <a href="{{ route('platform.login') }}" class="font-medium text-primary underline-offset-4 hover:underline">Back to staff login</a>
+    </x-slot:footer>
+</x-layout.auth>

@@ -1,31 +1,19 @@
-<x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
-    </div>
+<x-layout.auth title="Verify email" heading="Verify your email address" :status="false">
+    <x-slot:intro>Thanks for signing up! Before getting started, please verify your email address by clicking the link we just emailed to you. If you didn't receive the email, we will gladly send you another.</x-slot:intro>
 
     @if (session('status') == 'verification-link-sent')
-        <div class="mb-4 font-medium text-sm text-green-600 dark:text-green-400">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
-        </div>
+        <x-ui.alert tone="success" class="mb-6">A new verification link has been sent to the email address you provided during registration.</x-ui.alert>
     @endif
 
-    <div class="mt-4 flex items-center justify-between">
+    <div class="grid gap-3">
         <form method="POST" action="{{ route('verification.send') }}">
             @csrf
-
-            <div>
-                <x-primary-button>
-                    {{ __('Resend Verification Email') }}
-                </x-primary-button>
-            </div>
+            <x-ui.button type="submit" variant="primary" class="w-full">Resend verification email</x-ui.button>
         </form>
 
         <form method="POST" action="{{ route('logout') }}">
             @csrf
-
-            <button type="submit" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
-                {{ __('Log Out') }}
-            </button>
+            <x-ui.button type="submit" variant="ghost" class="w-full">Log out</x-ui.button>
         </form>
     </div>
-</x-guest-layout>
+</x-layout.auth>

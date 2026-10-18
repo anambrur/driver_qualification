@@ -24,7 +24,16 @@ it('serves the home page as indexable with canonical, og and json-ld', function 
 it('makes login and register indexable', function () {
     foreach (['/login', '/register'] as $url) {
         $this->get($url)->assertOk()->assertHeaderMissing('X-Robots-Tag')
-            ->assertSee('rel="canonical"', false);
+            ->assertSee('rel="canonical"', false)
+            ->assertSee('<meta name="description"', false);
+    }
+});
+
+it('keeps the platform and password auth pages noindex', function () {
+    foreach (['/platform/login', '/platform/forgot-password', '/forgot-password'] as $url) {
+        $this->get($url)->assertOk()->assertHeader('X-Robots-Tag', 'noindex, nofollow')
+            ->assertSee('content="noindex, nofollow"', false)
+            ->assertDontSee('rel="canonical"', false);
     }
 });
 
