@@ -7,15 +7,14 @@ use App\Exceptions\LimitReached;
 use App\Http\Requests\Driver\StoreDriverRequest;
 use App\Http\Requests\Driver\UpdateDriverRequest;
 use App\Models\AssetGroup;
-use App\Models\Country;
 use App\Models\Driver;
 use App\Models\DriverDocument;
 use App\Models\PolicyPdf;
-use App\Models\State;
 use App\Services\Compliance\DriverComplianceService;
 use App\Services\Driver\DriverCrudService;
 use App\Services\Driver\DriverDocumentWizardService;
 use App\Services\Driver\DriverHireService;
+use App\Support\Driver\DriverForm;
 use App\Tenancy\TenantRule;
 use App\Traits\CompanyFilterTrait;
 use Exception;
@@ -59,20 +58,13 @@ class DriverController extends Controller
 
     public function create()
     {
-        $companies = $this->getCompaniesForUser();
-
-        if ($companies->isEmpty()) {
+        if ($this->getCompaniesForUser()->isEmpty()) {
             toastr()->error('You do not have a company assigned.');
 
             return redirect()->route('admin.driver.index');
         }
 
-        $countries = Country::orderBy('name')->get();
-        $defaultCountry = Country::where('iso_code', 'US')->first();
-        $states = $defaultCountry ? $defaultCountry->states()->orderBy('name')->get() : collect();
-        $currentStep = 1;
-
-        return view('admin.driver.create', compact('companies', 'countries', 'states', 'defaultCountry', 'currentStep'));
+        return view('admin.driver.create', ['form' => DriverForm::for()]);
     }
 
     public function store(StoreDriverRequest $request, DriverCrudService $crud)
@@ -174,36 +166,22 @@ class DriverController extends Controller
     {
         $driver = Driver::with([
             'company',
-            'licenses' => function ($query) {
-                $query->orderBy('expires', 'desc')->limit(1);
-            },
-            'residence_addresses' => function ($query) {
-                $query->orderBy('is_current', 'desc');
-            },
+            'currentLicense',
+            'driver_documents',
+            'residence_addresses' => fn ($query) => $query->orderByDesc('is_current')->orderBy('id'),
             'experiences',
-            'accidents' => function ($query) {
-                $query->orderBy('accident_date', 'desc');
-            },
-            'violations' => function ($query) {
-                $query->orderBy('violation_date', 'desc');
-            },
+            'accidents' => fn ($query) => $query->orderByDesc('accident_date'),
+            'violations' => fn ($query) => $query->orderByDesc('violation_date'),
             'forfeitures',
-            'employment_records' => function ($query) {
-                $query->orderBy('employer_record_date_to', 'desc');
-            },
+            'employment_records' => fn ($query) => $query->orderByDesc('employer_record_date_to'),
         ])->findOrFail($id);
 
         Gate::authorize('update', $driver);
 
-        $currentStep = 1;
-        $isEditMode = $request->has('edit') && $request->edit == '1';
-        $companies = $this->getCompaniesForUser();
-        $countries = Country::orderBy('name')->get();
-        $states = State::where('country_id', Country::where('iso_code', 'US')->first()->id ?? 1)
-            ->orderBy('name')
-            ->get();
-
-        return view('admin.driver.edit', compact('currentStep', 'driver', 'companies', 'countries', 'states', 'isEditMode'));
+        return view('admin.driver.edit', [
+            'form' => DriverForm::for($driver),
+            'isEditMode' => $request->query('edit') === '1',
+        ]);
     }
 
     public function update(UpdateDriverRequest $request, $id, DriverCrudService $crud)

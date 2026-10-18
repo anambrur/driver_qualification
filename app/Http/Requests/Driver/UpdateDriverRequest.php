@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Driver;
 
 use App\Models\Driver;
+use App\Rules\PlaceCode;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -27,6 +28,8 @@ class UpdateDriverRequest extends FormRequest
         if ($user?->company) {
             $this->merge(['company_id' => $user->company->id]);
         }
+
+        $this->merge(StoreDriverRequest::paddedRows($this->all()));
     }
 
     public function rules(): array
@@ -43,12 +46,17 @@ class UpdateDriverRequest extends FormRequest
             [
                 'company_id' => $companyRule,
                 'email' => StoreDriverRequest::emailRule($this->input('company_id'), $this->route('id')),
-                'state' => 'required|string|max:255',
-                'country' => 'required|string|max:255',
+                'state' => ['required', 'string', 'max:255', PlaceCode::state()],
+                'country' => ['required', 'string', 'max:255', PlaceCode::country()],
                 'twic_card' => 'boolean',
                 'passport' => 'boolean',
             ]
         );
+    }
+
+    public function attributes(): array
+    {
+        return StoreDriverRequest::rowAttributes();
     }
 
     public function messages(): array

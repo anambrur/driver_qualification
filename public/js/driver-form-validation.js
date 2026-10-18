@@ -92,7 +92,7 @@
         let err = el.parentElement && el.parentElement.querySelector('.js-field-error');
         if (!err && el.parentElement) {
             err = document.createElement('p');
-            err.className = 'js-field-error mt-1 text-sm text-red-500';
+            err.className = 'js-field-error mt-1 text-sm text-destructive';
             el.parentElement.appendChild(err);
         }
         if (err) err.textContent = message;
@@ -181,7 +181,7 @@
 
         const accidentYes = form.querySelector('input[name="accident"][value="yes"]');
         if (accidentYes && accidentYes.checked) {
-            const dates = form.querySelectorAll('input[name="accident_date[]"]');
+            const dates = form.querySelectorAll('input[name^="accident_date["]');
             const hasRow = Array.from(dates).some(function (d) { return String(d.value || '').trim(); });
             if (!hasRow) {
                 showFieldError(accidentYes, 'Add at least one accident record or select No.');
@@ -192,7 +192,7 @@
 
         const violationYes = form.querySelector('input[name="violation"][value="yes"]');
         if (violationYes && violationYes.checked) {
-            const dates = form.querySelectorAll('input[name="violation_date[]"]');
+            const dates = form.querySelectorAll('input[name^="violation_date["]');
             const hasRow = Array.from(dates).some(function (d) { return String(d.value || '').trim(); });
             if (!hasRow) {
                 showFieldError(violationYes, 'Add at least one violation record or select No.');
@@ -204,19 +204,28 @@
         return { valid: count === 0, firstInvalid: firstInvalid, count: count };
     }
 
-    function updateSummary(form, count) {
+    function updateSummary(form, count, firstInvalid) {
         let bar = document.getElementById('driver-validation-summary');
         if (count <= 0) {
             if (bar) bar.classList.add('hidden');
             return;
         }
         if (!bar) {
-            bar = document.createElement('div');
+            bar = document.createElement('button');
+            bar.type = 'button';
             bar.id = 'driver-validation-summary';
-            bar.className = 'fixed bottom-20 left-1/2 z-40 -translate-x-1/2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-lg';
+            bar.setAttribute('aria-live', 'polite');
+            bar.className = 'fixed bottom-20 left-1/2 z-40 inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-destructive px-4 py-2 text-sm font-medium text-white shadow-lg ring-1 ring-black/10 hover:bg-destructive/90 focus-visible:outline-hidden focus-visible:ring-[3px] focus-visible:ring-destructive/40 sm:bottom-6';
+            bar.addEventListener('click', function () {
+                const target = bar._firstInvalid;
+                if (!target) return;
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.focus({ preventScroll: true });
+            });
             document.body.appendChild(bar);
         }
-        bar.textContent = count + ' field' + (count === 1 ? '' : 's') + ' need attention';
+        bar._firstInvalid = firstInvalid;
+        bar.textContent = count + ' field' + (count === 1 ? ' needs' : 's need') + ' attention';
         bar.classList.remove('hidden');
     }
 
@@ -230,7 +239,7 @@
 
         form.addEventListener('submit', function (e) {
             const result = validateDriverForm(form);
-            updateSummary(form, result.count);
+            updateSummary(form, result.count, result.firstInvalid);
             if (!result.valid) {
                 e.preventDefault();
                 if (result.firstInvalid) {

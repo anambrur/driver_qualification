@@ -50,4 +50,15 @@ window.notify = (category, title, description = "") => {
     }
 };
 window.Alpine = Alpine;
+// Open the native date picker on click, not only on the (hidden) calendar indicator.
+document.addEventListener('click', (event) => {
+    const input = event.target.closest?.('input.input:is([type=date], [type=datetime-local], [type=month], [type=week])');
+    if (!input || input.readOnly || input.disabled) return;
+    try {
+        input.showPicker?.();
+    } catch {
+        // showPicker throws when the picker is already open or the page is cross-origin framed.
+    }
+});
+
 Alpine.start();
