@@ -12,6 +12,8 @@
     'current' => null, // URL of the stored file
     'currentImage' => true,
     'currentLabel' => null,
+    'currentAlt' => null,
+    'currentTitle' => null, // PDF card title
     'removeLabel' => 'Remove New File',
     'pdf' => false,
 ])
@@ -28,14 +30,14 @@
             <p class="text-sm text-muted-foreground">Current {{ $currentLabel ?? $label }}:</p>
             @if ($currentImage)
                 <a href="{{ $current }}" target="_blank" rel="noopener" class="group relative block overflow-hidden rounded-lg border bg-muted/40">
-                    <img src="{{ $current }}" alt="{{ $currentLabel ?? $label }}" class="h-48 w-full object-contain">
+                    <img src="{{ $current }}" alt="{{ $currentAlt ?? $currentLabel ?? $label }}" class="h-48 w-full object-contain">
                     <span class="absolute inset-0 flex items-center justify-center bg-black/50 text-sm font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">View Full Size</span>
                 </a>
             @else
                 <div class="flex items-center gap-3 rounded-lg border bg-muted/40 p-4">
                     <x-ui.icon name="file-text" class="size-10 shrink-0 text-destructive" />
                     <div class="grid gap-0.5 text-left">
-                        <p class="text-sm font-medium">{{ $currentLabel ?? $label }}</p>
+                        <p class="text-sm font-medium">{{ $currentTitle ?? $currentLabel ?? $label }}</p>
                         <p class="text-xs text-muted-foreground">PDF Document</p>
                         <a href="{{ $current }}" target="_blank" rel="noopener" class="text-sm font-medium text-primary underline-offset-4 hover:underline">View Document</a>
                     </div>

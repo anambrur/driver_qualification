@@ -190,7 +190,8 @@ it('prefills the medical card expiry saved on step 3', function () {
 });
 
 it('shows the company contact on the policy steps', function (int $step) {
-    $this->company->forceFill(['phone' => '(209) 555-0142', 'email' => 'hr@acme.test'])->save();
+    // A fixed name: a random one with an apostrophe is JSON-escaped as \u0027 on the page
+    $this->company->forceFill(['company_name' => 'Acme Freight', 'phone' => '(209) 555-0142', 'email' => 'hr@acme.test'])->save();
     PolicyPdf::create(['company_id' => $this->company->id, ($step === 9 ? 'alcohol_drug_test' : 'general_work').'_policy_file_id' => Files::stored($this->company->id)->id]);
 
     stepPage($step)->assertOk()

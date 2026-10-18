@@ -1,14 +1,22 @@
-{{-- Shell for the 10 public application steps: company bar, heading, error summary, form, progress sidebar. --}}
-@props(['company', 'driver', 'step', 'title', 'description' => null])
-<div class="min-h-dvh bg-muted/40 px-4 py-6 sm:py-8">
-    <div class="mx-auto w-full max-w-6xl">
+{{--
+    Shell for the 10 application steps: company bar, heading, error summary, form, progress sidebar.
+    `admin` renders it inside the main layout for the admin wizard: no company bar, step line or withdraw card,
+    and the progress bar links each step in `edit` mode.
+--}}
+@props(['company' => null, 'driver', 'step', 'title', 'description' => null, 'admin' => false, 'edit' => false])
+<div class="{{ $admin ? 'p-4 sm:p-6 lg:p-8' : 'min-h-dvh bg-muted/40 px-4 py-6 sm:py-8' }}">
+    <div class="mx-auto w-full {{ $admin ? 'max-w-7xl' : 'max-w-6xl' }}">
+        @unless ($admin)
         <header class="mb-6 flex items-center justify-between gap-4">
             <p class="min-w-0 truncate text-lg font-semibold tracking-tight">{{ $company->company_name }}</p>
             <x-ui.theme-toggle />
         </header>
+        @endunless
 
         <div class="mb-6">
+            @unless ($admin)
             <p class="text-sm font-medium text-primary">Step {{ $step }} of 10</p>
+            @endunless
             <h1 class="mt-1 text-2xl font-semibold tracking-tight">{{ $title }}</h1>
             @if ($description)
                 <p class="mt-1 text-muted-foreground">{{ $description }}</p>
@@ -39,9 +47,13 @@
             <aside class="grid content-start gap-6" aria-label="Application progress">
                 {{ $aside ?? '' }}
 
+                @if ($admin)
+                @include('components.progress-bar', ['currentStep' => $step, 'totalSteps' => 10, 'isEditMode' => $edit, 'driver_id' => $driver->id])
+                @else
                 @include('components.progress-bar', ['currentStep' => $step, 'totalSteps' => 10, 'isEditMode' => false, 'finishLaterUrl' => route('application.form', $company->slug)])
 
                 @include('application.partials.withdraw-application', ['company' => $company, 'driver' => $driver])
+                @endif
 
                 <x-ui.card title="Driver Information" size="sm">
                     <dl class="grid gap-3">
