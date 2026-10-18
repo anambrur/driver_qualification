@@ -61,4 +61,33 @@ document.addEventListener('click', (event) => {
     }
 });
 
+// <form data-confirm="Title" data-confirm-text="..." data-confirm-button="Delete"> asks in the
+// layout's <x-ui.confirm-dialog> first, and submits only on confirm.
+document.addEventListener("submit", (event) => {
+    const form = event.target;
+    const dialog = document.getElementById("confirm-dialog");
+    if (!(form instanceof HTMLFormElement) || !form.dataset.confirm || !dialog) return;
+    if (form.dataset.confirmed) {
+        delete form.dataset.confirmed;
+        return;
+    }
+
+    event.preventDefault();
+    const submitter = event.submitter;
+    dialog.querySelector("#confirm-dialog-title").textContent = form.dataset.confirm;
+    dialog.querySelector("#confirm-dialog-text").textContent = form.dataset.confirmText ?? "";
+    dialog.querySelector("[data-confirm-ok]").textContent = form.dataset.confirmButton ?? "Confirm";
+    dialog.returnValue = "";
+    dialog.addEventListener(
+        "close",
+        () => {
+            if (dialog.returnValue !== "ok") return;
+            form.dataset.confirmed = "1";
+            form.requestSubmit(submitter);
+        },
+        { once: true },
+    );
+    dialog.showModal();
+});
+
 Alpine.start();

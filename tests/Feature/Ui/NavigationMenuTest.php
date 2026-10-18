@@ -53,6 +53,16 @@ it('marks the current page active in the rendered sidebar', function () {
     expect($html)->toMatch('~href="'.preg_quote(route('admin.driver.index'), '~').'"[^>]*aria-current="page"~');
 });
 
+it('marks only the current platform section active, not the dashboard', function () {
+    $company = Actors::company();
+
+    $html = $this->actingAs(Actors::platformOwner(), 'platform')
+        ->get(route('platform.companies.show', $company))->assertOk()->getContent();
+
+    expect($html)->toMatch('~href="'.preg_quote(route('platform.companies.index'), '~').'"[^>]*aria-current="page"~')
+        ->not->toMatch('~href="'.preg_quote(route('platform.dashboard'), '~').'"[^>]*aria-current="page"~');
+});
+
 it('hides platform settings from support staff', function () {
     $labels = menuLabels(PlatformMenu::for(Actors::platformSupport(), new Request));
 

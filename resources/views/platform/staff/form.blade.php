@@ -2,33 +2,55 @@
 
 @section('title', $member->exists ? 'Edit staff' : 'Invite staff')
 
-@php($input = 'mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90')
+@php
+    $breadcrumbs = [['label' => 'Staff', 'href' => route('platform.staff.index')], ['label' => $member->exists ? $member->name : 'Invite staff']];
+    // roles[] is an array, so it is read here and not by x-ui.checkbox (which compares one value)
+    $checked = array_map('intval', (array) old('roles', $held));
+@endphp
 
 @section('content')
-    <h1 class="mb-6 text-xl font-semibold text-gray-800 dark:text-white/90">{{ $member->exists ? 'Edit '.$member->name : 'Invite staff' }}</h1>
+    <x-ui.page-header :title="$member->exists ? 'Edit '.$member->name : 'Invite staff'"
+        description="Platform staff sign in at /platform. Their roles decide which screens they can open.">
+        <x-slot:breadcrumbs>
+            <x-ui.breadcrumb :items="$breadcrumbs" />
+        </x-slot:breadcrumbs>
+    </x-ui.page-header>
 
-    <form method="POST" action="{{ $member->exists ? route('platform.staff.update', $member) : route('platform.staff.store') }}"
-        class="max-w-xl space-y-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+    <form method="POST" action="{{ $member->exists ? route('platform.staff.update', $member) : route('platform.staff.store') }}" class="max-w-2xl space-y-6">
         @csrf
         @if ($member->exists)
             @method('PUT')
         @endif
-        <label class="block text-sm text-gray-700 dark:text-gray-300">Name<input name="name" value="{{ old('name', $member->name) }}" class="{{ $input }}" required></label>
-        <label class="block text-sm text-gray-700 dark:text-gray-300">Email<input type="email" name="email" value="{{ old('email', $member->email) }}" class="{{ $input }}" required></label>
-        <fieldset>
-            <legend class="text-sm text-gray-700 dark:text-gray-300">Roles</legend>
-            @foreach ($roles as $role)
-                <label class="mt-2 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input type="checkbox" name="roles[]" value="{{ $role->id }}" @checked(in_array($role->id, old('roles', $held)))> {{ $role->name }}
-                </label>
-            @endforeach
-        </fieldset>
-        @unless ($member->exists)
-            <p class="text-xs text-gray-500">They are emailed a link to set their password. The email can't already be a tenant or platform login.</p>
-        @endunless
-        <div class="flex gap-3">
-            <button class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">Save</button>
-            <a href="{{ route('platform.staff.index') }}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm dark:border-gray-700 dark:text-gray-300">Cancel</a>
+
+        <x-ui.card title="Details" :description="$member->exists ? null : 'They are emailed a link to set their password. The email can\'t already be a tenant or platform login.'">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <x-ui.field label="Name" name="name" required>
+                    <x-ui.input name="name" :value="$member->name" required maxlength="255" />
+                </x-ui.field>
+                <x-ui.field label="Email" name="email" required>
+                    <x-ui.input type="email" name="email" :value="$member->email" required maxlength="255" />
+                </x-ui.field>
+            </div>
+        </x-ui.card>
+
+        <x-ui.card title="Roles" description="At least one. At least two active Platform Owners must remain at all times.">
+            <fieldset id="f-roles" class="grid gap-3" @error('roles') data-invalid="true" aria-describedby="f-roles-error" @enderror>
+                <legend class="sr-only">Roles</legend>
+                @foreach ($roles as $role)
+                    <label for="role-{{ $role->id }}" class="label inline-flex items-start gap-3 font-normal">
+                        <input type="checkbox" name="roles[]" id="role-{{ $role->id }}" value="{{ $role->id }}" class="input mt-0.5" @checked(in_array($role->id, $checked, true))>
+                        <span class="font-medium text-foreground">{{ $role->name }}</span>
+                    </label>
+                @endforeach
+                @error('roles')
+                    <p role="alert" id="f-roles-error" class="text-sm text-destructive">{{ $message }}</p>
+                @enderror
+            </fieldset>
+        </x-ui.card>
+
+        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <x-ui.button variant="outline" :href="route('platform.staff.index')">Cancel</x-ui.button>
+            <x-ui.button type="submit" icon="check">{{ $member->exists ? 'Save changes' : 'Send invite' }}</x-ui.button>
         </div>
     </form>
 @endsection

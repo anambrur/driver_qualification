@@ -2,46 +2,87 @@
 
 @section('title', $company ? 'Edit company' : 'New company')
 
-@php($input = 'mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90')
+@php
+    $breadcrumbs = $company
+        ? [['label' => 'Companies', 'href' => route('platform.companies.index')], ['label' => $company->company_name, 'href' => route('platform.companies.show', $company)], ['label' => 'Edit']]
+        : [['label' => 'Companies', 'href' => route('platform.companies.index')], ['label' => 'New company']];
+@endphp
 
 @section('content')
-    <h1 class="mb-6 text-xl font-semibold text-gray-800 dark:text-white/90">{{ $company ? 'Edit '.$company->company_name : 'New company' }}</h1>
+    <x-ui.page-header :title="$company ? 'Edit '.$company->company_name : 'New company'"
+        :description="$company ? 'Profile and contact details. Status and ownership are changed from the company page.' : 'Creates the company with its roles and settings, and invites the owner.'">
+        <x-slot:breadcrumbs>
+            <x-ui.breadcrumb :items="$breadcrumbs" />
+        </x-slot:breadcrumbs>
+    </x-ui.page-header>
 
-    <form method="POST" action="{{ $company ? route('platform.companies.update', $company) : route('platform.companies.store') }}"
-        class="max-w-3xl space-y-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+    <form method="POST" action="{{ $company ? route('platform.companies.update', $company) : route('platform.companies.store') }}" class="max-w-3xl space-y-6">
         @csrf
         @if ($company)
             @method('PUT')
         @endif
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            @foreach ([
-                'company_name' => 'Company name', 'dot_number' => 'DOT number', 'mc_number' => 'MC number',
-                'email' => 'Contact email', 'billing_email' => 'Billing email', 'phone' => 'Phone',
-                'address' => 'Address', 'city' => 'City', 'state_code' => 'State (2 letters)', 'zip' => 'ZIP',
-            ] as $field => $label)
-                <label class="block text-sm text-gray-700 dark:text-gray-300">{{ $label }}
-                    <input name="{{ $field }}" value="{{ old($field, $company?->{$field}) }}" class="{{ $input }}" @if ($field === 'company_name') required @endif>
-                </label>
-            @endforeach
-        </div>
+        <x-ui.card title="Company">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <x-ui.field label="Company name" name="company_name" required class="sm:col-span-2">
+                    <x-ui.input name="company_name" :value="$company?->company_name" required maxlength="255" />
+                </x-ui.field>
+                <x-ui.field label="DOT number" name="dot_number">
+                    <x-ui.input name="dot_number" :value="$company?->dot_number" maxlength="20" inputmode="numeric" />
+                </x-ui.field>
+                <x-ui.field label="MC number" name="mc_number">
+                    <x-ui.input name="mc_number" :value="$company?->mc_number" maxlength="20" />
+                </x-ui.field>
+            </div>
+        </x-ui.card>
+
+        <x-ui.card title="Contact">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <x-ui.field label="Contact email" name="email">
+                    <x-ui.input type="email" name="email" :value="$company?->email" maxlength="255" />
+                </x-ui.field>
+                <x-ui.field label="Phone" name="phone">
+                    <x-ui.input type="tel" name="phone" :value="$company?->phone" maxlength="20" />
+                </x-ui.field>
+                <x-ui.field label="Billing email" name="billing_email" hint="Invoices and payment notices go here." class="sm:col-span-2">
+                    <x-ui.input type="email" name="billing_email" :value="$company?->billing_email" maxlength="255" />
+                </x-ui.field>
+            </div>
+        </x-ui.card>
+
+        <x-ui.card title="Address">
+            <div class="grid gap-4 sm:grid-cols-6">
+                <x-ui.field label="Street address" name="address" class="sm:col-span-6">
+                    <x-ui.input name="address" :value="$company?->address" maxlength="255" autocomplete="street-address" />
+                </x-ui.field>
+                <x-ui.field label="City" name="city" class="sm:col-span-3">
+                    <x-ui.input name="city" :value="$company?->city" maxlength="255" />
+                </x-ui.field>
+                <x-ui.field label="State" name="state_code" hint="2 letters" class="sm:col-span-1">
+                    <x-ui.input name="state_code" :value="$company?->state_code" maxlength="2" class="uppercase" />
+                </x-ui.field>
+                <x-ui.field label="ZIP" name="zip" class="sm:col-span-2">
+                    <x-ui.input name="zip" :value="$company?->zip" maxlength="20" inputmode="numeric" />
+                </x-ui.field>
+            </div>
+        </x-ui.card>
 
         @unless ($company)
-            <h2 class="pt-2 text-sm font-semibold text-gray-800 dark:text-white/90">Owner</h2>
-            <p class="text-xs text-gray-500">The owner is emailed a link to set their password. The email can't already be a tenant or platform login.</p>
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label class="block text-sm text-gray-700 dark:text-gray-300">Owner name
-                    <input name="owner_name" value="{{ old('owner_name') }}" class="{{ $input }}" required>
-                </label>
-                <label class="block text-sm text-gray-700 dark:text-gray-300">Owner email
-                    <input type="email" name="owner_email" value="{{ old('owner_email') }}" class="{{ $input }}" required>
-                </label>
-            </div>
+            <x-ui.card title="Owner" description="The owner is emailed a link to set their password. The email can't already be a tenant or platform login.">
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <x-ui.field label="Owner name" name="owner_name" required>
+                        <x-ui.input name="owner_name" required maxlength="255" />
+                    </x-ui.field>
+                    <x-ui.field label="Owner email" name="owner_email" required>
+                        <x-ui.input type="email" name="owner_email" required maxlength="255" />
+                    </x-ui.field>
+                </div>
+            </x-ui.card>
         @endunless
 
-        <div class="flex gap-3 pt-2">
-            <button class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">Save</button>
-            <a href="{{ $company ? route('platform.companies.show', $company) : route('platform.companies.index') }}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm dark:border-gray-700 dark:text-gray-300">Cancel</a>
+        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <x-ui.button variant="outline" :href="$company ? route('platform.companies.show', $company) : route('platform.companies.index')">Cancel</x-ui.button>
+            <x-ui.button type="submit" icon="check">{{ $company ? 'Save changes' : 'Create company' }}</x-ui.button>
         </div>
     </form>
 @endsection

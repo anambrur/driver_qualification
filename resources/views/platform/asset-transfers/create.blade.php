@@ -2,56 +2,62 @@
 
 @section('title', 'New asset transfer')
 
-@php($input = 'mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90')
+@php
+    $companyOptions = fn ($rows) => ['' => 'Choose…'] + $rows->pluck('company_name', 'id')->all();
+@endphp
 
 @section('content')
-    <h1 class="mb-2 text-xl font-semibold text-gray-800 dark:text-white/90">New asset transfer</h1>
-    <p class="mb-6 max-w-2xl text-sm text-gray-500">
-        The vehicle or trailer is copied to the target company with its documents, service logs and schedules.
-        At the source it is retired: it leaves its asset groups and its history stays there, read-only.
-        Both company owners are notified.
-    </p>
+    <x-ui.page-header title="New asset transfer" description="Moves one vehicle or trailer to another company.">
+        <x-slot:breadcrumbs>
+            <x-ui.breadcrumb :items="[['label' => 'Asset transfers', 'href' => route('platform.asset-transfers.index')], ['label' => 'New transfer']]" />
+        </x-slot:breadcrumbs>
+    </x-ui.page-header>
 
-    <form method="POST" action="{{ route('platform.asset-transfers.store') }}" id="transfer-form"
-        class="max-w-2xl space-y-4 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+    <form method="POST" action="{{ route('platform.asset-transfers.store') }}" id="transfer-form" class="max-w-2xl space-y-6">
         @csrf
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <label class="block text-sm text-gray-700 dark:text-gray-300">Asset type
-                <select name="asset_type" id="asset_type" class="{{ $input }}">
-                    <option value="vehicle" @selected(old('asset_type') === 'vehicle')>Vehicle</option>
-                    <option value="trailer" @selected(old('asset_type') === 'trailer')>Trailer</option>
-                </select>
-            </label>
-            <label class="block text-sm text-gray-700 dark:text-gray-300">From company
-                <select name="source_company_id" id="source_company_id" class="{{ $input }}" required>
-                    <option value="">Choose…</option>
-                    @foreach ($companies as $company)
-                        <option value="{{ $company->id }}" @selected((int) old('source_company_id') === $company->id)>{{ $company->company_name }}</option>
-                    @endforeach
-                </select>
-            </label>
-            <label class="block text-sm text-gray-700 dark:text-gray-300 md:col-span-2">Asset
-                <select name="asset_id" id="asset_id" class="{{ $input }}" required>
-                    <option value="">Choose the company first</option>
-                </select>
-            </label>
-            <label class="block text-sm text-gray-700 dark:text-gray-300 md:col-span-2">To company
-                <select name="target_company_id" class="{{ $input }}" required>
-                    <option value="">Choose…</option>
-                    @foreach ($companies->where('status', 'active') as $company)
-                        <option value="{{ $company->id }}" @selected((int) old('target_company_id') === $company->id)>{{ $company->company_name }}</option>
-                    @endforeach
-                </select>
-            </label>
+
+        <x-ui.alert tone="info" title="What a transfer does">
+            The vehicle or trailer is copied to the target company with its documents, service logs and schedules.
+            At the source it is retired: it leaves its asset groups and its history stays there, read-only.
+            Both company owners are notified.
+        </x-ui.alert>
+
+        <x-ui.card title="Asset">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <x-ui.field label="Asset type" name="asset_type" for="asset_type" required>
+                    <x-ui.select name="asset_type" id="asset_type" :options="['vehicle' => 'Vehicle', 'trailer' => 'Trailer']" />
+                </x-ui.field>
+                <x-ui.field label="From company" name="source_company_id" for="source_company_id" required>
+                    <x-ui.select name="source_company_id" id="source_company_id" required :options="$companyOptions($companies)" />
+                </x-ui.field>
+                <x-ui.field label="Asset" name="asset_id" for="asset_id" required hint="Live vehicles or trailers of the source company, by unit number and VIN." class="sm:col-span-2">
+                    <x-ui.select name="asset_id" id="asset_id" required :options="['' => 'Choose the company first']" />
+                </x-ui.field>
+            </div>
+        </x-ui.card>
+
+        <x-ui.card title="Destination">
+            <x-ui.field label="To company" name="target_company_id" required hint="Active companies only. It can't be the source company.">
+                <x-ui.select name="target_company_id" required :options="$companyOptions($companies->where('status', 'active'))" />
+            </x-ui.field>
+        </x-ui.card>
+
+        <x-ui.card title="Reason and confirmation">
+            <div class="grid gap-4">
+                <x-ui.field label="Reason" name="reason" required hint="Kept with the transfer record and shown in the history.">
+                    <x-ui.textarea name="reason" rows="3" required maxlength="1000" />
+                </x-ui.field>
+                <x-ui.field name="confirm">
+                    <x-ui.checkbox name="confirm" required label="I confirm this transfer"
+                        description="It can't be undone from here, and the source company keeps only a read-only history of the asset." />
+                </x-ui.field>
+            </div>
+        </x-ui.card>
+
+        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <x-ui.button variant="outline" :href="route('platform.asset-transfers.index')">Cancel</x-ui.button>
+            <x-ui.button type="submit" icon="arrow-right-left">Transfer</x-ui.button>
         </div>
-        <label class="block text-sm text-gray-700 dark:text-gray-300">Reason
-            <textarea name="reason" rows="3" class="{{ $input }} h-auto py-2" required maxlength="1000">{{ old('reason') }}</textarea>
-        </label>
-        <label class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input type="checkbox" name="confirm" value="1" required>
-            I confirm this transfer. It can't be undone from here, and the source company keeps only a read-only history of the asset.
-        </label>
-        <button class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">Transfer</button>
     </form>
 @endsection
 

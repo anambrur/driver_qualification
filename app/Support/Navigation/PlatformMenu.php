@@ -67,7 +67,8 @@ final class PlatformMenu
                     'icon' => $icon,
                     'route' => $route,
                     // An index link stays active on its show/edit pages, unless siblings share the prefix.
-                    'active' => $sections[$section] === 1 ? [$route, $section.'.*'] : [$route],
+                    // Only .index links: `platform.dashboard` would otherwise match every platform page.
+                    'active' => str_ends_with($route, '.index') && $sections[$section] === 1 ? [$route, $section.'.*'] : [$route],
                     'visible' => $permission === null || $user->can($permission),
                 ];
             }
