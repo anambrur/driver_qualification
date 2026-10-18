@@ -3,6 +3,8 @@
 use App\Models\Driver;
 use App\Models\DriverDocument;
 use App\Models\PolicyPdf;
+use App\Models\Violation;
+use Database\Factories\LicenseFactory;
 use Database\Seeders\DocumentTypeSeeder;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\MessageBag;
@@ -216,3 +218,31 @@ it('shows no inert Finish Later button on the admin wizard', function () {
         ->assertSee('Application Process')
         ->assertDontSee('Finish Later');
 });
+
+it('prefills step 5 from driver_documents.has_violations and the saved rows', function () {
+    DriverDocument::query()->where('driver_id', $this->driver->id)->update(['has_violations' => true, 'violation_record_signature' => 'Jane Roe', 'violation_record_date_signed' => '2026-01-01']);
+    Violation::create(['driver_id' => $this->driver->id, 'violation_date' => '2025-05-01', 'violation_location' => 'Austin', 'offense' => 'Speeding', 'vehicle_type' => 'Truck']);
+
+    $html = stepPage(5)->assertOk()
+        ->assertSee(['name="violation_date[]" value="2025-05-01"', 'value="Speeding"', 'Current Violation Information'], false)
+        ->getContent();
+
+    expect($html)->toMatch('~name="violation" value="yes" class="input"\\s+checked~');
+});
+
+it('checks no violations on step 5 when the record says none', function () {
+    DriverDocument::query()->where('driver_id', $this->driver->id)->update(['has_violations' => false, 'violation_record_signature' => 'Jane Roe', 'violation_record_date_signed' => '2026-01-01']);
+
+    expect(stepPage(5)->assertOk()->assertSee(['No violations recorded for this driver.', '01/01/2026'])->getContent())
+        ->toMatch('~name="violation" value="no" class="input"\\s+checked~');
+});
+
+it('shows the license state from state_code on step 2', function () {
+    LicenseFactory::new()->create(['driver_id' => $this->driver->id, 'state_code' => 'NV']);
+
+    expect(stepPage(2)->assertOk()->getContent())->toMatch('~<dt[^>]*>State</dt>\\s*<dd[^>]*>\\s*NV\\s*</dd>~');
+});
+
+it('has no edit-mode branches left in the step scripts', function (int $step) {
+    stepPage($step)->assertOk()->assertDontSee('isEditMode', false);
+})->with('migrated steps');

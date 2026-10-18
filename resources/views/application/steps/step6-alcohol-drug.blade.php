@@ -78,50 +78,40 @@
                 form.addEventListener('submit', async function(e) {
                     e.preventDefault();
 
-                    const isEditMode = false;
-                    const hasExistingData =
-                        {{ $driverDocument && ($driverDocument->drug_test_question_1 || $driverDocument->drug_test_question_2) ? 'true' : 'false' }};
+                    const signature = document.getElementById('applicant_signature');
+                    const dateSigned = document.getElementById('date_signed');
+                    const question1 = document.querySelector(
+                        'input[name="drug_test_question_1"]:checked');
+                    const question2 = document.querySelector(
+                        'input[name="drug_test_question_2"]:checked');
 
-                    // Only validate required fields in create mode
-                    if (!isEditMode) {
-                        const signature = document.getElementById('applicant_signature');
-                        const dateSigned = document.getElementById('date_signed');
-                        const question1 = document.querySelector(
-                            'input[name="drug_test_question_1"]:checked');
-                        const question2 = document.querySelector(
-                            'input[name="drug_test_question_2"]:checked');
-
-                        // Validate Question 1
-                        if (!question1) {
-                            showAppAlert('Please answer Question 1.');
-                            return;
-                        }
-
-                        // Validate Question 2
-                        if (!question2) {
-                            showAppAlert('Please answer Question 2.');
-                            return;
-                        }
-
-                        // Validate signature
-                        if (!signature.value.trim()) {
-                            showAppAlert('Please provide your signature.');
-                            signature.focus();
-                            return;
-                        }
-
-                        // Validate date
-                        if (!dateSigned.value) {
-                            showAppAlert('Please select the date signed.');
-                            dateSigned.focus();
-                            return;
-                        }
+                    // Validate Question 1
+                    if (!question1) {
+                        showAppAlert('Please answer Question 1.');
+                        return;
                     }
 
-                    // Additional validation for positive test responses (applies to both modes)
-                    const question1 = document.querySelector('input[name="drug_test_question_1"]:checked');
-                    const question2 = document.querySelector('input[name="drug_test_question_2"]:checked');
+                    // Validate Question 2
+                    if (!question2) {
+                        showAppAlert('Please answer Question 2.');
+                        return;
+                    }
 
+                    // Validate signature
+                    if (!signature.value.trim()) {
+                        showAppAlert('Please provide your signature.');
+                        signature.focus();
+                        return;
+                    }
+
+                    // Validate date
+                    if (!dateSigned.value) {
+                        showAppAlert('Please select the date signed.');
+                        dateSigned.focus();
+                        return;
+                    }
+
+                    // Additional validation for positive test responses
                     if ((question1 && question1.value === 'yes') || (question2 && question2.value === 'yes')) {
                         const confirmation = await showAppConfirm(
                             'You have indicated a positive test result or refusal to test. According to 49 CFR regulations, you may need to provide documentation of successful completion of the return-to-duty process. Do you have this documentation ready?',
@@ -137,12 +127,11 @@
                 });
             }
 
-            // Auto-fill date if not already set (only in create mode)
-            const isEditMode = false;
+            // Auto-fill date if not already set
             const hasExistingDate =
                 {{ $driverDocument && $driverDocument->drug_test_date_signed ? 'true' : 'false' }};
 
-            if (!isEditMode && !hasExistingDate) {
+            if (!hasExistingDate) {
                 const dateSignedInput = document.getElementById('date_signed');
                 if (dateSignedInput && !dateSignedInput.value) {
                     dateSignedInput.value = new Date().toISOString().split('T')[0];

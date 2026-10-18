@@ -5,8 +5,10 @@
 @section('content')
     @php
         $violations = $driver->violations;
-        $hasViolations = $violations && $violations->isNotEmpty() && $violations->first()->violation == 'yes';
-        $signedDate = fn ($v) => $v->violation_record_date_signed ? \Carbon\Carbon::parse($v->violation_record_date_signed)->format('m/d/Y') : 'N/A';
+        // The yes/no answer and the signature are on driver_documents; violation rows exist only for real violations
+        $signed = (bool) $driverDocument?->violation_record_signature;
+        $hasViolations = (bool) ($driverDocument?->has_violations ?? $violations->isNotEmpty());
+        $signedDate = $driverDocument?->violation_record_date_signed ? \Carbon\Carbon::parse($driverDocument->violation_record_date_signed)->format('m/d/Y') : 'N/A';
     @endphp
     <x-application.step :company="$company" :driver="$driver" :step="5" title="Violation Record & Annual Review"
         description="List your traffic violations from the past 12 months and sign the authorization.">
@@ -22,7 +24,7 @@
                         <legend class="sr-only">Violations in the past 12 months</legend>
                         <label class="label inline-flex items-center gap-2 font-normal">
                             <input type="radio" name="violation" value="no" class="input"
-                                {{ $driverDocument && $driverDocument->violation_record_signature && (!$violations || $violations->isEmpty() || $violations->first()->violation == 'no') ? 'checked' : '' }} />
+                                {{ $signed && ! $hasViolations ? 'checked' : '' }} />
                             I have had no violations
                         </label>
                         <label class="label inline-flex items-center gap-2 font-normal">
@@ -44,9 +46,9 @@
                             <tbody>
                                 @if ($hasViolations)
                                     @foreach ($violations as $index => $violation)
-                                        @if ($violation->violation == 'yes' && $violation->violation_date)
+                                        @if ($violation->violation_date)
                                             <tr>
-                                                <td data-label="Date"><input type="date" name="violation_date[]" value="{{ old('violation_date.' . $index, $violation->violation_date) }}" class="input w-full" aria-label="Violation date"></td>
+                                                <td data-label="Date"><input type="date" name="violation_date[]" value="{{ old('violation_date.' . $index, $violation->violation_date?->format('Y-m-d')) }}" class="input w-full" aria-label="Violation date"></td>
                                                 <td data-label="Location"><input type="text" name="violation_location[]" value="{{ old('violation_location.' . $index, $violation->violation_location) }}" class="input w-full" aria-label="Violation location"></td>
                                                 <td data-label="Offense"><input type="text" name="offense[]" value="{{ old('offense.' . $index, $violation->offense) }}" placeholder="Enter offense" class="input w-full" aria-label="Offense"></td>
                                                 <td data-label="Vehicle type"><input type="text" name="vehicle_type[]" value="{{ old('vehicle_type.' . $index, $violation->vehicle_type) }}" placeholder="Enter vehicle type" class="input w-full" aria-label="Vehicle type"></td>
@@ -103,12 +105,12 @@
                 </div>
             </x-ui.card>
 
-            @if ($violations && $violations->isNotEmpty())
+            @if ($signed || $violations->isNotEmpty())
                 <x-ui.card title="Current Violation Information">
-                    @if ($violations->first()->violation == 'no')
+                    @if (! $hasViolations)
                         <x-ui.alert tone="success" title="No violations recorded for this driver.">
-                            <p><strong>Signature:</strong> {{ $violations->first()->violation_record_signature ?? 'N/A' }}</p>
-                            <p><strong>Date Signed:</strong> {{ $signedDate($violations->first()) }}</p>
+                            <p><strong>Signature:</strong> {{ $driverDocument?->violation_record_signature ?? 'N/A' }}</p>
+                            <p><strong>Date Signed:</strong> {{ $signedDate }}</p>
                         </x-ui.alert>
                     @else
                         <x-ui.table>
@@ -117,7 +119,7 @@
                             </thead>
                             <tbody>
                                 @foreach ($violations as $violation)
-                                    @if ($violation->violation == 'yes' && $violation->violation_date)
+                                    @if ($violation->violation_date)
                                         <tr>
                                             <td data-label="Date">{{ $violation->violation_date ? \Carbon\Carbon::parse($violation->violation_date)->format('m/d/Y') : 'N/A' }}</td>
                                             <td data-label="Location">{{ $violation->violation_location ?? 'N/A' }}</td>
@@ -129,8 +131,8 @@
                             </tbody>
                         </x-ui.table>
                         <dl class="mt-4 grid grid-cols-2 gap-3 rounded-lg border bg-muted/40 p-4">
-                            <x-ui.detail label="Signature" :value="$violations->first()->violation_record_signature ?? 'N/A'" />
-                            <x-ui.detail label="Date Signed" :value="$signedDate($violations->first())" />
+                            <x-ui.detail label="Signature" :value="$driverDocument?->violation_record_signature ?? 'N/A'" />
+                            <x-ui.detail label="Date Signed" :value="$signedDate" />
                         </dl>
                     @endif
                 </x-ui.card>
@@ -227,7 +229,7 @@
 
         // violation fields management
         let violationCount =
-            {{ $driver->violations && $driver->violations->isNotEmpty() && $driver->violations->first()->violation == 'yes' ? $driver->violations->count() : 1 }};
+            {{ $hasViolations && $violations->isNotEmpty() ? $violations->count() : 1 }};
         const violationFields = document.getElementById('violation_fields');
         const violationAddBtn = document.getElementById('violation_add');
         const violationRemoveBtn = document.getElementById('violation_remove');

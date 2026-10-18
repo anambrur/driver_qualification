@@ -98,39 +98,23 @@
         form.addEventListener('submit', function(e) {
             const forfeitureDocument = document.getElementById('forfeiture_document');
 
-            // Check if we're in edit mode
-            const isEditMode = false;
-            const hasExistingDocument =
-                {{ $driverDocument && $driverDocument->forfeiture_document ? 'true' : 'false' }};
-
-            if (isEditMode) {
-                // In edit mode, file is optional
-                // Only validate if new file is uploaded
-                const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-
-                if (forfeitureDocument.files[0] && forfeitureDocument.files[0].size > maxSize) {
-                    e.preventDefault();
-                    showAppAlert('Forfeiture document is too large. Maximum size is 5MB.');
-                    return false;
-                }
-            } else {
-                // In create mode, file is required
-                if (!forfeitureDocument.files[0]) {
-                    e.preventDefault();
-                    showAppAlert('Please upload a forfeiture document.');
-                    return false;
-                }
-
-                // Validate file size
-                const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-                const file = forfeitureDocument.files[0];
-
-                if (file.size > maxSize) {
-                    e.preventDefault();
-                    showAppAlert(`File ${file.name} is too large. Maximum size is 5MB.`);
-                    return false;
-                }
+            // The file is required
+            if (!forfeitureDocument.files[0]) {
+                e.preventDefault();
+                showAppAlert('Please upload a forfeiture document.');
+                return false;
             }
+
+            // Validate file size
+            const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+            const file = forfeitureDocument.files[0];
+
+            if (file.size > maxSize) {
+                e.preventDefault();
+                showAppAlert(`File ${file.name} is too large. Maximum size is 5MB.`);
+                return false;
+            }
+
         });
     </script>
 @endpush

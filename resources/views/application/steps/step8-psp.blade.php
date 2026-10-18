@@ -70,9 +70,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const employerName = @json($company->company_name);
-            const isEditMode = false;
-            const hasExistingAuthorization =
-                {{ $driverDocument && $driverDocument->psp_authorization ? 'true' : 'false' }};
 
             // Form validation
             const form = document.getElementById('step-form');
@@ -80,43 +77,34 @@
                 form.addEventListener('submit', async function(e) {
                     e.preventDefault();
 
-                    // Only validate required fields in create mode
-                    if (!isEditMode) {
-                        const agreement = document.querySelector('input[name="authorization_agreement"]');
-                        const signature = document.getElementById('applicant_signature');
-                        const dateSigned = document.getElementById('date_signed');
+                    const agreement = document.querySelector('input[name="authorization_agreement"]');
+                    const signature = document.getElementById('applicant_signature');
+                    const dateSigned = document.getElementById('date_signed');
 
-                        // Validate agreement checkbox
-                        if (!agreement.checked) {
-                            showAppAlert('You must agree to the authorization terms by checking the box.');
-                            agreement.focus();
-                            return;
-                        }
+                    // Validate agreement checkbox
+                    if (!agreement.checked) {
+                        showAppAlert('You must agree to the authorization terms by checking the box.');
+                        agreement.focus();
+                        return;
+                    }
 
-                        // Validate signature
-                        if (!signature.value.trim()) {
-                            showAppAlert('Please provide your signature.');
-                            signature.focus();
-                            return;
-                        }
+                    // Validate signature
+                    if (!signature.value.trim()) {
+                        showAppAlert('Please provide your signature.');
+                        signature.focus();
+                        return;
+                    }
 
-                        // Validate date
-                        if (!dateSigned.value) {
-                            showAppAlert('Please select the date signed.');
-                            dateSigned.focus();
-                            return;
-                        }
+                    // Validate date
+                    if (!dateSigned.value) {
+                        showAppAlert('Please select the date signed.');
+                        dateSigned.focus();
+                        return;
                     }
 
                     // Confirm authorization for both modes
-                    let confirmationMessage = '';
-                    if (isEditMode && hasExistingAuthorization) {
-                        confirmationMessage =
-                            `You are updating an existing PSP authorization. This will create a new authorization record. Do you wish to proceed?`;
-                    } else {
-                        confirmationMessage =
-                            `By submitting this form, you authorize ${employerName} to access your PSP report from FMCSA. Do you wish to proceed?`;
-                    }
+                    const confirmationMessage =
+                        `By submitting this form, you authorize ${employerName} to access your PSP report from FMCSA. Do you wish to proceed?`;
 
                     const confirmation = await showAppConfirm(confirmationMessage);
                     if (confirmation.isConfirmed) {
@@ -125,25 +113,17 @@
                 });
             }
 
-            // Auto-fill date if not already set (only in create mode or when no existing date)
+            // Auto-fill date if not already set
             const dateSignedInput = document.getElementById('date_signed');
             if (dateSignedInput && !dateSignedInput.value) {
                 dateSignedInput.value = new Date().toISOString().split('T')[0];
-            }
-
-            // Auto-check agreement if editing and already authorized
-            if (isEditMode && hasExistingAuthorization) {
-                const agreementCheckbox = document.querySelector('input[name="authorization_agreement"]');
-                if (agreementCheckbox && !agreementCheckbox.checked) {
-                    agreementCheckbox.checked = true;
-                }
             }
 
             // Track reading of disclosure with timeout to ensure user reads it
             let disclosureRead = false;
             const disclosureSection = document.getElementById('disclosure-card');
 
-            if (disclosureSection && !isEditMode) {
+            if (disclosureSection) {
                 let scrollTimer;
                 window.addEventListener('scroll', function() {
                     const rect = disclosureSection.getBoundingClientRect();

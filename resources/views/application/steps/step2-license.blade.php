@@ -29,7 +29,7 @@
                                 <dl class="grid grid-cols-2 gap-3 rounded-lg border bg-muted/40 p-4">
                                     <x-ui.detail label="License Number" :value="$license->license_number" mono />
                                     <x-ui.detail label="Class" :value="$license->class" />
-                                    <x-ui.detail label="State" :value="$license->state" />
+                                    <x-ui.detail label="State" :value="$license->state_code" />
                                     <x-ui.detail label="Expires" :value="\Carbon\Carbon::parse($license->expires)->format('m/d/Y')" />
                                 </dl>
                             @endforeach
@@ -87,50 +87,28 @@
                 const licenseFront = document.getElementById('license_front');
                 const licenseBack = document.getElementById('license_back');
 
-                // Check if we're in edit mode
-                const isEditMode = false;
-                const hasExistingFront = {{ $driver_document && $driver_document->license_front ? 'true' : 'false' }};
-                const hasExistingBack = {{ $driver_document && $driver_document->license_back ? 'true' : 'false' }};
-
-                if (isEditMode) {
-                    // In edit mode, files are optional (can skip)
-                    // Only validate if new files are uploaded
-                    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-
-                    if (licenseFront.files[0] && licenseFront.files[0].size > maxSize) {
-                        e.preventDefault();
-                        showAppAlert('License front image is too large. Maximum size is 5MB.');
-                        return false;
-                    }
-
-                    if (licenseBack.files[0] && licenseBack.files[0].size > maxSize) {
-                        e.preventDefault();
-                        showAppAlert('License back image is too large. Maximum size is 5MB.');
-                        return false;
-                    }
-                } else {
-                    // In create mode, both files are required
-                    if (!licenseFront.files[0] || !licenseBack.files[0]) {
-                        e.preventDefault();
-                        showAppAlert('Please upload both front and back images of the license.');
-                        return false;
-                    }
-
-                    // Validate file sizes
-                    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-
-                    if (licenseFront.files[0].size > maxSize) {
-                        e.preventDefault();
-                        showAppAlert('License front image is too large. Maximum size is 5MB.');
-                        return false;
-                    }
-
-                    if (licenseBack.files[0].size > maxSize) {
-                        e.preventDefault();
-                        showAppAlert('License back image is too large. Maximum size is 5MB.');
-                        return false;
-                    }
+                // Both files are required
+                if (!licenseFront.files[0] || !licenseBack.files[0]) {
+                    e.preventDefault();
+                    showAppAlert('Please upload both front and back images of the license.');
+                    return false;
                 }
+
+                // Validate file sizes
+                const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+
+                if (licenseFront.files[0].size > maxSize) {
+                    e.preventDefault();
+                    showAppAlert('License front image is too large. Maximum size is 5MB.');
+                    return false;
+                }
+
+                if (licenseBack.files[0].size > maxSize) {
+                    e.preventDefault();
+                    showAppAlert('License back image is too large. Maximum size is 5MB.');
+                    return false;
+                }
+
             });
         </script>
     @endpush

@@ -108,39 +108,23 @@
         form.addEventListener('submit', function(e) {
             const medicalCard = document.getElementById('medical_card');
 
-            // Check if we're in edit mode
-            const isEditMode = false;
-            const hasExistingMedicalCard =
-                {{ $driverDocument && $driverDocument->medical_card ? 'true' : 'false' }};
-
-            if (isEditMode) {
-                // In edit mode, file is optional
-                // Only validate if new file is uploaded
-                const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-
-                if (medicalCard.files[0] && medicalCard.files[0].size > maxSize) {
-                    e.preventDefault();
-                    showAppAlert('Medical card file is too large. Maximum size is 5MB.');
-                    return false;
-                }
-            } else {
-                // In create mode, file is required
-                if (!medicalCard.files[0]) {
-                    e.preventDefault();
-                    showAppAlert('Please upload a medical card file.');
-                    return false;
-                }
-
-                // Validate file size
-                const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-                const file = medicalCard.files[0];
-
-                if (file.size > maxSize) {
-                    e.preventDefault();
-                    showAppAlert(`File ${file.name} is too large. Maximum size is 5MB.`);
-                    return false;
-                }
+            // The file is required
+            if (!medicalCard.files[0]) {
+                e.preventDefault();
+                showAppAlert('Please upload a medical card file.');
+                return false;
             }
+
+            // Validate file size
+            const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+            const file = medicalCard.files[0];
+
+            if (file.size > maxSize) {
+                e.preventDefault();
+                showAppAlert(`File ${file.name} is too large. Maximum size is 5MB.`);
+                return false;
+            }
+
         });
     </script>
 @endpush

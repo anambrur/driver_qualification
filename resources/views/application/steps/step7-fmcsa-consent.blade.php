@@ -63,9 +63,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const employerName = @json($company->company_name);
-            const isEditMode = false;
-            const hasExistingConsent =
-                {{ $driverDocument && $driverDocument->fmcsa_consent ? 'true' : 'false' }};
 
             // Form validation
             const form = document.getElementById('step-form');
@@ -73,43 +70,34 @@
                 form.addEventListener('submit', async function(e) {
                     e.preventDefault();
 
-                    // Only validate required fields in create mode
-                    if (!isEditMode) {
-                        const agreement = document.querySelector('input[name="consent_agreement"]');
-                        const signature = document.getElementById('employee_signature');
-                        const dateSigned = document.getElementById('date_signed');
+                    const agreement = document.querySelector('input[name="consent_agreement"]');
+                    const signature = document.getElementById('employee_signature');
+                    const dateSigned = document.getElementById('date_signed');
 
-                        // Validate agreement checkbox
-                        if (!agreement.checked) {
-                            showAppAlert('You must agree to the consent terms by checking the box.');
-                            agreement.focus();
-                            return;
-                        }
-
-                        // Validate signature
-                        if (!signature.value.trim()) {
-                            showAppAlert('Please provide your signature.');
-                            signature.focus();
-                            return;
-                        }
-
-                        // Validate date
-                        if (!dateSigned.value) {
-                            showAppAlert('Please select the date signed.');
-                            dateSigned.focus();
-                            return;
-                        }
+                    // Validate agreement checkbox
+                    if (!agreement.checked) {
+                        showAppAlert('You must agree to the consent terms by checking the box.');
+                        agreement.focus();
+                        return;
                     }
 
-                    // Confirmation dialog with different messages for create vs edit
-                    let confirmationMessage = '';
-                    if (isEditMode && hasExistingConsent) {
-                        confirmationMessage =
-                            `You are updating an existing FMCSA Clearinghouse consent. This will create a new consent record. Do you wish to proceed?`;
-                    } else {
-                        confirmationMessage =
-                            `You are consenting to MULTIPLE UNLIMITED queries of the FMCSA Clearinghouse for the duration of your employment with ${employerName}. Do you wish to proceed?`;
+                    // Validate signature
+                    if (!signature.value.trim()) {
+                        showAppAlert('Please provide your signature.');
+                        signature.focus();
+                        return;
                     }
+
+                    // Validate date
+                    if (!dateSigned.value) {
+                        showAppAlert('Please select the date signed.');
+                        dateSigned.focus();
+                        return;
+                    }
+
+                    // Confirmation dialog
+                    const confirmationMessage =
+                        `You are consenting to MULTIPLE UNLIMITED queries of the FMCSA Clearinghouse for the duration of your employment with ${employerName}. Do you wish to proceed?`;
 
                     const confirmation = await showAppConfirm(confirmationMessage);
                     if (confirmation.isConfirmed) {
@@ -118,42 +106,30 @@
                 });
             }
 
-            // Auto-fill date if not already set (only in create mode or when no existing date)
+            // Auto-fill date if not already set
             const dateSignedInput = document.getElementById('date_signed');
-            const hasExistingDate =
-                {{ $driverDocument && $driverDocument->fmcsa_date_signed ? 'true' : 'false' }};
 
-            if (dateSignedInput && !dateSignedInput.value && (!isEditMode || !hasExistingDate)) {
+            if (dateSignedInput && !dateSignedInput.value) {
                 dateSignedInput.value = new Date().toISOString().split('T')[0];
             }
 
-            // Auto-check agreement if editing and already consented
-            if (isEditMode && hasExistingConsent) {
-                const agreementCheckbox = document.querySelector('input[name="consent_agreement"]');
-                if (agreementCheckbox && !agreementCheckbox.checked) {
-                    agreementCheckbox.checked = true;
-                }
-            }
-
             // Highlight important sections for user attention
-            if (!isEditMode) {
-                const importantSections = document.querySelectorAll('[data-attention]');
-                importantSections.forEach((section, index) => {
-                    // Add slight animation to draw attention
+            const importantSections = document.querySelectorAll('[data-attention]');
+            importantSections.forEach((section, index) => {
+                // Add slight animation to draw attention
+                setTimeout(() => {
+                    section.classList.add('animate-pulse');
                     setTimeout(() => {
-                        section.classList.add('animate-pulse');
-                        setTimeout(() => {
-                            section.classList.remove('animate-pulse');
-                        }, 2000);
-                    }, index * 1000);
-                });
-            }
+                        section.classList.remove('animate-pulse');
+                    }, 2000);
+                }, index * 1000);
+            });
 
             // Track if user has scrolled through the entire form
             let formRead = false;
             const consentForm = document.getElementById('consent-card');
 
-            if (consentForm && !isEditMode) {
+            if (consentForm) {
                 let scrollPosition = 0;
                 const formHeight = consentForm.offsetHeight;
 

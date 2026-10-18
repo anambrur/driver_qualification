@@ -73,9 +73,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const employerName = @json($company->company_name);
-            const isEditMode = false;
-            const hasExistingPolicyAck =
-                {{ $driverDocument && $driverDocument->alcohol_drug_test_policy_signature ? 'true' : 'false' }};
             const hasPolicyPDF = {{ $policyPdf && $policyPdf->alcohol_drug_test_policy_file_id ? 'true' : 'false' }};
 
             // Form validation
@@ -84,46 +81,37 @@
                 form.addEventListener('submit', async function(e) {
                     e.preventDefault();
 
-                    // Only validate required fields in create mode
-                    if (!isEditMode) {
-                        const signature = document.getElementById('employee_signature');
-                        const dateSigned = document.getElementById('date_signed');
+                    const signature = document.getElementById('employee_signature');
+                    const dateSigned = document.getElementById('date_signed');
 
-                        // Validate signature
-                        if (!signature.value.trim()) {
-                            showAppAlert('Please provide your signature to acknowledge the policy.');
-                            signature.focus();
+                    // Validate signature
+                    if (!signature.value.trim()) {
+                        showAppAlert('Please provide your signature to acknowledge the policy.');
+                        signature.focus();
+                        return;
+                    }
+
+                    // Validate date
+                    if (!dateSigned.value) {
+                        showAppAlert('Please select the date signed.');
+                        dateSigned.focus();
+                        return;
+                    }
+
+                    // Check if PDF is available
+                    if (!hasPolicyPDF) {
+                        const continueWithoutPDF = await showAppConfirm(
+                            'The Alcohol & Drug Testing Policy PDF is not available. You may still proceed, but you should request a copy from your administrator. Do you wish to continue?',
+                            { icon: 'warning', title: 'Policy PDF Unavailable' }
+                        );
+                        if (!continueWithoutPDF.isConfirmed) {
                             return;
-                        }
-
-                        // Validate date
-                        if (!dateSigned.value) {
-                            showAppAlert('Please select the date signed.');
-                            dateSigned.focus();
-                            return;
-                        }
-
-                        // Check if PDF is available (only warn in create mode)
-                        if (!hasPolicyPDF) {
-                            const continueWithoutPDF = await showAppConfirm(
-                                'The Alcohol & Drug Testing Policy PDF is not available. You may still proceed, but you should request a copy from your administrator. Do you wish to continue?',
-                                { icon: 'warning', title: 'Policy PDF Unavailable' }
-                            );
-                            if (!continueWithoutPDF.isConfirmed) {
-                                return;
-                            }
                         }
                     }
 
-                    // Confirmation dialog with different messages for create vs edit
-                    let confirmationMessage = '';
-                    if (isEditMode && hasExistingPolicyAck) {
-                        confirmationMessage =
-                            `You are updating an existing Alcohol & Drug Testing Policy acknowledgment. This will create a new acknowledgment record. Do you wish to proceed?`;
-                    } else {
-                        confirmationMessage =
-                            `You are acknowledging that you have read and understood the Alcohol & Drug Testing Policy for ${employerName}. Do you wish to proceed?`;
-                    }
+                    // Confirmation dialog
+                    const confirmationMessage =
+                        `You are acknowledging that you have read and understood the Alcohol & Drug Testing Policy for ${employerName}. Do you wish to proceed?`;
 
                     const confirmation = await showAppConfirm(confirmationMessage);
                     if (confirmation.isConfirmed) {
@@ -132,12 +120,10 @@
                 });
             }
 
-            // Auto-fill date if not already set (only in create mode or when no existing date)
+            // Auto-fill date if not already set
             const dateSignedInput = document.getElementById('date_signed');
-            const hasExistingDate =
-                {{ $driverDocument && $driverDocument->alcohol_drug_test_policy_date ? 'true' : 'false' }};
 
-            if (dateSignedInput && !dateSignedInput.value && (!isEditMode || !hasExistingDate)) {
+            if (dateSignedInput && !dateSignedInput.value) {
                 dateSignedInput.value = new Date().toISOString().split('T')[0];
             }
 
@@ -146,7 +132,7 @@
             let pdfViewTimer;
             const pdfIframe = document.querySelector('#step-form iframe');
 
-            if (pdfIframe && !isEditMode) {
+            if (pdfIframe) {
                 // Start timer when iframe is in viewport
                 const observer = new IntersectionObserver((entries) => {
                     entries.forEach(entry => {
@@ -175,9 +161,9 @@
                 observer.observe(pdfIframe);
             }
 
-            // Show reminder if user tries to submit without PDF (create mode only)
+            // Show reminder if user tries to submit without PDF
             const submitButton = document.querySelector('#step-form button[type="submit"]');
-            if (submitButton && !hasPolicyPDF && !isEditMode) {
+            if (submitButton && !hasPolicyPDF) {
                 submitButton.addEventListener('mouseover', function() {
                     if (!hasPolicyPDF) {
                         this.title =
@@ -199,7 +185,7 @@
             let policyRead = false;
             const policyContent = document.getElementById('policy-card');
 
-            if (policyContent && !isEditMode) {
+            if (policyContent) {
                 let lastScrollPosition = window.pageYOffset;
                 let totalScrollDistance = 0;
 
