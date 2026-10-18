@@ -227,9 +227,33 @@
     }
 }
 
+/* Thin themed scrollbar (light + dark). Used by the sidebar and any long panel. */
 @utility custom-scrollbar {
+    --scrollbar-thumb-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
     scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    scrollbar-color: var(--scrollbar-thumb-color) transparent;
+    &::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+        background-color: var(--scrollbar-thumb-color);
+        border-radius: 9999px;
+    }
+}
+
+/* Only visible while the pointer or focus is inside; the space is reserved so nothing shifts. */
+@utility scrollbar-on-hover {
+    scrollbar-gutter: stable;
+    &:not(:hover, :focus-within) {
+        scrollbar-color: transparent transparent;
+        &::-webkit-scrollbar-thumb {
+            background-color: transparent;
+        }
+    }
 }
 
 /* SweetAlert2 (kept for legacy pages) follows the theme tokens. */

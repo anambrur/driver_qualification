@@ -27,7 +27,7 @@
         </button>
     </div>
 
-    <nav aria-label="{{ $label }}" class="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
+    <nav aria-label="{{ $label }}" class="sidebar-scroll custom-scrollbar scrollbar-on-hover flex-1 overflow-y-auto overflow-x-hidden py-4 pl-3 pr-1.5">
         @foreach ($groups as $group)
             <div @class(['mt-6' => ! $loop->first])>
                 <h2 class="sidebar-group-label mb-1 px-3 text-xs font-medium text-muted-foreground">{{ $group['label'] }}</h2>

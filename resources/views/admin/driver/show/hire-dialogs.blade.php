@@ -1,0 +1,46 @@
+{{-- Hire / Do-not-hire for a pending applicant. Posts to admin.driver.hire-status (hire-script). --}}
+<x-ui.dialog id="hire-dialog" title="Hire applicant" class="w-full sm:max-w-md"
+    :description="'You are hiring '.$driverFullName.'. This cannot be undone. Set the hire date and confirm to make the driver active.'">
+    <form id="hireForm" class="grid gap-4">
+        <x-ui.field label="Date hired" name="hire_date" required>
+            <x-ui.input type="date" name="hire_date" :value="date('Y-m-d')" required />
+        </x-ui.field>
+        <x-ui.field label="Will the driver haul hazmat?" name="hazmat" required>
+            <x-ui.select name="hazmat" placeholder="Please select" :options="['yes' => 'Yes', 'no' => 'No']" required />
+        </x-ui.field>
+        <x-ui.field label="Does the driver need a Longer Combination Vehicle (LCV) certificate?" name="lcv_certificate" required>
+            <x-ui.select name="lcv_certificate" placeholder="Please select" :options="['yes' => 'Yes', 'no' => 'No']" required />
+        </x-ui.field>
+    </form>
+    <x-slot:footer>
+        <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
+        <button type="submit" form="hireForm" class="btn">Confirm hire</button>
+    </x-slot:footer>
+</x-ui.dialog>
+
+<x-ui.dialog id="not-hire-dialog" title="Do not hire" class="w-full sm:max-w-md"
+    description="Choose the reason and add any details, then confirm that the applicant will not be hired.">
+    <form id="notHireForm" class="grid gap-4">
+        <x-ui.field label="Reason" name="rejection_reason" required>
+            <x-ui.select name="rejection_reason" placeholder="Please select a reason" required :options="[
+                'not_good_fit' => 'Applicant is not a good fit for our company',
+                'failed_drug_test' => 'Applicant failed a pre-employment drug test',
+                'background_check_issues' => 'Items found on the background check',
+                'cdl_issues' => 'Items found on the Commercial Driver’s License',
+                'mvr_issues' => 'Items found on the Motor Vehicle Report (MVR)',
+                'psp_issues' => 'Items found on the Pre-Employment Screening Program (PSP) report',
+                'other' => 'Other reason not listed above',
+            ]" />
+        </x-ui.field>
+        <x-ui.field label="Additional information" name="additional_info">
+            <x-ui.textarea name="additional_info" rows="3" placeholder="Provide additional details…" />
+        </x-ui.field>
+        <x-ui.field label="Record date" name="record_date" required>
+            <x-ui.input type="date" name="record_date" :value="date('Y-m-d')" required />
+        </x-ui.field>
+    </form>
+    <x-slot:footer>
+        <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
+        <button type="submit" form="notHireForm" class="btn bg-destructive! text-white! hover:bg-destructive/90!">Confirm not hiring</button>
+    </x-slot:footer>
+</x-ui.dialog>
