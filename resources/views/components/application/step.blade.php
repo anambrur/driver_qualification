@@ -21,7 +21,7 @@
             </p>
         </div>
 
-        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
             <div class="grid min-w-0 content-start gap-6">
                 @if ($errors->any())
                     <x-ui.alert tone="danger" title="Please fix the following errors:">
@@ -37,6 +37,8 @@
             </div>
 
             <aside class="grid content-start gap-6" aria-label="Application progress">
+                {{ $aside ?? '' }}
+
                 @include('components.progress-bar', ['currentStep' => $step, 'totalSteps' => 10, 'isEditMode' => false])
 
                 @include('application.partials.withdraw-application', ['company' => $company, 'driver' => $driver])

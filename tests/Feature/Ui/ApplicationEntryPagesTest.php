@@ -55,8 +55,7 @@ it('renders every entry page on the shared shell without the legacy CDNs', funct
     expect($styles[1])->toHaveCount(1)
         ->and($styles[1][0])->toStartWith(':root{--brand:')
         ->and(substr_count($html, '<h1'))->toBe(1)
-        // Entry pages follow the theme; only the unmigrated steps pin light mode.
-        ->and($html)->toContain('(document.documentElement, "system", null)');
+        ->and($html)->toContain('(document.documentElement, "system")');
 })->with('entry pages');
 
 it('keeps every entry page noindex', function (Closure $url) {
@@ -128,18 +127,17 @@ it('keeps the status form fields and errors', function () {
         ->assertSee('Enter a phone.');
 });
 
-it('keeps the steps light-only and on Font Awesome until batch 4d, without SweetAlert or jQuery', function () {
+it('loads no Font Awesome, SweetAlert or jQuery on any application step', function () {
     $driver = Applicant::draft($this->company);
 
     $html = $this->withSession(Applicant::session($driver))
         ->get(route('public.application.step1', $this->company->slug))
         ->assertOk()
         ->assertSee('id="confirm-dialog"', false)
-        ->assertSee('kit.fontawesome.com', false)
-        ->assertDontSee(['sweetalert2', 'code.jquery.com', 'cdn.datatables.net', 'window.showAppAlert = function'], false)
+        ->assertDontSee(['kit.fontawesome.com', 'sweetalert2', 'code.jquery.com', 'cdn.datatables.net', 'window.showAppAlert = function', 'data-theme-lock'], false)
         ->getContent();
 
-    expect($html)->toContain('(document.documentElement, "system", "light")');
+    expect($html)->toContain('(document.documentElement, "system")');
 });
 
 it('asks before withdrawing through the shared confirm dialog', function () {

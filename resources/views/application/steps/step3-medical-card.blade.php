@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Medical Card Upload | DOT Driver Qualification')
-@section('themed', '1')
 
 @section('content')
     @php

@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Application Submitted | DOT Driver Qualification')
-@section('themed', '1')
 
 @section('content')
     <x-application.entry :company="$company" icon="circle-check" tone="success" heading="Application Submitted Successfully"

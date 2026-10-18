@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'General Work Policy | DOT Driver Qualification')
-@section('themed', '1')
 
 @section('content')
     @php

@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'FMCSA Clearinghouse Consent | DOT Driver Qualification')
-@section('themed', '1')
 
 @section('content')
     <x-application.step :company="$company" :driver="$driver" :step="7" title="FMCSA Clearinghouse Consent"

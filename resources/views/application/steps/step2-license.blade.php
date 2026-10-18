@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Driver License Upload | DOT Driver Qualification')
-@section('themed', '1')
 
 @section('content')
     @php($hasFront = $driver_document?->license_front)

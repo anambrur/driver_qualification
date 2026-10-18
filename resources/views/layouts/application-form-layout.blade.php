@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>@yield('title')</title>
 
-    {{-- Pages with @section('themed') follow light/dark/system; the 10 steps stay light until batch 4d. --}}
-    @include('partials.theme-head', ['colorMode' => View::hasSection('themed') ? null : 'light'])
+    @include('partials.theme-head')
 
     {{-- Private applicant flow: noindex (seo-checklist) --}}
     <x-seo />
@@ -20,10 +19,6 @@
     @endif
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    {{-- The application steps still use Font Awesome icons; removed in batch 4d. --}}
-    @unless (View::hasSection('themed'))
-        <script src="https://kit.fontawesome.com/14c3ef5dcc.js" crossorigin="anonymous"></script>
-    @endunless
 
     @stack('styles')
 </head>

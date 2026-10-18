@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'PSP Driver Disclosure & Authorization | DOT Driver Qualification')
-@section('themed', '1')
 
 @section('content')
     <x-application.step :company="$company" :driver="$driver" :step="8" title="PSP Driver Disclosure & Authorization"

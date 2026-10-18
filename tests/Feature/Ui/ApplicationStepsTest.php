@@ -49,8 +49,7 @@ it('renders the step on the shared shell without Font Awesome, SweetAlert or inl
     preg_match_all('~<style[^>]*>(.*?)</style>~s', $html, $styles);
     expect($styles[1])->toHaveCount(1)
         ->and(substr_count($html, '<h1'))->toBe(1)
-        // Migrated steps follow light/dark/system; the theme lock is only for unmigrated ones.
-        ->and($html)->toContain('(document.documentElement, "system", null)');
+        ->and($html)->toContain('(document.documentElement, "system")');
 })->with('migrated steps');
 
 it('keeps every field the step posts, the action and the hidden values', function (int $step) {
@@ -149,4 +148,27 @@ it('says when the policy PDF is missing', function (int $step) {
 
 it('no longer logs the driver name to the console on step 10', function () {
     stepPage(10)->assertOk()->assertDontSee('Driver name loaded', false);
+});
+
+it('renders step 1 on the shared shell with every field it posts', function () {
+    $html = stepPage(1)->assertOk()
+        ->assertSee('Step 1 of 10')
+        ->assertSee(['id="driverForm"', 'enctype="multipart/form-data"', 'name="_token"'], false)
+        ->assertSee('action="'.route('public.application.store.step1', ['slug' => $this->company->slug]).'"', false)
+        ->assertDontSee(['kit.fontawesome.com', 'class="fas ', 'Swal.'], false)
+        ->getContent();
+
+    // The payload also sends medical_certificate_expiration_date, which step 1 never rendered (step 3 asks for it).
+    foreach (array_diff(array_keys(Applicant::step1Payload($this->driver)), ['medical_certificate_expiration_date']) as $field) {
+        expect($html)->toMatch('~name="'.preg_quote($field, '~').'(\[\])?"~');
+    }
+    expect(substr_count($html, '<h1'))->toBe(1);
+});
+
+it('keeps the step 1 repeaters, jump menus and old input', function () {
+    stepPage(1, ['_old_input' => ['first_name' => 'Janet', 'city' => 'Austin']])
+        ->assertOk()
+        ->assertSee(['id="residence_fields"', 'id="residence_add"', 'id="accident_fields"', 'id="violation_fields"', 'id="employment_record_fields"', 'id="employment_record_add"'], false)
+        ->assertSee(['id="driver-section-jump"', 'id="driver-section-jump-mobile"', 'id="section-applicant"'], false)
+        ->assertSee(['value="Janet"', 'value="Austin"'], false);
 });

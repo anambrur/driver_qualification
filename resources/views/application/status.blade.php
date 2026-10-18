@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Check Application Status | DOT Driver Qualification')
-@section('themed', '1')
 
 @section('content')
     <x-application.entry :company="$company" icon="clipboard-list" heading="Check Application Status" intro="Enter the phone number and date of birth used on your application.">

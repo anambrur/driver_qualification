@@ -11,8 +11,6 @@ const read = () => {
 };
 
 const apply = (mode) => {
-    // Pages not yet migrated to the theme tokens pin light mode (partials/theme-head colorMode).
-    if (document.documentElement.dataset.themeLock) return;
     const dark = mode === "dark" || (mode === "system" && media.matches);
     document.documentElement.classList.toggle("dark", dark);
 };

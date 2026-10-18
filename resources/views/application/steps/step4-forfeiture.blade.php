@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Forfeiture Document Upload | DOT Driver Qualification')
-@section('themed', '1')
 
 @section('content')
     @php($doc = $driverDocument?->forfeiture_document)

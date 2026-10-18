@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Driver\'s Application | DOT Driver Qualification')
-@section('themed', '1')
 
 @section('content')
     <x-application.entry :company="$company" heading="Start New Application" intro="Please complete the fields below to register and begin the application.">

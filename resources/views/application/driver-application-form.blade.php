@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Driver\'s Application')
-@section('themed', '1')
 
 @section('content')
     <x-application.entry :company="$company" heading="Driver's Application" intro="New applicant or return to an existing application?" width="max-w-2xl">

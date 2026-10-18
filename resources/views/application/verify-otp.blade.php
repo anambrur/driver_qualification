@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Verify OTP | DOT Driver Qualification')
-@section('themed', '1')
 
 @section('content')
     <x-application.entry :company="$company" icon="smartphone" heading="Verify Your Phone" intro="Enter the verification code sent to your phone to continue your application.">

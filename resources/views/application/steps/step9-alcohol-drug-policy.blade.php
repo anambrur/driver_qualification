@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Alcohol & Drug Testing Policy | DOT Driver Qualification')
-@section('themed', '1')
 
 @section('content')
     @php

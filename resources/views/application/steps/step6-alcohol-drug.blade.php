@@ -1,7 +1,6 @@
 @extends('layouts.application-form-layout')
 
 @section('title', 'Alcohol & Drug Test Statement | DOT Driver Qualification')
-@section('themed', '1')
 
 @section('content')
     <x-application.step :company="$company" :driver="$driver" :step="6" title="Alcohol & Drug Test Statement"
