@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\DataTables\Fleet\VehicleTable;
 use App\Exceptions\LimitReached;
 use App\Features\Feature;
 use App\Models\AssetGroup;
@@ -19,7 +20,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
-use Yajra\DataTables\Facades\DataTables;
 
 class VehicleController extends Controller
 {
@@ -32,119 +32,15 @@ class VehicleController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Vehicle::with(['vehicleType', 'vehicleGroup', 'fuelType', 'company'])
-                ->select(['vehicles.*']);
-
-            // "All Status" lists deleted vehicles too (with Restore), "Active" only live ones and
-            // "Deleted" only deleted ones (PO-09)
-            $status = $request->input('status');
-            if ($status === 'deleted') {
-                $query->onlyTrashed();
-            } elseif ($status !== 'active') {
-                $query->withTrashed();
-            }
-
-            if ($request->filled('vehicle_type_id')) {
-                $query->where('vehicle_type_id', $request->input('vehicle_type_id'));
-            }
-
-            $searchText = $request->input('search_text');
-            if (is_string($searchText) && trim($searchText) !== '') {
-                $query->search(trim($searchText));
-            }
-
-            return DataTables::of($query)
-                ->addIndexColumn()
-                ->addColumn('company_name', function ($row) {
-                    return $row->company ? $row->company->company_name : 'N/A';
-                })
-                ->addColumn('vehicle_info', function ($row) {
-                    $notesIcon = $row->notes ? '<i class="fas fa-sticky-note ml-2 text-blue-500 text-xs" title="Has notes"></i>' : '';
-
-                    return '
-                    <div class="flex items-center">
-                        <div class="shrink-0 h-10 w-10">
-                            <div class="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
-                                <i class="fas fa-truck"></i>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center">
-                                '.e($row->unit_no).' - '.e($row->year).' '.e($row->make).' '.e($row->model).'
-                                '.$notesIcon.'
-                            </div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">
-                                VIN: '.e($row->vin).'
-                            </div>
-                        </div>
-                    </div>';
-                })
-                ->addColumn('type_group', function ($row) {
-                    $type = $row->vehicleType ? e($row->vehicleType->name) : '<span class="text-gray-400">N/A</span>';
-                    $group = $row->vehicleGroup ? e($row->vehicleGroup->name) : '<span class="text-gray-400">N/A</span>';
-
-                    return '
-                    <div class="text-sm">
-                        <div><span class="font-medium">Type:</span> '.$type.'</div>
-                        <div><span class="font-medium">Group:</span> '.$group.'</div>
-                    </div>';
-                })
-                ->addColumn('fuel_odometer', function ($row) {
-                    $fuel = $row->fuelType ? e($row->fuelType->name) : '<span class="text-gray-400">N/A</span>';
-
-                    return '
-                    <div class="text-sm">
-                        <div><span class="font-medium">Fuel:</span> '.$fuel.'</div>
-                        <div><span class="font-medium">Odometer:</span> '.number_format($row->odometer).' mi</div>
-                    </div>';
-                })
-                ->addColumn('status', function ($row) {
-                    $status = $row->deleted_at ? 'deleted' : 'active';
-                    $badgeClass = $status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-                    $statusText = $status === 'active' ? 'Active' : 'Deleted';
-
-                    return '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full '.$badgeClass.'">
-                        '.$statusText.'
-                    </span>';
-                })
-                ->addColumn('action', function ($row) {
-                    // The page binds these with a delegated listener on .js-vehicle-action
-                    $data = 'data-id="'.(int) $row->id.'" data-unit-no="'.e($row->unit_no).'"';
-
-                    if ($row->deleted_at) {
-                        // A deleted vehicle can't be edited (edit() 404s), only restored
-                        return '<div class="flex justify-center space-x-1"><button type="button" data-action="restore" '.$data.'
-                                    class="js-vehicle-action inline-flex items-center px-3 py-1 text-sm text-green-600 bg-green-100 rounded-md hover:bg-green-200 transition-colors">
-                                    <i class="fas fa-trash-restore mr-1"></i> Restore
-                                </button></div>';
-                    }
-
-                    $editBtn = '<button type="button" data-action="edit" '.$data.'
-                                class="js-vehicle-action inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors mr-2">
-                                <i class="fas fa-edit mr-1"></i> Edit
-                            </button>';
-
-                    $deleteBtn = '<button type="button" data-action="delete" '.$data.'
-                                class="js-vehicle-action inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
-                                <i class="fas fa-trash mr-1"></i> Delete
-                            </button>';
-
-                    return '<div class="flex justify-center space-x-1">'.$editBtn.$deleteBtn.'</div>';
-                })
-                ->addColumn('created_at_formatted', function ($row) {
-                    return $row->created_at->format('M d, Y');
-                })
-                ->rawColumns(['vehicle_info', 'type_group', 'fuel_odometer', 'status', 'action'])
-                ->make(true);
+            return (new VehicleTable($request))->json();
         }
 
         // Get dropdown data for filters
-        $vehicleTypes = VehicleType::orderBy('name')->get();
-        $vehicleGroups = VehicleGroup::orderBy('name')->get();
-        $fuelTypes = FuelType::orderBy('name')->get();
-        $companies = $this->getCompaniesForUser();
+        $vehicleTypes = VehicleType::orderBy('name')->get(['id', 'name']);
+        $vehicleGroups = VehicleGroup::orderBy('name')->get(['id', 'name']);
+        $fuelTypes = FuelType::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.vehicle.index', compact('vehicleTypes', 'vehicleGroups', 'fuelTypes', 'companies'));
+        return view('admin.vehicle.index', compact('vehicleTypes', 'vehicleGroups', 'fuelTypes'));
     }
 
     public function store(Request $request)

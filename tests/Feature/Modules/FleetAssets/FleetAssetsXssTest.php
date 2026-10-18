@@ -71,15 +71,15 @@ describe('FLT-01: the lists escape tenant-controlled data', function () {
             ->and($row['equipment_group'])->toContain(e(FLT_PAYLOAD.'g'));
     });
 
-    it('escapes the company name and owner columns', function () {
-        $owner = Actors::companyOwner(Actors::company(['company_name' => FLT_PAYLOAD.'c']));
+    it('escapes the owner column', function () {
+        $owner = Actors::companyOwner();
         FleetAssets::trailerOf($owner, ['owned_by' => FLT_PAYLOAD.'b']);
-        FleetAssets::vehicleOf($owner);
 
+        // The list is one company's, so it has no company column (UI-06)
         $trailer = fltRow($this, $owner, 'admin.trailer.index');
-        $vehicle = fltRow($this, $owner, 'admin.vehicle.index');
 
-        expect($trailer['company_name'].$trailer['owned_by'].$vehicle['company_name'])->not->toContain('<img');
+        expect($trailer)->not->toHaveKey('company_name')
+            ->and($trailer['owned_by'])->not->toContain('<img');
     });
 });
 
@@ -100,21 +100,18 @@ describe('FLT-01: the action buttons carry no inline JavaScript', function () {
         expect($action)->not->toContain('onclick')
             ->and($action)->not->toContain('onmouseover="')
             ->and($action)->toContain('data-id="'.$asset->id.'"')
-            ->and($action)->toContain('data-unit-no="'.e(FLT_QUOTE_PAYLOAD).'"');
+            ->and($action)->toContain('data-name="'.e(FLT_QUOTE_PAYLOAD).'"');
     })->with([
         'vehicle' => 'admin.vehicle.index',
         'trailer' => 'admin.trailer.index',
     ])->with(['active row' => false, 'deleted row' => true]);
 
-    it('wires the buttons with a delegated listener and escapes toast messages', function (string $route, string $handler) {
+    it('wires the buttons through the shared delegated handler, without inline handlers', function (string $route) {
         $html = $this->actingAs(Actors::companyOwner())->get(route($route))->assertOk()->getContent();
 
-        expect($html)->toContain($handler)
-            ->and($html)->toContain('function escapeHtml(')
-            ->and($html)->toContain('${escapeHtml(message)}')
-            ->and($html)->toContain("_error').text(value[0])");
-    })->with([
-        'vehicles' => ['admin.vehicle.index', "'.js-vehicle-action'"],
-        'trailers' => ['admin.trailer.index', "'.js-trailer-action'"],
-    ]);
+        // dqCrud.page() listens for [data-action] clicks; window.notify and the field errors
+        // write text, never HTML (resources/js/crud.js, app.js)
+        expect($html)->toContain('window.dqCrud.page(')
+            ->and($html)->not->toMatch('/\son(click|mouseover)="(?!this\.closest|if \(event\.target)/');
+    })->with(['vehicles' => 'admin.vehicle.index', 'trailers' => 'admin.trailer.index']);
 });

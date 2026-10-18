@@ -26,8 +26,8 @@
         <x-ui.datatable id="document-types" title="All document types">
             <x-slot:toolbar>
                 <div class="flex flex-wrap items-center gap-2">
-                    <x-ui.select data-dt-filter="module" aria-label="Filter by module" :options="['' => 'All modules'] + $modules" class="w-auto" data-size="sm" />
-                    <x-ui.select data-dt-filter="status" aria-label="Filter by status" :options="['' => 'Any status', 'active' => 'Active', 'inactive' => 'Inactive']" class="w-auto" data-size="sm" />
+                    <x-ui.select data-dt-filter="module" aria-label="Filter by module" :options="['' => 'All modules'] + $modules" class="w-auto!" data-size="sm" />
+                    <x-ui.select data-dt-filter="status" aria-label="Filter by status" :options="['' => 'Any status', 'active' => 'Active', 'inactive' => 'Inactive']" class="w-auto!" data-size="sm" />
                 </div>
             </x-slot:toolbar>
 

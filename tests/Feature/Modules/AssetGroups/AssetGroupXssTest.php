@@ -71,7 +71,8 @@ describe('AGR-04', function () {
             ->assertOk()
             ->assertDontSee('${vehicle.unit_no || vehicle.id}', false)
             ->assertDontSee('${trailer.unit_no || trailer.id}', false)
-            ->assertSee('[data-action="delete"]', false)
-            ->assertSee('[data-action="restore"]', false);
+            // Unit details are written with textContent; row actions go through dqCrud.page()
+            ->assertSee('detail.textContent = unit ?', false)
+            ->assertSee('window.dqCrud.page(', false);
     });
 });

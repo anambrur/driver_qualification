@@ -26,6 +26,7 @@ final class Status
         'expired' => 'danger',
         'failed' => 'danger',
         'canceled' => 'danger',
+        'deleted' => 'danger',
         'draft' => 'neutral',
         'inactive' => 'neutral',
         'terminated' => 'neutral',

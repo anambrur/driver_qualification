@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\DataTables\Fleet\AssetGroupTable;
 use App\Models\AssetGroup;
 use App\Models\Driver;
 use App\Models\Trailer;
@@ -14,7 +15,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
-use Yajra\DataTables\Facades\DataTables;
 
 class AssetGroupController extends Controller
 {
@@ -23,129 +23,13 @@ class AssetGroupController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = AssetGroup::query()->with(['vehicle', 'trailer', 'driver:id,first_name,last_name,main_phone', 'coDriver:id,first_name,last_name,main_phone'])
-                ->select(['asset_groups.*']);
-
-            // Status filter: active / inactive, or the soft-deleted groups (the only place Restore shows)
-            $status = $request->input('status');
-            if ($status === 'deleted') {
-                $query->onlyTrashed();
-            } elseif (in_array($status, ['active', 'inactive'], true)) {
-                $query->where('status', $status);
-            }
-
-            $searchText = $request->input('search_text');
-            if (is_string($searchText) && trim($searchText) !== '') {
-                $query->search(trim($searchText));
-            }
-
-            return DataTables::of($query)
-                ->addIndexColumn()
-                ->addColumn('group_info', function ($row) {
-                    $statusBadge = $row->status === 'active'
-                        ? '<span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>'
-                        : '<span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Inactive</span>';
-
-                    return '
-                    <div class="flex items-center">
-                        <div class="shrink-0 h-10 w-10">
-                            <div class="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
-                                <i class="fas fa-users"></i>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center">
-                                '.e($row->group_name).'
-                                '.$statusBadge.'
-                            </div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">
-                                Primary Driver: '.e($row->driver ? trim($row->driver->first_name.' '.$row->driver->last_name) : 'N/A').'
-                            </div>
-                        </div>
-                    </div>';
-                })
-                ->addColumn('drivers_info', function ($row) {
-                    $primary = $row->driver ?
-                        '<div class="text-sm">
-                            <div><span class="font-medium">Primary:</span> '.e(trim($row->driver->first_name.' '.$row->driver->last_name)).'</div>
-                            <div><span class="font-medium">Phone:</span> '.e($row->driver->main_phone ?: 'N/A').'</div>
-                        </div>' :
-                        '<div class="text-sm text-gray-400">No primary driver</div>';
-
-                    $secondary = $row->coDriver ?
-                        '<div class="text-sm mt-2">
-                            <div><span class="font-medium">Secondary:</span> '.e(trim($row->coDriver->first_name.' '.$row->coDriver->last_name)).'</div>
-                            <div><span class="font-medium">Phone:</span> '.e($row->coDriver->main_phone ?: 'N/A').'</div>
-                        </div>' : '';
-
-                    return $primary.$secondary;
-                })
-                ->addColumn('assets_info', function ($row) {
-                    $vehicle = $row->vehicle ?
-                        '<div class="text-sm">
-                            <div><span class="font-medium">Vehicle:</span> '.e($row->vehicle->unit_no).'</div>
-                            <div><span class="font-medium">VIN:</span> '.e($row->vehicle->vin).'</div>
-                        </div>' :
-                        '<div class="text-sm text-gray-400">No vehicle assigned</div>';
-
-                    $trailer = $row->trailer ?
-                        '<div class="text-sm mt-2">
-                            <div><span class="font-medium">Trailer:</span> '.e($row->trailer->unit_no).'</div>
-                            <div><span class="font-medium">VIN:</span> '.e($row->trailer->vin).'</div>
-                        </div>' :
-                        '<div class="text-sm text-gray-400 mt-2">No trailer assigned</div>';
-
-                    return $vehicle.$trailer;
-                })
-                ->addColumn('status', function ($row) {
-                    $status = $row->deleted_at ? 'deleted' : $row->status;
-                    if ($status === 'deleted') {
-                        $badgeClass = 'bg-red-100 text-red-800';
-                        $statusText = 'Deleted';
-                    } elseif ($status === 'active') {
-                        $badgeClass = 'bg-green-100 text-green-800';
-                        $statusText = 'Active';
-                    } else {
-                        $badgeClass = 'bg-gray-100 text-gray-800';
-                        $statusText = 'Inactive';
-                    }
-
-                    return '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full '.$badgeClass.'">
-                        '.$statusText.'
-                    </span>';
-                })
-                ->addColumn('action', function ($row) {
-                    // A deleted group can only be restored (edit/update look up non-deleted groups only)
-                    if ($row->deleted_at) {
-                        return '<div class="flex justify-center space-x-1"><button data-action="restore" data-id="'.$row->id.'" data-name="'.e($row->group_name).'"
-                                    class="inline-flex items-center px-3 py-1 text-sm text-green-600 bg-green-100 rounded-md hover:bg-green-200 transition-colors">
-                                    <i class="fas fa-trash-restore mr-1"></i> Restore
-                                </button></div>';
-                    }
-
-                    $editBtn = '<button onclick="editAssetGroup('.$row->id.')" 
-                                class="inline-flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors mr-2">
-                                <i class="fas fa-edit mr-1"></i> Edit
-                            </button>';
-
-                    $deleteBtn = '<button data-action="delete" data-id="'.$row->id.'" data-name="'.e($row->group_name).'"
-                                class="inline-flex items-center px-3 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">
-                                <i class="fas fa-trash mr-1"></i> Delete
-                            </button>';
-
-                    return '<div class="flex justify-center space-x-1">'.$editBtn.$deleteBtn.'</div>';
-                })
-                ->addColumn('created_at_formatted', function ($row) {
-                    return $row->created_at->format('M d, Y');
-                })
-                ->rawColumns(['group_info', 'drivers_info', 'assets_info', 'status', 'action'])
-                ->make(true);
+            return (new AssetGroupTable($request))->json();
         }
 
         // Get dropdown data for filters
-        $vehicles = Vehicle::query()->orderBy('unit_no')->get();
-        $trailers = Trailer::query()->orderBy('unit_no')->get();
-        $drivers = Driver::where('employment_status', 'active')->get();
+        $vehicles = Vehicle::query()->orderBy('unit_no')->get(['id', 'unit_no', 'vin', 'year', 'make', 'model']);
+        $trailers = Trailer::query()->orderBy('unit_no')->get(['id', 'unit_no', 'vin', 'year', 'make', 'model']);
+        $drivers = Driver::where('employment_status', 'active')->orderBy('first_name')->orderBy('last_name')->get(['id', 'first_name', 'last_name']);
 
         return view('admin.asset-group.index', compact('vehicles', 'trailers', 'drivers'));
     }

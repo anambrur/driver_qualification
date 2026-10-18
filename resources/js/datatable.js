@@ -3,6 +3,7 @@ import $ from "jquery";
 import DataTable from "datatables.net-dt";
 import "datatables.net-dt/css/dataTables.dataTables.css";
 import "../css/datatable.css";
+import "./crud";
 
 window.$ = window.jQuery = $;
 window.DataTable = DataTable;

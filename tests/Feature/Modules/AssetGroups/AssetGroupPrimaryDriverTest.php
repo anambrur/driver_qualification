@@ -82,8 +82,8 @@ describe('primary driver', function () {
         $this->actingAs(AssetGroupActors::tenant())
             ->get(route('admin.asset-group.index'))
             ->assertOk()
-            ->assertSee('<select name="driver_id" id="driver_id"', false)
-            ->assertDontSee('name="primary_driver_name"', false)
-            ->assertSee('id="driver_id_error"', false);
+            ->assertSee('name="driver_id"', false)
+            ->assertSee('id="f-driver_id"', false)
+            ->assertDontSee('name="primary_driver_name"', false);
     });
 });
