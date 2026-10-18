@@ -99,19 +99,6 @@
 
     /* Legacy TailAdmin scales: still used by pages not yet migrated (phase 2). */
     --color-black: #101828;
-    --color-gray-25: #fcfcfd;
-    --color-gray-50: #f9fafb;
-    --color-gray-100: #f2f4f7;
-    --color-gray-200: #e4e7ec;
-    --color-gray-300: #d0d5dd;
-    --color-gray-400: #98a2b3;
-    --color-gray-500: #667085;
-    --color-gray-600: #475467;
-    --color-gray-700: #344054;
-    --color-gray-800: #1d2939;
-    --color-gray-900: #101828;
-    --color-gray-950: #0c111d;
-    --color-gray-dark: #1a2231;
     --color-blue-light-25: #f5fbff;
     --color-blue-light-50: #f0f9ff;
     --color-blue-light-100: #e0f2fe;
@@ -194,20 +181,6 @@
     --color-warning: var(--warning);
     --color-info: var(--info);
     --color-highlight: var(--highlight);
-
-    /* Brand scale derived from the single admin-picked colour. */
-    --color-brand-25: color-mix(in oklch, var(--brand) 4%, white);
-    --color-brand-50: color-mix(in oklch, var(--brand) 8%, white);
-    --color-brand-100: color-mix(in oklch, var(--brand) 16%, white);
-    --color-brand-200: color-mix(in oklch, var(--brand) 30%, white);
-    --color-brand-300: color-mix(in oklch, var(--brand) 50%, white);
-    --color-brand-400: color-mix(in oklch, var(--brand) 75%, white);
-    --color-brand-500: var(--brand);
-    --color-brand-600: color-mix(in oklch, var(--brand) 88%, black);
-    --color-brand-700: color-mix(in oklch, var(--brand) 74%, black);
-    --color-brand-800: color-mix(in oklch, var(--brand) 60%, black);
-    --color-brand-900: color-mix(in oklch, var(--brand) 46%, black);
-    --color-brand-950: color-mix(in oklch, var(--brand) 30%, black);
 }
 
 @layer base {

@@ -8,7 +8,7 @@
 
     <x-slot:aside>
         <p class="text-3xl font-semibold leading-tight tracking-tight xl:text-4xl">
-            Start managing your fleet <span class="text-brand-200">in minutes.</span>
+            Start managing your fleet <span class="text-[color-mix(in_oklch,var(--primary)_30%,white)]">in minutes.</span>
         </p>
         <ul class="mt-8 space-y-3">
             @foreach (array_filter([
@@ -18,8 +18,8 @@
                 'Audit-ready reports',
             ]) as $benefit)
                 <li class="flex items-center gap-3 text-sm font-medium text-white/90">
-                    <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/10">
-                        <x-ui.icon name="check" class="size-3.5 text-brand-200" />
+                    <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-background/10">
+                        <x-ui.icon name="check" class="size-3.5 text-[color-mix(in_oklch,var(--primary)_30%,white)]" />
                     </span>
                     {{ $benefit }}
                 </li>

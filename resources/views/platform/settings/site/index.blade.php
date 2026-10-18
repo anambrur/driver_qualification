@@ -75,7 +75,7 @@
 
                         <x-ui.field label="Logo for dark mode" name="logo_dark" hint="PNG, JPG or WebP, up to 2 MB. Falls back to the main logo.">
                             @if ($setting->logo_dark)
-                                <img src="{{ asset('storage/'.$setting->logo_dark) }}" alt="Current dark-mode logo" class="h-10 w-auto rounded-md bg-gray-900 object-contain p-1.5">
+                                <img src="{{ asset('storage/'.$setting->logo_dark) }}" alt="Current dark-mode logo" class="dark h-10 w-auto rounded-md bg-background object-contain p-1.5">
                             @endif
                             <x-ui.input type="file" name="logo_dark" accept="image/png,image/jpeg,image/webp,image/gif" />
                         </x-ui.field>

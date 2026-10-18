@@ -134,7 +134,7 @@ class MaintenanceSchedule extends Model
             'completed' => 'bg-blue-100 text-blue-800',
         ];
 
-        $class = $badges[$this->status] ?? 'bg-gray-100 text-gray-800';
+        $class = $badges[$this->status] ?? 'bg-muted text-foreground';
         $text = e(ucfirst((string) $this->status));
 
         return "<span class='px-2 py-1 rounded-full text-xs font-medium {$class}'>{$text}</span>";
@@ -143,7 +143,7 @@ class MaintenanceSchedule extends Model
     public function getVehicleInfoAttribute()
     {
         if (! $this->vehicle) {
-            return '<span class="text-gray-400">All Vehicles</span>';
+            return '<span class="text-muted-foreground">All Vehicles</span>';
         }
 
         return e($this->vehicle->unit_no.' - '.$this->vehicle->year.' '.$this->vehicle->make.' '.$this->vehicle->model);

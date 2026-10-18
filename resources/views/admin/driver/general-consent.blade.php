@@ -5,21 +5,21 @@
 @section('content')
     <div class="p-4 mx-auto max-w-7xl">
         <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">
+            <h1 class="text-2xl font-bold text-foreground dark:text-white/90">
                 @if ($isEditMode)
                     Edit FMCSA Clearinghouse Consent
                 @else
                     General Consent for Limited Queries of the FMCSA Drug and Alcohol Clearinghouse
                 @endif
             </h1>
-            <p class="text-gray-600 dark:text-gray-400">
+            <p class="text-muted-foreground">
                 @if ($isEditMode)
                     Update authorization for FMCSA Clearinghouse queries (Step 7 of 10)
                 @else
                     Authorization for FMCSA Clearinghouse queries (Step 7 of 10)
                 @endif
             </p>
-            <div class="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
+            <div class="mt-2 flex items-center text-sm text-muted-foreground">
                 <x-ui.icon name="user" class="inline-block size-4 align-[-0.125em] mr-2" />
                 <span>Driver: {{ $driver->first_name }} {{ $driver->last_name }}</span>
                 @if ($driver->company)
@@ -107,10 +107,10 @@
                     @endif
 
                     <!-- Consent Form Section -->
-                    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
+                    <div class="rounded-2xl border border-border bg-card dark:bg-white/[0.03] mb-6">
+                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-border">
                             <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                                <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
                                     General Consent for Limited Queries
                                 </h3>
                                 @if ($isEditMode)
@@ -126,7 +126,7 @@
                                 <!-- Main Consent Statement -->
                                 <div
                                     class="p-6 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/10 dark:border-blue-800 mb-6">
-                                    <p class="text-lg text-gray-800 dark:text-white/90 mb-4">
+                                    <p class="text-lg text-foreground dark:text-white/90 mb-4">
                                         I, <span class="font-bold">{{ $driver->first_name }}
                                             {{ $driver->last_name }}</span>, hereby provide consent to <span
                                             class="font-bold">{{ $authUser->name }}</span> to conduct a limited query of
@@ -137,8 +137,8 @@
 
                                     <!-- Multiple Unlimited Queries Declaration -->
                                     <div
-                                        class="mt-4 p-4 bg-white border border-blue-100 rounded-lg dark:bg-gray-900 dark:border-blue-800">
-                                        <p class="text-md font-semibold text-gray-800 dark:text-white/90">
+                                        class="mt-4 p-4 bg-card border border-blue-100 rounded-lg dark:border-blue-800">
+                                        <p class="text-md font-semibold text-foreground dark:text-white/90">
                                             <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] text-green-500 mr-2" />
                                             I am consenting to multiple unlimited queries and for the duration of employment
                                             with {{ $authUser->name }}.
@@ -199,9 +199,9 @@
                                 <div class="mb-6">
                                     <label class="inline-flex items-start cursor-pointer select-none">
                                         <input type="checkbox" name="consent_agreement" value="1"
-                                            class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 rounded focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 mt-1"
+                                            class="text-primary focus:ring-primary/20 h-4 w-4 border-input rounded focus:ring-3 focus:outline-hidden mt-1"
                                             @if (!$isEditMode) required @endif />
-                                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                                        <span class="ml-2 text-sm text-foreground">
                                             I have read and understand the above consent statements. I voluntarily provide
                                             my consent for {{ $authUser->name }} to conduct multiple unlimited queries of
                                             the FMCSA Drug and Alcohol Clearinghouse for the duration of my employment.
@@ -215,23 +215,23 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label for="employee_signature"
-                                            class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
+                                            class="block text-sm font-medium text-foreground mb-2">
                                             Employee Signature <span class="text-red-500">*</span>
                                         </label>
                                         <input type="text" name="employee_signature" id="employee_signature"
                                             value="{{ old('employee_signature', $driver_document->fmcsa_consent_signature ?? '') }}"
                                             placeholder="Type your full name as signature"
-                                            class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                                            class="shadow-theme-xs focus:border-primary/50 focus:ring-primary/10 h-11 w-full rounded-lg border border-input bg-transparent px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-3 focus:outline-hidden dark:text-white/90 dark:placeholder:text-white/30"
                                             @if (!$isEditMode) required @endif>
                                     </div>
                                     <div>
                                         <label for="date_signed"
-                                            class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
+                                            class="block text-sm font-medium text-foreground mb-2">
                                             Date Signed <span class="text-red-500">*</span>
                                         </label>
                                         <input type="date" name="date_signed" id="date_signed"
                                             value="{{ old('date_signed', $driver_document->fmcsa_date_signed ? \Carbon\Carbon::parse($driver_document->fmcsa_date_signed)->format('Y-m-d') : date('Y-m-d')) }}"
-                                            class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                                            class="shadow-theme-xs focus:border-primary/50 focus:ring-primary/10 h-11 w-full rounded-lg border border-input bg-transparent px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-3 focus:outline-hidden dark:text-white/90 dark:placeholder:text-white/30"
                                             @if (!$isEditMode) required @endif>
                                     </div>
                                 </div>
@@ -241,30 +241,30 @@
 
                     <!-- FMCSA Clearinghouse Information -->
                     <div
-                        class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                        class="rounded-2xl border border-border bg-card dark:bg-white/[0.03] mb-6">
+                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-border">
+                            <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
                                 About FMCSA Clearinghouse
                             </h3>
                         </div>
                         <div class="p-5 sm:p-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
-                                    <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-2">
+                                <div class="p-4 bg-muted/50 rounded-lg">
+                                    <h4 class="text-sm font-semibold text-foreground dark:text-white/90 mb-2">
                                         <x-ui.icon name="database" class="inline-block size-4 align-[-0.125em] mr-2" />What is the Clearinghouse?
                                     </h4>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    <p class="text-sm text-muted-foreground">
                                         A secure online database that gives employers, FMCSA, State Driver Licensing
                                         Agencies, and State law enforcement personnel real-time information about commercial
                                         driver's license (CDL) and commercial learner's permit (CLP) holders' drug and
                                         alcohol program violations.
                                     </p>
                                 </div>
-                                <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
-                                    <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-2">
+                                <div class="p-4 bg-muted/50 rounded-lg">
+                                    <h4 class="text-sm font-semibold text-foreground dark:text-white/90 mb-2">
                                         <x-ui.icon name="search" class="inline-block size-4 align-[-0.125em] mr-2" />Limited Queries
                                     </h4>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    <p class="text-sm text-muted-foreground">
                                         A check to see if there is any information in the Clearinghouse about a current or
                                         prospective driver. If a limited query returns a result of "Driver record not
                                         found," no further action is required. If it returns a result of "Requires further
@@ -277,16 +277,16 @@
 
                     <!-- Form Actions -->
                     <div
-                        class="flex flex-col sm:flex-row gap-4 justify-between pt-6 border-t border-gray-200 dark:border-gray-800">
+                        class="flex flex-col sm:flex-row gap-4 justify-between pt-6 border-t border-border">
                         @if ($isEditMode)
                             <a href="{{ route('admin.driver.edit', ['id' => $driver_id]) }}"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-foreground bg-card border border-input rounded-lg shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                 <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Driver Edit
                             </a>
                         @else
                             <a href="{{ route('admin.driver.alcohol.and.drug.test', ['driver_id' => $driver_id]) }}"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-foreground bg-card border border-input rounded-lg shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                 <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Step 6
                             </a>
@@ -294,14 +294,14 @@
 
                         <div class="flex gap-4">
                             <button type="submit" name="action" value="save"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-primary border border-transparent rounded-lg shadow-theme-xs hover:bg-primary/90 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                 <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 {{ $isEditMode ? 'Update & Continue to Step 8' : 'Save & Continue to Step 8' }}
                             </button>
 
                             @if ($isEditMode)
                                 <a href="{{ route('admin.driver.psp', ['driver_id' => $driver_id, 'edit' => '1']) }}"
-                                    class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                    class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-foreground bg-card border border-input rounded-lg shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                     Skip to Next Step
                                 </a>
                             @endif
@@ -320,31 +320,31 @@
                 ])
 
                 <!-- Driver Info Card -->
-                <div class="mt-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-4">
-                    <h3 class="font-medium text-gray-800 dark:text-white/90 mb-3">Driver Information</h3>
+                <div class="mt-6 rounded-lg border border-border bg-card dark:bg-white/[0.03] p-4">
+                    <h3 class="font-medium text-foreground dark:text-white/90 mb-3">Driver Information</h3>
                     <div class="space-y-2">
                         <div class="flex items-center text-sm">
-                            <span class="w-24 text-gray-500 dark:text-gray-400">Name:</span>
-                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->first_name }}
+                            <span class="w-24 text-muted-foreground">Name:</span>
+                            <span class="font-medium text-foreground dark:text-white/90">{{ $driver->first_name }}
                                 {{ $driver->last_name }}</span>
                         </div>
                         <div class="flex items-center text-sm">
-                            <span class="w-24 text-gray-500 dark:text-gray-400">Email:</span>
-                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->email }}</span>
+                            <span class="w-24 text-muted-foreground">Email:</span>
+                            <span class="font-medium text-foreground dark:text-white/90">{{ $driver->email }}</span>
                         </div>
                         <div class="flex items-center text-sm">
-                            <span class="w-24 text-gray-500 dark:text-gray-400">Phone:</span>
-                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->main_phone }}</span>
+                            <span class="w-24 text-muted-foreground">Phone:</span>
+                            <span class="font-medium text-foreground dark:text-white/90">{{ $driver->main_phone }}</span>
                         </div>
                         @if ($driver->company)
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">Company:</span>
+                                <span class="w-24 text-muted-foreground">Company:</span>
                                 <span
-                                    class="font-medium text-gray-800 dark:text-white/90">{{ $driver->company->company_name }}</span>
+                                    class="font-medium text-foreground dark:text-white/90">{{ $driver->company->company_name }}</span>
                             </div>
                         @endif
                         <div class="flex items-center text-sm">
-                            <span class="w-24 text-gray-500 dark:text-gray-400">Status:</span>
+                            <span class="w-24 text-muted-foreground">Status:</span>
                             <span
                                 class="font-medium {{ $driver->status == 'active' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400' }}">
                                 {{ ucfirst($driver->status) }}
@@ -352,26 +352,26 @@
                         </div>
                         @if ($driver_document && $driver_document->fmcsa_consent)
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">FMCSA Consent:</span>
+                                <span class="w-24 text-muted-foreground">FMCSA Consent:</span>
                                 <span class="font-medium text-green-600 dark:text-green-400">
                                     <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] mr-1" /> Granted
                                 </span>
                             </div>
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">Consent Date:</span>
-                                <span class="font-medium text-gray-800 dark:text-white/90">
+                                <span class="w-24 text-muted-foreground">Consent Date:</span>
+                                <span class="font-medium text-foreground dark:text-white/90">
                                     {{ $driver_document->fmcsa_consent_date ? \Carbon\Carbon::parse($driver_document->fmcsa_consent_date)->format('m/d/Y') : 'N/A' }}
                                 </span>
                             </div>
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">Type:</span>
-                                <span class="font-medium text-gray-800 dark:text-white/90">
+                                <span class="w-24 text-muted-foreground">Type:</span>
+                                <span class="font-medium text-foreground dark:text-white/90">
                                     Multiple Unlimited Queries
                                 </span>
                             </div>
                         @else
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">FMCSA Consent:</span>
+                                <span class="w-24 text-muted-foreground">FMCSA Consent:</span>
                                 <span class="font-medium text-red-600 dark:text-red-400">
                                     <x-ui.icon name="circle-x" class="inline-block size-4 align-[-0.125em] mr-1" /> Not Granted
                                 </span>
@@ -502,7 +502,7 @@
 
             // Track if user has scrolled through the entire form
             let formRead = false;
-            const consentForm = document.querySelector('.rounded-2xl.border.border-gray-200');
+            const consentForm = document.querySelector('.rounded-2xl.border.border-border');
 
             if (consentForm && !isEditMode) {
                 let scrollPosition = 0;

@@ -5,21 +5,21 @@
 @section('content')
     <div class="p-4 mx-auto max-w-7xl">
         <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">
+            <h1 class="text-2xl font-bold text-foreground dark:text-white/90">
                 @if ($isEditMode)
                     Edit Company's General Work Policy
                 @else
                     Company's General Work Policy
                 @endif
             </h1>
-            <p class="text-gray-600 dark:text-gray-400">
+            <p class="text-muted-foreground">
                 @if ($isEditMode)
                     Update acknowledgment of company's general work policy (Step 10 of 10)
                 @else
                     Employee acknowledgment regarding company's general work policy (Step 10 of 10)
                 @endif
             </p>
-            <div class="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
+            <div class="mt-2 flex items-center text-sm text-muted-foreground">
                 <x-ui.icon name="user" class="inline-block size-4 align-[-0.125em] mr-2" />
                 <span>Driver: {{ $driver->first_name }} {{ $driver->last_name }}</span>
                 @if ($driver->company)
@@ -106,10 +106,10 @@
                     @endif
 
                     <!-- Consent Form Section -->
-                    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
+                    <div class="rounded-2xl border border-border bg-card dark:bg-white/[0.03] mb-6">
+                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-border">
                             <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                                <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
                                     Company's General Work Policy Acknowledgment
                                 </h3>
                                 @if ($isEditMode)
@@ -124,11 +124,11 @@
                             <div class="mb-8">
                                 <!-- Main Instructions -->
                                 <div class="p-6 border border-blue-200 rounded-lg dark:border-blue-800 mb-6">
-                                    <p class="text-lg text-gray-800 dark:text-white/90 mb-4">
+                                    <p class="text-lg text-foreground dark:text-white/90 mb-4">
                                         Kindly explore the key company's general work policy. After completing it, sign
                                         electronically to acknowledge the receipt, comprehension, and agreement.
                                     </p>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    <p class="text-sm text-muted-foreground">
                                         A copy of the policy will be sent to you via email as soon as you have finished the
                                         application online. You can also save a copy of the policy right now by hitting the
                                         Download icon in the viewer's top right corner.
@@ -138,14 +138,14 @@
                                 <!-- PDF Viewer Section -->
                                 <div class="mb-6">
                                     <div class="flex justify-between items-center mb-4">
-                                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                                        <h4 class="text-lg font-semibold text-foreground dark:text-white/90">
                                             Company's General Work Policy Document
                                         </h4>
                                         @if ($policyPdf && $policyPdf->general_work_policy_file_id)
                                             <div class="flex gap-2">
                                                 <a href="{{ route('admin.settings.policy.pdf.file', 'general_work') }}"
                                                     target="_blank"
-                                                    class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                                                    class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-lg shadow-theme-xs hover:bg-primary/90 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                                     <x-ui.icon name="download" class="inline-block size-4 align-[-0.125em] mr-2" />
                                                     Download PDF
                                                 </a>
@@ -154,7 +154,7 @@
                                     </div>
 
                                     @if ($policyPdf && $policyPdf->general_work_policy_file_id)
-                                        <div class="border border-gray-300 rounded-lg dark:border-gray-700 overflow-hidden">
+                                        <div class="border border-input rounded-lg overflow-hidden">
                                             <iframe src="{{ route('admin.settings.policy.pdf.file', 'general_work') }}"
                                                 width="100%" height="600px" style="border: none;"
                                                 title="Company's General Work Policy PDF">
@@ -162,26 +162,26 @@
                                         </div>
 
                                         <div class="flex justify-between items-center mt-3">
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                            <p class="text-sm text-muted-foreground">
                                                 Need help? Call {{ $authUser->company->phone ?? 'N/A' }} or email
                                                 {{ $authUser->email ?? 'N/A' }}
                                             </p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            <p class="text-xs text-muted-foreground">
                                                 Last updated:
                                                 {{ $policyPdf->updated_at ? \Carbon\Carbon::parse($policyPdf->updated_at)->format('m/d/Y') : 'N/A' }}
                                             </p>
                                         </div>
                                     @else
                                         <div
-                                            class="p-8 text-center border-2 border-dashed border-gray-300 rounded-lg dark:border-gray-700">
-                                            <x-ui.icon name="file-text" class="inline-block size-10 align-[-0.125em] text-gray-400 dark:text-gray-500 mb-4" />
-                                            <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                            class="p-8 text-center border-2 border-dashed border-input rounded-lg">
+                                            <x-ui.icon name="file-text" class="inline-block size-10 align-[-0.125em] text-muted-foreground mb-4" />
+                                            <h4 class="text-lg font-medium text-foreground mb-2">
                                                 Policy Document Not Available
                                             </h4>
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                            <p class="text-sm text-muted-foreground">
                                                 The Company's General Work Policy PDF has not been uploaded yet.
                                             </p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                            <p class="text-xs text-muted-foreground mt-2">
                                                 Please contact your administrator at {{ $authUser->email ?? 'N/A' }}
                                             </p>
                                         </div>
@@ -206,27 +206,27 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label for="employee_signature"
-                                            class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
+                                            class="block text-sm font-medium text-foreground mb-2">
                                             Employee Signature <span class="text-red-500">*</span>
                                         </label>
                                         <input type="text" name="employee_signature" id="employee_signature"
                                             value="{{ old('employee_signature', $driver_document->general_work_policy_signature ?? '') }}"
                                             placeholder="Type your full name as signature"
-                                            class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                                            class="shadow-theme-xs focus:border-primary/50 focus:ring-primary/10 h-11 w-full rounded-lg border border-input bg-transparent px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-3 focus:outline-hidden dark:text-white/90 dark:placeholder:text-white/30"
                                             @if (!$isEditMode) required @endif>
                                     </div>
                                     <div>
                                         <label for="date_signed"
-                                            class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
+                                            class="block text-sm font-medium text-foreground mb-2">
                                             Date Signed <span class="text-red-500">*</span>
                                         </label>
                                         <input type="date" name="date_signed" id="date_signed"
                                             value="{{ old('date_signed', $driver_document->general_work_policy_date ? \Carbon\Carbon::parse($driver_document->general_work_policy_date)->format('Y-m-d') : date('Y-m-d')) }}"
-                                            class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                                            class="shadow-theme-xs focus:border-primary/50 focus:ring-primary/10 h-11 w-full rounded-lg border border-input bg-transparent px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-3 focus:outline-hidden dark:text-white/90 dark:placeholder:text-white/30"
                                             @if (!$isEditMode) required @endif>
                                     </div>
                                 </div>
-                                <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                                <p class="mt-4 text-sm text-muted-foreground">
                                     <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-2" />
                                     By signing, you acknowledge that you have read and understood the Company's General
                                     Work Policy.
@@ -237,19 +237,19 @@
 
                     <!-- Policy Information -->
                     <div
-                        class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                        class="rounded-2xl border border-border bg-card dark:bg-white/[0.03] mb-6">
+                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-border">
+                            <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
                                 About the Company's General Work Policy
                             </h3>
                         </div>
                         <div class="p-5 sm:p-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
-                                    <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-2">
+                                <div class="p-4 bg-muted/50 rounded-lg">
+                                    <h4 class="text-sm font-semibold text-foreground dark:text-white/90 mb-2">
                                         <x-ui.icon name="briefcase" class="inline-block size-4 align-[-0.125em] mr-2" />Work Requirements
                                     </h4>
-                                    <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                    <ul class="text-sm text-muted-foreground space-y-1">
                                         <li>• Work hours and schedules</li>
                                         <li>• Attendance and punctuality</li>
                                         <li>• Dress code and appearance</li>
@@ -257,11 +257,11 @@
                                         <li>• Performance expectations</li>
                                     </ul>
                                 </div>
-                                <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
-                                    <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-2">
+                                <div class="p-4 bg-muted/50 rounded-lg">
+                                    <h4 class="text-sm font-semibold text-foreground dark:text-white/90 mb-2">
                                         <x-ui.icon name="users" class="inline-block size-4 align-[-0.125em] mr-2" />Employee Relations
                                     </h4>
-                                    <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                    <ul class="text-sm text-muted-foreground space-y-1">
                                         <li>• Communication guidelines</li>
                                         <li>• Teamwork and collaboration</li>
                                         <li>• Conflict resolution</li>
@@ -275,16 +275,16 @@
 
                     <!-- Form Actions -->
                     <div
-                        class="flex flex-col sm:flex-row gap-4 justify-between pt-6 border-t border-gray-200 dark:border-gray-800">
+                        class="flex flex-col sm:flex-row gap-4 justify-between pt-6 border-t border-border">
                         @if ($isEditMode)
                             <a href="{{ route('admin.driver.edit', ['id' => $driver_id]) }}"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-foreground bg-card border border-input rounded-lg shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                 <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Driver Edit
                             </a>
                         @else
                             <a href="{{ route('admin.driver.alcohol.and.drug.test.policy', ['driver_id' => $driver_id]) }}"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-foreground bg-card border border-input rounded-lg shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                 <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Step 9
                             </a>
@@ -292,14 +292,14 @@
 
                         <div class="flex gap-4">
                             <button type="submit" name="action" value="save"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-primary border border-transparent rounded-lg shadow-theme-xs hover:bg-primary/90 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                 <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 {{ $isEditMode ? 'Update & Complete Application' : 'Save & Complete Application' }}
                             </button>
 
                             @if ($isEditMode)
                                 <a href="{{ route('admin.driver.edit', ['id' => $driver_id]) }}"
-                                    class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                    class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-foreground bg-card border border-input rounded-lg shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                     Skip to Completion
                                 </a>
                             @endif
@@ -318,31 +318,31 @@
                 ])
 
                 <!-- Driver Info Card -->
-                <div class="mt-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-4">
-                    <h3 class="font-medium text-gray-800 dark:text-white/90 mb-3">Driver Information</h3>
+                <div class="mt-6 rounded-lg border border-border bg-card dark:bg-white/[0.03] p-4">
+                    <h3 class="font-medium text-foreground dark:text-white/90 mb-3">Driver Information</h3>
                     <div class="space-y-2">
                         <div class="flex items-center text-sm">
-                            <span class="w-24 text-gray-500 dark:text-gray-400">Name:</span>
-                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->first_name }}
+                            <span class="w-24 text-muted-foreground">Name:</span>
+                            <span class="font-medium text-foreground dark:text-white/90">{{ $driver->first_name }}
                                 {{ $driver->last_name }}</span>
                         </div>
                         <div class="flex items-center text-sm">
-                            <span class="w-24 text-gray-500 dark:text-gray-400">Email:</span>
-                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->email }}</span>
+                            <span class="w-24 text-muted-foreground">Email:</span>
+                            <span class="font-medium text-foreground dark:text-white/90">{{ $driver->email }}</span>
                         </div>
                         <div class="flex items-center text-sm">
-                            <span class="w-24 text-gray-500 dark:text-gray-400">Phone:</span>
-                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->main_phone }}</span>
+                            <span class="w-24 text-muted-foreground">Phone:</span>
+                            <span class="font-medium text-foreground dark:text-white/90">{{ $driver->main_phone }}</span>
                         </div>
                         @if ($driver->company)
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">Company:</span>
+                                <span class="w-24 text-muted-foreground">Company:</span>
                                 <span
-                                    class="font-medium text-gray-800 dark:text-white/90">{{ $driver->company->company_name }}</span>
+                                    class="font-medium text-foreground dark:text-white/90">{{ $driver->company->company_name }}</span>
                             </div>
                         @endif
                         <div class="flex items-center text-sm">
-                            <span class="w-24 text-gray-500 dark:text-gray-400">Status:</span>
+                            <span class="w-24 text-muted-foreground">Status:</span>
                             <span
                                 class="font-medium {{ $driver->status == 'active' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400' }}">
                                 {{ ucfirst($driver->status) }}
@@ -350,20 +350,20 @@
                         </div>
                         @if ($driver_document && $driver_document->general_work_policy_signature)
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">Policy Status:</span>
+                                <span class="w-24 text-muted-foreground">Policy Status:</span>
                                 <span class="font-medium text-green-600 dark:text-green-400">
                                     <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] mr-1" /> Acknowledged
                                 </span>
                             </div>
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">Date Acknowledged:</span>
-                                <span class="font-medium text-gray-800 dark:text-white/90">
+                                <span class="w-24 text-muted-foreground">Date Acknowledged:</span>
+                                <span class="font-medium text-foreground dark:text-white/90">
                                     {{ $driver_document->general_work_policy_date ? \Carbon\Carbon::parse($driver_document->general_work_policy_date)->format('m/d/Y') : 'N/A' }}
                                 </span>
                             </div>
                         @else
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">Policy Status:</span>
+                                <span class="w-24 text-muted-foreground">Policy Status:</span>
                                 <span class="font-medium text-red-600 dark:text-red-400">
                                     <x-ui.icon name="circle-x" class="inline-block size-4 align-[-0.125em] mr-1" /> Not Acknowledged
                                 </span>
@@ -530,7 +530,7 @@
 
             // Scroll tracking for policy content
             let policyRead = false;
-            const policyContent = document.querySelector('.rounded-2xl.border.border-gray-200');
+            const policyContent = document.querySelector('.rounded-2xl.border.border-border');
 
             if (policyContent && !isEditMode) {
                 let lastScrollPosition = window.pageYOffset;

@@ -44,9 +44,9 @@
     <a href="#main" class="skip-link">Skip to content</a>
 
     <div class="grid min-h-dvh lg:grid-cols-2">
-        <aside class="relative hidden overflow-hidden bg-linear-to-br from-brand-700 via-brand-800 to-brand-950 p-12 text-white lg:flex lg:flex-col lg:justify-between xl:p-16">
-            <div class="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-white/5 blur-3xl" aria-hidden="true"></div>
-            <div class="pointer-events-none absolute -bottom-32 -left-16 size-96 rounded-full bg-brand-400/15 blur-3xl" aria-hidden="true"></div>
+        <aside class="relative hidden overflow-hidden bg-linear-to-br from-[color-mix(in_oklch,var(--primary)_74%,black)] via-[color-mix(in_oklch,var(--primary)_60%,black)] to-[color-mix(in_oklch,var(--primary)_30%,black)] p-12 text-white lg:flex lg:flex-col lg:justify-between xl:p-16">
+            <div class="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-background/5 blur-3xl" aria-hidden="true"></div>
+            <div class="pointer-events-none absolute -bottom-32 -left-16 size-96 rounded-full bg-primary/75 blur-3xl" aria-hidden="true"></div>
 
             <a href="{{ url('/') }}" class="relative inline-flex w-fit">
                 <img src="{{ $logo ?? asset('images/logo/logo-dark.svg') }}" alt="{{ $siteName }}" class="h-10 w-auto max-w-56 object-contain">
@@ -60,13 +60,13 @@
                         @if ($area === 'platform')
                             Platform administration
                         @else
-                            Driver qualification files, <span class="text-brand-200">always audit-ready.</span>
+                            Driver qualification files, <span class="text-[color-mix(in_oklch,var(--primary)_30%,white)]">always audit-ready.</span>
                         @endif
                     </p>
                     <ul class="mt-8 space-y-3">
                         @foreach ($highlights as [$icon, $text])
-                            <li class="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/90">
-                                <x-ui.icon :name="$icon" class="size-4 shrink-0 text-brand-200" />
+                            <li class="flex items-center gap-3 rounded-lg border border-white/10 bg-background/5 px-4 py-3 text-sm font-medium text-white/90">
+                                <x-ui.icon :name="$icon" class="size-4 shrink-0 text-[color-mix(in_oklch,var(--primary)_30%,white)]" />
                                 {{ $text }}
                             </li>
                         @endforeach

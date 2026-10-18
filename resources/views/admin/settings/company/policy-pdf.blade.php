@@ -5,8 +5,8 @@
 @section('content')
     <div class="p-4 mx-auto max-w-6xl md:p-6">
         <div class="mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-white/90">Upload Company Policy PDFs</h2>
-            <p class="text-gray-600 dark:text-gray-400 mt-2">Your company's policies. Until you upload one, your drivers and applicants see the platform default.</p>
+            <h2 class="text-2xl font-bold text-foreground dark:text-white/90">Upload Company Policy PDFs</h2>
+            <p class="text-muted-foreground mt-2">Your company's policies. Until you upload one, your drivers and applicants see the platform default.</p>
         </div>
 
         @if (session('success'))
@@ -38,13 +38,13 @@
                         @foreach ($existingPolicies as $policy)
                             @if ($policy->alcohol_drug_test_policy_file_id)
                                 <div
-                                    class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                                    class="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
                                     <div class="flex items-center">
                                         <x-ui.icon name="file-text" class="inline-block size-5 align-[-0.125em] text-red-500 mr-3" />
                                         <div>
-                                            <p class="font-medium text-gray-800 dark:text-white/90">Alcohol & Drug Policy
+                                            <p class="font-medium text-foreground dark:text-white/90">Alcohol & Drug Policy
                                             </p>
-                                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                            <p class="text-sm text-muted-foreground">
                                                 {{ $policy->fileFor('alcohol_drug_test')?->original_name }}</p>
                                         </div>
                                     </div>
@@ -58,12 +58,12 @@
 
                             @if ($policy->general_work_policy_file_id)
                                 <div
-                                    class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                                    class="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
                                     <div class="flex items-center">
                                         <x-ui.icon name="file-text" class="inline-block size-5 align-[-0.125em] text-red-500 mr-3" />
                                         <div>
-                                            <p class="font-medium text-gray-800 dark:text-white/90">General Work Policy</p>
-                                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                            <p class="font-medium text-foreground dark:text-white/90">General Work Policy</p>
+                                            <p class="text-sm text-muted-foreground">
                                                 {{ $policy->fileFor('general_work')?->original_name }}</p>
                                         </div>
                                     </div>
@@ -82,37 +82,37 @@
                 <!-- Left Column - Alcohol & Drug Testing Policy -->
                 <div class="space-y-6">
                     <div
-                        class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
+                        class="rounded-2xl border border-border bg-card shadow-sm dark:bg-white/[0.03]">
                         <div class="px-5 py-4 sm:px-6 sm:py-5">
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                            <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
                                 <x-ui.icon name="file-heart" class="inline-block size-4 align-[-0.125em] mr-2" />Alcohol & Drug Testing Policy
                             </h3>
                         </div>
-                        <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
+                        <div class="space-y-6 border-t border-border p-5 sm:p-6">
                             <div>
                                 <label for="alcohol_drug_test_policy_pdf"
-                                    class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    class="mb-1.5 block text-sm font-medium text-foreground">
                                     Upload Alcohol & Drug Test Policy PDF
                                 </label>
                                 <div class="flex items-center justify-center w-full">
                                     <label for="alcohol_drug_test_policy_pdf"
-                                        class="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600 transition-colors duration-200">
+                                        class="flex flex-col items-center justify-center w-full h-40 border-2 border-input border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted transition-colors duration-200">
                                         <div class="flex flex-col items-center justify-center pt-5 pb-6">
                                             <x-ui.icon name="file-text" class="inline-block size-8 align-[-0.125em] mb-3 text-red-500 dark:text-red-400" />
-                                            <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <p class="mb-2 text-sm text-muted-foreground">
                                                 <span class="font-semibold">Click to upload</span> or drag and drop
                                             </p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">PDF files only (MAX. 10MB)
+                                            <p class="text-xs text-muted-foreground">PDF files only (MAX. 10MB)
                                             </p>
                                             <div id="alcohol_pdf_filename"
-                                                class="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300 hidden">
+                                                class="mt-2 text-sm font-medium text-foreground hidden">
                                             </div>
                                         </div>
                                         <input id="alcohol_drug_test_policy_pdf" name="alcohol_drug_test_policy_pdf"
                                             type="file" class="hidden" accept=".pdf,application/pdf" />
                                     </label>
                                 </div>
-                                <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                <div class="mt-2 text-xs text-muted-foreground">
                                     <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-1" />Upload a PDF file containing the Alcohol & Drug
                                     Testing Policy
                                 </div>
@@ -127,37 +127,37 @@
                 <!-- Right Column - General Work Policy -->
                 <div class="space-y-6">
                     <div
-                        class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
+                        class="rounded-2xl border border-border bg-card shadow-sm dark:bg-white/[0.03]">
                         <div class="px-5 py-4 sm:px-6 sm:py-5">
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                            <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
                                 <x-ui.icon name="briefcase" class="inline-block size-4 align-[-0.125em] mr-2" />General Work Policy
                             </h3>
                         </div>
-                        <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
+                        <div class="space-y-6 border-t border-border p-5 sm:p-6">
                             <div>
                                 <label for="general_work_policy_pdf"
-                                    class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    class="mb-1.5 block text-sm font-medium text-foreground">
                                     Upload General Work Policy PDF
                                 </label>
                                 <div class="flex items-center justify-center w-full">
                                     <label for="general_work_policy_pdf"
-                                        class="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600 transition-colors duration-200">
+                                        class="flex flex-col items-center justify-center w-full h-40 border-2 border-input border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted transition-colors duration-200">
                                         <div class="flex flex-col items-center justify-center pt-5 pb-6">
                                             <x-ui.icon name="file-text" class="inline-block size-8 align-[-0.125em] mb-3 text-red-500 dark:text-red-400" />
-                                            <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <p class="mb-2 text-sm text-muted-foreground">
                                                 <span class="font-semibold">Click to upload</span> or drag and drop
                                             </p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">PDF files only (MAX. 10MB)
+                                            <p class="text-xs text-muted-foreground">PDF files only (MAX. 10MB)
                                             </p>
                                             <div id="general_pdf_filename"
-                                                class="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300 hidden">
+                                                class="mt-2 text-sm font-medium text-foreground hidden">
                                             </div>
                                         </div>
                                         <input id="general_work_policy_pdf" name="general_work_policy_pdf" type="file"
                                             class="hidden" accept=".pdf,application/pdf" />
                                     </label>
                                 </div>
-                                <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                <div class="mt-2 text-xs text-muted-foreground">
                                     <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-1" />Upload a PDF file containing the General Work
                                     Policy
                                 </div>
@@ -171,13 +171,13 @@
             </div>
 
             <!-- Form Actions -->
-            <div class="mt-8 flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-800">
+            <div class="mt-8 flex justify-end space-x-3 pt-6 border-t border-border">
                 <a href="{{ route('admin.dashboard') }}"
-                    class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors duration-200">
+                    class="inline-flex items-center justify-center rounded-lg border border-input bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 transition-colors duration-200">
                     <x-ui.icon name="x" class="inline-block size-4 align-[-0.125em] mr-2" />Cancel
                 </a>
                 <button type="submit"
-                    class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 transition-colors duration-200">
+                    class="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-primary/90 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 transition-colors duration-200">
                     <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />Upload Policies
                 </button>
             </div>
@@ -260,19 +260,17 @@
             dropZones.forEach(zone => {
                 zone.addEventListener('dragover', function(e) {
                     e.preventDefault();
-                    this.classList.add('border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/10');
+                    this.classList.add('border-primary', 'bg-primary/10');
                 });
 
                 zone.addEventListener('dragleave', function(e) {
                     e.preventDefault();
-                    this.classList.remove('border-brand-500', 'bg-brand-50',
-                        'dark:bg-brand-900/10');
+                    this.classList.remove('border-primary', 'bg-primary/10');
                 });
 
                 zone.addEventListener('drop', function(e) {
                     e.preventDefault();
-                    this.classList.remove('border-brand-500', 'bg-brand-50',
-                        'dark:bg-brand-900/10');
+                    this.classList.remove('border-primary', 'bg-primary/10');
 
                     const files = e.dataTransfer.files;
                     const input = this.querySelector('input[type="file"]');

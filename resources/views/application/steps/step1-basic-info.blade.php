@@ -1028,7 +1028,7 @@
                             briefly describe the circumstances.
                         </p>
                         <textarea name="forfeitures" rows="3"
-                            class="textarea w-full mt-2 p-2 g-gray-900">
+                            class="textarea w-full mt-2 p-2">
                 {{ old('forfeitures') }}</textarea>
 
 

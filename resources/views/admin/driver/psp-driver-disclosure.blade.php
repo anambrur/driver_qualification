@@ -5,21 +5,21 @@
 @section('content')
     <div class="p-4 mx-auto max-w-7xl">
         <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">
+            <h1 class="text-2xl font-bold text-foreground dark:text-white/90">
                 @if ($isEditMode)
                     Edit PSP Driver Disclosure & Authorization
                 @else
                     PSP Driver Disclosure & Authorization
                 @endif
             </h1>
-            <p class="text-gray-600 dark:text-gray-400">
+            <p class="text-muted-foreground">
                 @if ($isEditMode)
                     Update authorization for background reports from the PSP Online Service (Step 8 of 10)
                 @else
                     Authorization for background reports from the PSP Online Service (Step 8 of 10)
                 @endif
             </p>
-            <div class="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
+            <div class="mt-2 flex items-center text-sm text-muted-foreground">
                 <x-ui.icon name="user" class="inline-block size-4 align-[-0.125em] mr-2" />
                 <span>Driver: {{ $driver->first_name }} {{ $driver->last_name }}</span>
                 @if ($driver->company)
@@ -107,10 +107,10 @@
                     @endif
 
                     <!-- Important Disclosure Section -->
-                    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
+                    <div class="rounded-2xl border border-border bg-card dark:bg-white/[0.03] mb-6">
+                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-border">
                             <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                                <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
                                     IMPORTANT DISCLOSURE REGARDING BACKGROUND REPORTS FROM THE PSP ONLINE SERVICE
                                 </h3>
                                 @if ($isEditMode)
@@ -123,17 +123,17 @@
                         </div>
                         <div class="p-5 sm:p-6">
                             <div class="mb-6 space-y-4">
-                                <p class="text-sm text-gray-700 dark:text-gray-300">
+                                <p class="text-sm text-foreground">
                                     In connection with your application for employment with <strong>{{ $authUser->name }}
                                         ("Prospective Employer")</strong>, Prospective Employer, its employees, agents or
                                     contractors may obtain one or more reports regarding your driving, and safety inspection
                                     history from the Federal Motor Carrier Safety Administration (FMCSA).
                                 </p>
 
-                                <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
-                                    <h4 class="font-semibold text-gray-800 dark:text-white/90 mb-2">In-Person Applications:
+                                <div class="p-4 bg-muted/50 rounded-lg">
+                                    <h4 class="font-semibold text-foreground dark:text-white/90 mb-2">In-Person Applications:
                                     </h4>
-                                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                                    <p class="text-sm text-foreground">
                                         When the application for employment is submitted in person, if the Prospective
                                         Employer uses any information it obtains from FMCSA in a decision to not hire you or
                                         to make any other adverse employment decision regarding you, the Prospective
@@ -146,10 +146,10 @@
                                     </p>
                                 </div>
 
-                                <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
-                                    <h4 class="font-semibold text-gray-800 dark:text-white/90 mb-2">Remote Applications:
+                                <div class="p-4 bg-muted/50 rounded-lg">
+                                    <h4 class="font-semibold text-foreground dark:text-white/90 mb-2">Remote Applications:
                                     </h4>
-                                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                                    <p class="text-sm text-foreground">
                                         When the application for employment is submitted by mail, telephone, computer, or
                                         other similar means, if the Prospective Employer uses any information it obtains
                                         from FMCSA in a decision to not hire you or to make any other adverse employment
@@ -170,9 +170,9 @@
 
                                 <div
                                     class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/10 dark:border-yellow-800">
-                                    <h4 class="font-semibold text-gray-800 dark:text-white/90 mb-2">Important Information
+                                    <h4 class="font-semibold text-foreground dark:text-white/90 mb-2">Important Information
                                         About Data Accuracy:</h4>
-                                    <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                                    <p class="text-sm text-foreground mb-3">
                                         <strong>Neither the Prospective Employer nor the FMCSA contractor supplying the
                                             crash and safety information has the capability to correct any safety data that
                                             appears to be incorrect.</strong> You may challenge the accuracy of the data by
@@ -183,10 +183,10 @@
                                     </p>
                                 </div>
 
-                                <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
-                                    <h4 class="font-semibold text-gray-800 dark:text-white/90 mb-2">About Your PSP Report:
+                                <div class="p-4 bg-muted/50 rounded-lg">
+                                    <h4 class="font-semibold text-foreground dark:text-white/90 mb-2">About Your PSP Report:
                                     </h4>
-                                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                                    <p class="text-sm text-foreground">
                                         Any crash or inspection in which you were involved will display on your PSP report.
                                         Since the PSP report does not report or assign, or imply fault, it will include all
                                         Commercial Motor Vehicle (CMV) crashes where you were a driver or co-driver and
@@ -200,9 +200,9 @@
 
                                 <div
                                     class="p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/10 dark:border-blue-800">
-                                    <h4 class="font-semibold text-gray-800 dark:text-white/90 mb-2">Your Authorization
+                                    <h4 class="font-semibold text-foreground dark:text-white/90 mb-2">Your Authorization
                                         Required:</h4>
-                                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                                    <p class="text-sm text-foreground">
                                         <strong>The Prospective Employer cannot obtain background reports from FMCSA without
                                             your authorization.</strong>
                                     </p>
@@ -212,20 +212,20 @@
                     </div>
 
                     <!-- Authorization Section -->
-                    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800">
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                    <div class="rounded-2xl border border-border bg-card dark:bg-white/[0.03] mb-6">
+                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-border">
+                            <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
                                 AUTHORIZATION
                             </h3>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            <p class="text-sm text-muted-foreground mt-1">
                                 If you agree that the Prospective Employer may obtain such background reports, please read
                                 the following and sign below:
                             </p>
                         </div>
                         <div class="p-5 sm:p-6">
                             <div class="mb-6 space-y-4">
-                                <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
-                                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                                <div class="p-4 bg-muted/50 rounded-lg">
+                                    <p class="text-sm text-foreground">
                                         I authorize <strong>{{ $authUser->name }} ("Prospective Employer")</strong> to
                                         access
                                         the FMCSA Pre-Employment Screening Program (PSP) system to seek information
@@ -238,8 +238,8 @@
                                     </p>
                                 </div>
 
-                                <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
-                                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                                <div class="p-4 bg-muted/50 rounded-lg">
+                                    <p class="text-sm text-foreground">
                                         I further understand that neither the Prospective Employer nor the FMCSA contractor
                                         supplying the crash and safety information has the capability to correct any safety
                                         data that appears to be incorrect. I understand I may challenge the accuracy of the
@@ -250,8 +250,8 @@
                                     </p>
                                 </div>
 
-                                <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-900/20">
-                                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                                <div class="p-4 bg-muted/50 rounded-lg">
+                                    <p class="text-sm text-foreground">
                                         I understand that any crash or inspection in which I was involved will display on my
                                         PSP report. Since the PSP report does not report, or assign, or imply fault, I
                                         acknowledge it will include all CMV crashes where I was a driver or co-driver and
@@ -272,9 +272,9 @@
                             <div class="mb-6">
                                 <label class="inline-flex items-center cursor-pointer select-none">
                                     <input type="checkbox" name="authorization_agreement" value="1"
-                                        class="text-brand-500 focus:ring-brand-500/20 dark:focus:ring-brand-800/50 h-4 w-4 border-gray-300 rounded focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900"
+                                        class="text-primary focus:ring-primary/20 h-4 w-4 border-input rounded focus:ring-3 focus:outline-hidden"
                                         @if (!$isEditMode) required @endif />
-                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <span class="ml-2 text-sm text-foreground">
                                         I have read and understand the above disclosure and authorization statements.
                                     </span>
                                 </label>
@@ -285,23 +285,23 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label for="applicant_signature"
-                                            class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
+                                            class="block text-sm font-medium text-foreground mb-2">
                                             Applicant Signature <span class="text-red-500">*</span>
                                         </label>
                                         <input type="text" name="applicant_signature" id="applicant_signature"
                                             value="{{ old('applicant_signature', $driver_document->psp_authorization_signature ?? '') }}"
                                             placeholder="Type your full name as signature"
-                                            class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                                            class="shadow-theme-xs focus:border-primary/50 focus:ring-primary/10 h-11 w-full rounded-lg border border-input bg-transparent px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-3 focus:outline-hidden dark:text-white/90 dark:placeholder:text-white/30"
                                             @if (!$isEditMode) required @endif>
                                     </div>
                                     <div>
                                         <label for="date_signed"
-                                            class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
+                                            class="block text-sm font-medium text-foreground mb-2">
                                             Date Signed <span class="text-red-500">*</span>
                                         </label>
                                         <input type="date" name="date_signed" id="date_signed"
                                             value="{{ old('date_signed', date('Y-m-d')) }}"
-                                            class="shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                                            class="shadow-theme-xs focus:border-primary/50 focus:ring-primary/10 h-11 w-full rounded-lg border border-input bg-transparent px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-3 focus:outline-hidden dark:text-white/90 dark:placeholder:text-white/30"
                                             @if (!$isEditMode) required @endif>
                                     </div>
                                 </div>
@@ -339,16 +339,16 @@
 
                     <!-- Form Actions -->
                     <div
-                        class="flex flex-col sm:flex-row gap-4 justify-between pt-6 border-t border-gray-200 dark:border-gray-800">
+                        class="flex flex-col sm:flex-row gap-4 justify-between pt-6 border-t border-border">
                         @if ($isEditMode)
                             <a href="{{ route('admin.driver.edit', ['id' => $driver_id]) }}"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-foreground bg-card border border-input rounded-lg shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                 <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Driver Edit
                             </a>
                         @else
                             <a href="{{ route('admin.driver.fmcsa.consent', ['driver_id' => $driver_id]) }}"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-foreground bg-card border border-input rounded-lg shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                 <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 Back to Step 7
                             </a>
@@ -356,14 +356,14 @@
 
                         <div class="flex gap-4">
                             <button type="submit" name="action" value="save"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-brand-500 border border-transparent rounded-lg shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-primary border border-transparent rounded-lg shadow-theme-xs hover:bg-primary/90 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                 <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />
                                 {{ $isEditMode ? 'Update & Continue to Step 9' : 'Save & Continue to Step 9' }}
                             </button>
 
                             @if ($isEditMode)
                                 <a href="{{ route('admin.driver.alcohol.and.drug.test.policy', ['driver_id' => $driver_id, 'edit' => '1']) }}"
-                                    class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                    class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-foreground bg-card border border-input rounded-lg shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                                     Skip to Next Step
                                 </a>
                             @endif
@@ -382,31 +382,31 @@
                 ])
 
                 <!-- Driver Info Card -->
-                <div class="mt-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-4">
-                    <h3 class="font-medium text-gray-800 dark:text-white/90 mb-3">Driver Information</h3>
+                <div class="mt-6 rounded-lg border border-border bg-card dark:bg-white/[0.03] p-4">
+                    <h3 class="font-medium text-foreground dark:text-white/90 mb-3">Driver Information</h3>
                     <div class="space-y-2">
                         <div class="flex items-center text-sm">
-                            <span class="w-24 text-gray-500 dark:text-gray-400">Name:</span>
-                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->first_name }}
+                            <span class="w-24 text-muted-foreground">Name:</span>
+                            <span class="font-medium text-foreground dark:text-white/90">{{ $driver->first_name }}
                                 {{ $driver->last_name }}</span>
                         </div>
                         <div class="flex items-center text-sm">
-                            <span class="w-24 text-gray-500 dark:text-gray-400">Email:</span>
-                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->email }}</span>
+                            <span class="w-24 text-muted-foreground">Email:</span>
+                            <span class="font-medium text-foreground dark:text-white/90">{{ $driver->email }}</span>
                         </div>
                         <div class="flex items-center text-sm">
-                            <span class="w-24 text-gray-500 dark:text-gray-400">Phone:</span>
-                            <span class="font-medium text-gray-800 dark:text-white/90">{{ $driver->main_phone }}</span>
+                            <span class="w-24 text-muted-foreground">Phone:</span>
+                            <span class="font-medium text-foreground dark:text-white/90">{{ $driver->main_phone }}</span>
                         </div>
                         @if ($driver->company)
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">Company:</span>
+                                <span class="w-24 text-muted-foreground">Company:</span>
                                 <span
-                                    class="font-medium text-gray-800 dark:text-white/90">{{ $driver->company->company_name }}</span>
+                                    class="font-medium text-foreground dark:text-white/90">{{ $driver->company->company_name }}</span>
                             </div>
                         @endif
                         <div class="flex items-center text-sm">
-                            <span class="w-24 text-gray-500 dark:text-gray-400">Status:</span>
+                            <span class="w-24 text-muted-foreground">Status:</span>
                             <span
                                 class="font-medium {{ $driver->status == 'active' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400' }}">
                                 {{ ucfirst($driver->status) }}
@@ -414,20 +414,20 @@
                         </div>
                         @if ($driver_document && $driver_document->psp_authorization)
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">PSP Authorization:</span>
+                                <span class="w-24 text-muted-foreground">PSP Authorization:</span>
                                 <span class="font-medium text-green-600 dark:text-green-400">
                                     <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] mr-1" /> Authorized
                                 </span>
                             </div>
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">Authorized Date:</span>
-                                <span class="font-medium text-gray-800 dark:text-white/90">
+                                <span class="w-24 text-muted-foreground">Authorized Date:</span>
+                                <span class="font-medium text-foreground dark:text-white/90">
                                     {{ $driver_document->psp_authorization_date ? \Carbon\Carbon::parse($driver_document->psp_authorization_date)->format('m/d/Y') : 'N/A' }}
                                 </span>
                             </div>
                         @else
                             <div class="flex items-center text-sm">
-                                <span class="w-24 text-gray-500 dark:text-gray-400">PSP Authorization:</span>
+                                <span class="w-24 text-muted-foreground">PSP Authorization:</span>
                                 <span class="font-medium text-red-600 dark:text-red-400">
                                     <x-ui.icon name="circle-x" class="inline-block size-4 align-[-0.125em] mr-1" /> Not Authorized
                                 </span>
@@ -541,7 +541,7 @@
 
             // Track reading of disclosure with timeout to ensure user reads it
             let disclosureRead = false;
-            const disclosureSection = document.querySelector('.rounded-2xl.border.border-gray-200');
+            const disclosureSection = document.querySelector('.rounded-2xl.border.border-border');
 
             if (disclosureSection && !isEditMode) {
                 let scrollTimer;

@@ -6,11 +6,11 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Header Card -->
-            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="bg-card rounded-lg shadow-sm p-6 mb-6">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h1 class="text-2xl font-semibold text-gray-900">Users</h1>
-                        <p class="mt-1 text-sm text-gray-600">Manage your company's users and their roles.</p>
+                        <h1 class="text-2xl font-semibold text-foreground">Users</h1>
+                        <p class="mt-1 text-sm text-muted-foreground">Manage your company's users and their roles.</p>
                     </div>
                     @can('users.create')
                     <a href="{{ route('users.invite') }}"
@@ -26,13 +26,13 @@
             </div>
 
             <!-- Filters Card -->
-            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="bg-card rounded-lg shadow-sm p-6 mb-6">
                 <form action="{{ route('users.index') }}" method="GET">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div class="col-span-2">
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor"
+                                    <svg class="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -40,13 +40,13 @@
                                 </div>
                                 <input type="text" name="search" value="{{ request('search') }}"
                                     placeholder="Search users..."
-                                    class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-hidden focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    class="block w-full pl-10 pr-3 py-2 border border-input rounded-md leading-5 bg-card placeholder-muted-foreground focus:outline-hidden focus:placeholder-muted-foreground focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                             </div>
                         </div>
 
                         <div>
                             <select name="role"
-                                class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                class="block w-full pl-3 pr-10 py-2 text-base border-input focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                                 <option value="">All Roles</option>
                                 @foreach ($roles as $role)
                                     <option value="{{ $role->id }}"
@@ -59,7 +59,7 @@
 
                         <div>
                             <select name="status"
-                                class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                class="block w-full pl-3 pr-10 py-2 text-base border-input focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                                 <option value="">All Status</option>
                                 <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive
@@ -70,12 +70,12 @@
 
                     <div class="mt-4 flex justify-end space-x-2">
                         <button type="submit"
-                            class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                            class="inline-flex items-center px-4 py-2 bg-primary border border-transparent rounded-md font-semibold text-xs text-primary-foreground uppercase tracking-widest hover:bg-primary/90 focus:bg-primary/90 active:bg-primary focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
                             Apply Filters
                         </button>
                         @if (request()->anyFilled(['search', 'role', 'status']))
                             <a href="{{ route('users.index') }}"
-                                class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                class="inline-flex items-center px-4 py-2 bg-card border border-input rounded-md font-semibold text-xs text-foreground uppercase tracking-widest shadow-sm hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                 Clear
                             </a>
                         @endif
@@ -84,37 +84,37 @@
             </div>
 
             <!-- Users Table Card -->
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="bg-card rounded-lg shadow-sm overflow-hidden">
                 @if ($users->count() > 0)
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
+                        <table class="min-w-full divide-y divide-border">
+                            <thead class="bg-muted/50">
                                 <tr>
                                     <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         User
                                     </th>
                                     <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         Roles
                                     </th>
                                     <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         Status
                                     </th>
                                     <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         Joined
                                     </th>
                                     <th scope="col"
-                                        class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tbody class="bg-card divide-y divide-border">
                                 @foreach ($users as $listUser)
-                                    <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                    <tr class="hover:bg-muted/50 transition-colors duration-200">
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="flex items-center">
                                                 <div
@@ -124,9 +124,9 @@
                                                     </span>
                                                 </div>
                                                 <div class="ml-4">
-                                                    <div class="text-sm font-medium text-gray-900">{{ $listUser->name }}
+                                                    <div class="text-sm font-medium text-foreground">{{ $listUser->name }}
                                                     </div>
-                                                    <div class="text-sm text-gray-500">{{ $listUser->email }}</div>
+                                                    <div class="text-sm text-muted-foreground">{{ $listUser->email }}</div>
                                                 </div>
                                             </div>
                                         </td>
@@ -139,7 +139,7 @@
                                                     </span>
                                                 @empty
                                                     <span
-                                                        class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-600">
+                                                        class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-muted text-muted-foreground">
                                                         No roles
                                                     </span>
                                                 @endforelse
@@ -169,9 +169,9 @@
                                                 </span>
                                             @endif
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                             <div class="flex items-center">
-                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor"
+                                                <svg class="w-4 h-4 mr-1 text-muted-foreground" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -208,7 +208,7 @@
 
                     <!-- Pagination -->
                     @if ($users->hasPages())
-                        <div class="px-6 py-4 border-t border-gray-200">
+                        <div class="px-6 py-4 border-t border-border">
                             {{ $users->links() }}
                         </div>
                     @endif
@@ -221,8 +221,8 @@
                                     d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
                         </div>
-                        <h3 class="text-lg font-medium text-gray-900 mb-1">No users found</h3>
-                        <p class="text-sm text-gray-500 mb-6">Invite your team to get started.</p>
+                        <h3 class="text-lg font-medium text-foreground mb-1">No users found</h3>
+                        <p class="text-sm text-muted-foreground mb-6">Invite your team to get started.</p>
                         @can('users.create')
                         <a href="{{ route('users.invite') }}"
                             class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700">
@@ -239,26 +239,26 @@
 
             @if ($invitations->isNotEmpty())
                 <!-- Pending Invitations -->
-                <div class="bg-white rounded-lg shadow-sm overflow-hidden mt-6">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h2 class="text-lg font-semibold text-gray-900">Pending invitations</h2>
+                <div class="bg-card rounded-lg shadow-sm overflow-hidden mt-6">
+                    <div class="px-6 py-4 border-b border-border">
+                        <h2 class="text-lg font-semibold text-foreground">Pending invitations</h2>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
+                        <table class="min-w-full divide-y divide-border">
+                            <thead class="bg-muted/50">
                                 <tr>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expires</th>
-                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Role</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Expires</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tbody class="bg-card divide-y divide-border">
                                 @foreach ($invitations as $invitation)
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $invitation->email }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $invitation->role->name }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm {{ $invitation->expires_at->isPast() ? 'text-red-600' : 'text-gray-500' }}">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-foreground">{{ $invitation->email }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-foreground">{{ $invitation->role->name }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm {{ $invitation->expires_at->isPast() ? 'text-red-600' : 'text-muted-foreground' }}">
                                             {{ $invitation->expires_at->isPast() ? 'Expired' : $invitation->expires_at->format('M d, Y') }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

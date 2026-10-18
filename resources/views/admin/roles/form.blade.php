@@ -8,12 +8,12 @@
         <div class="mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white/90">{{ $role ? 'Edit Role: '.$role->name : 'Create Role' }}</h2>
-                    <p class="text-gray-600 dark:text-gray-400 mt-2">You can grant only permissions you hold yourself.</p>
+                    <h2 class="text-2xl font-bold text-foreground dark:text-white/90">{{ $role ? 'Edit Role: '.$role->name : 'Create Role' }}</h2>
+                    <p class="text-muted-foreground mt-2">You can grant only permissions you hold yourself.</p>
                 </div>
 
                 <a href="{{ route('admin.roles.index') }}"
-                    class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 mt-4 sm:mt-0">
+                    class="inline-flex items-center justify-center rounded-lg border border-input bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 mt-4 sm:mt-0">
                     <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />Back to Roles
                 </a>
             </div>
@@ -57,24 +57,24 @@
                 <div class="space-y-6">
                     <!-- Role Information Card -->
                     <div
-                        class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
+                        class="rounded-2xl border border-border bg-card shadow-sm dark:bg-white/[0.03]">
                         <div class="px-5 py-4 sm:px-6 sm:py-5">
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                            <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
                                 <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-2" />Role Information
                             </h3>
                         </div>
-                        <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
+                        <div class="space-y-6 border-t border-border p-5 sm:p-6">
                             <!-- Role Name -->
                             <div>
                                 <label for="name"
-                                    class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    class="mb-1.5 block text-sm font-medium text-foreground">
                                     Role Name <span class="text-red-500">*</span>
                                 </label>
                                 <input type="text" id="name" name="name" required
-                                    class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                                    class="dark:bg-dark-900 shadow-theme-xs focus:border-primary/50 focus:ring-primary/10 h-11 w-full rounded-lg border border-input bg-transparent px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-3 focus:outline-hidden dark:text-white/90 dark:placeholder:text-white/30"
                                     placeholder="e.g., Content Manager, Editor" value="{{ old('name', $role?->name) }}" @readonly($role?->is_system) />
                                 @if ($role?->is_system)
-                                    <p class="mt-1 text-sm text-gray-500">System roles keep their name.</p>
+                                    <p class="mt-1 text-sm text-muted-foreground">System roles keep their name.</p>
                                 @endif
                                 @error('name')
                                     <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
@@ -88,16 +88,16 @@
                 <div class="space-y-6">
                     <!-- Permissions Card -->
                     <div
-                        class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
+                        class="rounded-2xl border border-border bg-card shadow-sm dark:bg-white/[0.03]">
                         <div class="px-5 py-4 sm:px-6 sm:py-5">
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                            <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
                                 <x-ui.icon name="key-round" class="inline-block size-4 align-[-0.125em] mr-2" />Permissions
                             </h3>
-                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                            <p class="mt-1 text-sm text-muted-foreground">
                                 Select permissions for this role
                             </p>
                         </div>
-                        <div class="border-t border-gray-100 p-5 sm:p-6 dark:border-gray-800">
+                        <div class="border-t border-border p-5 sm:p-6">
                             @error('permissions.*')
                                 <div
                                     class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
@@ -107,16 +107,16 @@
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 @foreach ($permissions as $group => $groupPermissions)
-                                    <div class="rounded-lg border border-gray-200 dark:border-gray-800">
+                                    <div class="rounded-lg border border-border">
                                         <!-- Group Header -->
                                         <div
-                                            class="border-b border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">
+                                            class="border-b border-border bg-muted/50 px-4 py-3">
                                             <div class="flex items-center">
                                                 <input type="checkbox" id="group-{{ Str::slug($group) }}"
-                                                    class="group-toggle h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-brand-600"
+                                                    class="group-toggle h-4 w-4 rounded border-input text-primary focus:ring-primary"
                                                     data-group="{{ Str::slug($group) }}">
                                                 <label for="group-{{ Str::slug($group) }}"
-                                                    class="ml-3 block text-sm font-medium text-gray-700 capitalize dark:text-gray-300 cursor-pointer">
+                                                    class="ml-3 block text-sm font-medium text-foreground capitalize cursor-pointer">
                                                     {{ $group }}
                                                 </label>
                                             </div>
@@ -129,11 +129,11 @@
                                                     <input type="checkbox" name="permissions[]"
                                                         id="perm-{{ Str::slug($permission) }}"
                                                         value="{{ $permission }}"
-                                                        class="permission-checkbox h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-brand-600"
+                                                        class="permission-checkbox h-4 w-4 rounded border-input text-primary focus:ring-primary"
                                                         data-group="{{ Str::slug($group) }}"
                                                         @checked(in_array($permission, old('permissions', $role?->permissions->pluck('name')->all() ?? [])))>
                                                     <label for="perm-{{ Str::slug($permission) }}"
-                                                        class="ml-3 text-sm text-gray-700 dark:text-gray-400 cursor-pointer truncate"
+                                                        class="ml-3 text-sm text-foreground cursor-pointer truncate"
                                                         title="{{ $permission }}">
                                                         {{ Str::after($permission, $group . '.') }}
                                                     </label>
@@ -147,10 +147,10 @@
                             @if (count($permissions) === 0)
                                 <div class="text-center py-8">
                                     <div
-                                        class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                                        <x-ui.icon name="key-round" class="inline-block size-4 align-[-0.125em] text-gray-400 dark:text-gray-500" />
+                                        class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                                        <x-ui.icon name="key-round" class="inline-block size-4 align-[-0.125em] text-muted-foreground" />
                                     </div>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">No permissions available</p>
+                                    <p class="text-sm text-muted-foreground">No permissions available</p>
                                 </div>
                             @endif
                         </div>
@@ -161,11 +161,11 @@
             <!-- Form Actions -->
             <div class="mt-8 flex justify-end space-x-3">
                 <a href="{{ route('admin.roles.index') }}"
-                    class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700">
+                    class="inline-flex items-center justify-center rounded-lg border border-input bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:ring-offset-2">
                     <x-ui.icon name="x" class="inline-block size-4 align-[-0.125em] mr-2" />Cancel
                 </a>
                 <button type="submit"
-                    class="inline-flex items-center justify-center rounded-lg border border-transparent bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-2">
+                    class="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-primary/90 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:ring-offset-2">
                     <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />{{ $role ? 'Update Role' : 'Create Role' }}
                 </button>
             </div>

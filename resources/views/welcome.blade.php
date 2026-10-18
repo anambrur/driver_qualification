@@ -248,14 +248,14 @@
     </style>
 </head>
 
-<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased overflow-x-hidden">
+<body class="bg-card text-foreground antialiased overflow-x-hidden">
 
     {{-- ============================================================ --}}
     {{-- NAVIGATION --}}
     {{-- ============================================================ --}}
     <nav x-data="{ mobileOpen: false, scrolled: false }"
         x-init="window.addEventListener('scroll', () => { scrolled = window.scrollY > 20 })"
-        :class="scrolled ? 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg border-b border-gray-200/50 dark:border-gray-800/50' : 'bg-transparent'"
+        :class="scrolled ? 'bg-background/80 backdrop-blur-xl shadow-lg border-b border-border/50' : 'bg-transparent'"
         class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" id="main-nav">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 lg:h-20">
@@ -271,29 +271,29 @@
 
                 {{-- Desktop Nav --}}
                 <div class="hidden lg:flex items-center gap-8">
-                    <a href="#features" class="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-brand-500 dark:hover:text-brand-400 transition-colors">Features</a>
-                    <a href="#how-it-works" class="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-brand-500 dark:hover:text-brand-400 transition-colors">How It Works</a>
-                    <a href="#pricing" class="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-brand-500 dark:hover:text-brand-400 transition-colors">Pricing</a>
-                    <a href="#testimonials" class="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-brand-500 dark:hover:text-brand-400 transition-colors">Testimonials</a>
-                    <a href="#faq" class="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-brand-500 dark:hover:text-brand-400 transition-colors">FAQ</a>
+                    <a href="#features" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Features</a>
+                    <a href="#how-it-works" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">How It Works</a>
+                    <a href="#pricing" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Pricing</a>
+                    <a href="#testimonials" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Testimonials</a>
+                    <a href="#faq" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">FAQ</a>
                 </div>
 
                 {{-- Auth Buttons --}}
                 <div class="hidden lg:flex items-center gap-3">
                     @if (Route::has('login'))
                     @auth
-                    <a href="{{ url('/dashboard') }}" class="px-5 py-2.5 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-all duration-200 shadow-md shadow-brand-500/20 hover:shadow-lg hover:shadow-brand-500/30 hover:-translate-y-0.5">Dashboard</a>
+                    <a href="{{ url('/dashboard') }}" class="px-5 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-xl transition-all duration-200 shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5">Dashboard</a>
                     @else
-                    <a href="{{ route('login') }}" class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-brand-500 dark:hover:text-brand-400 transition-colors">Log In</a>
+                    <a href="{{ route('login') }}" class="px-5 py-2.5 text-sm font-medium text-foreground hover:text-primary transition-colors">Log In</a>
                     @if (Route::has('register'))
-                    <a href="{{ route('register') }}" class="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 rounded-xl transition-all duration-200 shadow-md shadow-brand-500/25 hover:shadow-lg hover:shadow-brand-500/40 hover:-translate-y-0.5">Start Free Trial</a>
+                    <a href="{{ route('register') }}" class="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] hover:from-[color-mix(in_oklch,var(--primary)_88%,black)] hover:to-[color-mix(in_oklch,var(--primary)_74%,black)] rounded-xl transition-all duration-200 shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/40 hover:-translate-y-0.5">Start Free Trial</a>
                     @endif
                     @endauth
                     @endif
                 </div>
 
                 {{-- Mobile Toggle --}}
-                <button @click="mobileOpen = !mobileOpen" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <button @click="mobileOpen = !mobileOpen" class="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors">
                     <svg x-show="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
@@ -306,21 +306,21 @@
 
         {{-- Mobile Menu --}}
         <div x-show="mobileOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-            class="lg:hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800">
+            class="lg:hidden bg-background/95 backdrop-blur-xl border-b border-border">
             <div class="px-4 py-4 space-y-2">
-                <a @click="mobileOpen = false" href="#features" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Features</a>
-                <a @click="mobileOpen = false" href="#how-it-works" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">How It Works</a>
-                <a @click="mobileOpen = false" href="#pricing" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Pricing</a>
-                <a @click="mobileOpen = false" href="#testimonials" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Testimonials</a>
-                <a @click="mobileOpen = false" href="#faq" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">FAQ</a>
-                <hr class="border-gray-200 dark:border-gray-700 my-2">
+                <a @click="mobileOpen = false" href="#features" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors">Features</a>
+                <a @click="mobileOpen = false" href="#how-it-works" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors">How It Works</a>
+                <a @click="mobileOpen = false" href="#pricing" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors">Pricing</a>
+                <a @click="mobileOpen = false" href="#testimonials" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors">Testimonials</a>
+                <a @click="mobileOpen = false" href="#faq" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors">FAQ</a>
+                <hr class="border-border my-2">
                 @if (Route::has('login'))
                 @auth
-                <a href="{{ url('/dashboard') }}" class="block px-4 py-2.5 text-center rounded-xl text-sm font-semibold text-white bg-brand-500">Dashboard</a>
+                <a href="{{ url('/dashboard') }}" class="block px-4 py-2.5 text-center rounded-xl text-sm font-semibold text-white bg-primary">Dashboard</a>
                 @else
-                <a href="{{ route('login') }}" class="block px-4 py-2.5 rounded-lg text-sm font-medium text-center hover:bg-gray-100 dark:hover:bg-gray-800">Log In</a>
+                <a href="{{ route('login') }}" class="block px-4 py-2.5 rounded-lg text-sm font-medium text-center hover:bg-muted">Log In</a>
                 @if (Route::has('register'))
-                <a href="{{ route('register') }}" class="block px-4 py-2.5 text-center rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-brand-500 to-brand-600">Start Free Trial</a>
+                <a href="{{ route('register') }}" class="block px-4 py-2.5 text-center rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)]">Start Free Trial</a>
                 @endif
                 @endauth
                 @endif
@@ -334,7 +334,7 @@
     <section class="hero-gradient relative min-h-screen flex items-center pt-20 overflow-hidden">
         {{-- Animated background orbs --}}
         <div class="absolute inset-0 overflow-hidden pointer-events-none">
-            <div class="absolute top-20 left-10 w-72 h-72 bg-brand-400/10 dark:bg-brand-500/10 rounded-full blur-3xl animate-float"></div>
+            <div class="absolute top-20 left-10 w-72 h-72 bg-primary/75 rounded-full blur-3xl animate-float"></div>
             <div class="absolute bottom-20 right-10 w-96 h-96 bg-success-400/10 dark:bg-success-500/10 rounded-full blur-3xl animate-float-delayed"></div>
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-light-400/5 rounded-full blur-3xl animate-pulse-ring"></div>
         </div>
@@ -345,32 +345,32 @@
                 <div class="text-center lg:text-left">
                     <!-- Added header element wrapper for SEO semantic flow -->
                     <header>
-                        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/20 mb-6">
+                        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 mb-6">
                             <span class="w-2 h-2 rounded-full bg-success-500 animate-pulse"></span>
-                            <span class="text-xs font-semibold text-brand-700 dark:text-brand-300 uppercase tracking-wider">DOT Compliance Platform</span>
+                            <span class="text-xs font-semibold text-primary uppercase tracking-wider">DOT Compliance Platform</span>
                         </div>
 
                         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight mb-6">
                             Every Driver File.
-                            <span class="bg-gradient-to-r from-brand-500 via-brand-600 to-blue-light-500 bg-clip-text text-transparent animate-gradient">Always Audit-Ready.</span>
+                            <span class="bg-gradient-to-r from-primary via-[color-mix(in_oklch,var(--primary)_88%,black)] to-blue-light-500 bg-clip-text text-transparent animate-gradient">Always Audit-Ready.</span>
                         </h1>
                     </header>
 
-                    <p class="text-lg sm:text-xl text-gray-600 dark:text-gray-300 leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0">
+                    <p class="text-lg sm:text-xl text-muted-foreground leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0">
                         Complete Driver Qualification Files — from hire to compliance. Automated tracking, expiration alerts, and digital document management.
                     </p>
 
                     <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
                         @if (Route::has('register'))
-                        <a href="{{ route('register') }}" class="group px-8 py-4 text-base font-semibold text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 rounded-2xl transition-all duration-300 shadow-xl shadow-brand-500/25 hover:shadow-2xl hover:shadow-brand-500/40 hover:-translate-y-1 inline-flex items-center justify-center gap-2">
+                        <a href="{{ route('register') }}" class="group px-8 py-4 text-base font-semibold text-white bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] hover:from-[color-mix(in_oklch,var(--primary)_88%,black)] hover:to-[color-mix(in_oklch,var(--primary)_74%,black)] rounded-2xl transition-all duration-300 shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-1 inline-flex items-center justify-center gap-2">
                             Start Free Trial
                             <svg class="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                             </svg>
                         </a>
                         @endif
-                        <a href="#how-it-works" class="px-8 py-4 text-base font-semibold text-gray-700 dark:text-gray-200 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-500/40 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg inline-flex items-center justify-center gap-2">
-                            <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <a href="#how-it-works" class="px-8 py-4 text-base font-semibold text-foreground bg-background/60 backdrop-blur-sm border border-border hover:border-primary/50 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg inline-flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -378,7 +378,7 @@
                         </a>
                     </div>
 
-                    <div class="flex items-center gap-6 justify-center lg:justify-start text-sm text-gray-500 dark:text-gray-400">
+                    <div class="flex items-center gap-6 justify-center lg:justify-start text-sm text-muted-foreground">
                         <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-success-500" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                             </svg> No credit card</span>
@@ -400,7 +400,7 @@
                                 <div class="w-3 h-3 rounded-full bg-error-400"></div>
                                 <div class="w-3 h-3 rounded-full bg-warning-400"></div>
                                 <div class="w-3 h-3 rounded-full bg-success-400"></div>
-                                <span class="text-xs font-medium text-gray-400 ml-2">Compliance Dashboard</span>
+                                <span class="text-xs font-medium text-muted-foreground ml-2">Compliance Dashboard</span>
                             </div>
                             <div class="space-y-3">
                                 <div class="flex items-center justify-between p-3 rounded-xl bg-success-50 dark:bg-success-500/10">
@@ -419,18 +419,18 @@
                                     </div>
                                     <span class="text-xs font-semibold text-warning-600 bg-warning-100 dark:bg-warning-500/20 px-2 py-1 rounded-full">Expiring</span>
                                 </div>
-                                <div class="flex items-center justify-between p-3 rounded-xl bg-brand-50 dark:bg-brand-500/10">
+                                <div class="flex items-center justify-between p-3 rounded-xl bg-primary/10">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg></div><span class="text-sm font-medium">MVR Report</span>
                                     </div>
-                                    <span class="text-xs font-semibold text-brand-600 bg-brand-100 dark:bg-brand-500/20 px-2 py-1 rounded-full">Current</span>
+                                    <span class="text-xs font-semibold text-primary bg-primary/15 px-2 py-1 rounded-full">Current</span>
                                 </div>
                             </div>
-                            <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
-                                <div class="flex justify-between items-center mb-2"><span class="text-xs font-medium text-gray-500">Compliance Score</span><span class="text-sm font-bold text-success-600">94%</span></div>
-                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div class="mt-4 p-3 rounded-xl bg-muted/50">
+                                <div class="flex justify-between items-center mb-2"><span class="text-xs font-medium text-muted-foreground">Compliance Score</span><span class="text-sm font-bold text-success-600">94%</span></div>
+                                <div class="w-full bg-muted rounded-full h-2">
                                     <div class="bg-gradient-to-r from-success-400 to-success-500 h-2 rounded-full" style="width: 94%"></div>
                                 </div>
                             </div>
@@ -444,7 +444,7 @@
                                     </svg></div>
                                 <div>
                                     <p class="text-xs font-semibold">Audit Ready</p>
-                                    <p class="text-[10px] text-gray-400">All files complete</p>
+                                    <p class="text-[10px] text-muted-foreground">All files complete</p>
                                 </div>
                             </div>
                         </div>
@@ -452,12 +452,12 @@
                         {{-- Floating alert --}}
                         <div class="absolute -bottom-2 -left-4 glass-card rounded-2xl p-3 shadow-xl animate-float z-10" style="animation-duration: 6s; animation-delay: 0.5s;">
                             <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                     </svg></div>
                                 <div>
                                     <p class="text-xs font-semibold">3 Alerts</p>
-                                    <p class="text-[10px] text-gray-400">Documents expiring</p>
+                                    <p class="text-[10px] text-muted-foreground">Documents expiring</p>
                                 </div>
                             </div>
                         </div>
@@ -469,7 +469,7 @@
         {{-- Wave divider --}}
         <div class="absolute bottom-0 left-0 right-0">
             <svg viewBox="0 0 1440 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full">
-                <path d="M0 50L48 45.7C96 41.3 192 32.7 288 30.2C384 27.7 480 31.3 576 38.5C672 45.7 768 56.3 864 58.8C960 61.3 1056 55.7 1152 48.5C1248 41.3 1344 32.7 1392 28.3L1440 24V100H1392C1344 100 1248 100 1152 100C1056 100 960 100 864 100C768 100 672 100 576 100C480 100 384 100 288 100C192 100 96 100 48 100H0V50Z" class="fill-white dark:fill-gray-900" />
+                <path d="M0 50L48 45.7C96 41.3 192 32.7 288 30.2C384 27.7 480 31.3 576 38.5C672 45.7 768 56.3 864 58.8C960 61.3 1056 55.7 1152 48.5C1248 41.3 1344 32.7 1392 28.3L1440 24V100H1392C1344 100 1248 100 1152 100C1056 100 960 100 864 100C768 100 672 100 576 100C480 100 384 100 288 100C192 100 96 100 48 100H0V50Z" class="fill-white" />
             </svg>
         </div>
     </section>
@@ -477,24 +477,24 @@
     {{-- ============================================================ --}}
     {{-- TRUST / STATS BAR --}}
     {{-- ============================================================ --}}
-    <section class="py-12 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+    <section class="py-12 bg-card border-b border-border">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
                 <div class="text-center">
-                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-brand-500 to-brand-600 bg-clip-text text-transparent">5,200+</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Trucking Companies</p>
+                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] bg-clip-text text-transparent">5,200+</p>
+                    <p class="text-sm text-muted-foreground mt-1">Trucking Companies</p>
                 </div>
                 <div class="text-center">
                     <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-success-500 to-success-600 bg-clip-text text-transparent">50K+</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Driver Files Managed</p>
+                    <p class="text-sm text-muted-foreground mt-1">Driver Files Managed</p>
                 </div>
                 <div class="text-center">
                     <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-blue-light-500 to-blue-light-600 bg-clip-text text-transparent">99.9%</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Audit Pass Rate</p>
+                    <p class="text-sm text-muted-foreground mt-1">Audit Pass Rate</p>
                 </div>
                 <div class="text-center">
                     <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-warning-500 to-orange-500 bg-clip-text text-transparent">24/7</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Compliance Monitoring</p>
+                    <p class="text-sm text-muted-foreground mt-1">Compliance Monitoring</p>
                 </div>
             </div>
         </div>
@@ -503,17 +503,17 @@
     {{-- ============================================================ --}}
     {{-- FEATURES GRID --}}
     {{-- ============================================================ --}}
-    <section id="features" class="py-20 lg:py-28 bg-gray-50 dark:bg-gray-900/50 relative overflow-hidden">
+    <section id="features" class="py-20 lg:py-28 bg-muted/50 relative overflow-hidden">
         <div class="absolute inset-0 pointer-events-none">
-            <div class="absolute top-0 right-0 w-96 h-96 bg-brand-400/5 rounded-full blur-3xl"></div>
+            <div class="absolute top-0 right-0 w-96 h-96 bg-primary/75 rounded-full blur-3xl"></div>
             <div class="absolute bottom-0 left-0 w-96 h-96 bg-success-400/5 rounded-full blur-3xl"></div>
         </div>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div class="text-center max-w-3xl mx-auto mb-16">
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-500/10 text-xs font-semibold text-brand-600 dark:text-brand-400 uppercase tracking-wider mb-4">Features</span>
-                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Everything You Need for <span class="bg-gradient-to-r from-brand-500 to-brand-600 bg-clip-text text-transparent">DOT Compliance</span></h2>
-                <p class="text-lg text-gray-500 dark:text-gray-400">Manage your entire driver qualification process from a single platform — built for 49 CFR Part 391 compliance.</p>
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-xs font-semibold text-primary uppercase tracking-wider mb-4">Features</span>
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Everything You Need for <span class="bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] bg-clip-text text-transparent">DOT Compliance</span></h2>
+                <p class="text-lg text-muted-foreground">Manage your entire driver qualification process from a single platform — built for 49 CFR Part 391 compliance.</p>
             </div>
 
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -533,8 +533,8 @@
                 ['icon' => '
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />', 'color' => 'error', 'title' => 'Audit-Ready Reports', 'desc' => 'Generate complete, compliant driver files for DOT inspections instantly. One-click export to PDF.'],
                 ];
-                $colorMap = ['brand' => 'brand-500', 'success' => 'success-500', 'warning' => 'warning-500', 'blue-light' => 'blue-light-500', 'purple' => 'purple-500', 'error' => 'error-500'];
-                $bgMap = ['brand' => 'brand-50 dark:bg-brand-500/10', 'success' => 'success-50 dark:bg-success-500/10', 'warning' => 'warning-50 dark:bg-warning-500/10', 'blue-light' => 'blue-light-50 dark:bg-blue-light-500/10', 'purple' => 'purple-500/10', 'error' => 'error-50 dark:bg-error-500/10'];
+                $colorMap = ['brand' => 'primary', 'success' => 'success-500', 'warning' => 'warning-500', 'blue-light' => 'blue-light-500', 'purple' => 'purple-500', 'error' => 'error-500'];
+                $bgMap = ['brand' => 'primary/10', 'success' => 'success-50 dark:bg-success-500/10', 'warning' => 'warning-50 dark:bg-warning-500/10', 'blue-light' => 'blue-light-50 dark:bg-blue-light-500/10', 'purple' => 'purple-500/10', 'error' => 'error-50 dark:bg-error-500/10'];
                 @endphp
 
                 @foreach ($features as $i => $f)
@@ -543,7 +543,7 @@
                         <svg class="w-6 h-6 text-{{ $colorMap[$f['color']] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">{!! $f['icon'] !!}</svg>
                     </div>
                     <h3 class="text-lg font-bold mb-2">{{ $f['title'] }}</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{{ $f['desc'] }}</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed">{{ $f['desc'] }}</p>
                 </div>
                 @endforeach
             </div>
@@ -553,12 +553,12 @@
     {{-- ============================================================ --}}
     {{-- HOW IT WORKS --}}
     {{-- ============================================================ --}}
-    <section id="how-it-works" class="py-20 lg:py-28 bg-white dark:bg-gray-900">
+    <section id="how-it-works" class="py-20 lg:py-28 bg-card">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center max-w-3xl mx-auto mb-16">
                 <span class="inline-flex items-center px-3 py-1 rounded-full bg-success-50 dark:bg-success-500/10 text-xs font-semibold text-success-600 dark:text-success-400 uppercase tracking-wider mb-4">How It Works</span>
                 <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Get Audit-Ready in <span class="bg-gradient-to-r from-success-500 to-success-600 bg-clip-text text-transparent">3 Simple Steps</span></h2>
-                <p class="text-lg text-gray-500 dark:text-gray-400">No complex setup. No steep learning curve. Start managing your driver files in minutes.</p>
+                <p class="text-lg text-muted-foreground">No complex setup. No steep learning curve. Start managing your driver files in minutes.</p>
             </div>
 
             <div class="grid md:grid-cols-3 gap-8 lg:gap-12">
@@ -575,15 +575,15 @@
 
                 @foreach ($steps as $i => $step)
                 <div class="relative text-center group">
-                    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-xl shadow-brand-500/20 group-hover:shadow-2xl group-hover:shadow-brand-500/30 transition-all duration-300 group-hover:-translate-y-2">
+                    <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] flex items-center justify-center shadow-xl shadow-primary/20 group-hover:shadow-2xl group-hover:shadow-primary/30 transition-all duration-300 group-hover:-translate-y-2">
                         <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">{!! $step['icon'] !!}</svg>
                     </div>
-                    <span class="inline-block text-xs font-bold text-brand-500 bg-brand-50 dark:bg-brand-500/10 px-3 py-1 rounded-full mb-3">Step {{ $step['num'] }}</span>
+                    <span class="inline-block text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full mb-3">Step {{ $step['num'] }}</span>
                     <h3 class="text-xl font-bold mb-2">{{ $step['title'] }}</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs mx-auto">{{ $step['desc'] }}</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">{{ $step['desc'] }}</p>
                     @if ($i < 2)
                         <div class="hidden md:block absolute top-10 -right-6 lg:-right-6">
-                        <svg class="w-12 h-12 text-gray-200 dark:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
                 </div>
@@ -597,34 +597,34 @@
     {{-- ============================================================ --}}
     {{-- PRICING --}}
     {{-- ============================================================ --}}
-    <section id="pricing" class="py-20 lg:py-28 bg-gray-50 dark:bg-gray-900/50 relative overflow-hidden">
+    <section id="pricing" class="py-20 lg:py-28 bg-muted/50 relative overflow-hidden">
         <div class="absolute inset-0 pointer-events-none">
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-brand-400/5 rounded-full blur-3xl"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/75 rounded-full blur-3xl"></div>
         </div>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div class="text-center max-w-3xl mx-auto mb-16">
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-500/10 text-xs font-semibold text-brand-600 dark:text-brand-400 uppercase tracking-wider mb-4">Pricing</span>
-                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Simple, Transparent <span class="bg-gradient-to-r from-brand-500 to-brand-600 bg-clip-text text-transparent">Pricing</span></h2>
-                <p class="text-lg text-gray-500 dark:text-gray-400">Choose the plan that fits your fleet. All plans include a free trial.</p>
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-xs font-semibold text-primary uppercase tracking-wider mb-4">Pricing</span>
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Simple, Transparent <span class="bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] bg-clip-text text-transparent">Pricing</span></h2>
+                <p class="text-lg text-muted-foreground">Choose the plan that fits your fleet. All plans include a free trial.</p>
             </div>
 
             <div class="grid sm:grid-cols-2 lg:grid-cols-{{ min(count($plans ?? []), 3) ?: 3 }} gap-8 max-w-5xl mx-auto">
                 @forelse ($plans ?? [] as $plan)
-                <div class="relative glass-card rounded-3xl p-8 transition-all duration-500 flex flex-col {{ $plan->is_featured ? 'ring-2 ring-brand-500 shadow-xl shadow-brand-500/10' : '' }}">
+                <div class="relative glass-card rounded-3xl p-8 transition-all duration-500 flex flex-col {{ $plan->is_featured ? 'ring-2 ring-primary shadow-xl shadow-primary/10' : '' }}">
                     @if ($plan->is_featured)
                     <div class="absolute -top-4 left-1/2 -translate-x-1/2">
-                        <span class="px-4 py-1.5 rounded-full bg-gradient-to-r from-brand-500 to-brand-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg">Most Popular</span>
+                        <span class="px-4 py-1.5 rounded-full bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] text-white text-xs font-bold uppercase tracking-wider shadow-lg">Most Popular</span>
                     </div>
                     @endif
 
                     <h3 class="text-xl font-bold mb-2">{{ $plan->name }}</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">{{ $plan->description ?? 'Perfect for growing fleets' }}</p>
+                    <p class="text-sm text-muted-foreground mb-6">{{ $plan->description ?? 'Perfect for growing fleets' }}</p>
 
                     @if ($monthly = $plan->currentPrice('month'))
                     <div class="mb-6">
                         <span class="text-4xl font-extrabold">${{ number_format((float) $monthly->amount, 0) }}</span>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">/month</span>
+                        <span class="text-sm text-muted-foreground">/month</span>
                     </div>
                     @endif
 
@@ -635,14 +635,14 @@
                             <svg class="w-5 h-5 text-success-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                             </svg>
-                            <span class="text-gray-600 dark:text-gray-300">{{ $feature }}</span>
+                            <span class="text-muted-foreground">{{ $feature }}</span>
                         </li>
                         @endforeach
                     </ul>
                     @endif
 
                     @if (Route::has('register'))
-                    <a href="{{ auth()->check() ? route('pricing.plans') : route('register') }}" class="block w-full py-3 text-center rounded-xl font-semibold transition-all duration-300 {{ $plan->is_featured ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/40 hover:-translate-y-0.5' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-brand-50 dark:hover:bg-brand-500/10 hover:text-brand-600 dark:hover:text-brand-400' }}">
+                    <a href="{{ auth()->check() ? route('pricing.plans') : route('register') }}" class="block w-full py-3 text-center rounded-xl font-semibold transition-all duration-300 {{ $plan->is_featured ? 'bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5' : 'bg-muted text-foreground hover:bg-primary/10 hover:text-primary' }}">
                         Get Started
                     </a>
                     @endif
@@ -657,22 +657,22 @@
                 ];
                 @endphp
                 @foreach ($staticPlans as $sp)
-                <div class="relative glass-card rounded-3xl p-8 transition-all duration-500 flex flex-col {{ $sp['featured'] ? 'ring-2 ring-brand-500 shadow-xl shadow-brand-500/10' : '' }}">
+                <div class="relative glass-card rounded-3xl p-8 transition-all duration-500 flex flex-col {{ $sp['featured'] ? 'ring-2 ring-primary shadow-xl shadow-primary/10' : '' }}">
                     @if ($sp['featured'])
-                    <div class="absolute -top-4 left-1/2 -translate-x-1/2"><span class="px-4 py-1.5 rounded-full bg-gradient-to-r from-brand-500 to-brand-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg">Most Popular</span></div>
+                    <div class="absolute -top-4 left-1/2 -translate-x-1/2"><span class="px-4 py-1.5 rounded-full bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] text-white text-xs font-bold uppercase tracking-wider shadow-lg">Most Popular</span></div>
                     @endif
                     <h3 class="text-xl font-bold mb-2">{{ $sp['name'] }}</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">{{ $sp['desc'] }}</p>
-                    <div class="mb-6"><span class="text-4xl font-extrabold">${{ $sp['price'] }}</span><span class="text-sm text-gray-500">/month</span></div>
+                    <p class="text-sm text-muted-foreground mb-6">{{ $sp['desc'] }}</p>
+                    <div class="mb-6"><span class="text-4xl font-extrabold">${{ $sp['price'] }}</span><span class="text-sm text-muted-foreground">/month</span></div>
                     <ul class="space-y-3 mb-8 grow">
                         @foreach ($sp['features'] as $feat)
                         <li class="flex items-start gap-2 text-sm"><svg class="w-5 h-5 text-success-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                            </svg><span class="text-gray-600 dark:text-gray-300">{{ $feat }}</span></li>
+                            </svg><span class="text-muted-foreground">{{ $feat }}</span></li>
                         @endforeach
                     </ul>
                     @if (Route::has('register'))
-                    <a href="{{ route('register') }}" class="block w-full py-3 text-center rounded-xl font-semibold transition-all duration-300 {{ $sp['featured'] ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/25 hover:shadow-xl hover:-translate-y-0.5' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-brand-50 dark:hover:bg-brand-500/10 hover:text-brand-600' }}">Get Started</a>
+                    <a href="{{ route('register') }}" class="block w-full py-3 text-center rounded-xl font-semibold transition-all duration-300 {{ $sp['featured'] ? 'bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-0.5' : 'bg-muted text-foreground hover:bg-primary/10 hover:text-primary' }}">Get Started</a>
                     @endif
                 </div>
                 @endforeach
@@ -684,7 +684,7 @@
     {{-- ============================================================ --}}
     {{-- TESTIMONIALS --}}
     {{-- ============================================================ --}}
-    <section id="testimonials" class="py-20 lg:py-28 bg-white dark:bg-gray-900">
+    <section id="testimonials" class="py-20 lg:py-28 bg-card">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center max-w-3xl mx-auto mb-16">
                 <span class="inline-flex items-center px-3 py-1 rounded-full bg-warning-50 dark:bg-warning-500/10 text-xs font-semibold text-warning-600 dark:text-warning-400 uppercase tracking-wider mb-4">Testimonials</span>
@@ -708,12 +708,12 @@
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                             @endfor
                     </div>
-                    <blockquote class="text-gray-600 dark:text-gray-300 leading-relaxed mb-6 grow italic">"{{ $t['quote'] }}"</blockquote>
+                    <blockquote class="text-muted-foreground leading-relaxed mb-6 grow italic">"{{ $t['quote'] }}"</blockquote>
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold text-sm">{{ substr($t['name'], 0, 1) }}</div>
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary/75 to-[color-mix(in_oklch,var(--primary)_88%,black)] flex items-center justify-center text-white font-bold text-sm">{{ substr($t['name'], 0, 1) }}</div>
                         <div>
                             <p class="text-sm font-semibold">{{ $t['name'] }}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ $t['role'] }}, {{ $t['company'] }}</p>
+                            <p class="text-xs text-muted-foreground">{{ $t['role'] }}, {{ $t['company'] }}</p>
                         </div>
                     </div>
                 </div>
@@ -726,18 +726,18 @@
     {{-- CTA BANNER --}}
     {{-- ============================================================ --}}
     <section class="py-20 lg:py-28 relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900 animate-gradient"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-[color-mix(in_oklch,var(--primary)_88%,black)] via-[color-mix(in_oklch,var(--primary)_74%,black)] to-[color-mix(in_oklch,var(--primary)_46%,black)] animate-gradient"></div>
         <div class="absolute inset-0 pointer-events-none">
-            <div class="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
-            <div class="absolute bottom-0 left-0 w-96 h-96 bg-brand-400/10 rounded-full blur-3xl"></div>
+            <div class="absolute top-0 right-0 w-96 h-96 bg-background/5 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 w-96 h-96 bg-primary/75 rounded-full blur-3xl"></div>
         </div>
 
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
             <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-6 tracking-tight">Ready to Go Audit-Ready?</h2>
-            <p class="text-lg sm:text-xl text-brand-100 mb-10 max-w-2xl mx-auto">Start your free trial today — no credit card required. Join 5,200+ trucking companies already using our platform.</p>
+            <p class="text-lg sm:text-xl text-[color-mix(in_oklch,var(--primary)_16%,white)] mb-10 max-w-2xl mx-auto">Start your free trial today — no credit card required. Join 5,200+ trucking companies already using our platform.</p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 @if (Route::has('register'))
-                <a href="{{ route('register') }}" class="px-8 py-4 text-base font-semibold text-brand-600 bg-white hover:bg-gray-50 rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 inline-flex items-center justify-center gap-2">Start Free Trial <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <a href="{{ route('register') }}" class="px-8 py-4 text-base font-semibold text-primary bg-card hover:bg-muted/50 rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 inline-flex items-center justify-center gap-2">Start Free Trial <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg></a>
                 @endif
@@ -754,7 +754,7 @@
     {{-- ============================================================ --}}
     {{-- FAQ --}}
     {{-- ============================================================ --}}
-    <section id="faq" class="py-20 lg:py-28 bg-white dark:bg-gray-900">
+    <section id="faq" class="py-20 lg:py-28 bg-card">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <span class="inline-flex items-center px-3 py-1 rounded-full bg-blue-light-50 dark:bg-blue-light-500/10 text-xs font-semibold text-blue-light-600 dark:text-blue-light-400 uppercase tracking-wider mb-4">FAQ</span>
@@ -774,15 +774,15 @@
                 @endphp
 
                 @foreach ($faqs as $i => $faq)
-                <div class="glass-card rounded-2xl overflow-hidden transition-all duration-300" :class="openFaq === {{ $i }} ? 'ring-1 ring-brand-500/30' : ''">
+                <div class="glass-card rounded-2xl overflow-hidden transition-all duration-300" :class="openFaq === {{ $i }} ? 'ring-1 ring-primary/30' : ''">
                     <button @click="openFaq = openFaq === {{ $i }} ? null : {{ $i }}" class="w-full flex items-center justify-between px-6 py-5 text-left">
-                        <span class="font-semibold text-gray-900 dark:text-white pr-4">{{ $faq['q'] }}</span>
-                        <svg class="w-5 h-5 text-gray-400 shrink-0 transition-transform duration-300" :class="openFaq === {{ $i }} ? 'rotate-180 text-brand-500' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <span class="font-semibold text-foreground pr-4">{{ $faq['q'] }}</span>
+                        <svg class="w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-300" :class="openFaq === {{ $i }} ? 'rotate-180 text-primary' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
                     <div x-show="openFaq === {{ $i }}" x-collapse x-cloak>
-                        <div class="px-6 pb-5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed border-t border-gray-100 dark:border-gray-800 pt-4">{{ $faq['a'] }}</div>
+                        <div class="px-6 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border pt-4">{{ $faq['a'] }}</div>
                     </div>
                 </div>
                 @endforeach
@@ -793,7 +793,7 @@
     {{-- ============================================================ --}}
     {{-- FOOTER --}}
     {{-- ============================================================ --}}
-    <footer class="bg-gray-900 dark:bg-gray-950 text-gray-400 pt-16 pb-8 border-t border-gray-800">
+    <footer class="dark bg-background text-muted-foreground pt-16 pb-8 border-t border-border">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
                 <div>
@@ -827,13 +827,13 @@
                     </ul>
                 </div>
             </div>
-            <div class="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="border-t border-border pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <p class="text-sm">&copy; {{ date('Y') }} Driver Qualification Platform. All rights reserved.</p>
                 <div class="flex gap-4">
-                    <a href="#" class="w-9 h-9 rounded-lg bg-gray-800 hover:bg-brand-500 flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <a href="#" class="w-9 h-9 rounded-lg bg-muted hover:bg-primary flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
                         </svg></a>
-                    <a href="#" class="w-9 h-9 rounded-lg bg-gray-800 hover:bg-brand-500 flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <a href="#" class="w-9 h-9 rounded-lg bg-muted hover:bg-primary flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
                         </svg></a>
                 </div>
@@ -851,13 +851,13 @@
 
         {{-- Backdrop --}}
         <div x-show="open" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-            @click="open = false" class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"></div>
+            @click="open = false" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
 
         {{-- Modal content --}}
         <div x-show="open" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95 translate-y-4"
-            class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 overflow-y-auto max-h-[90vh]">
+            class="relative w-full max-w-lg bg-card rounded-3xl shadow-2xl p-8 overflow-y-auto max-h-[90vh]">
 
-            <button @click="open = false" class="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <button @click="open = false" class="absolute top-4 right-4 p-2 rounded-lg hover:bg-muted transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -866,26 +866,26 @@
             <template x-if="!submitted">
                 <div>
                     <h3 class="text-2xl font-bold mb-2">Schedule a Demo</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Fill in your details and our team will reach out within 24 hours.</p>
+                    <p class="text-sm text-muted-foreground mb-6">Fill in your details and our team will reach out within 24 hours.</p>
 
                     <form @submit.prevent="submitted = true" class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium mb-1">Full Name</label>
-                            <input x-model="name" type="text" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
+                            <input x-model="name" type="text" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                         </div>
                         <div>
                             <label class="block text-sm font-medium mb-1">Email Address</label>
-                            <input x-model="email" type="email" required placeholder="john@company.com" class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
+                            <input x-model="email" type="email" required placeholder="john@company.com" class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                         </div>
                         <div>
                             <label class="block text-sm font-medium mb-1">Company Name</label>
-                            <input x-model="company" type="text" placeholder="Your Trucking Company" class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
+                            <input x-model="company" type="text" placeholder="Your Trucking Company" class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                         </div>
                         <div>
                             <label class="block text-sm font-medium mb-1">Message (optional)</label>
-                            <textarea x-model="message" rows="3" placeholder="Tell us about your fleet size and needs..." class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none"></textarea>
+                            <textarea x-model="message" rows="3" placeholder="Tell us about your fleet size and needs..." class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"></textarea>
                         </div>
-                        <button type="submit" class="w-full py-3 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/40">
+                        <button type="submit" class="w-full py-3 bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] hover:from-[color-mix(in_oklch,var(--primary)_88%,black)] hover:to-[color-mix(in_oklch,var(--primary)_74%,black)] text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40">
                             Request Demo
                         </button>
                     </form>
@@ -900,8 +900,8 @@
                         </svg>
                     </div>
                     <h3 class="text-2xl font-bold mb-2">Thank You!</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">We've received your request. Our team will contact you within 24 hours to schedule your personalized demo.</p>
-                    <button @click="open = false; submitted = false" class="px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-all duration-300">Close</button>
+                    <p class="text-sm text-muted-foreground mb-6">We've received your request. Our team will contact you within 24 hours to schedule your personalized demo.</p>
+                    <button @click="open = false; submitted = false" class="px-6 py-3 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl transition-all duration-300">Close</button>
                 </div>
             </template>
         </div>
