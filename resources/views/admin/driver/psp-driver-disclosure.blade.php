@@ -3,467 +3,111 @@
 @section('title', 'PSP Driver Disclosure & Authorization')
 
 @section('content')
-    <div class="p-4 mx-auto max-w-7xl">
-        <div class="mb-6">
-            <h1 class="text-2xl font-bold text-foreground dark:text-white/90">
+    <x-application.step admin :edit="$isEditMode" :driver="$driver" :step="$currentStep"
+        :title="$isEditMode ? 'Edit PSP Driver Disclosure & Authorization' : 'PSP Driver Disclosure & Authorization'"
+        :description="$isEditMode ? 'Update authorization for background reports from the PSP Online Service (Step 8 of 10)' : 'Authorization for background reports from the PSP Online Service (Step 8 of 10)'">
+        <x-slot:details>
+            @if ($driver_document && $driver_document->psp_authorization)
+                <x-ui.detail label="PSP Authorization"><x-ui.badge tone="success">Authorized</x-ui.badge></x-ui.detail>
+                <x-ui.detail label="Authorized Date" :value="$driver_document->psp_authorization_date ? \Carbon\Carbon::parse($driver_document->psp_authorization_date)->format('m/d/Y') : 'N/A'" />
+            @else
+                <x-ui.detail label="PSP Authorization"><x-ui.badge tone="danger">Not Authorized</x-ui.badge></x-ui.detail>
+            @endif
+        </x-slot:details>
+        <x-slot:after>
+            <x-ui.card size="sm">
+                <x-slot:title><span class="inline-flex items-center gap-2"><x-ui.icon name="info" class="size-4" /> About PSP Reports</span></x-slot:title>
+                <ul class="grid gap-2 text-sm text-muted-foreground">
+                    <li class="flex items-center gap-2"><x-ui.icon name="shield" class="size-4 shrink-0" /> FMCSA Pre-Employment Screening Program</li>
+                    <li class="flex items-center gap-2"><x-ui.icon name="car-front" class="size-4 shrink-0" /> 5 years of crash data</li>
+                    <li class="flex items-center gap-2"><x-ui.icon name="search" class="size-4 shrink-0" /> 3 years of inspection history</li>
+                    <li class="flex items-center gap-2"><x-ui.icon name="scale" class="size-4 shrink-0" /> FMCSR violation records</li>
+                </ul>
+            </x-ui.card>
+        </x-slot:after>
+
+        <form id="step-form" action="{{ route('admin.driver.psp.store') }}" method="POST" class="grid gap-6">
+            @csrf
+            <input type="hidden" name="driver_id" value="{{ $driver_id }}">
+            <input type="hidden" name="from_edit" value="{{ $isEditMode ? '1' : '0' }}">
+
+            @if ($isEditMode && $driver_document && $driver_document->psp_authorization)
+                <x-ui.card title="Current PSP Authorization Status">
+                    <x-slot:action><x-ui.badge tone="success">Authorized</x-ui.badge></x-slot:action>
+                    <div class="grid gap-4">
+                        <dl class="grid grid-cols-2 gap-3 rounded-lg border bg-muted/40 p-4">
+                            <x-ui.detail label="Status" value="Authorized" />
+                            <x-ui.detail label="Authorization Date" :value="$driver_document->psp_authorization_date ? \Carbon\Carbon::parse($driver_document->psp_authorization_date)->format('m/d/Y H:i') : 'N/A'" />
+                            <x-ui.detail label="Signature" :value="$driver_document->psp_authorization_signature ?? 'Not Available'" />
+                            <x-ui.detail label="Date Signed" :value="$driver_document->psp_authorization_agreement_date ?? 'N/A'" />
+                        </dl>
+                        <p class="inline-flex items-center gap-2 text-sm text-muted-foreground"><x-ui.icon name="info" class="size-4" /> Updating this form will create a new authorization record.</p>
+                    </div>
+                </x-ui.card>
+            @endif
+
+            <x-ui.card id="disclosure-card" title="IMPORTANT DISCLOSURE REGARDING BACKGROUND REPORTS FROM THE PSP ONLINE SERVICE">
                 @if ($isEditMode)
-                    Edit PSP Driver Disclosure & Authorization
-                @else
-                    PSP Driver Disclosure & Authorization
+                    <x-slot:action><x-ui.badge tone="info">Edit Mode - Step 8 of 10</x-ui.badge></x-slot:action>
                 @endif
-            </h1>
-            <p class="text-muted-foreground">
-                @if ($isEditMode)
-                    Update authorization for background reports from the PSP Online Service (Step 8 of 10)
-                @else
-                    Authorization for background reports from the PSP Online Service (Step 8 of 10)
-                @endif
-            </p>
-            <div class="mt-2 flex items-center text-sm text-muted-foreground">
-                <x-ui.icon name="user" class="inline-block size-4 align-[-0.125em] mr-2" />
-                <span>Driver: {{ $driver->first_name }} {{ $driver->last_name }}</span>
-                @if ($driver->company)
-                    <span class="mx-2">•</span>
-                    <x-ui.icon name="building-2" class="inline-block size-4 align-[-0.125em] mr-2" />
-                    <span>Company: {{ $driver->company->company_name }}</span>
-                @endif
-            </div>
-        </div>
+                <div class="grid gap-4 text-sm">
+                    <p>In connection with your application for employment with <strong>{{ $authUser->name }} ("Prospective Employer")</strong>, Prospective Employer, its employees, agents or contractors may obtain one or more reports regarding your driving, and safety inspection history from the Federal Motor Carrier Safety Administration (FMCSA).</p>
+                    <section class="grid gap-2 rounded-lg border bg-muted/40 p-4">
+                        <h3 class="font-semibold">In-Person Applications:</h3>
+                        <p>When the application for employment is submitted in person, if the Prospective Employer uses any information it obtains from FMCSA in a decision to not hire you or to make any other adverse employment decision regarding you, the Prospective Employer will provide you with a copy of the report upon which its decision was based and a written summary of your rights under the Fair Credit Reporting Act before taking any final adverse action. If any final adverse action is taken against you based upon your driving history or safety report, the Prospective Employer will notify you that the action has been taken and that the action was based in part or in whole on this report.</p>
+                    </section>
+                    <section class="grid gap-2 rounded-lg border bg-muted/40 p-4">
+                        <h3 class="font-semibold">Remote Applications:</h3>
+                        <p>When the application for employment is submitted by mail, telephone, computer, or other similar means, if the Prospective Employer uses any information it obtains from FMCSA in a decision to not hire you or to make any other adverse employment decision regarding you, the Prospective Employer must provide you within three business days of taking adverse action oral, written or electronic notification; that adverse action has been taken based in whole or in part on information obtained from FMCSA; the name, address, and the toll free telephone number of FMCSA; that the FMCSA did not make the decision to take the adverse action and is unable to provide you the specific reasons why the adverse action was taken; and that you may, upon providing proper identification, request a free copy of the report and may dispute with the FMCSA the accuracy or completeness of any information or report. If you request a copy of a driver record from the Prospective Employer who procured the report, then, within 3 business days of receiving your request, together with proper identification, the Prospective Employer must send or provide to you a copy of your report and a summary of your rights under the Fair Credit Reporting Act.</p>
+                    </section>
+                    <x-ui.alert tone="warning" title="Important Information About Data Accuracy:">
+                        <p><strong>Neither the Prospective Employer nor the FMCSA contractor supplying the crash and safety information has the capability to correct any safety data that appears to be incorrect.</strong> You may challenge the accuracy of the data by submitting a request to https://dataqs.fmcsa.dot.gov/. If you challenge crash or inspection information reported by a State, FMCSA cannot change or correct this data. Your request will be forwarded by the DataQs system to the appropriate State for adjudication.</p>
+                    </x-ui.alert>
+                    <section class="grid gap-2 rounded-lg border bg-muted/40 p-4">
+                        <h3 class="font-semibold">About Your PSP Report:</h3>
+                        <p>Any crash or inspection in which you were involved will display on your PSP report. Since the PSP report does not report or assign, or imply fault, it will include all Commercial Motor Vehicle (CMV) crashes where you were a driver or co-driver and where those crashes were reported to FMCSA, regardless of fault. Similarly, all inspections, with or without violations, appear on the PSP report. State citations associated with Federal Motor Carrier Safety Regulations (FMCSR) violations that have been adjudicated by a court of law will also appear, and remain, on a PSP report.</p>
+                    </section>
+                    <x-ui.alert tone="info" title="Your Authorization Required:">
+                        <strong>The Prospective Employer cannot obtain background reports from FMCSA without your authorization.</strong>
+                    </x-ui.alert>
+                </div>
+            </x-ui.card>
 
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <div class="md:col-span-9">
-                @if ($errors->any())
-                    <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800">
-                        <div class="flex items-center">
-                            <svg class="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            <h3 class="text-red-800 dark:text-red-200 font-medium">Please fix the following errors:</h3>
-                        </div>
-                        <ul class="mt-2 list-disc list-inside text-sm text-red-700 dark:text-red-300">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
-                <form action="{{ route('admin.driver.psp.store') }}" method="POST">
-                    @csrf
-                    <input type="hidden" name="driver_id" value="{{ $driver_id }}">
-                    <input type="hidden" name="from_edit" value="{{ $isEditMode ? '1' : '0' }}">
-
-                    <!-- Current Authorization Status -->
-                    @if ($isEditMode && $driver_document && $driver_document->psp_authorization)
-                        <div
-                            class="rounded-2xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/10 mb-6">
-                            <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-blue-100 dark:border-blue-800">
-                                <div class="flex justify-between items-center">
-                                    <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-200">
-                                        Current PSP Authorization Status
-                                    </h3>
-                                    <span
-                                        class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                        Authorized
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="p-5 sm:p-6">
-                                <div class="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <span class="font-medium text-blue-600 dark:text-blue-400">Status:</span>
-                                        <span class="ml-2 font-medium text-green-600 dark:text-green-400">
-                                            Authorized
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span class="font-medium text-blue-600 dark:text-blue-400">Authorization
-                                            Date:</span>
-                                        <span class="ml-2 text-blue-800 dark:text-blue-200">
-                                            {{ $driver_document->psp_authorization_date ? \Carbon\Carbon::parse($driver_document->psp_authorization_date)->format('m/d/Y H:i') : 'N/A' }}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span class="font-medium text-blue-600 dark:text-blue-400">Signature:</span>
-                                        <span class="ml-2 text-blue-800 dark:text-blue-200">
-                                            {{ $driver_document->psp_authorization_signature ?? 'Not Available' }}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span class="font-medium text-blue-600 dark:text-blue-400">Date Signed:</span>
-                                        <span class="ml-2 text-blue-800 dark:text-blue-200">
-                                            {{ $driver_document->psp_authorization_agreement_date ?? 'N/A' }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <p class="mt-4 text-sm text-blue-700 dark:text-blue-300">
-                                    <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-2" />
-                                    Updating this form will create a new authorization record.
-                                </p>
-                            </div>
-                        </div>
-                    @endif
-
-                    <!-- Important Disclosure Section -->
-                    <div class="rounded-2xl border border-border bg-card dark:bg-white/[0.03] mb-6">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-border">
-                            <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
-                                    IMPORTANT DISCLOSURE REGARDING BACKGROUND REPORTS FROM THE PSP ONLINE SERVICE
-                                </h3>
-                                @if ($isEditMode)
-                                    <span
-                                        class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                        Edit Mode - Step 8 of 10
-                                    </span>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="p-5 sm:p-6">
-                            <div class="mb-6 space-y-4">
-                                <p class="text-sm text-foreground">
-                                    In connection with your application for employment with <strong>{{ $authUser->name }}
-                                        ("Prospective Employer")</strong>, Prospective Employer, its employees, agents or
-                                    contractors may obtain one or more reports regarding your driving, and safety inspection
-                                    history from the Federal Motor Carrier Safety Administration (FMCSA).
-                                </p>
-
-                                <div class="p-4 bg-muted/50 rounded-lg">
-                                    <h4 class="font-semibold text-foreground dark:text-white/90 mb-2">In-Person Applications:
-                                    </h4>
-                                    <p class="text-sm text-foreground">
-                                        When the application for employment is submitted in person, if the Prospective
-                                        Employer uses any information it obtains from FMCSA in a decision to not hire you or
-                                        to make any other adverse employment decision regarding you, the Prospective
-                                        Employer will provide you with a copy of the report upon which its decision was
-                                        based and a written summary of your rights under the Fair Credit Reporting Act
-                                        before taking any final adverse action. If any final adverse action is taken against
-                                        you based upon your driving history or safety report, the Prospective Employer will
-                                        notify you that the action has been taken and that the action was based in part or
-                                        in whole on this report.
-                                    </p>
-                                </div>
-
-                                <div class="p-4 bg-muted/50 rounded-lg">
-                                    <h4 class="font-semibold text-foreground dark:text-white/90 mb-2">Remote Applications:
-                                    </h4>
-                                    <p class="text-sm text-foreground">
-                                        When the application for employment is submitted by mail, telephone, computer, or
-                                        other similar means, if the Prospective Employer uses any information it obtains
-                                        from FMCSA in a decision to not hire you or to make any other adverse employment
-                                        decision regarding you, the Prospective Employer must provide you within three
-                                        business days of taking adverse action oral, written or electronic notification;
-                                        that adverse action has been taken based in whole or in part on information obtained
-                                        from FMCSA; the name, address, and the toll free telephone number of FMCSA; that the
-                                        FMCSA did not make the decision to take the adverse action and is unable to provide
-                                        you the specific reasons why the adverse action was taken; and that you may, upon
-                                        providing proper identification, request a free copy of the report and may dispute
-                                        with the FMCSA the accuracy or completeness of any information or report. If you
-                                        request a copy of a driver record from the Prospective Employer who procured the
-                                        report, then, within 3 business days of receiving your request, together with proper
-                                        identification, the Prospective Employer must send or provide to you a copy of your
-                                        report and a summary of your rights under the Fair Credit Reporting Act.
-                                    </p>
-                                </div>
-
-                                <div
-                                    class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/10 dark:border-yellow-800">
-                                    <h4 class="font-semibold text-foreground dark:text-white/90 mb-2">Important Information
-                                        About Data Accuracy:</h4>
-                                    <p class="text-sm text-foreground mb-3">
-                                        <strong>Neither the Prospective Employer nor the FMCSA contractor supplying the
-                                            crash and safety information has the capability to correct any safety data that
-                                            appears to be incorrect.</strong> You may challenge the accuracy of the data by
-                                        submitting a request to https://dataqs.fmcsa.dot.gov/. If you challenge crash or
-                                        inspection information reported by a State, FMCSA cannot change or correct this
-                                        data. Your request will be forwarded by the DataQs system to the appropriate State
-                                        for adjudication.
-                                    </p>
-                                </div>
-
-                                <div class="p-4 bg-muted/50 rounded-lg">
-                                    <h4 class="font-semibold text-foreground dark:text-white/90 mb-2">About Your PSP Report:
-                                    </h4>
-                                    <p class="text-sm text-foreground">
-                                        Any crash or inspection in which you were involved will display on your PSP report.
-                                        Since the PSP report does not report or assign, or imply fault, it will include all
-                                        Commercial Motor Vehicle (CMV) crashes where you were a driver or co-driver and
-                                        where those crashes were reported to FMCSA, regardless of fault. Similarly, all
-                                        inspections, with or without violations, appear on the PSP report. State citations
-                                        associated with Federal Motor Carrier Safety Regulations (FMCSR) violations that
-                                        have been adjudicated by a court of law will also appear, and remain, on a PSP
-                                        report.
-                                    </p>
-                                </div>
-
-                                <div
-                                    class="p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/10 dark:border-blue-800">
-                                    <h4 class="font-semibold text-foreground dark:text-white/90 mb-2">Your Authorization
-                                        Required:</h4>
-                                    <p class="text-sm text-foreground">
-                                        <strong>The Prospective Employer cannot obtain background reports from FMCSA without
-                                            your authorization.</strong>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+            <x-ui.card title="AUTHORIZATION" description="If you agree that the Prospective Employer may obtain such background reports, please read the following and sign below:">
+                <div class="grid gap-6">
+                    <div class="grid gap-4 text-sm">
+                        <p class="rounded-lg border bg-muted/40 p-4">I authorize <strong>{{ $authUser->name }} ("Prospective Employer")</strong> to access the FMCSA Pre-Employment Screening Program (PSP) system to seek information regarding my commercial driving safety record and information regarding my safety inspection history. I understand that I am authorizing the release of safety performance information including crash data from the previous five (5) years and inspection history from the previous three (3) years. I understand and acknowledge that this release of information may assist the Prospective Employer to make a determination regarding my suitability as an employee.</p>
+                        <p class="rounded-lg border bg-muted/40 p-4">I further understand that neither the Prospective Employer nor the FMCSA contractor supplying the crash and safety information has the capability to correct any safety data that appears to be incorrect. I understand I may challenge the accuracy of the data by submitting a request to https://dataqs.fmcsa.dot.gov/. If I challenge crash or inspection information reported by a State, FMCSA cannot change or correct this data. I understand my request will be forwarded by the DataQs system to the appropriate State for adjudication.</p>
+                        <p class="rounded-lg border bg-muted/40 p-4">I understand that any crash or inspection in which I was involved will display on my PSP report. Since the PSP report does not report, or assign, or imply fault, I acknowledge it will include all CMV crashes where I was a driver or co-driver and where those crashes were reported to FMCSA, regardless of fault. Similarly, I understand all inspections, with or without violations, will appear on my PSP report, and State citations associated with FMCSR violations that have been adjudicated by a court of law will also appear, and remain, on our PSP report. I have read the above Disclosure Regarding Background Reports provided to me by Prospective Employer and I understand that if I sign this Disclosure and Authorization, Prospective Employer may obtain a report of my crash and inspection history, I hereby authorize Prospective Employer and its employees, authorized agents, and/or affiliates to obtain the information authorized above.</p>
                     </div>
 
-                    <!-- Authorization Section -->
-                    <div class="rounded-2xl border border-border bg-card dark:bg-white/[0.03] mb-6">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-border">
-                            <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
-                                AUTHORIZATION
-                            </h3>
-                            <p class="text-sm text-muted-foreground mt-1">
-                                If you agree that the Prospective Employer may obtain such background reports, please read
-                                the following and sign below:
-                            </p>
-                        </div>
-                        <div class="p-5 sm:p-6">
-                            <div class="mb-6 space-y-4">
-                                <div class="p-4 bg-muted/50 rounded-lg">
-                                    <p class="text-sm text-foreground">
-                                        I authorize <strong>{{ $authUser->name }} ("Prospective Employer")</strong> to
-                                        access
-                                        the FMCSA Pre-Employment Screening Program (PSP) system to seek information
-                                        regarding my commercial driving safety record and information regarding my safety
-                                        inspection history. I understand that I am authorizing the release of safety
-                                        performance information including crash data from the previous five (5) years and
-                                        inspection history from the previous three (3) years. I understand and acknowledge
-                                        that this release of information may assist the Prospective Employer to make a
-                                        determination regarding my suitability as an employee.
-                                    </p>
-                                </div>
+                    <label class="flex items-start gap-3 text-sm leading-relaxed">
+                        <input type="checkbox" name="authorization_agreement" value="1" class="input mt-0.5" @if (! $isEditMode) required @endif />
+                        <span>I have read and understand the above disclosure and authorization statements.</span>
+                    </label>
 
-                                <div class="p-4 bg-muted/50 rounded-lg">
-                                    <p class="text-sm text-foreground">
-                                        I further understand that neither the Prospective Employer nor the FMCSA contractor
-                                        supplying the crash and safety information has the capability to correct any safety
-                                        data that appears to be incorrect. I understand I may challenge the accuracy of the
-                                        data by submitting a request to https://dataqs.fmcsa.dot.gov/. If I challenge crash
-                                        or inspection information reported by a State, FMCSA cannot change or correct this
-                                        data. I understand my request will be forwarded by the DataQs system to the
-                                        appropriate State for adjudication.
-                                    </p>
-                                </div>
-
-                                <div class="p-4 bg-muted/50 rounded-lg">
-                                    <p class="text-sm text-foreground">
-                                        I understand that any crash or inspection in which I was involved will display on my
-                                        PSP report. Since the PSP report does not report, or assign, or imply fault, I
-                                        acknowledge it will include all CMV crashes where I was a driver or co-driver and
-                                        where those crashes were reported to FMCSA, regardless of fault. Similarly, I
-                                        understand all inspections, with or without violations, will appear on my PSP
-                                        report, and State citations associated with FMCSR violations that have been
-                                        adjudicated by a court of law will also appear, and remain, on our PSP report. I
-                                        have read the above Disclosure Regarding Background Reports provided to me by
-                                        Prospective Employer and I understand that if I sign this Disclosure and
-                                        Authorization, Prospective Employer may obtain a report of my crash and inspection
-                                        history, I hereby authorize Prospective Employer and its employees, authorized
-                                        agents, and/or affiliates to obtain the information authorized above.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Agreement Checkbox -->
-                            <div class="mb-6">
-                                <label class="inline-flex items-center cursor-pointer select-none">
-                                    <input type="checkbox" name="authorization_agreement" value="1"
-                                        class="text-primary focus:ring-primary/20 h-4 w-4 border-input rounded focus:ring-3 focus:outline-hidden"
-                                        @if (!$isEditMode) required @endif />
-                                    <span class="ml-2 text-sm text-foreground">
-                                        I have read and understand the above disclosure and authorization statements.
-                                    </span>
-                                </label>
-                            </div>
-
-                            <!-- Signature Section -->
-                            <div class="mt-6">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label for="applicant_signature"
-                                            class="block text-sm font-medium text-foreground mb-2">
-                                            Applicant Signature <span class="text-red-500">*</span>
-                                        </label>
-                                        <input type="text" name="applicant_signature" id="applicant_signature"
-                                            value="{{ old('applicant_signature', $driver_document->psp_authorization_signature ?? '') }}"
-                                            placeholder="Type your full name as signature"
-                                            class="shadow-theme-xs focus:border-primary/50 focus:ring-primary/10 h-11 w-full rounded-lg border border-input bg-transparent px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-3 focus:outline-hidden dark:text-white/90 dark:placeholder:text-white/30"
-                                            @if (!$isEditMode) required @endif>
-                                    </div>
-                                    <div>
-                                        <label for="date_signed"
-                                            class="block text-sm font-medium text-foreground mb-2">
-                                            Date Signed <span class="text-red-500">*</span>
-                                        </label>
-                                        <input type="date" name="date_signed" id="date_signed"
-                                            value="{{ old('date_signed', date('Y-m-d')) }}"
-                                            class="shadow-theme-xs focus:border-primary/50 focus:ring-primary/10 h-11 w-full rounded-lg border border-input bg-transparent px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-3 focus:outline-hidden dark:text-white/90 dark:placeholder:text-white/30"
-                                            @if (!$isEditMode) required @endif>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Important Notice -->
-                    <div class="rounded-2xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/10 mb-6">
-                        <div class="p-5 sm:p-6">
-                            <div class="flex items-start">
-                                <svg class="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 shrink-0"
-                                    fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd"
-                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                                <div>
-                                    <h4 class="text-sm font-semibold text-red-800 dark:text-red-300">IMPORTANT NOTICE:</h4>
-                                    <p class="text-sm text-red-700 dark:text-red-400 mt-1">
-                                        This form is made available to monthly account holders by NIC on behalf of the U.S.
-                                        Department of Transportation, Federal Motor Carrier Safety Administration (FMCSA).
-                                        Account holders are required by federal law to obtain an Applicant's written or
-                                        electronic consent prior to accessing the Applicant's PSP report. Further, account
-                                        holders are required by FMCSA to use the language contained in this Disclosure and
-                                        Authorization form to obtain an Applicant's consent. The language must be used in
-                                        whole, exactly as provided. Further, the language on this form must exist as one
-                                        stand-alone document. The language may NOT be included with other consent forms or
-                                        any other language.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Form Actions -->
-                    <div
-                        class="flex flex-col sm:flex-row gap-4 justify-between pt-6 border-t border-border">
-                        @if ($isEditMode)
-                            <a href="{{ route('admin.driver.edit', ['id' => $driver_id]) }}"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-foreground bg-card border border-input rounded-lg shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
-                                <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
-                                Back to Driver Edit
-                            </a>
-                        @else
-                            <a href="{{ route('admin.driver.fmcsa.consent', ['driver_id' => $driver_id]) }}"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-foreground bg-card border border-input rounded-lg shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
-                                <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />
-                                Back to Step 7
-                            </a>
-                        @endif
-
-                        <div class="flex gap-4">
-                            <button type="submit" name="action" value="save"
-                                class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-primary border border-transparent rounded-lg shadow-theme-xs hover:bg-primary/90 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
-                                <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />
-                                {{ $isEditMode ? 'Update & Continue to Step 9' : 'Save & Continue to Step 9' }}
-                            </button>
-
-                            @if ($isEditMode)
-                                <a href="{{ route('admin.driver.alcohol.and.drug.test.policy', ['driver_id' => $driver_id, 'edit' => '1']) }}"
-                                    class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-foreground bg-card border border-input rounded-lg shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary">
-                                    Skip to Next Step
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Progress Bar Sidebar -->
-            <div class="md:col-span-3">
-                @include('components.progress-bar', [
-                    'currentStep' => $currentStep,
-                    'totalSteps' => 10,
-                    'isEditMode' => $isEditMode,
-                    'driver_id' => $driver_id,
-                ])
-
-                <!-- Driver Info Card -->
-                <div class="mt-6 rounded-lg border border-border bg-card dark:bg-white/[0.03] p-4">
-                    <h3 class="font-medium text-foreground dark:text-white/90 mb-3">Driver Information</h3>
-                    <div class="space-y-2">
-                        <div class="flex items-center text-sm">
-                            <span class="w-24 text-muted-foreground">Name:</span>
-                            <span class="font-medium text-foreground dark:text-white/90">{{ $driver->first_name }}
-                                {{ $driver->last_name }}</span>
-                        </div>
-                        <div class="flex items-center text-sm">
-                            <span class="w-24 text-muted-foreground">Email:</span>
-                            <span class="font-medium text-foreground dark:text-white/90">{{ $driver->email }}</span>
-                        </div>
-                        <div class="flex items-center text-sm">
-                            <span class="w-24 text-muted-foreground">Phone:</span>
-                            <span class="font-medium text-foreground dark:text-white/90">{{ $driver->main_phone }}</span>
-                        </div>
-                        @if ($driver->company)
-                            <div class="flex items-center text-sm">
-                                <span class="w-24 text-muted-foreground">Company:</span>
-                                <span
-                                    class="font-medium text-foreground dark:text-white/90">{{ $driver->company->company_name }}</span>
-                            </div>
-                        @endif
-                        <div class="flex items-center text-sm">
-                            <span class="w-24 text-muted-foreground">Status:</span>
-                            <span
-                                class="font-medium {{ $driver->status == 'active' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400' }}">
-                                {{ ucfirst($driver->status) }}
-                            </span>
-                        </div>
-                        @if ($driver_document && $driver_document->psp_authorization)
-                            <div class="flex items-center text-sm">
-                                <span class="w-24 text-muted-foreground">PSP Authorization:</span>
-                                <span class="font-medium text-green-600 dark:text-green-400">
-                                    <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] mr-1" /> Authorized
-                                </span>
-                            </div>
-                            <div class="flex items-center text-sm">
-                                <span class="w-24 text-muted-foreground">Authorized Date:</span>
-                                <span class="font-medium text-foreground dark:text-white/90">
-                                    {{ $driver_document->psp_authorization_date ? \Carbon\Carbon::parse($driver_document->psp_authorization_date)->format('m/d/Y') : 'N/A' }}
-                                </span>
-                            </div>
-                        @else
-                            <div class="flex items-center text-sm">
-                                <span class="w-24 text-muted-foreground">PSP Authorization:</span>
-                                <span class="font-medium text-red-600 dark:text-red-400">
-                                    <x-ui.icon name="circle-x" class="inline-block size-4 align-[-0.125em] mr-1" /> Not Authorized
-                                </span>
-                            </div>
-                        @endif
+                    <div class="grid gap-5 md:grid-cols-2">
+                        <x-ui.field label="Applicant Signature" name="applicant_signature" for="applicant_signature" required>
+                            <x-ui.input id="applicant_signature" name="applicant_signature" :value="$driver_document->psp_authorization_signature ?? ''" placeholder="Type your full name as signature" :required="! $isEditMode" />
+                        </x-ui.field>
+                        <x-ui.field label="Date Signed" name="date_signed" for="date_signed" required>
+                            <x-ui.input type="date" id="date_signed" name="date_signed" :value="date('Y-m-d')" :required="! $isEditMode" />
+                        </x-ui.field>
                     </div>
                 </div>
+            </x-ui.card>
 
-                <!-- PSP Information Card -->
-                <div
-                    class="mt-6 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/10 p-4">
-                    <h3 class="font-medium text-blue-800 dark:text-blue-200 mb-3">
-                        <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-2" />About PSP Reports
-                    </h3>
-                    <ul class="space-y-2 text-sm text-blue-700 dark:text-blue-300">
-                        <li class="flex items-start">
-                            <x-ui.icon name="shield" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
-                            <span>FMCSA Pre-Employment Screening Program</span>
-                        </li>
-                        <li class="flex items-start">
-                            <x-ui.icon name="car-front" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
-                            <span>5 years of crash data</span>
-                        </li>
-                        <li class="flex items-start">
-                            <x-ui.icon name="search" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
-                            <span>3 years of inspection history</span>
-                        </li>
-                        <li class="flex items-start">
-                            <x-ui.icon name="scale" class="inline-block size-4 align-[-0.125em] mr-2 mt-0.5" />
-                            <span>FMCSR violation records</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
+            <x-ui.alert tone="danger" title="IMPORTANT NOTICE:">
+                This form is made available to monthly account holders by NIC on behalf of the U.S. Department of Transportation, Federal Motor Carrier Safety Administration (FMCSA). Account holders are required by federal law to obtain an Applicant's written or electronic consent prior to accessing the Applicant's PSP report. Further, account holders are required by FMCSA to use the language contained in this Disclosure and Authorization form to obtain an Applicant's consent. The language must be used in whole, exactly as provided. Further, the language on this form must exist as one stand-alone document. The language may NOT be included with other consent forms or any other language.
+            </x-ui.alert>
+
+            <x-application.step-actions
+                :back="$isEditMode ? route('admin.driver.edit', ['id' => $driver_id]) : route('admin.driver.fmcsa.consent', ['driver_id' => $driver_id])"
+                :back-label="$isEditMode ? 'Back to Driver Edit' : 'Back to Step 7'"
+                :submit="$isEditMode ? 'Update & Continue to Step 9' : 'Save & Continue to Step 9'"
+                :skip="$isEditMode ? 'Skip to Next Step' : null" :skip-href="route('admin.driver.alcohol.and.drug.test.policy', ['driver_id' => $driver_id, 'edit' => '1'])" />
+        </form>
+    </x-application.step>
 @endsection
 
 @push('scripts')
@@ -475,7 +119,7 @@
                 {{ $driver_document && $driver_document->psp_authorization ? 'true' : 'false' }};
 
             // Form validation
-            const form = document.querySelector('form');
+            const form = document.getElementById('step-form');
             if (form) {
                 form.addEventListener('submit', async function(e) {
                     e.preventDefault();
@@ -541,7 +185,7 @@
 
             // Track reading of disclosure with timeout to ensure user reads it
             let disclosureRead = false;
-            const disclosureSection = document.querySelector('.rounded-2xl.border.border-border');
+            const disclosureSection = document.getElementById('disclosure-card');
 
             if (disclosureSection && !isEditMode) {
                 let scrollTimer;

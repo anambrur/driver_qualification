@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\DriverDocument;
+use App\Models\PolicyPdf;
 use App\Models\User;
 use App\Models\Violation;
 use Database\Factories\LicenseFactory;
@@ -8,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
 use Tests\Feature\Modules\Drivers\DriverAdmin;
+use Tests\Feature\Modules\PublicApplication\Applicant;
 use Tests\Support\Actors;
 use Tests\Support\Files;
 
@@ -29,6 +31,10 @@ function adminStep(int $step): array
         4 => ['admin.driver.forfeiture', 'admin.driver.forfeiture.store', ['forfeiture_document']],
         5 => ['admin.driver.violation', 'admin.driver.violation.store', ['violation', 'violation_date[]', 'violation_location[]', 'offense[]', 'vehicle_type[]', 'applicant_signature', 'date_signed']],
         6 => ['admin.driver.alcohol.and.drug.test', 'admin.driver.alcohol.and.drug.store', ['drug_test_question_1', 'drug_test_question_2', 'applicant_signature', 'date_signed']],
+        7 => ['admin.driver.fmcsa.consent', 'admin.driver.fmcsa.consent.store', ['consent_type', 'consent_agreement', 'employee_signature', 'date_signed']],
+        8 => ['admin.driver.psp', 'admin.driver.psp.store', ['authorization_agreement', 'applicant_signature', 'date_signed']],
+        9 => ['admin.driver.alcohol.and.drug.test.policy', 'admin.driver.alcohol.and.drug.test.policy.store', ['employee_signature', 'date_signed']],
+        10 => ['admin.driver.general.work.policy', 'admin.driver.general.work.policy.store', ['employee_signature', 'date_signed']],
     ][$step];
 }
 
@@ -37,7 +43,7 @@ function adminStepPage(int $step, string $query = '', ?User $user = null)
     return test()->actingAs($user ?? test()->owner)->get(route(adminStep($step)[0], test()->driver->id).$query);
 }
 
-dataset('admin steps', [2, 3, 4, 5, 6]);
+dataset('admin steps', [2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
 it('renders the step on the shared shell inside the admin layout', function (int $step) {
     adminStepPage($step)->assertOk()
@@ -63,7 +69,7 @@ it('keeps the action, the fields and the hidden values', function (int $step) {
 it('keeps the edit flow: from_edit, the edit links, back to driver edit and skip', function (int $step) {
     adminStepPage($step, '?edit=1')->assertOk()
         ->assertSee(['name="from_edit" value="1"'], false)
-        ->assertSee(['Document Edit Process', 'Edit Mode - Step '.$step.' of 10', 'Back to Driver Edit', 'Skip to Next Step', 'Update & Continue to Step '.($step + 1)])
+        ->assertSee(['Document Edit Process', 'Edit Mode - Step '.$step.' of 10', 'Back to Driver Edit', $step === 10 ? 'Skip to Completion' : 'Skip to Next Step', $step === 10 ? 'Update & Complete Application' : 'Update & Continue to Step '.($step + 1)])
         ->assertSee(route('admin.driver.edit', ['id' => $this->driver->id]), false)
         ->assertSee(route('admin.driver.violation', ['driver_id' => $this->driver->id]).'?edit=1', false);
 })->with('admin steps');
@@ -169,4 +175,72 @@ it('runs the warning for a changed positive drug test answer (it sat in a DOMCon
 
     expect($html)->toContain('const currentQ1')
         ->not->toMatch("~addEventListener\\('DOMContentLoaded', function\\(\\) \\{\\s*const currentQ1~");
+});
+
+/**
+ * The legally fixed text between two phrases, as plain words.
+ */
+function legalText(string $html, string $from, string $to): string
+{
+    $text = preg_replace('~\s+~', ' ', html_entity_decode(strip_tags(preg_replace('~<script\b.*?</script>~s', '', $html)), ENT_QUOTES));
+    $start = strpos($text, $from);
+    $end = strpos($text, $to, (int) $start);
+    expect($start)->not->toBeFalse()->and($end)->not->toBeFalse();
+
+    return substr($text, $start, $end - $start + strlen($to));
+}
+
+it('keeps the legal text word for word the same as the public application step', function (int $step, string $from, string $to) {
+    // The admin pages name the signed-in user as the employer and as the contact; give both the company's values
+    $company = DriverAdmin::companyOf($this->owner);
+    $company->forceFill(['company_name' => 'Acme Freight', 'phone' => '(209) 555-0142', 'email' => 'hr@acme.test'])->save();
+    $this->owner->forceFill(['name' => 'Acme Freight', 'email' => 'hr@acme.test'])->save();
+    Applicant::fakeOtp();
+    $applicant = Applicant::draft($company, ['first_name' => 'Jane', 'last_name' => 'Roe']);
+    DriverDocument::create(['driver_id' => $applicant->id]);
+    $public = test()->withSession(Applicant::session($applicant))
+        ->get(route('public.application.step'.$step, ['slug' => $company->slug, 'driver_id' => $applicant->id]))->assertOk()->getContent();
+
+    expect(legalText(adminStepPage($step)->assertOk()->getContent(), $from, $to))->toBe(legalText($public, $from, $to));
+})->with([
+    'violation record and FCRA' => [5, 'I certify that the following', 'any other public records'],
+    'drug test statement' => [6, '49 CFR Part 40.25(j) states', 'termination of employment.'],
+    'FMCSA consent' => [7, 'hereby provide consent', 'for the duration of my employment.'],
+    'PSP disclosure and authorization' => [8, 'In connection with your application', 'or any other language.'],
+    'drug testing policy' => [9, 'Kindly go over', 'confirms my acknowledgment and agreement.'],
+    'general work policy' => [10, 'Kindly explore', 'confirms my acknowledgment and agreement.'],
+]);
+
+it('keeps the admin employer wording: the signed-in user is named in the consent and PSP text', function () {
+    $this->owner->forceFill(['name' => 'Pat Admin'])->save();
+
+    adminStepPage(7)->assertSee('hereby provide consent to <strong>Pat Admin</strong>', false);
+    adminStepPage(8)->assertSee('application for employment with <strong>Pat Admin ("Prospective Employer")</strong>', false);
+});
+
+it('shows the policy PDF from the admin settings route with the admin contact', function (int $step, string $column, string $policy) {
+    $company = DriverAdmin::companyOf($this->owner);
+    $company->forceFill(['phone' => '(209) 555-0142'])->save();
+    PolicyPdf::create(['company_id' => $company->id, $column => Files::stored($company->id)->id]);
+    $url = route('admin.settings.policy.pdf.file', $policy);
+
+    adminStepPage($step)->assertOk()
+        ->assertSee(['<iframe src="'.$url.'"', 'href="'.$url.'"'], false)
+        ->assertSee('Need help? Call (209) 555-0142 or email '.$this->owner->email);
+})->with([[9, 'alcohol_drug_test_policy_file_id', 'alcohol_drug_test'], [10, 'general_work_policy_file_id', 'general_work']]);
+
+it('scopes the policy scripts to the step form, not the logout button or another iframe', function (int $step) {
+    adminStepPage($step)->assertOk()
+        ->assertSee(["document.querySelector('#step-form iframe')", "document.querySelector('#step-form button[type=\"submit\"]')", "document.getElementById('policy-card')"], false)
+        ->assertDontSee("document.querySelector('button[type=\"submit\"]')", false);
+})->with([9, 10]);
+
+it('shows the current consent, authorization and acknowledgment when editing', function () {
+    DriverDocument::create(['driver_id' => $this->driver->id, 'fmcsa_consent' => true, 'fmcsa_consent_signature' => 'Jane Roe', 'psp_authorization' => true, 'psp_authorization_signature' => 'Jane Roe',
+        'alcohol_drug_test_policy_signature' => 'Jane Roe', 'general_work_policy_signature' => 'Jane Roe']);
+
+    adminStepPage(7, '?edit=1')->assertSee(['Current FMCSA Consent Status', 'Consent Granted', 'Updating this form will create a new consent record.']);
+    adminStepPage(8, '?edit=1')->assertSee(['Current PSP Authorization Status', 'Updating this form will create a new authorization record.']);
+    adminStepPage(9, '?edit=1')->assertSee(['Current Policy Acknowledgment Status', 'Policy Acknowledged']);
+    adminStepPage(10, '?edit=1')->assertSee(['Current Policy Acknowledgment Status', 'Skip to Completion']);
 });
