@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Platform;
 
+use App\DataTables\Platform\AssetTransferTable;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Platform\AssetTransferRequest;
-use App\Models\AssetTransfer;
 use App\Models\Company;
 use App\Models\PlatformUser;
 use App\Models\Trailer;
@@ -21,14 +21,13 @@ use Illuminate\View\View;
  */
 class AssetTransferController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View|JsonResponse
     {
-        $transfers = AssetTransfer::query()
-            ->with(['sourceCompany:id,company_name', 'targetCompany:id,company_name', 'performedBy:id,name'])
-            ->orderByDesc('id')
-            ->paginate(25);
+        if ($request->ajax()) {
+            return (new AssetTransferTable($request))->json();
+        }
 
-        return view('platform.asset-transfers.index', compact('transfers'));
+        return view('platform.asset-transfers.index');
     }
 
     public function create(): View

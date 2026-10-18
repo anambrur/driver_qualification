@@ -2,44 +2,47 @@
 
 @section('title', 'Companies')
 
+@php
+    $statuses = collect(\App\Services\Platform\PlatformCompanyService::STATUSES)->mapWithKeys(fn ($status) => [$status => ucfirst($status)])->all();
+@endphp
+
 @section('content')
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">Companies</h1>
+    <x-ui.page-header title="Companies" description="Every customer company, its owner and its status. Tenant records are never shown here.">
         @can('platform.companies.manage')
-            <a href="{{ route('platform.companies.create') }}" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">New company</a>
+            <x-slot:actions>
+                <x-ui.button icon="plus" :href="route('platform.companies.create')">New company</x-ui.button>
+            </x-slot:actions>
         @endcan
-    </div>
+    </x-ui.page-header>
 
-    <form method="GET" class="mb-4 flex flex-wrap gap-3">
-        <input type="search" name="search" value="{{ $search }}" placeholder="Name or email"
-            class="h-10 rounded-lg border border-gray-300 px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-        <select name="status" class="h-10 rounded-lg border border-gray-300 px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-            <option value="">Any status</option>
-            @foreach (\App\Services\Platform\PlatformCompanyService::STATUSES as $status)
-                <option value="{{ $status }}" @selected(request('status') === $status)>{{ ucfirst($status) }}</option>
-            @endforeach
-        </select>
-        <button class="rounded-lg border border-gray-300 px-4 text-sm dark:border-gray-700 dark:text-gray-300">Filter</button>
-    </form>
+    <x-ui.datatable id="companies" title="All companies" description="Search by company name, contact email or owner email.">
+        <x-slot:toolbar>
+            <x-ui.select data-dt-filter="status" aria-label="Filter by status" :options="['' => 'Any status'] + $statuses" class="w-auto!" />
+        </x-slot:toolbar>
 
-    <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <table class="min-w-full text-left text-sm">
-            <thead class="border-b border-gray-200 text-xs uppercase text-gray-500 dark:border-gray-800">
-                <tr><th class="px-4 py-3">Company</th><th class="px-4 py-3">Owner</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Created</th></tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                @forelse ($companies as $company)
-                    <tr>
-                        <td class="px-4 py-3"><a href="{{ route('platform.companies.show', $company) }}" class="font-medium text-brand-600 hover:underline">{{ $company->company_name }}</a></td>
-                        <td class="px-4 py-3 text-gray-600 dark:text-gray-400">{{ $company->owner?->name }}<br><span class="text-xs">{{ $company->owner?->email }}</span></td>
-                        <td class="px-4 py-3 capitalize text-gray-700 dark:text-gray-300">{{ $company->status }}</td>
-                        <td class="px-4 py-3 text-gray-600 dark:text-gray-400">{{ $company->created_at?->format('M j, Y') }}</td>
-                    </tr>
-                @empty
-                    <tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">No companies found.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-    <div class="mt-4">{{ $companies->links() }}</div>
+        <th>Company</th>
+        <th>Owner</th>
+        <th>Status</th>
+        <th>Created</th>
+
+        <x-slot:empty>
+            <x-ui.empty-state icon="building-2" title="No companies yet" class="border-0" />
+        </x-slot:empty>
+    </x-ui.datatable>
 @endsection
+
+@push('scripts')
+    <script type="module">
+        window.dqTable('#companies', {
+            ajax: @json(route('platform.companies.index')),
+            primary: 0,
+            order: [[0, 'asc']],
+            columns: [
+                { data: 'company', name: 'company' },
+                { data: 'owner', orderable: false, searchable: false },
+                { data: 'status', orderable: false, searchable: false },
+                { data: 'created_at_formatted', name: 'created_at_formatted', searchable: false },
+            ],
+        });
+    </script>
+@endpush

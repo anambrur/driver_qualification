@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Platform;
 
+use App\DataTables\Platform\CompanyTable;
 use App\Features\Feature;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Platform\CompanyProfileRequest;
@@ -15,6 +16,7 @@ use App\Services\Entitlements\Entitlements;
 use App\Services\Entitlements\Limits;
 use App\Services\Platform\PlatformCompanyService;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,22 +30,13 @@ class CompanyController extends Controller
 {
     public function __construct(private PlatformCompanyService $companies) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
-        $search = trim((string) $request->query('search'));
+        if ($request->ajax()) {
+            return (new CompanyTable($request))->json();
+        }
 
-        $companies = Company::query()
-            ->with('owner:id,name,email')
-            ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q
-                ->where('company_name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")
-                ->orWhereHas('owner', fn ($q) => $q->where('email', 'like', "%{$search}%"))))
-            ->when(in_array($request->query('status'), PlatformCompanyService::STATUSES, true), fn ($q) => $q->where('status', $request->query('status')))
-            ->orderBy('company_name')
-            ->paginate(25)
-            ->withQueryString();
-
-        return view('platform.companies.index', compact('companies', 'search'));
+        return view('platform.companies.index');
     }
 
     public function show(Company $company): View

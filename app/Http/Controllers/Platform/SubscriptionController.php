@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Platform;
 
+use App\DataTables\Platform\PaymentTable;
+use App\DataTables\Platform\SubscriptionTable;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -29,32 +32,23 @@ class SubscriptionController extends Controller
         ]);
     }
 
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
-        $subscriptions = Subscription::query()
-            ->with(['company:id,company_name', 'planPrice.plan:id,name'])
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))
-            ->when($request->filled('plan_id'), fn ($q) => $q->whereHas('planPrice', fn ($q) => $q->where('plan_id', $request->integer('plan_id'))))
-            ->when($request->boolean('open'), fn ($q) => $q->open())
-            ->latest()
-            ->paginate(25)
-            ->withQueryString();
+        if ($request->ajax()) {
+            return (new SubscriptionTable($request))->json();
+        }
 
         return view('platform.subscriptions.index', [
-            'subscriptions' => $subscriptions,
             'plans' => Plan::query()->ordered()->get(['id', 'name']),
         ]);
     }
 
-    public function payments(Request $request): View
+    public function payments(Request $request): View|JsonResponse
     {
-        $payments = Payment::query()
-            ->with(['company:id,company_name', 'plan:id,name'])
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))
-            ->latest('paid_at')
-            ->paginate(25)
-            ->withQueryString();
+        if ($request->ajax()) {
+            return (new PaymentTable($request))->json();
+        }
 
-        return view('platform.subscriptions.payments', compact('payments'));
+        return view('platform.subscriptions.payments');
     }
 }

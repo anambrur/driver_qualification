@@ -4,10 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * A platform Asset Transfer (PO-08, 04 §7). Platform-owned: it names two companies, so it has
  * no tenant scope and is only read from /platform.
+ *
+ * @property Carbon $performed_at
  */
 class AssetTransfer extends Model
 {
