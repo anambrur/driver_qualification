@@ -2,34 +2,35 @@
 
 @section('title', 'Dashboard')
 
+@php
+    $canCompanies = auth('platform')->user()?->can('platform.companies.view');
+    $canSubscriptions = auth('platform')->user()?->can('platform.subscriptions.view');
+@endphp
+
 @section('content')
-    <h1 class="mb-6 text-xl font-semibold text-gray-800 dark:text-white/90">Platform overview</h1>
+    <x-ui.page-header title="Platform overview" description="Companies and subscriptions across the platform. No tenant records are read here." />
 
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <h2 class="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Companies</h2>
-            <dl class="grid grid-cols-3 gap-3">
-                @foreach (['active', 'suspended', 'deactivated'] as $status)
-                    <div>
-                        <dt class="text-xs capitalize text-gray-500">{{ $status }}</dt>
-                        <dd class="text-2xl font-semibold text-gray-800 dark:text-white/90">{{ $companies[$status] ?? 0 }}</dd>
-                    </div>
+    <section aria-labelledby="companies-heading" class="mb-8">
+        <h2 id="companies-heading" class="mb-3 text-sm font-medium text-muted-foreground">Companies</h2>
+        <div class="grid gap-4 sm:grid-cols-3">
+            @foreach (['active' => ['building-2', 'success'], 'suspended' => ['pause', 'warning'], 'deactivated' => ['circle-off', 'neutral']] as $status => [$icon, $tone])
+                <x-ui.stat :label="ucfirst($status)" :value="number_format($companies[$status] ?? 0)" :icon="$icon" :tone="$tone"
+                    :href="$canCompanies ? route('platform.companies.index') : null" />
+            @endforeach
+        </div>
+    </section>
+
+    <section aria-labelledby="subscriptions-heading">
+        <h2 id="subscriptions-heading" class="mb-3 text-sm font-medium text-muted-foreground">Open subscriptions</h2>
+        @if ($subscriptions->isEmpty())
+            <x-ui.empty-state icon="credit-card" title="No open subscriptions yet" />
+        @else
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach ($subscriptions as $status => $total)
+                    <x-ui.stat :label="\App\Support\Ui\Status::label($status)" :value="number_format($total)" icon="credit-card"
+                        :tone="\App\Support\Ui\Status::tone($status)" :href="$canSubscriptions ? route('platform.subscriptions.index') : null" />
                 @endforeach
-            </dl>
-        </div>
-
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <h2 class="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">Open subscriptions</h2>
-            <dl class="grid grid-cols-3 gap-3">
-                @forelse ($subscriptions as $status => $total)
-                    <div>
-                        <dt class="text-xs text-gray-500">{{ str_replace('_', ' ', $status) }}</dt>
-                        <dd class="text-2xl font-semibold text-gray-800 dark:text-white/90">{{ $total }}</dd>
-                    </div>
-                @empty
-                    <p class="text-sm text-gray-500">None yet.</p>
-                @endforelse
-            </dl>
-        </div>
-    </div>
+            </div>
+        @endif
+    </section>
 @endsection

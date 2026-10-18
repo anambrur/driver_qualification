@@ -3,32 +3,42 @@
 @section('title', 'Plans')
 
 @section('content')
-    <div class="mb-6 flex items-center justify-between">
-        <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">Plans</h1>
-        <a href="{{ route('platform.plans.create') }}" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">New plan</a>
-    </div>
+    <x-ui.page-header title="Plans" description="What companies can subscribe to: prices, features and whether the plan is offered.">
+        <x-slot:actions>
+            <x-ui.button icon="plus" :href="route('platform.plans.create')">New plan</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
 
-    <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <table class="min-w-full text-left text-sm">
-            <thead class="border-b border-gray-200 text-xs uppercase text-gray-500 dark:border-gray-800">
-                <tr><th class="px-4 py-3">Plan</th><th class="px-4 py-3">Current prices</th><th class="px-4 py-3">Public</th><th class="px-4 py-3">Active</th></tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                @forelse ($plans as $plan)
-                    <tr class="text-gray-700 dark:text-gray-300">
-                        <td class="px-4 py-3"><a href="{{ route('platform.plans.edit', $plan) }}" class="font-medium text-brand-600 hover:underline">{{ $plan->name }}</a> <span class="text-xs text-gray-500">{{ $plan->slug }}</span></td>
-                        <td class="px-4 py-3">
-                            @foreach ($plan->prices->whereNull('archived_at') as $price)
-                                <div>{{ $price->amount }} {{ $price->currency }} / {{ $price->interval }}</div>
+    @if ($plans->isEmpty())
+        <x-ui.empty-state icon="layers" title="No plans yet" description="Create a plan, then add its prices and features.">
+            <x-ui.button icon="plus" size="sm" :href="route('platform.plans.create')">New plan</x-ui.button>
+        </x-ui.empty-state>
+    @else
+        <x-ui.card flush class="py-0!">
+            <x-ui.table>
+                <thead>
+                    <tr><th>Plan</th><th>Current prices</th><th>Public</th><th>Active</th></tr>
+                </thead>
+                <tbody>
+                    @foreach ($plans as $plan)
+                        <tr>
+                            <td data-label="Plan" data-primary>
+                                @include('platform.partials.cell', ['title' => $plan->name, 'href' => route('platform.plans.edit', $plan), 'sub' => $plan->slug])
+                            </td>
+                            <td data-label="Current prices">
+                                @forelse ($plan->prices->whereNull('archived_at') as $price)
+                                    <div class="tabular-nums">{{ $price->amount }} {{ $price->currency }} / {{ $price->interval }}</div>
+                                @empty
+                                    <span class="text-muted-foreground">No price</span>
+                                @endforelse
+                            </td>
+                            @foreach (['Public' => $plan->is_public, 'Active' => $plan->is_active] as $label => $on)
+                                <td data-label="{{ $label }}"><span class="badge" data-variant="{{ $on ? 'secondary' : 'outline' }}">{{ $on ? 'Yes' : 'No' }}</span></td>
                             @endforeach
-                        </td>
-                        <td class="px-4 py-3">{{ $plan->is_public ? 'Yes' : 'No' }}</td>
-                        <td class="px-4 py-3">{{ $plan->is_active ? 'Yes' : 'No' }}</td>
-                    </tr>
-                @empty
-                    <tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">No plans yet.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </x-ui.table>
+        </x-ui.card>
+    @endif
 @endsection

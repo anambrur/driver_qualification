@@ -2,35 +2,51 @@
 
 @section('title', 'Subscriptions')
 
-@php($card = 'rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]')
-
 @section('content')
-    <h1 class="mb-6 text-xl font-semibold text-gray-800 dark:text-white/90">Subscriptions</h1>
+    <x-ui.page-header title="Subscriptions" description="Revenue from paid invoices and the open subscriptions behind it.">
+        <x-slot:actions>
+            <x-ui.button variant="outline" icon="list" :href="route('platform.subscriptions.index')">All subscriptions</x-ui.button>
+            @can('platform.payments.view')
+                <x-ui.button variant="outline" icon="receipt" :href="route('platform.subscriptions.payments')">Payments</x-ui.button>
+            @endcan
+        </x-slot:actions>
+    </x-ui.page-header>
 
-    <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div class="{{ $card }}"><p class="text-xs text-gray-500">Revenue (all time)</p><p class="text-2xl font-semibold text-gray-800 dark:text-white/90">${{ number_format($revenueTotal, 2) }}</p></div>
-        <div class="{{ $card }}"><p class="text-xs text-gray-500">Revenue this month</p><p class="text-2xl font-semibold text-gray-800 dark:text-white/90">${{ number_format($revenueMonth, 2) }}</p></div>
-        <div class="{{ $card }}"><p class="text-xs text-gray-500">Ending in 7 days</p><p class="text-2xl font-semibold text-gray-800 dark:text-white/90">{{ $endingSoon }}</p></div>
+    <div class="mb-6 grid gap-4 sm:grid-cols-3">
+        <x-ui.stat label="Revenue, all time" :value="'$'.number_format($revenueTotal, 2)" icon="wallet" tone="success" />
+        <x-ui.stat label="Revenue this month" :value="'$'.number_format($revenueMonth, 2)" icon="trending-up" tone="brand" :hint="now()->format('F Y')" />
+        <x-ui.stat label="Ending in 7 days" :value="number_format($endingSoon)" icon="calendar-clock" :tone="$endingSoon ? 'warning' : 'neutral'" />
     </div>
 
-    <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-        @foreach (['By status' => $byStatus, 'By source' => $bySource] as $title => $counts)
-            <div class="{{ $card }}">
-                <h2 class="mb-2 text-sm font-medium text-gray-500">{{ $title }} (open)</h2>
-                @forelse ($counts as $key => $total)
-                    <p class="text-sm text-gray-700 dark:text-gray-300">{{ str_replace('_', ' ', $key) }}: {{ $total }}</p>
-                @empty
-                    <p class="text-sm text-gray-500">None.</p>
-                @endforelse
-            </div>
+    <div class="mb-6 grid gap-6 md:grid-cols-2">
+        @foreach (['By status' => [$byStatus, true], 'By source' => [$bySource, false]] as $title => [$counts, $badges])
+            <x-ui.card :title="$title" description="Open subscriptions only.">
+                @if ($counts->isEmpty())
+                    <p class="text-sm text-muted-foreground">None.</p>
+                @else
+                    <dl class="divide-y divide-border">
+                        @foreach ($counts as $key => $total)
+                            <div class="flex items-center justify-between py-2">
+                                <dt>
+                                    @if ($badges)
+                                        @include('partials.ui.status-badge', ['status' => $key])
+                                    @else
+                                        {{ ucfirst(str_replace('_', ' ', $key)) }}
+                                    @endif
+                                </dt>
+                                <dd class="font-medium tabular-nums">{{ number_format($total) }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
+                @endif
+            </x-ui.card>
         @endforeach
     </div>
 
-    <div class="{{ $card }}">
-        <div class="mb-3 flex items-center justify-between">
-            <h2 class="text-sm font-semibold text-gray-800 dark:text-white/90">Recent</h2>
-            <a href="{{ route('platform.subscriptions.index') }}" class="text-sm text-brand-600 hover:underline">All subscriptions</a>
-        </div>
+    <x-ui.card title="Recent" description="The 10 newest subscriptions, open or ended.">
+        <x-slot:action>
+            <x-ui.button variant="link" size="sm" :href="route('platform.subscriptions.index')">View all</x-ui.button>
+        </x-slot:action>
         @include('platform.subscriptions.table', ['subscriptions' => $recent])
-    </div>
+    </x-ui.card>
 @endsection
