@@ -1,55 +1,26 @@
-<section class="space-y-6">
-    <header>
-        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-            {{ __('Close Account') }}
-        </h2>
+@php($error = $errors->userDeletion->first('password'))
+<x-ui.button variant="destructive" icon="user-round-x" onclick="document.getElementById('confirm-user-deletion').showModal()">{{ __('Close Account') }}</x-ui.button>
 
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {{ __('Closing your account deactivates it and your company: you can no longer log in and applicants can no longer apply. Your drivers, vehicles and other records are kept. Contact support to reopen it.') }}
-        </p>
-    </header>
+<x-ui.dialog id="confirm-user-deletion" size="sm" icon="triangle-alert" :title="__('Are you sure you want to close your account?')"
+    :description="__('Your account and company will be deactivated and you will be logged out. Please enter your password to confirm.')">
+    <form id="delete-user-form" method="post" action="{{ route('profile.destroy') }}">
+        @csrf
+        @method('delete')
 
-    <x-danger-button
-        x-data=""
-        x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
-    >{{ __('Close Account') }}</x-danger-button>
+        <x-ui.field :label="__('Password')" for="password" :data-invalid="$error ? 'true' : null">
+            <x-ui.password id="password" name="password" :placeholder="__('Password')" autocomplete="current-password"
+                :aria-invalid="$error ? 'true' : null" :aria-describedby="$error ? 'password-error' : null" />
+            @if ($error)
+                <p role="alert" id="password-error" class="text-sm text-destructive">{{ $error }}</p>
+            @endif
+        </x-ui.field>
+    </form>
+    <x-slot:footer>
+        <x-ui.button variant="outline" onclick="this.closest('dialog').close()">{{ __('Cancel') }}</x-ui.button>
+        <x-ui.button type="submit" form="delete-user-form" variant="destructive">{{ __('Close Account') }}</x-ui.button>
+    </x-slot:footer>
+</x-ui.dialog>
 
-    <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
-        <form method="post" action="{{ route('profile.destroy') }}" class="p-6">
-            @csrf
-            @method('delete')
-
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                {{ __('Are you sure you want to close your account?') }}
-            </h2>
-
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('Your account and company will be deactivated and you will be logged out. Please enter your password to confirm.') }}
-            </p>
-
-            <div class="mt-6">
-                <x-input-label for="password" value="{{ __('Password') }}" class="sr-only" />
-
-                <x-text-input
-                    id="password"
-                    name="password"
-                    type="password"
-                    class="mt-1 block w-3/4"
-                    placeholder="{{ __('Password') }}"
-                />
-
-                <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-2" />
-            </div>
-
-            <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
-                </x-secondary-button>
-
-                <x-danger-button class="ms-3">
-                    {{ __('Close Account') }}
-                </x-danger-button>
-            </div>
-        </form>
-    </x-modal>
-</section>
+@if ($error)
+    <script>document.getElementById('confirm-user-deletion').showModal();</script>
+@endif

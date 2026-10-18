@@ -7,52 +7,32 @@
         $readOnlyAt = $sub?->readOnlyAt(\App\Services\Billing\AccessStateResolver::graceDays());
         $daysRemaining = $readOnlyAt ? (int) now()->startOfDay()->diffInDays($readOnlyAt->copy()->startOfDay(), false) : null;
         $isExpiringSoon = $accessState === \App\Services\Billing\AccessState::Full && $daysRemaining !== null && $daysRemaining >= 0 && $daysRemaining <= 7;
+        $banner = match (true) {
+            $accessState === \App\Services\Billing\AccessState::ReadOnly => ['danger', 'lock', 'Renew'],
+            $accessState === \App\Services\Billing\AccessState::Grace => ['warning', 'triangle-alert', 'Billing'],
+            $isExpiringSoon => ['warning', 'triangle-alert', 'Renew'],
+            default => null,
+        };
     @endphp
 
-    @if ($accessState === \App\Services\Billing\AccessState::ReadOnly)
-        <div class="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 px-4 py-2">
-            <div class="flex items-center justify-between max-w-screen-xl mx-auto">
-                <div class="flex items-center gap-2 text-red-800 dark:text-red-200 text-sm">
-                    <i class="fas fa-lock text-red-500"></i>
-                    <span>Your company's subscription has ended. You can view and export records, but not add or change them.</span>
+    @if ($banner)
+        <div class="mx-auto w-full max-w-screen-2xl px-4 pt-4 sm:px-6 lg:px-8">
+            <x-ui.alert :tone="$banner[0]" :icon="$banner[1]">
+                <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p>
+                        @if ($accessState === \App\Services\Billing\AccessState::ReadOnly)
+                            Your company's subscription has ended. You can view and export records, but not add or change them.
+                        @elseif ($accessState === \App\Services\Billing\AccessState::Grace)
+                            Your company's last payment failed. Update the payment method by
+                            <strong>{{ $readOnlyAt?->format('M d, Y') }}</strong> to keep full access.
+                        @else
+                            Your company's <strong>{{ $sub->planName() }}</strong> subscription ends in
+                            <strong>{{ $daysRemaining }} day{{ $daysRemaining !== 1 ? 's' : '' }}</strong>.
+                        @endif
+                    </p>
+                    <a href="{{ route('pricing.plans') }}" class="shrink-0 text-sm font-medium underline underline-offset-4">{{ $banner[2] }} →</a>
                 </div>
-                <a href="{{ route('pricing.plans') }}"
-                   class="text-xs font-semibold text-red-800 dark:text-red-200 underline hover:text-red-900 whitespace-nowrap ml-4">
-                    Renew →
-                </a>
-            </div>
-        </div>
-    @elseif ($accessState === \App\Services\Billing\AccessState::Grace)
-        <div class="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-4 py-2">
-            <div class="flex items-center justify-between max-w-screen-xl mx-auto">
-                <div class="flex items-center gap-2 text-yellow-800 dark:text-yellow-200 text-sm">
-                    <i class="fas fa-exclamation-triangle text-yellow-500"></i>
-                    <span>
-                        Your company's last payment failed. Update the payment method by
-                        <strong>{{ $readOnlyAt?->format('M d, Y') }}</strong> to keep full access.
-                    </span>
-                </div>
-                <a href="{{ route('pricing.plans') }}"
-                   class="text-xs font-semibold text-yellow-800 dark:text-yellow-200 underline hover:text-yellow-900 whitespace-nowrap ml-4">
-                    Billing →
-                </a>
-            </div>
-        </div>
-    @elseif ($isExpiringSoon)
-        <div class="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-4 py-2">
-            <div class="flex items-center justify-between max-w-screen-xl mx-auto">
-                <div class="flex items-center gap-2 text-yellow-800 dark:text-yellow-200 text-sm">
-                    <i class="fas fa-exclamation-triangle text-yellow-500"></i>
-                    <span>
-                        Your company's <strong>{{ $sub->planName() }}</strong> subscription ends in
-                        <strong>{{ $daysRemaining }} day{{ $daysRemaining !== 1 ? 's' : '' }}</strong>.
-                    </span>
-                </div>
-                <a href="{{ route('pricing.plans') }}"
-                   class="text-xs font-semibold text-yellow-800 dark:text-yellow-200 underline hover:text-yellow-900 whitespace-nowrap ml-4">
-                    Renew →
-                </a>
-            </div>
+            </x-ui.alert>
         </div>
     @endif
 @endauth

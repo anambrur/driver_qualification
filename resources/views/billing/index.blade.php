@@ -4,155 +4,111 @@
 
 @section('content')
     <div class="p-4 sm:p-6 lg:p-8">
-        <div class="mb-8">
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                Billing & Subscription
-            </h1>
-            <p class="mt-1 text-gray-500 dark:text-gray-400">
-                Manage your subscription, payment method, and payment history.
-            </p>
-        </div>
+        <x-ui.page-header title="Billing & Subscription" description="Manage your subscription, payment method, and payment history." />
 
-        @if (session('success'))
-            <div class="mb-6 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 flex items-center gap-3">
-                <i class="fas fa-check-circle text-green-600 dark:text-green-400 text-xl"></i>
-                <p class="text-green-800 dark:text-green-200">{{ session('success') }}</p>
-            </div>
-        @endif
-        @if (session('error'))
-            <div class="mb-6 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 flex items-center gap-3">
-                <i class="fas fa-exclamation-circle text-red-600 dark:text-red-400 text-xl"></i>
-                <p class="text-red-800 dark:text-red-200">{{ session('error') }}</p>
-            </div>
-        @endif
+        <x-ui.flash />
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 space-y-6">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div class="space-y-6 lg:col-span-2">
                 @if ($subscription && $plan)
                     @php
                         $isAccessible = $subscription->isAccessible();
                         $onTrial = $subscription->onTrial();
                         $onGrace = $subscription->canResume();
                         $pastDue = $accessState === \App\Services\Billing\AccessState::Grace;
+                        $tone = match (true) {
+                            $onTrial => 'info',
+                            $onGrace => 'warning',
+                            $isAccessible => 'success',
+                            default => 'neutral',
+                        };
                     @endphp
-                    <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-                        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                            <div class="flex items-center justify-between">
-                                <h2 class="font-semibold text-gray-900 dark:text-white">Current Plan</h2>
-                                <span class="px-3 py-1 rounded-full text-xs font-medium
-                                    {{ $onTrial ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : '' }}
-                                    {{ $onGrace ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : '' }}
-                                    {{ $isAccessible && !$onTrial && !$onGrace ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : '' }}
-                                    {{ !$isAccessible ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' : '' }}">
+                    <x-ui.card title="Current Plan">
+                        <x-slot:action>
+                            <x-ui.badge :tone="$tone">
+                                @if ($onTrial)
+                                    Trial
+                                @elseif ($pastDue)
+                                    Payment failed
+                                @elseif ($accessState === \App\Services\Billing\AccessState::ReadOnly)
+                                    Read-only
+                                @elseif ($onGrace)
+                                    Cancelling
+                                @elseif ($isAccessible)
+                                    Active
+                                @else
+                                    {{ ucfirst(str_replace('_', ' ', $subscription->status)) }}
+                                @endif
+                            </x-ui.badge>
+                        </x-slot:action>
+
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="min-w-0">
+                                <h3 class="text-xl font-semibold text-foreground">{{ $plan->name }}</h3>
+                                <p class="mt-1 text-sm text-muted-foreground">{{ $plan->description }}</p>
+                                <div class="mt-4 space-y-1 text-sm text-muted-foreground">
+                                    <p>Billing: <strong class="text-foreground">{{ $subscription->source === 'stripe' ? ($subscription->interval === 'year' ? 'Yearly' : 'Monthly') : ucfirst($subscription->source) }}</strong>
+                                        @if ((float) $subscription->amount > 0)
+                                            — ${{ number_format($subscription->amount, 2) }} {{ $subscription->currency }}
+                                        @endif
+                                    </p>
                                     @if ($onTrial)
-                                        Trial
-                                    @elseif ($pastDue)
-                                        Payment failed
-                                    @elseif ($accessState === \App\Services\Billing\AccessState::ReadOnly)
-                                        Read-only
-                                    @elseif ($onGrace)
-                                        Cancelling
-                                    @elseif ($isAccessible)
-                                        Active
-                                    @else
-                                        {{ ucfirst(str_replace('_', ' ', $subscription->status)) }}
+                                        <p>Trial ends <strong class="text-foreground">{{ $subscription->trial_ends_at?->format('M d, Y') }}</strong></p>
                                     @endif
-                                </span>
-                            </div>
-                        </div>
-                        <div class="p-6">
-                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                <div>
-                                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ $plan->name }}</h3>
-                                    <p class="text-gray-500 dark:text-gray-400 mt-1">{{ $plan->description }}</p>
-                                    <div class="mt-4 space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                                        <p>Billing: <strong>{{ $subscription->source === 'stripe' ? ($subscription->interval === 'year' ? 'Yearly' : 'Monthly') : ucfirst($subscription->source) }}</strong>
-                                            @if ((float) $subscription->amount > 0)
-                                                — ${{ number_format($subscription->amount, 2) }} {{ $subscription->currency }}
+                                    @if ($subscription->accessEndsAt())
+                                        <p>
+                                            @if ($onGrace || $subscription->source !== 'stripe')
+                                                Access until
+                                            @else
+                                                Current period ends
                                             @endif
+                                            <strong class="text-foreground">{{ $subscription->accessEndsAt()->format('M d, Y') }}</strong>
                                         </p>
-                                        @if ($onTrial)
-                                            <p>Trial ends <strong>{{ $subscription->trial_ends_at?->format('M d, Y') }}</strong></p>
-                                        @endif
-                                        @if ($subscription->accessEndsAt())
-                                            <p>
-                                                @if ($onGrace || $subscription->source !== 'stripe')
-                                                    Access until
-                                                @else
-                                                    Current period ends
-                                                @endif
-                                                <strong>{{ $subscription->accessEndsAt()->format('M d, Y') }}</strong>
-                                            </p>
-                                        @endif
-                                    </div>
+                                    @endif
                                 </div>
-                                <div class="flex flex-wrap gap-3">
-                                    @can('billing.manage')
+                            </div>
+                            @can('billing.manage')
+                                <div class="flex flex-wrap gap-2 sm:shrink-0 *:max-sm:flex-1">
                                     @if ($company->stripe_customer_id)
-                                        <form action="{{ route('billing.portal') }}" method="POST" class="inline">
+                                        <form action="{{ route('billing.portal') }}" method="POST">
                                             @csrf
-                                            <button type="submit"
-                                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors">
-                                                <i class="fas fa-external-link-alt"></i>
-                                                Manage in Stripe
-                                            </button>
+                                            <x-ui.button type="submit" icon="external-link" class="w-full">Manage in Stripe</x-ui.button>
                                         </form>
                                     @endif
                                     @if ($onGrace && $subscription->stripe_subscription_id)
-                                        <form action="{{ route('billing.resume') }}" method="POST" class="inline">
+                                        <form action="{{ route('billing.resume') }}" method="POST">
                                             @csrf
-                                            <button type="submit"
-                                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors">
-                                                <i class="fas fa-play"></i>
-                                                Resume Subscription
-                                            </button>
+                                            <x-ui.button type="submit" variant="outline" icon="play" class="w-full">Resume Subscription</x-ui.button>
                                         </form>
-                                    @elseif ($isAccessible && !$onTrial && !$subscription->cancel_at_period_end)
-                                        <form action="{{ route('billing.cancel') }}" method="POST" class="inline"
-                                            onsubmit="return confirm('Are you sure? Your subscription will remain active until the end of the billing period.');">
+                                    @elseif ($isAccessible && ! $onTrial && ! $subscription->cancel_at_period_end)
+                                        <form action="{{ route('billing.cancel') }}" method="POST"
+                                            data-confirm="Cancel your plan?"
+                                            data-confirm-text="Your subscription will remain active until the end of the billing period."
+                                            data-confirm-button="Cancel Plan" data-confirm-cancel="Keep Plan">
                                             @csrf
-                                            <button type="submit"
-                                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-medium transition-colors">
-                                                <i class="fas fa-times"></i>
-                                                Cancel Plan
-                                            </button>
+                                            <x-ui.button type="submit" variant="destructive" icon="x" class="w-full">Cancel Plan</x-ui.button>
                                         </form>
                                     @endif
-                                    @endcan
                                 </div>
-                            </div>
+                            @endcan
                         </div>
-                    </div>
+                    </x-ui.card>
                 @else
-                    <div class="rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/30 p-8 text-center">
-                        <div class="w-16 h-16 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4">
-                            <i class="fas fa-credit-card text-2xl text-amber-600 dark:text-amber-400"></i>
-                        </div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Active Subscription</h3>
-                        <p class="text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
-                            Subscribe to a plan to access all features. Start with a free trial—no credit card required.
-                        </p>
-                        <a href="{{ route('pricing.plans') }}"
-                            class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors">
-                            <i class="fas fa-rocket"></i>
-                            View Plans
-                        </a>
-                    </div>
+                    <x-ui.empty-state icon="credit-card" title="No Active Subscription"
+                        description="Subscribe to a plan to access all features. Start with a free trial—no credit card required.">
+                        <x-ui.button :href="route('pricing.plans')" icon="rocket">View Plans</x-ui.button>
+                    </x-ui.empty-state>
                 @endif
 
-                <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                        <h2 class="font-semibold text-gray-900 dark:text-white">Payment History</h2>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Payments recorded from Stripe</p>
-                    </div>
-                    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                <x-ui.card title="Payment History" description="Payments recorded from Stripe" flush class="pb-0!">
+                    <ul class="divide-y divide-border border-t border-border">
                         @forelse ($payments as $payment)
-                            <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <li class="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
-                                    <p class="font-medium text-gray-900 dark:text-white">
+                                    <p class="font-medium text-foreground">
                                         {{ $payment->paid_at?->format('M d, Y') ?? $payment->created_at->format('M d, Y') }}
                                     </p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    <p class="text-sm text-muted-foreground">
                                         ${{ number_format($payment->amount, 2) }} {{ $payment->currency }}
                                         · <span class="capitalize">{{ $payment->status }}</span>
                                         @if ($payment->plan)
@@ -161,54 +117,49 @@
                                     </p>
                                 </div>
                                 @if ($payment->hosted_invoice_url)
-                                    <a href="{{ $payment->hosted_invoice_url }}" target="_blank" rel="noopener"
-                                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                        <i class="fas fa-external-link-alt text-xs"></i>
-                                        Invoice
-                                    </a>
+                                    <x-ui.button :href="$payment->hosted_invoice_url" target="_blank" rel="noopener" variant="outline" size="sm" icon="external-link">Invoice</x-ui.button>
                                 @endif
-                            </div>
+                            </li>
                         @empty
-                            <div class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                                <i class="fas fa-file-invoice text-3xl mb-2 opacity-50"></i>
-                                <p>No payments yet</p>
-                            </div>
+                            <li class="flex flex-col items-center gap-2 px-6 py-8 text-center text-sm text-muted-foreground">
+                                <x-ui.icon name="file-text" class="size-8 opacity-50" />
+                                No payments yet
+                            </li>
                         @endforelse
-                    </div>
-                </div>
+                    </ul>
+                </x-ui.card>
             </div>
 
-            <div class="space-y-6">
-                <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
-                    <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
+            <div>
+                <x-ui.card title="Quick Actions">
                     <div class="space-y-3">
                         <a href="{{ route('pricing.plans') }}"
-                            class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                            <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                                <i class="fas fa-layer-group text-indigo-600 dark:text-indigo-400"></i>
-                            </div>
-                            <div>
-                                <p class="font-medium text-gray-900 dark:text-white">Change Plan</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Upgrade or renew</p>
-                            </div>
+                            class="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent">
+                            <span class="flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                <x-ui.icon name="layers" class="size-5" />
+                            </span>
+                            <span>
+                                <span class="block font-medium text-foreground">Change Plan</span>
+                                <span class="block text-xs text-muted-foreground">Upgrade or renew</span>
+                            </span>
                         </a>
                         @if ($company->stripe_customer_id && auth()->user()->can('billing.manage'))
                             <form action="{{ route('billing.portal') }}" method="POST">
-                            @csrf
-                            <button type="submit"
-                                class="w-full text-left flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                                <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                    <i class="fas fa-credit-card text-green-600 dark:text-green-400"></i>
-                                </div>
-                                <div>
-                                    <p class="font-medium text-gray-900 dark:text-white">Update Payment</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">Manage card & billing</p>
-                                </div>
-                            </button>
+                                @csrf
+                                <button type="submit"
+                                    class="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-accent">
+                                    <span class="flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                        <x-ui.icon name="credit-card" class="size-5" />
+                                    </span>
+                                    <span>
+                                        <span class="block font-medium text-foreground">Update Payment</span>
+                                        <span class="block text-xs text-muted-foreground">Manage card & billing</span>
+                                    </span>
+                                </button>
                             </form>
                         @endif
                     </div>
-                </div>
+                </x-ui.card>
             </div>
         </div>
     </div>
