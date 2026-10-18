@@ -132,7 +132,7 @@ it('keeps the steps light-only and on Font Awesome until batch 4d, without Sweet
     $driver = Applicant::draft($this->company);
 
     $html = $this->withSession(Applicant::session($driver))
-        ->get(route('public.application.step2', ['slug' => $this->company->slug, 'driver_id' => $driver->id]))
+        ->get(route('public.application.step8', ['slug' => $this->company->slug, 'driver_id' => $driver->id]))
         ->assertOk()
         ->assertSee('id="confirm-dialog"', false)
         ->assertSee('kit.fontawesome.com', false)

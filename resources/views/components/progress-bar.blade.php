@@ -27,25 +27,14 @@
     }
 @endphp
 
-<div class="bg-white border border-gray-200 rounded-lg shadow-theme-xs dark:bg-gray-800 dark:border-gray-700 p-4">
+<x-ui.card size="sm" :title="$isEditMode ? 'Document Edit Process' : 'Application Process'">
     @if ($isEditMode)
-        <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
-            <div class="flex items-center">
-                <i class="fas fa-edit text-blue-500 dark:text-blue-400 mr-2"></i>
-                <h3 class="text-blue-800 dark:text-blue-200 font-medium">Edit Mode</h3>
-            </div>
-            <p class="text-sm text-blue-600 dark:text-blue-300 mt-1">
-                You are editing documents for this driver. Changes will be saved immediately.
-            </p>
-        </div>
+        <x-ui.alert tone="info" icon="pencil" title="Edit Mode" class="mb-4">
+            You are editing documents for this driver. Changes will be saved immediately.
+        </x-ui.alert>
     @endif
 
-    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">
-        {{ $isEditMode ? 'Document Edit Process' : 'Application Process' }}
-    </h3>
-
-    <!-- Progress Steps -->
-    <div class="space-y-6">
+    <ol class="grid">
         @foreach ([
         1 => ['title' => 'Application For Employment', 'description' => 'Your general application information.'],
         2 => ['title' => 'Upload Driver License Copy', 'description' => 'Provide a photo copy of your driver license.'],
@@ -58,84 +47,46 @@
         9 => ['title' => 'Alcohol & Drug Testing Policy', 'description' => 'Review employer\'s alcohol & drug testing policy.'],
         10 => ['title' => 'General Work Policy', 'description' => 'Review employer\'s general work policy.'],
     ] as $step => $stepData)
-            <div class="flex items-start space-x-3">
+            <li class="flex gap-3" @if ($step == $currentStep) aria-current="step" @endif>
                 <div class="flex flex-col items-center">
-                    @if ($step < $currentStep)
-                        <!-- Completed Step -->
-                        <div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7"></path>
-                            </svg>
-                        </div>
-                    @elseif($step == $currentStep)
-                        <!-- Current Step -->
-                        <div
-                            class="w-8 h-8 rounded-full border-2 border-brand-500 bg-white flex items-center justify-center">
-                            <span class="text-brand-500 text-sm font-medium">{{ $step }}</span>
-                        </div>
-                    @else
-                        <!-- Upcoming Step -->
-                        <div
-                            class="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 bg-white flex items-center justify-center">
-                            <span
-                                class="text-gray-400 dark:text-gray-500 text-sm font-medium">{{ $step }}</span>
-                        </div>
-                    @endif
-
-                    <!-- Connecting Line (except for last step) -->
+                    <span @class([
+                        'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
+                        'bg-primary text-primary-foreground' => $step < $currentStep,
+                        'border-2 border-primary text-primary' => $step == $currentStep,
+                        'border-2 border-border text-muted-foreground' => $step > $currentStep,
+                    ])>
+                        @if ($step < $currentStep)
+                            <x-ui.icon name="check" class="size-3.5" />
+                            <span class="sr-only">Completed:</span>
+                        @else
+                            {{ $step }}
+                        @endif
+                    </span>
                     @if ($step < $totalSteps)
-                        <div
-                            class="h-16 w-0.5 mt-1 
-                            @if ($step < $currentStep) bg-brand-500 
-                            @else bg-gray-200 dark:bg-gray-700 @endif">
-                        </div>
+                        <span @class(['my-1 w-0.5 flex-1 min-h-6', 'bg-primary' => $step < $currentStep, 'bg-border' => $step >= $currentStep])></span>
                     @endif
                 </div>
-                <div class="pt-1 flex-1">
+                <div class="min-w-0 flex-1 pb-4">
                     @if ($isEditMode && $driverId)
-                        <a href="{{ getEditStepUrl($step, $driverId) }}"
-                            class="block hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg p-2 -m-2">
-                            <p
-                                class="@if ($step <= $currentStep) font-medium text-gray-800 dark:text-white/90 @else font-medium text-gray-500 dark:text-gray-400 @endif hover:text-brand-500">
-                                {{ $stepData['title'] }}
-                            </p>
-                            <p
-                                class="text-sm @if ($step <= $currentStep) text-gray-500 dark:text-gray-400 @else text-gray-400 dark:text-gray-500 @endif mt-1">
-                                {{ $stepData['description'] }}
-                            </p>
+                        <a href="{{ getEditStepUrl($step, $driverId) }}" class="-m-1.5 block rounded-md p-1.5 hover:bg-accent">
+                            <p @class(['text-sm font-medium', 'text-foreground' => $step <= $currentStep, 'text-muted-foreground' => $step > $currentStep])>{{ $stepData['title'] }}</p>
+                            <p class="mt-0.5 text-xs text-muted-foreground">{{ $stepData['description'] }}</p>
                         </a>
                     @else
-                        <p
-                            class="@if ($step <= $currentStep) font-medium text-gray-800 dark:text-white/90 @else font-medium text-gray-500 dark:text-gray-400 @endif">
-                            {{ $stepData['title'] }}
-                        </p>
-                        <p
-                            class="text-sm @if ($step <= $currentStep) text-gray-500 dark:text-gray-400 @else text-gray-400 dark:text-gray-500 @endif mt-1">
-                            {{ $stepData['description'] }}
-                        </p>
+                        <p @class(['text-sm font-medium', 'text-foreground' => $step <= $currentStep, 'text-muted-foreground' => $step > $currentStep])>{{ $stepData['title'] }}</p>
+                        <p class="mt-0.5 text-xs text-muted-foreground">{{ $stepData['description'] }}</p>
                     @endif
                 </div>
-            </div>
+            </li>
         @endforeach
-    </div>
+    </ol>
 
-    <!-- Save & Finish Later Button -->
-    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+    <x-slot:footer class="grid border-t pt-4">
         @if ($isEditMode && $driverId)
-            <a href="{{ route('admin.driver.edit', ['id' => $driverId]) }}"
-                class="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                <i class="fas fa-arrow-left mr-2"></i>
-                Back to Driver Edit
-            </a>
+            <x-ui.button :href="route('admin.driver.edit', ['id' => $driverId])" variant="outline" icon="arrow-left" class="w-full">Back to Driver Edit</x-ui.button>
         @else
-            <button type="button"
-                class="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                Save & Finish Later
-            </button>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">Your application is not sent or visible
-                to
-                the employer until it is 100% complete.</p>
+            <x-ui.button variant="outline" class="w-full">Save & Finish Later</x-ui.button>
+            <p class="mt-2 text-center text-xs text-muted-foreground">Your application is not sent or visible to the employer until it is 100% complete.</p>
         @endif
-    </div>
-</div>
+    </x-slot:footer>
+</x-ui.card>
