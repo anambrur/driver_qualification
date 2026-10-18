@@ -48,7 +48,7 @@
     </div>
 
     @can('platform.settings.manage')
-        <x-ui.dialog id="document-type-dialog" title="New document type" class="w-full sm:max-w-md">
+        <x-ui.dialog id="document-type-dialog" title="New document type" description="Where it is asked for and whether it is in use." icon="file-text" size="md">
             <form id="document-type-form" class="grid gap-4" novalidate>
                 <input type="hidden" name="id">
                 <x-ui.field label="Name" name="name" required>

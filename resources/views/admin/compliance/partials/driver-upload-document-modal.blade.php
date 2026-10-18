@@ -2,7 +2,7 @@
     Driver compliance document upload. Pages open it with openUploadModal(driverId, documentTypeId)
     (driver detail, compliance > drivers) and may call closeUploadModal().
 --}}
-<x-ui.dialog id="uploadDocumentModal" title="Upload document" description="Driver document upload" :close-on-overlay="false" class="w-full sm:max-w-3xl">
+<x-ui.dialog id="uploadDocumentModal" title="Upload document" description="Driver document upload" icon="upload" size="xl" :close-on-overlay="false">
     <form id="uploadDocumentForm" enctype="multipart/form-data" class="grid gap-4 lg:grid-cols-2" novalidate>
         <input type="hidden" name="document_type_id">
         <input type="hidden" name="asset_type" value="driver">

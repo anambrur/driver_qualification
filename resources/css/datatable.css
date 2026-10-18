@@ -13,6 +13,17 @@ div.dt-container .dt-layout-row {
 div.dt-container .dt-layout-row.dt-layout-table {
     padding: 0;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
+}
+
+/* The horizontal scrollbar only shows while the table is hovered or scrolled with the keyboard */
+@media (hover: hover) {
+    div.dt-container .dt-layout-row.dt-layout-table:not(:hover, :focus-within) {
+        scrollbar-color: transparent transparent;
+    }
+    div.dt-container .dt-layout-row.dt-layout-table:not(:hover, :focus-within)::-webkit-scrollbar-thumb {
+        background-color: transparent;
+    }
 }
 
 div.dt-container .dt-search input,

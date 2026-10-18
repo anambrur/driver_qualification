@@ -1,5 +1,5 @@
 {{-- Hire / Do-not-hire for a pending applicant. Posts to admin.driver.hire-status (hire-script). --}}
-<x-ui.dialog id="hire-dialog" title="Hire applicant" class="w-full sm:max-w-md"
+<x-ui.dialog id="hire-dialog" title="Hire applicant" icon="user-round-check" size="md"
     :description="'You are hiring '.$driverFullName.'. This cannot be undone. Set the hire date and confirm to make the driver active.'">
     <form id="hireForm" class="grid gap-4">
         <x-ui.field label="Date hired" name="hire_date" required>
@@ -18,7 +18,7 @@
     </x-slot:footer>
 </x-ui.dialog>
 
-<x-ui.dialog id="not-hire-dialog" title="Do not hire" class="w-full sm:max-w-md"
+<x-ui.dialog id="not-hire-dialog" title="Do not hire" icon="user-round-x" size="md"
     description="Choose the reason and add any details, then confirm that the applicant will not be hired.">
     <form id="notHireForm" class="grid gap-4">
         <x-ui.field label="Reason" name="rejection_reason" required>

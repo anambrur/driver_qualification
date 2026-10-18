@@ -48,48 +48,65 @@
     </div>
 
     @canany(['scheduled.create', 'scheduled.edit'])
-        <x-ui.dialog id="schedule-dialog" title="Add schedule" :close-on-overlay="false" class="w-full sm:max-w-2xl">
-            <form id="schedule-form" class="grid gap-4 sm:grid-cols-2" novalidate x-data="{ type: 'date' }" x-on:schedule-type.window="type = $event.detail">
-                <x-ui.field label="Maintenance category" name="maintenance_category_id" required>
-                    <x-ui.select name="maintenance_category_id" :options="$categoryOptions" placeholder="Select category" required />
-                </x-ui.field>
-                <x-ui.field label="Title" name="title" hint="Optional. Shown instead of the category.">
-                    <x-ui.input name="title" maxlength="255" placeholder="For example 90-day inspection" />
-                </x-ui.field>
-                <x-ui.radio-group name="schedule_type" legend="Schedule by" :options="$types" value="date" required class="sm:col-span-2"
-                    x-on:change="type = $event.target.value" />
-                <x-ui.field label="Vehicle" name="vehicle_id" class="sm:col-span-2">
-                    <x-ui.select name="vehicle_id" :options="$vehicleOptions" placeholder="All vehicles (global schedule)" />
-                    <p class="text-sm text-muted-foreground" x-text="type === 'date' ? 'Leave empty to apply to every vehicle.' : 'Mileage and engine-hour schedules need a vehicle.'"></p>
-                    <p data-vehicle-reading class="text-sm text-muted-foreground" hidden></p>
-                </x-ui.field>
-                <x-ui.field label="Every (days)" name="interval_days" required x-show="type === 'date'">
-                    <x-ui.input type="number" name="interval_days" min="1" max="9999" placeholder="90" />
-                </x-ui.field>
-                <x-ui.field label="Every (miles)" name="interval_miles" required x-show="type === 'mileage'" x-cloak>
-                    <x-ui.input type="number" name="interval_miles" min="1" max="999999" placeholder="15000" />
-                </x-ui.field>
-                <x-ui.field label="Every (engine hours)" name="interval_hours" required x-show="type === 'engine_hours'" x-cloak>
-                    <x-ui.input type="number" name="interval_hours" min="1" max="999999" placeholder="500" />
-                </x-ui.field>
-                <x-ui.field label="Status" name="status" required>
-                    <x-ui.select name="status" :options="$statuses" required />
-                </x-ui.field>
-                <x-ui.field label="Description" name="description" class="sm:col-span-2">
-                    <x-ui.textarea name="description" rows="2" class="w-full" />
-                </x-ui.field>
-                <x-ui.field label="Internal notes" name="notes" class="sm:col-span-2">
-                    <x-ui.textarea name="notes" rows="2" class="w-full" />
-                </x-ui.field>
+        <x-ui.dialog id="schedule-dialog" title="Add schedule" description="What is serviced, and how often." icon="calendar-clock" size="lg" :close-on-overlay="false">
+            <form id="schedule-form" novalidate x-data="{ type: 'date' }" x-on:schedule-type.window="type = $event.detail">
+                <div class="form-section">
+                    <h3 class="form-section-title">{{ svg('lucide-wrench', '', ['aria-hidden' => 'true']) }} Service</h3>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <x-ui.field label="Maintenance category" name="maintenance_category_id" required>
+                            <x-ui.select name="maintenance_category_id" :options="$categoryOptions" placeholder="Select category" required />
+                        </x-ui.field>
+                        <x-ui.field label="Title" name="title" hint="Optional. Shown instead of the category.">
+                            <x-ui.input name="title" maxlength="255" placeholder="90-day inspection" />
+                        </x-ui.field>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="form-section-title">{{ svg('lucide-repeat', '', ['aria-hidden' => 'true']) }} Interval</h3>
+                    <x-ui.radio-group name="schedule_type" legend="Schedule by" :options="$types" value="date" required x-on:change="type = $event.target.value" />
+                    <div class="grid gap-4 sm:grid-cols-[1fr_12rem]">
+                        <x-ui.field label="Vehicle" name="vehicle_id">
+                            <x-ui.select name="vehicle_id" :options="$vehicleOptions" placeholder="All vehicles (global schedule)" />
+                            <p class="text-sm text-muted-foreground" x-text="type === 'date' ? 'Leave empty to apply to every vehicle.' : 'Mileage and engine-hour schedules need a vehicle.'"></p>
+                            <p data-vehicle-reading class="text-sm text-muted-foreground" hidden></p>
+                        </x-ui.field>
+                        <x-ui.field label="Every (days)" name="interval_days" required x-show="type === 'date'">
+                            <x-ui.input type="number" name="interval_days" min="1" max="9999" placeholder="90" />
+                        </x-ui.field>
+                        <x-ui.field label="Every (miles)" name="interval_miles" required x-show="type === 'mileage'" x-cloak>
+                            <x-ui.input type="number" name="interval_miles" min="1" max="999999" placeholder="15000" />
+                        </x-ui.field>
+                        <x-ui.field label="Every (engine hours)" name="interval_hours" required x-show="type === 'engine_hours'" x-cloak>
+                            <x-ui.input type="number" name="interval_hours" min="1" max="999999" placeholder="500" />
+                        </x-ui.field>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="form-section-title">{{ svg('lucide-sticky-note', '', ['aria-hidden' => 'true']) }} Details</h3>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <x-ui.field label="Status" name="status" required>
+                            <x-ui.select name="status" :options="$statuses" required />
+                        </x-ui.field>
+                        <div class="hidden sm:block"></div>
+                        <x-ui.field label="Description" name="description">
+                            <x-ui.textarea name="description" rows="3" class="w-full" />
+                        </x-ui.field>
+                        <x-ui.field label="Internal notes" name="notes">
+                            <x-ui.textarea name="notes" rows="3" class="w-full" />
+                        </x-ui.field>
+                    </div>
+                </div>
             </form>
             <x-slot:footer>
                 <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
-                <button type="submit" form="schedule-form" class="btn">Save schedule</button>
+                <button type="submit" form="schedule-form" class="btn">{{ svg('lucide-check', '', ['data-icon' => 'inline-start', 'aria-hidden' => 'true']) }} Save schedule</button>
             </x-slot:footer>
         </x-ui.dialog>
     @endcanany
 
-    <x-ui.dialog id="schedule-view-dialog" title="Schedule details" class="w-full sm:max-w-xl">
+    <x-ui.dialog id="schedule-view-dialog" title="Schedule details" icon="calendar-clock" size="lg">
         <dl class="grid gap-4 sm:grid-cols-2">
             <x-ui.detail label="Category"><span data-view="category"></span></x-ui.detail>
             <x-ui.detail label="Title"><span data-view="title"></span></x-ui.detail>

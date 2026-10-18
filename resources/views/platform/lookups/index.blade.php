@@ -29,7 +29,7 @@
         </x-slot:empty>
     </x-ui.datatable>
 
-    <x-ui.dialog id="lookup-dialog" :title="'Add '.$lookup['singular']" class="w-full sm:max-w-md">
+    <x-ui.dialog id="lookup-dialog" :title="'Add '.$lookup['singular']" :icon="$lookup['icon']" size="sm">
         <form id="lookup-form" class="grid gap-4" novalidate>
             <input type="hidden" name="id">
             <x-ui.field label="Name" name="name" required :hint="$lookup['hint']">

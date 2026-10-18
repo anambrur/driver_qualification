@@ -49,61 +49,79 @@
     </div>
 
     @canany(['maintenance.create', 'maintenance.edit'])
-        <x-ui.dialog id="service-log-dialog" title="Log service" :close-on-overlay="false" class="w-full sm:max-w-3xl">
-            <form id="service-log-form" class="grid gap-4 sm:grid-cols-2" novalidate>
-                <x-ui.field label="Vehicle" name="vehicle_id" required>
-                    <x-ui.select name="vehicle_id" :options="$vehicleOptions" placeholder="Select vehicle" required />
-                </x-ui.field>
-                <x-ui.field label="Service date" name="service_date" required>
-                    <x-ui.input type="date" name="service_date" required max="{{ now()->toDateString() }}" />
-                </x-ui.field>
+        <x-ui.dialog id="service-log-dialog" title="Log service" description="The work done, the readings and the cost." icon="wrench" size="xl" :close-on-overlay="false">
+            <form id="service-log-form" novalidate>
+                <div class="form-section">
+                    <h3 class="form-section-title">{{ svg('lucide-truck', '', ['aria-hidden' => 'true']) }} Service</h3>
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <x-ui.field label="Vehicle" name="vehicle_id" required class="sm:col-span-2">
+                            <x-ui.select name="vehicle_id" :options="$vehicleOptions" placeholder="Select vehicle" required />
+                        </x-ui.field>
+                        <x-ui.field label="Service date" name="service_date" required>
+                            <x-ui.input type="date" name="service_date" required max="{{ now()->toDateString() }}" />
+                        </x-ui.field>
+                        <x-ui.field label="Status" name="status" required>
+                            <x-ui.select name="status" :options="$statuses" required />
+                        </x-ui.field>
+                    </div>
+                </div>
 
-                <fieldset class="grid gap-2 sm:col-span-2" id="f-maintenance_categories">
-                    <legend class="label mb-2">Work done <span class="text-destructive" aria-hidden="true">*</span></legend>
-                    <div class="grid max-h-48 gap-2 overflow-y-auto rounded-lg border border-border p-3 custom-scrollbar sm:grid-cols-2 lg:grid-cols-3">
-                        @foreach ($categoryOptions as $id => $name)
+                <fieldset class="form-section" id="f-maintenance_categories">
+                    <legend class="form-section-title float-left w-full">{{ svg('lucide-list-checks', '', ['aria-hidden' => 'true']) }} Work done <span class="text-destructive" aria-hidden="true">*</span></legend>
+                    <div class="clear-both grid max-h-52 gap-x-4 gap-y-2.5 overflow-y-auto rounded-lg border border-border bg-muted/20 p-3 custom-scrollbar sm:grid-cols-2 lg:grid-cols-3">
+                        @forelse ($categoryOptions as $id => $name)
                             <x-ui.checkbox name="maintenance_categories[]" :id="'category-'.$id" :value="$id" :label="$name" />
-                        @endforeach
+                        @empty
+                            <p class="text-sm text-muted-foreground sm:col-span-full">No maintenance categories yet. The platform team adds them under Lookups.</p>
+                        @endforelse
                     </div>
                 </fieldset>
 
-                <x-ui.field label="Odometer at service (mi)" name="odometer_at_service" required>
-                    <x-ui.input type="number" name="odometer_at_service" required min="0" />
-                </x-ui.field>
-                <x-ui.field label="Current odometer (mi)" name="current_odometer" required hint="Filled in from the vehicle; not lower than the service reading.">
-                    <x-ui.input type="number" name="current_odometer" required min="0" />
-                </x-ui.field>
-                <x-ui.field label="Engine hours at service" name="engine_hours_at_service">
-                    <x-ui.input type="number" name="engine_hours_at_service" min="0" />
-                </x-ui.field>
-                <x-ui.field label="Current engine hours" name="current_engine_hours">
-                    <x-ui.input type="number" name="current_engine_hours" min="0" />
-                </x-ui.field>
-                <x-ui.field label="Total cost ($)" name="total_cost" required>
-                    <x-ui.input type="number" name="total_cost" required min="0" step="0.01" placeholder="0.00" />
-                </x-ui.field>
-                <x-ui.field label="Status" name="status" required>
-                    <x-ui.select name="status" :options="$statuses" required />
-                </x-ui.field>
-                <x-ui.field label="Notes" name="maintenance_notes" class="sm:col-span-2">
-                    <x-ui.textarea name="maintenance_notes" rows="2" class="w-full" placeholder="What was done, parts used…" />
-                </x-ui.field>
+                <div class="form-section">
+                    <h3 class="form-section-title">{{ svg('lucide-gauge', '', ['aria-hidden' => 'true']) }} Readings and cost</h3>
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                        <x-ui.field label="Odometer at service" name="odometer_at_service" required>
+                            <x-ui.input type="number" name="odometer_at_service" required min="0" placeholder="mi" />
+                        </x-ui.field>
+                        <x-ui.field label="Current odometer" name="current_odometer" required>
+                            <x-ui.input type="number" name="current_odometer" required min="0" placeholder="mi" />
+                        </x-ui.field>
+                        <x-ui.field label="Engine hrs at service" name="engine_hours_at_service">
+                            <x-ui.input type="number" name="engine_hours_at_service" min="0" />
+                        </x-ui.field>
+                        <x-ui.field label="Current engine hrs" name="current_engine_hours">
+                            <x-ui.input type="number" name="current_engine_hours" min="0" />
+                        </x-ui.field>
+                        <x-ui.field label="Total cost ($)" name="total_cost" required>
+                            <x-ui.input type="number" name="total_cost" required min="0" step="0.01" placeholder="0.00" />
+                        </x-ui.field>
+                    </div>
+                    <p class="-mt-2 text-xs text-muted-foreground">The current odometer is filled in from the vehicle and can’t be lower than the service reading.</p>
+                </div>
 
-                <div class="grid gap-2 sm:col-span-2">
-                    <x-ui.field label="Documents" name="documents" hint="Invoices or work orders: PDF, image or Word, up to 10 MB each.">
-                        <x-ui.input type="file" name="documents[]" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
-                    </x-ui.field>
-                    <ul data-existing-documents class="grid gap-1" role="list"></ul>
+                <div class="form-section">
+                    <h3 class="form-section-title">{{ svg('lucide-paperclip', '', ['aria-hidden' => 'true']) }} Notes and documents</h3>
+                    <div class="grid gap-4 lg:grid-cols-2">
+                        <x-ui.field label="Notes" name="maintenance_notes">
+                            <x-ui.textarea name="maintenance_notes" rows="4" class="w-full" placeholder="What was done, parts used…" />
+                        </x-ui.field>
+                        <div class="grid content-start gap-2">
+                            <x-ui.field label="Documents" name="documents" hint="Invoices or work orders: PDF, image or Word, up to 10 MB each.">
+                                <x-ui.input type="file" name="documents[]" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+                            </x-ui.field>
+                            <ul data-existing-documents class="grid gap-1" role="list"></ul>
+                        </div>
+                    </div>
                 </div>
             </form>
             <x-slot:footer>
                 <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
-                <button type="submit" form="service-log-form" class="btn">Save service log</button>
+                <button type="submit" form="service-log-form" class="btn">{{ svg('lucide-check', '', ['data-icon' => 'inline-start', 'aria-hidden' => 'true']) }} Save service log</button>
             </x-slot:footer>
         </x-ui.dialog>
     @endcanany
 
-    <x-ui.dialog id="service-log-view-dialog" title="Service details" class="w-full sm:max-w-xl">
+    <x-ui.dialog id="service-log-view-dialog" title="Service details" icon="wrench" size="lg">
         <dl class="grid gap-4 sm:grid-cols-2">
             <x-ui.detail label="Vehicle" class="sm:col-span-2"><span data-view="vehicle"></span></x-ui.detail>
             <x-ui.detail label="Service date"><span data-view="date"></span></x-ui.detail>

@@ -44,26 +44,35 @@
     </div>
 
     @canany(['trailers.create', 'trailers.edit'])
-        <x-ui.dialog id="trailer-dialog" title="Add trailer" :close-on-overlay="false" class="w-full sm:max-w-3xl">
-            <form id="trailer-form" class="grid gap-6" novalidate>
-                <fieldset>
-                    <legend class="float-left mb-3 w-full text-sm font-medium">Basic information</legend>
-                    <div class="clear-both grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <x-ui.dialog id="trailer-dialog" title="Add trailer" description="Unit details, equipment type and specifications." icon="container" size="xl" :close-on-overlay="false">
+            <form id="trailer-form" novalidate>
+                <div class="form-section">
+                    <h3 class="form-section-title">{{ svg('lucide-tag', '', ['aria-hidden' => 'true']) }} Identification</h3>
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <x-ui.field label="Unit number" name="unit_no" required>
-                            <x-ui.input name="unit_no" required maxlength="50" placeholder="For example TR001" autocomplete="off" />
+                            <x-ui.input name="unit_no" required maxlength="50" placeholder="TR001" autocomplete="off" />
                         </x-ui.field>
-                        <x-ui.field label="VIN" name="vin" required hint="17 characters, no I, O or Q." class="sm:col-span-2">
-                            <x-ui.input name="vin" required minlength="17" maxlength="17" autocomplete="off" spellcheck="false" class="font-mono uppercase" />
+                        <x-ui.field label="VIN" name="vin" required hint="17 characters, no I, O or Q." class="sm:col-span-2 lg:col-span-3">
+                            <x-ui.input name="vin" required minlength="17" maxlength="17" autocomplete="off" spellcheck="false" class="font-mono uppercase tracking-wider" />
                         </x-ui.field>
                         <x-ui.field label="Year" name="year" required>
                             <x-ui.input type="number" name="year" required min="1900" max="{{ date('Y') + 1 }}" placeholder="{{ date('Y') }}" />
                         </x-ui.field>
                         <x-ui.field label="Make" name="make" required>
-                            <x-ui.input name="make" required maxlength="100" placeholder="For example Utility" />
+                            <x-ui.input name="make" required maxlength="100" placeholder="Utility" />
                         </x-ui.field>
                         <x-ui.field label="Model" name="model" required>
-                            <x-ui.input name="model" required maxlength="100" placeholder="For example 4000D-X" />
+                            <x-ui.input name="model" required maxlength="100" placeholder="4000D-X" />
                         </x-ui.field>
+                        <x-ui.field label="Color" name="color">
+                            <x-ui.input name="color" maxlength="50" placeholder="White" />
+                        </x-ui.field>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="form-section-title">{{ svg('lucide-layers', '', ['aria-hidden' => 'true']) }} Classification and specifications</h3>
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <x-ui.field label="Equipment type" name="equipment_type_id" required>
                             <x-ui.select name="equipment_type_id" :options="$options($equipmentTypes)" placeholder="Select equipment type" required />
                         </x-ui.field>
@@ -73,34 +82,28 @@
                         <x-ui.field label="Owned by" name="owned_by">
                             <x-ui.input name="owned_by" maxlength="100" placeholder="Company name" />
                         </x-ui.field>
-                    </div>
-                </fieldset>
-
-                <fieldset class="border-t border-border pt-6">
-                    <legend class="float-left mb-3 w-full text-sm font-medium">Details</legend>
-                    <div class="clear-both grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <x-ui.field label="GVW (lbs)" name="gvw">
                             <x-ui.input type="number" name="gvw" min="0" />
                         </x-ui.field>
-                        <x-ui.field label="Color" name="color">
-                            <x-ui.input name="color" maxlength="50" placeholder="For example White" />
+                        <x-ui.field label="Tire size" name="tire_size">
+                            <x-ui.input name="tire_size" maxlength="50" placeholder="11R22.5" />
                         </x-ui.field>
                         <x-ui.field label="Title number" name="title_no">
                             <x-ui.input name="title_no" maxlength="100" />
                         </x-ui.field>
-                        <x-ui.field label="Tire size" name="tire_size">
-                            <x-ui.input name="tire_size" maxlength="50" placeholder="For example 11R22.5" />
-                        </x-ui.field>
                     </div>
-                </fieldset>
+                </div>
 
-                <x-ui.field label="Notes" name="notes" class="border-t border-border pt-6">
-                    <x-ui.textarea name="notes" rows="3" maxlength="2000" class="w-full" placeholder="Maintenance history, special instructions…" />
-                </x-ui.field>
+                <div class="form-section">
+                    <h3 class="form-section-title">{{ svg('lucide-sticky-note', '', ['aria-hidden' => 'true']) }} Notes</h3>
+                    <x-ui.field label="Notes" name="notes" class="[&>label]:sr-only">
+                        <x-ui.textarea name="notes" rows="3" maxlength="2000" class="w-full" placeholder="Maintenance history, special instructions…" />
+                    </x-ui.field>
+                </div>
             </form>
             <x-slot:footer>
                 <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
-                <button type="submit" form="trailer-form" class="btn">Save trailer</button>
+                <button type="submit" form="trailer-form" class="btn">{{ svg('lucide-check', '', ['data-icon' => 'inline-start', 'aria-hidden' => 'true']) }} Save trailer</button>
             </x-slot:footer>
         </x-ui.dialog>
     @endcanany

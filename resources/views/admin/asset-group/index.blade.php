@@ -41,30 +41,45 @@
     </div>
 
     @canany(['asset-groups.create', 'asset-groups.edit'])
-        <x-ui.dialog id="asset-group-dialog" title="Add asset group" :close-on-overlay="false" class="w-full sm:max-w-2xl">
-            <form id="asset-group-form" class="grid gap-4 sm:grid-cols-2" novalidate>
-                <x-ui.field label="Vehicle" name="vehicle_id" required>
-                    <x-ui.select name="vehicle_id" :options="$unitOptions($vehicles)" placeholder="Select vehicle" required />
-                    <p data-unit-detail="vehicle" class="text-sm text-muted-foreground" hidden></p>
-                </x-ui.field>
-                <x-ui.field label="Trailer" name="trailer_id" hint="Optional.">
-                    <x-ui.select name="trailer_id" :options="$unitOptions($trailers)" placeholder="No trailer" />
-                    <p data-unit-detail="trailer" class="text-sm text-muted-foreground" hidden></p>
-                </x-ui.field>
-                <x-ui.field label="Group name" name="group_name" required hint="Filled in from the vehicle (GR#unit) until you change it.">
-                    <x-ui.input name="group_name" required maxlength="100" autocomplete="off" />
-                </x-ui.field>
-                <x-ui.field label="Status" name="status" required>
-                    <x-ui.select name="status" :options="['active' => 'Active', 'inactive' => 'Inactive']" required />
-                </x-ui.field>
-                <x-ui.field label="Primary driver" name="driver_id" required class="sm:col-span-2" hint="Active drivers.">
-                    <x-ui.select name="driver_id" :options="$drivers->mapWithKeys(fn ($d) => [$d->id => trim($d->first_name.' '.$d->last_name)])->all()" placeholder="Select driver" required />
-                    <p data-driver-contact class="text-sm text-muted-foreground" hidden></p>
-                </x-ui.field>
+        <x-ui.dialog id="asset-group-dialog" title="Add asset group" description="The driver, vehicle and trailer that run together." icon="users-round" size="lg" :close-on-overlay="false">
+            <form id="asset-group-form" novalidate>
+                <div class="form-section">
+                    <h3 class="form-section-title">{{ svg('lucide-truck', '', ['aria-hidden' => 'true']) }} Equipment</h3>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <x-ui.field label="Vehicle" name="vehicle_id" required>
+                            <x-ui.select name="vehicle_id" :options="$unitOptions($vehicles)" placeholder="Select vehicle" required />
+                            <p data-unit-detail="vehicle" class="font-mono text-xs text-muted-foreground" hidden></p>
+                        </x-ui.field>
+                        <x-ui.field label="Trailer" name="trailer_id" hint="Optional.">
+                            <x-ui.select name="trailer_id" :options="$unitOptions($trailers)" placeholder="No trailer" />
+                            <p data-unit-detail="trailer" class="font-mono text-xs text-muted-foreground" hidden></p>
+                        </x-ui.field>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="form-section-title">{{ svg('lucide-id-card', '', ['aria-hidden' => 'true']) }} Driver</h3>
+                    <x-ui.field label="Primary driver" name="driver_id" required hint="Active drivers.">
+                        <x-ui.select name="driver_id" :options="$drivers->mapWithKeys(fn ($d) => [$d->id => trim($d->first_name.' '.$d->last_name)])->all()" placeholder="Select driver" required />
+                        <p data-driver-contact class="text-sm text-muted-foreground" hidden></p>
+                    </x-ui.field>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="form-section-title">{{ svg('lucide-tag', '', ['aria-hidden' => 'true']) }} Group</h3>
+                    <div class="grid gap-4 sm:grid-cols-[1fr_12rem]">
+                        <x-ui.field label="Group name" name="group_name" required hint="Filled in from the vehicle (GR#unit) until you change it.">
+                            <x-ui.input name="group_name" required maxlength="100" autocomplete="off" />
+                        </x-ui.field>
+                        <x-ui.field label="Status" name="status" required>
+                            <x-ui.select name="status" :options="['active' => 'Active', 'inactive' => 'Inactive']" required />
+                        </x-ui.field>
+                    </div>
+                </div>
             </form>
             <x-slot:footer>
                 <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
-                <button type="submit" form="asset-group-form" class="btn">Save asset group</button>
+                <button type="submit" form="asset-group-form" class="btn">{{ svg('lucide-check', '', ['data-icon' => 'inline-start', 'aria-hidden' => 'true']) }} Save asset group</button>
             </x-slot:footer>
         </x-ui.dialog>
     @endcanany
