@@ -2,6 +2,8 @@
 
 use App\Models\DriverDocument;
 use App\Models\User;
+use App\Models\Violation;
+use Database\Factories\LicenseFactory;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
@@ -25,6 +27,8 @@ function adminStep(int $step): array
         2 => ['admin.driver.license', 'admin.driver.license.store', ['license_front', 'license_back']],
         3 => ['admin.driver.medical.card', 'admin.driver.medical.card.store', ['medical_card', 'medical_certificate_expiration_date']],
         4 => ['admin.driver.forfeiture', 'admin.driver.forfeiture.store', ['forfeiture_document']],
+        5 => ['admin.driver.violation', 'admin.driver.violation.store', ['violation', 'violation_date[]', 'violation_location[]', 'offense[]', 'vehicle_type[]', 'applicant_signature', 'date_signed']],
+        6 => ['admin.driver.alcohol.and.drug.test', 'admin.driver.alcohol.and.drug.store', ['drug_test_question_1', 'drug_test_question_2', 'applicant_signature', 'date_signed']],
     ][$step];
 }
 
@@ -33,7 +37,7 @@ function adminStepPage(int $step, string $query = '', ?User $user = null)
     return test()->actingAs($user ?? test()->owner)->get(route(adminStep($step)[0], test()->driver->id).$query);
 }
 
-dataset('admin steps', [2, 3, 4]);
+dataset('admin steps', [2, 3, 4, 5, 6]);
 
 it('renders the step on the shared shell inside the admin layout', function (int $step) {
     adminStepPage($step)->assertOk()
@@ -112,3 +116,57 @@ it('keeps the step on theme tokens, without the TailAdmin scales', function (int
 
     expect($html)->not->toMatch('~\b(?:text|bg|border)-(?:error|success|warning|purple|blue|red|green|yellow)-\d~');
 })->with('admin steps');
+
+it('prefills the step 5 violations from driver_documents.has_violations and the rows, with the license line', function () {
+    LicenseFactory::new()->create(['driver_id' => $this->driver->id, 'license_number' => 'D7654321', 'state_code' => 'TX']);
+    // The answer and the signature are on driver_documents; rows exist only for real violations
+    DriverDocument::create(['driver_id' => $this->driver->id, 'has_violations' => true, 'violation_record_signature' => 'Jane Roe', 'violation_record_date_signed' => '2026-01-01']);
+    Violation::create(['driver_id' => $this->driver->id, 'violation_date' => '2025-05-01', 'violation_location' => 'Austin', 'offense' => 'Speeding', 'vehicle_type' => 'Truck']);
+
+    $page = adminStepPage(5, '?edit=1')->assertOk();
+    expect($page->getContent())->toMatch('~name="violation" value="yes" class="input"\\s+checked~');
+    $page
+        ->assertSee(['id="violation_fields"', 'id="violation_add"', 'id="violation_remove"'], false)
+        ->assertSee(['name="violation" value="no"', 'value="Speeding"', 'name="violation_date[]" value="2025-05-01"'], false)
+        ->assertSee(['License: D7654321 (TX)', 'Current Violation Information', 'Has Violations', 'Last Signed'], false)
+        ->assertSee('href="'.route('admin.driver.alcohol.and.drug.test', ['driver_id' => $this->driver->id, 'edit' => '1']).'"', false);
+});
+
+it('checks no violations and shows the signature when the record says none', function () {
+    DriverDocument::create(['driver_id' => $this->driver->id, 'has_violations' => false, 'violation_record_signature' => 'Jane Roe', 'violation_record_date_signed' => '2026-01-01']);
+
+    $html = adminStepPage(5, '?edit=1')->assertOk()
+        ->assertSee(['No violations recorded for this driver.', 'Jane Roe', '01/01/2026'])
+        ->getContent();
+
+    expect($html)->toMatch('~name="violation" value="no" class="input"\\s+checked~')
+        ->not->toMatch('~name="violation" value="yes" class="input"\\s+checked~');
+});
+
+it('shows the license state from state_code (licenses has no state column)', function () {
+    LicenseFactory::new()->create(['driver_id' => $this->driver->id, 'license_number' => 'D7654321', 'state_code' => 'NV']);
+
+    expect(adminStepPage(2)->assertOk()->assertSee(['Current License Information', 'D7654321'])->getContent())
+        ->toMatch('~<dt[^>]*>State</dt>\\s*<dd[^>]*>\\s*NV\\s*</dd>~');
+});
+
+it('requires the step 6 answers and signature only when creating', function () {
+    $create = adminStepPage(6)->assertOk()->getContent();
+    $edit = adminStepPage(6, '?edit=1')->assertOk()->getContent();
+
+    expect(preg_match_all('~name="drug_test_question_\d" value="[^"]+" class="input"\s+required~', $create))->toBe(5)
+        ->and(preg_match_all('~name="drug_test_question_\d" value="[^"]+" class="input"\s+required~', $edit))->toBe(0)
+        ->and($create)->toMatch('~<input[^>]*id="applicant_signature"[^>]*required~')
+        ->and($edit)->not->toMatch('~<input[^>]*id="applicant_signature"[^>]*required~');
+});
+
+it('runs the warning for a changed positive drug test answer (it sat in a DOMContentLoaded that never fired)', function () {
+    DriverDocument::create(['driver_id' => $this->driver->id, 'drug_test_question_1' => 'yes', 'drug_test_question_2' => 'no', 'drug_test_signature' => 'Jane Roe']);
+
+    $html = adminStepPage(6, '?edit=1')->assertOk()
+        ->assertSee(['Current Alcohol & Drug Test Information', 'You are changing a previously recorded positive test response'], false)
+        ->getContent();
+
+    expect($html)->toContain('const currentQ1')
+        ->not->toMatch("~addEventListener\\('DOMContentLoaded', function\\(\\) \\{\\s*const currentQ1~");
+});

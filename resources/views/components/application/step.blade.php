@@ -1,5 +1,6 @@
 {{--
     Shell for the 10 application steps: company bar, heading, error summary, form, progress sidebar.
+    Optional slots: `meta` (heading line), `details` (Driver Information rows), `after` (end of the sidebar).
     `admin` renders it inside the main layout for the admin wizard: no company bar, step line or withdraw card,
     and the progress bar links each step in `edit` mode.
 --}}
@@ -26,6 +27,7 @@
                 @if ($driver->company)
                     <span class="inline-flex items-center gap-1.5"><x-ui.icon name="building-2" class="size-4" /> Company: {{ $driver->company->company_name }}</span>
                 @endif
+                {{ $meta ?? '' }}
             </p>
         </div>
 
@@ -66,8 +68,11 @@
                         <x-ui.detail label="Status">
                             <x-ui.badge :tone="$driver->status == 'active' ? 'success' : 'warning'">{{ ucfirst($driver->status) }}</x-ui.badge>
                         </x-ui.detail>
+                        {{ $details ?? '' }}
                     </dl>
                 </x-ui.card>
+
+                {{ $after ?? '' }}
             </aside>
         </div>
     </div>

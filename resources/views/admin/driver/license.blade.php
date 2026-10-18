@@ -34,7 +34,7 @@
                                 <dl class="grid grid-cols-2 gap-3 rounded-lg border bg-muted/40 p-4">
                                     <x-ui.detail label="License Number" :value="$license->license_number" mono />
                                     <x-ui.detail label="Class" :value="$license->class" />
-                                    <x-ui.detail label="State" :value="$license->state" />
+                                    <x-ui.detail label="State" :value="$license->state_code" />
                                     <x-ui.detail label="Expires" :value="\Carbon\Carbon::parse($license->expires)->format('m/d/Y')" />
                                 </dl>
                             @endforeach
