@@ -2,10 +2,12 @@
 
 use App\Models\Driver;
 use App\Models\DriverDocument;
+use App\Models\PolicyPdf;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
 use Tests\Feature\Modules\Drivers\DriverAdmin;
 use Tests\Feature\Modules\PublicApplication\Applicant;
+use Tests\Support\Files;
 
 /*
 | UI-14 (phase 2, batch 4d): the 10 public application steps on x-application.step, with the same
@@ -33,7 +35,7 @@ function stepPage(int $step, array $session = [])
     return test()->withSession(Applicant::session(test()->driver) + $session)->get(stepUrl($step, test()->driver));
 }
 
-dataset('migrated steps', [2, 3, 4, 5, 6]);
+dataset('migrated steps', [2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
 it('renders the step on the shared shell without Font Awesome, SweetAlert or inline styles', function (int $step) {
     $html = stepPage($step)->assertOk()
@@ -92,7 +94,7 @@ it('renders steps 6 to 10 even before the driver has a document row', function (
     DriverDocument::query()->where('driver_id', $this->driver->id)->delete();
 
     stepPage($step)->assertOk();
-})->with([6]);
+})->with([6, 7, 8, 9, 10]);
 
 it('keeps the old input on the medical card date', function () {
     stepPage(3, ['_old_input' => ['medical_certificate_expiration_date' => '2030-01-31']])
@@ -116,4 +118,35 @@ it('keeps the admin edit links in the shared progress bar', function () {
         ->assertSee('Document Edit Process')
         ->assertSee(route('admin.driver.medical.card', ['driver_id' => $driver->id]).'?edit=1', false)
         ->assertSee(route('admin.driver.edit', ['id' => $driver->id]), false);
+});
+
+it('asks for consent with the agreement box on steps 7 and 8', function (int $step, string $box) {
+    stepPage($step)->assertOk()
+        ->assertSee('name="'.$box.'" value="1"', false)
+        ->assertSee(['name="date_signed"', 'value="'.date('Y-m-d').'"'], false);
+})->with([[7, 'consent_agreement'], [8, 'authorization_agreement']]);
+
+it('keeps the consent type on step 7', function () {
+    stepPage(7)->assertOk()->assertSee('name="consent_type" value="multiple_unlimited"', false);
+});
+
+it('shows the policy PDF viewer and download when the company has one', function (int $step, string $column, string $policy) {
+    PolicyPdf::create(['company_id' => $this->company->id, $column => Files::stored($this->company->id)->id]);
+    $url = route('public.application.policy', [$this->company->slug, $policy]);
+
+    stepPage($step)->assertOk()
+        ->assertSee('<iframe src="'.$url.'"', false)
+        ->assertSee('href="'.$url.'"', false)
+        ->assertDontSee('Policy Document Not Available');
+})->with([
+    [9, 'alcohol_drug_test_policy_file_id', 'alcohol_drug_test'],
+    [10, 'general_work_policy_file_id', 'general_work'],
+]);
+
+it('says when the policy PDF is missing', function (int $step) {
+    stepPage($step)->assertOk()->assertSee('Policy Document Not Available')->assertDontSee('<iframe', false);
+})->with([9, 10]);
+
+it('no longer logs the driver name to the console on step 10', function () {
+    stepPage(10)->assertOk()->assertDontSee('Driver name loaded', false);
 });
