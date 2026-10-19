@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Notification;
 use Tests\Support\Actors;
 
 /*
-| UI-14 (phase 2, batch 7): users, invitations and support access on x-ui. Destructive actions ask
-| in the shared confirm dialog; no native alert() or confirm() is left. Routes, permissions and form
-| fields are unchanged.
+| UI-14 (phase 2, batch 7): users, invitations, support access and roles on x-ui. Destructive actions
+| ask in the shared confirm dialog; no native alert() or confirm() is left. Routes, permissions and
+| form fields are unchanged.
 */
 
 function assertBatch7Ui(string $html): void
@@ -135,4 +135,53 @@ describe('support access', function () {
     it('forbids anyone but the owner', function () {
         $this->actingAs(Actors::companyAdmin($this->company))->get(route('support-access.index'))->assertForbidden();
     });
+});
+
+describe('roles', function () {
+    it('deletes a role only after the confirm dialog', function () {
+        $company = Actors::company();
+        $this->actingAs($company->owner)->post(route('admin.roles.store'), ['name' => 'Yard', 'permissions' => ['vehicles.view']]);
+        $yard = Role::query()->where('team_id', $company->id)->where('name', 'Yard')->sole();
+
+        $html = $this->actingAs($company->owner)->get(route('admin.roles.index'))->assertOk()
+            ->assertSee(['Roles Management', 'Add New Role', 'Yard', 'vehicles.view'])
+            ->assertSee('action="'.route('admin.roles.destroy', $yard->id).'"', false)
+            ->assertSee('data-confirm="Delete the Yard role?"', false)
+            ->assertDontSee('deleteRoleForm', false)
+            ->getContent();
+
+        assertBatch7Ui($html);
+    });
+
+    it('renders the role form with the permission groups', function () {
+        $company = Actors::company();
+        $role = Role::query()->where('team_id', $company->id)->where('name', 'Dispatcher')->sole();
+
+        $create = $this->actingAs($company->owner)->get(route('admin.roles.create'))->assertOk()
+            ->assertSee('action="'.route('admin.roles.store').'"', false)
+            ->assertSee(['class="group-toggle input"', 'name="permissions[]"', 'value="vehicles.view"'], false)
+            ->getContent();
+
+        $edit = $this->actingAs($company->owner)->get(route('admin.roles.edit', $role->id))->assertOk()
+            ->assertSee('action="'.route('admin.roles.update', $role->id).'"', false)
+            ->assertSee('System roles keep their name.')
+            ->assertSee('readonly', false)
+            ->getContent();
+
+        assertBatch7Ui($create);
+        assertBatch7Ui($edit);
+    });
+
+    it('forbids each roles page without its permission', function (string $route, array $permissions) {
+        $company = Actors::company();
+        $role = Role::query()->where('team_id', $company->id)->where('name', 'Dispatcher')->sole();
+
+        $this->actingAs(Actors::memberWithPermissions($company, $permissions))
+            ->get(route($route, $route === 'admin.roles.edit' ? $role->id : []))
+            ->assertForbidden();
+    })->with([
+        'index' => ['admin.roles.index', ['drivers.view']],
+        'create' => ['admin.roles.create', ['roles.view']],
+        'edit' => ['admin.roles.edit', ['roles.view']],
+    ]);
 });

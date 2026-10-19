@@ -238,8 +238,8 @@ describe('roles index: delete button', function () {
 
         expect($html)->not->toContain('onclick="deleteRole(')
             ->and($html)->not->toContain('<img src=x onerror=alert(2)>')
-            ->and($html)->toContain('data-name="'.e($payload).'"')
-            ->and($html)->toContain('data-url="'.route('admin.roles.destroy', $role->id).'"');
+            ->and($html)->toContain('data-confirm="Delete the '.e($payload).' role?"')
+            ->and($html)->toContain('action="'.route('admin.roles.destroy', $role->id).'"');
     });
 
     it('hides the delete button for a system role that is still assigned', function () {
@@ -248,8 +248,8 @@ describe('roles index: delete button', function () {
 
         $html = $this->actingAs($company->owner)->get(route('admin.roles.index'))->getContent();
 
-        expect($html)->not->toContain('data-url="'.route('admin.roles.destroy', companyRole($company, 'Dispatcher')->id).'"')
-            ->and($html)->toContain('data-url="'.route('admin.roles.destroy', companyRole($company, 'Office / Compliance')->id).'"');
+        expect($html)->not->toContain('action="'.route('admin.roles.destroy', companyRole($company, 'Dispatcher')->id).'"')
+            ->and($html)->toContain('action="'.route('admin.roles.destroy', companyRole($company, 'Office / Compliance')->id).'"');
     });
 
     it('hides the delete button for locked roles', function () {
@@ -260,7 +260,7 @@ describe('roles index: delete button', function () {
             ->getContent();
 
         foreach (['Owner', 'Driver'] as $name) {
-            expect($html)->not->toContain('data-url="'.route('admin.roles.destroy', companyRole($company, $name)->id).'"');
+            expect($html)->not->toContain('action="'.route('admin.roles.destroy', companyRole($company, $name)->id).'"');
         }
     });
 });

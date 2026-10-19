@@ -3,171 +3,64 @@
 @section('title', $role ? 'Edit Role' : 'Create Role')
 
 @section('content')
-    <div class="p-4 mx-auto md:p-6">
-        <!-- Header Section -->
-        <div class="mb-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h2 class="text-2xl font-bold text-foreground dark:text-white/90">{{ $role ? 'Edit Role: '.$role->name : 'Create Role' }}</h2>
-                    <p class="text-muted-foreground mt-2">You can grant only permissions you hold yourself.</p>
-                </div>
+    <div class="p-4 sm:p-6 lg:p-8">
+        <x-ui.page-header :title="$role ? 'Edit Role: '.$role->name : 'Create Role'" description="You can grant only permissions you hold yourself.">
+            <x-slot:breadcrumbs>
+                <x-ui.breadcrumb :items="[['label' => 'Roles', 'href' => route('admin.roles.index')], ['label' => $role ? $role->name : 'Create Role']]" />
+            </x-slot:breadcrumbs>
+        </x-ui.page-header>
 
-                <a href="{{ route('admin.roles.index') }}"
-                    class="inline-flex items-center justify-center rounded-lg border border-input bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 mt-4 sm:mt-0">
-                    <x-ui.icon name="arrow-left" class="inline-block size-4 align-[-0.125em] mr-2" />Back to Roles
-                </a>
-            </div>
-        </div>
+        <x-ui.flash />
 
-        <!-- Flash Messages -->
-        @if (session('success'))
-            <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-                <div class="flex items-center">
-                    <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] text-green-500 mr-3" />
-                    <p class="text-green-700 dark:text-green-400">{{ session('success') }}</p>
-                </div>
-            </div>
-        @endif
+        @php($held = old('permissions', $role?->permissions->pluck('name')->all() ?? []))
 
-        <!-- Error Messages -->
-        @if ($errors->any())
-            <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
-                <div class="flex items-center">
-                    <x-ui.icon name="circle-alert" class="inline-block size-4 align-[-0.125em] text-red-500 mr-3" />
-                    <div>
-                        <p class="font-medium text-red-700 dark:text-red-400">Please fix the following errors:</p>
-                        <ul class="mt-1 list-disc list-inside text-sm text-red-600 dark:text-red-400">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        <form action="{{ $role ? route('admin.roles.update', $role->id) : route('admin.roles.store') }}" method="POST">
+        <form action="{{ $role ? route('admin.roles.update', $role->id) : route('admin.roles.store') }}" method="POST" class="space-y-6">
             @csrf
             @if ($role)
                 @method('PUT')
             @endif
 
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <!-- Left Column -->
-                <div class="space-y-6">
-                    <!-- Role Information Card -->
-                    <div
-                        class="rounded-2xl border border-border bg-card shadow-sm dark:bg-white/[0.03]">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5">
-                            <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
-                                <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-2" />Role Information
-                            </h3>
-                        </div>
-                        <div class="space-y-6 border-t border-border p-5 sm:p-6">
-                            <!-- Role Name -->
-                            <div>
-                                <label for="name"
-                                    class="mb-1.5 block text-sm font-medium text-foreground">
-                                    Role Name <span class="text-red-500">*</span>
+            <x-ui.card title="Role Information">
+                <x-ui.field label="Role Name" for="name" name="name" required :hint="$role?->is_system ? 'System roles keep their name.' : null" class="max-w-md">
+                    <x-ui.input name="name" id="name" required placeholder="e.g., Content Manager, Editor" :value="$role?->name" :readonly="(bool) $role?->is_system" />
+                </x-ui.field>
+            </x-ui.card>
+
+            <x-ui.card title="Permissions" description="Select permissions for this role. A group checkbox selects every permission in it.">
+                @error('permissions.*')
+                    <x-ui.alert tone="danger" class="mb-4">{{ $message }}</x-ui.alert>
+                @enderror
+
+                @if (count($permissions) === 0)
+                    <x-ui.empty-state icon="key-round" title="No permissions available" />
+                @else
+                    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        @foreach ($permissions as $group => $groupPermissions)
+                            @php($slug = Str::slug($group))
+                            <fieldset class="overflow-hidden rounded-lg border">
+                                <legend class="sr-only">{{ $group }}</legend>
+                                <label for="group-{{ $slug }}" class="label flex cursor-pointer items-center gap-3 border-b bg-muted/50 px-4 py-3 capitalize">
+                                    <input type="checkbox" id="group-{{ $slug }}" class="group-toggle input" data-group="{{ $slug }}">
+                                    {{ $group }}
                                 </label>
-                                <input type="text" id="name" name="name" required
-                                    class="dark:bg-dark-900 shadow-theme-xs focus:border-primary/50 focus:ring-primary/10 h-11 w-full rounded-lg border border-input bg-transparent px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-3 focus:outline-hidden dark:text-white/90 dark:placeholder:text-white/30"
-                                    placeholder="e.g., Content Manager, Editor" value="{{ old('name', $role?->name) }}" @readonly($role?->is_system) />
-                                @if ($role?->is_system)
-                                    <p class="mt-1 text-sm text-muted-foreground">System roles keep their name.</p>
-                                @endif
-                                @error('name')
-                                    <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column - Permissions -->
-                <div class="space-y-6">
-                    <!-- Permissions Card -->
-                    <div
-                        class="rounded-2xl border border-border bg-card shadow-sm dark:bg-white/[0.03]">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5">
-                            <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
-                                <x-ui.icon name="key-round" class="inline-block size-4 align-[-0.125em] mr-2" />Permissions
-                            </h3>
-                            <p class="mt-1 text-sm text-muted-foreground">
-                                Select permissions for this role
-                            </p>
-                        </div>
-                        <div class="border-t border-border p-5 sm:p-6">
-                            @error('permissions.*')
-                                <div
-                                    class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
-                                    <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                <div class="grid max-h-60 gap-2 overflow-y-auto p-4">
+                                    @foreach ($groupPermissions as $permission)
+                                        <label for="perm-{{ Str::slug($permission) }}" class="label flex cursor-pointer items-center gap-3 font-normal" title="{{ $permission }}">
+                                            <input type="checkbox" name="permissions[]" id="perm-{{ Str::slug($permission) }}" value="{{ $permission }}"
+                                                class="permission-checkbox input" data-group="{{ $slug }}" @checked(in_array($permission, $held))>
+                                            <span class="truncate">{{ Str::after($permission, $group.'.') }}</span>
+                                        </label>
+                                    @endforeach
                                 </div>
-                            @enderror
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                @foreach ($permissions as $group => $groupPermissions)
-                                    <div class="rounded-lg border border-border">
-                                        <!-- Group Header -->
-                                        <div
-                                            class="border-b border-border bg-muted/50 px-4 py-3">
-                                            <div class="flex items-center">
-                                                <input type="checkbox" id="group-{{ Str::slug($group) }}"
-                                                    class="group-toggle h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                                                    data-group="{{ Str::slug($group) }}">
-                                                <label for="group-{{ Str::slug($group) }}"
-                                                    class="ml-3 block text-sm font-medium text-foreground capitalize cursor-pointer">
-                                                    {{ $group }}
-                                                </label>
-                                            </div>
-                                        </div>
-
-                                        <!-- Group Permissions -->
-                                        <div class="max-h-60 space-y-2 overflow-y-auto p-4">
-                                            @foreach ($groupPermissions as $permission)
-                                                <div class="flex items-center">
-                                                    <input type="checkbox" name="permissions[]"
-                                                        id="perm-{{ Str::slug($permission) }}"
-                                                        value="{{ $permission }}"
-                                                        class="permission-checkbox h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                                                        data-group="{{ Str::slug($group) }}"
-                                                        @checked(in_array($permission, old('permissions', $role?->permissions->pluck('name')->all() ?? [])))>
-                                                    <label for="perm-{{ Str::slug($permission) }}"
-                                                        class="ml-3 text-sm text-foreground cursor-pointer truncate"
-                                                        title="{{ $permission }}">
-                                                        {{ Str::after($permission, $group . '.') }}
-                                                    </label>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-
-                            @if (count($permissions) === 0)
-                                <div class="text-center py-8">
-                                    <div
-                                        class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                                        <x-ui.icon name="key-round" class="inline-block size-4 align-[-0.125em] text-muted-foreground" />
-                                    </div>
-                                    <p class="text-sm text-muted-foreground">No permissions available</p>
-                                </div>
-                            @endif
-                        </div>
+                            </fieldset>
+                        @endforeach
                     </div>
-                </div>
-            </div>
+                @endif
+            </x-ui.card>
 
-            <!-- Form Actions -->
-            <div class="mt-8 flex justify-end space-x-3">
-                <a href="{{ route('admin.roles.index') }}"
-                    class="inline-flex items-center justify-center rounded-lg border border-input bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:ring-offset-2">
-                    <x-ui.icon name="x" class="inline-block size-4 align-[-0.125em] mr-2" />Cancel
-                </a>
-                <button type="submit"
-                    class="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-primary/90 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:ring-offset-2">
-                    <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />{{ $role ? 'Update Role' : 'Create Role' }}
-                </button>
+            <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <x-ui.button variant="outline" :href="route('admin.roles.index')">Cancel</x-ui.button>
+                <x-ui.button type="submit" icon="check">{{ $role ? 'Update Role' : 'Create Role' }}</x-ui.button>
             </div>
         </form>
     </div>
