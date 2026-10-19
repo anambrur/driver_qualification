@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\PolicyPdf;
 use App\Models\Role;
 use App\Services\Platform\SupportSessionService;
 use App\Services\Users\InvitationService;
@@ -7,11 +8,12 @@ use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /*
-| UI-14 (phase 2, batch 7): users, invitations, support access and roles on x-ui. Destructive actions
-| ask in the shared confirm dialog; no native alert() or confirm() is left. Routes, permissions and
-| form fields are unchanged.
+| UI-14 (phase 2, batch 7): users, invitations, support access, roles and the company settings on
+| x-ui. Destructive actions ask in the shared confirm dialog; no native alert() or confirm() is left.
+| Routes, permissions and form fields are unchanged.
 */
 
 function assertBatch7Ui(string $html): void
@@ -184,4 +186,43 @@ describe('roles', function () {
         'create' => ['admin.roles.create', ['roles.view']],
         'edit' => ['admin.roles.edit', ['roles.view']],
     ]);
+});
+
+describe('company settings', function () {
+    it('renders the company form with the same fields', function () {
+        $company = Actors::company(['company_name' => 'Acme Freight']);
+
+        $html = $this->actingAs($company->owner)->get(route('admin.settings.company.edit', $company->id))->assertOk()
+            ->assertSee(['Edit Company', 'Company Information', 'Company Logo', 'Address Information'])
+            ->assertSee('action="'.route('admin.settings.company.update', $company->id).'"', false)
+            ->assertSee(['enctype="multipart/form-data"', 'name="_method" value="PATCH"', 'id="logo" name="logo"'], false)
+            ->assertSee('value="Acme Freight"', false)
+            ->assertDontSee('console.log', false)
+            ->getContent();
+
+        assertBatch7Ui($html);
+    });
+
+    it('validates policy files in the dialog instead of alert()', function () {
+        $company = Actors::company();
+        PolicyPdf::create(['company_id' => $company->id, 'general_work_policy_file_id' => Files::stored($company->id, attributes: ['original_name' => 'work.pdf'])->id]);
+
+        $html = $this->actingAs($company->owner)->get(route('admin.settings.policy.pdf'))->assertOk()
+            ->assertSee(['Existing Policy PDFs', 'General Work Policy', 'work.pdf'])
+            ->assertSee('href="'.route('admin.settings.policy.pdf.file', 'general_work').'"', false)
+            ->assertSee(['id="alcohol_drug_test_policy_pdf" name="alcohol_drug_test_policy_pdf"', 'id="general_work_policy_pdf" name="general_work_policy_pdf"'], false)
+            ->assertSee(['id="alcohol_pdf_filename"', 'id="general_pdf_filename"'], false)
+            ->assertSee('window.showAppAlert(', false)
+            ->getContent();
+
+        assertBatch7Ui($html);
+    });
+
+    it('forbids the settings pages without company.edit', function (string $route) {
+        $company = Actors::company();
+
+        $this->actingAs(Actors::memberWithPermissions($company, ['drivers.view']))
+            ->get($route === 'admin.settings.company.edit' ? route($route, $company->id) : route($route))
+            ->assertForbidden();
+    })->with(['admin.settings.company.edit', 'admin.settings.policy.pdf']);
 });

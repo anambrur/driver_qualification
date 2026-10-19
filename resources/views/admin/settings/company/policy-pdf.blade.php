@@ -2,184 +2,74 @@
 
 @section('title', 'Upload Policy PDFs')
 
+@php
+    // field name => [card title, icon, upload label, filename element id, help text]
+    $uploads = [
+        'alcohol_drug_test_policy_pdf' => ['Alcohol & Drug Testing Policy', 'file-heart', 'Upload Alcohol & Drug Test Policy PDF', 'alcohol_pdf_filename', 'Upload a PDF file containing the Alcohol & Drug Testing Policy'],
+        'general_work_policy_pdf' => ['General Work Policy', 'briefcase', 'Upload General Work Policy PDF', 'general_pdf_filename', 'Upload a PDF file containing the General Work Policy'],
+    ];
+@endphp
+
 @section('content')
-    <div class="p-4 mx-auto max-w-6xl md:p-6">
-        <div class="mb-6">
-            <h2 class="text-2xl font-bold text-foreground dark:text-white/90">Upload Company Policy PDFs</h2>
-            <p class="text-muted-foreground mt-2">Your company's policies. Until you upload one, your drivers and applicants see the platform default.</p>
-        </div>
+    <div class="p-4 sm:p-6 lg:p-8">
+        <x-ui.page-header title="Upload Company Policy PDFs" description="Your company's policies. Until you upload one, your drivers and applicants see the platform default." />
 
-        @if (session('success'))
-            <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-900/20 dark:border-green-800">
-                <div class="flex items-center">
-                    <x-ui.icon name="circle-check" class="inline-block size-4 align-[-0.125em] text-green-500 mr-3" />
-                    <p class="text-green-700 dark:text-green-400">{{ session('success') }}</p>
-                </div>
-            </div>
-        @endif
+        <x-ui.flash />
 
-        @if ($errors->has('system_error'))
-            <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:border-red-800">
-                <div class="flex items-center">
-                    <x-ui.icon name="circle-alert" class="inline-block size-4 align-[-0.125em] text-red-500 mr-3" />
-                    <p class="text-red-700 dark:text-red-400">{{ $errors->first('system_error') }}</p>
-                </div>
-            </div>
-        @endif
-
-        <form action="{{ route('admin.settings.policy.pdf.store') }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('admin.settings.policy.pdf.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
             @csrf
 
-            <!-- Display existing PDFs if any -->
             @if (isset($existingPolicies) && count($existingPolicies) > 0)
-                <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-800">
-                    <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-2">Existing Policy PDFs</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <x-ui.card title="Existing Policy PDFs">
+                    <div class="grid gap-3 md:grid-cols-2">
                         @foreach ($existingPolicies as $policy)
-                            @if ($policy->alcohol_drug_test_policy_file_id)
-                                <div
-                                    class="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
-                                    <div class="flex items-center">
-                                        <x-ui.icon name="file-text" class="inline-block size-5 align-[-0.125em] text-red-500 mr-3" />
-                                        <div>
-                                            <p class="font-medium text-foreground dark:text-white/90">Alcohol & Drug Policy
-                                            </p>
-                                            <p class="text-sm text-muted-foreground">
-                                                {{ $policy->fileFor('alcohol_drug_test')?->original_name }}</p>
+                            @foreach (['alcohol_drug_test' => 'Alcohol & Drug Policy', 'general_work' => 'General Work Policy'] as $kind => $title)
+                                @if ($policy->{$kind.'_policy_file_id'})
+                                    <div class="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 p-3">
+                                        <div class="flex min-w-0 items-center gap-3">
+                                            <x-ui.icon name="file-text" class="size-5 shrink-0 text-destructive" />
+                                            <div class="min-w-0">
+                                                <p class="text-sm font-medium text-foreground">{{ $title }}</p>
+                                                <p class="truncate text-xs text-muted-foreground">{{ $policy->fileFor($kind)?->original_name }}</p>
+                                            </div>
                                         </div>
+                                        <x-ui.button variant="ghost" size="sm" icon="eye" :href="route('admin.settings.policy.pdf.file', $kind)" target="_blank" rel="noopener">View</x-ui.button>
                                     </div>
-                                    <a href="{{ route('admin.settings.policy.pdf.file', 'alcohol_drug_test') }}"
-                                        target="_blank"
-                                        class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-                                        <x-ui.icon name="eye" class="inline-block size-4 align-[-0.125em]" /> View
-                                    </a>
-                                </div>
-                            @endif
-
-                            @if ($policy->general_work_policy_file_id)
-                                <div
-                                    class="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
-                                    <div class="flex items-center">
-                                        <x-ui.icon name="file-text" class="inline-block size-5 align-[-0.125em] text-red-500 mr-3" />
-                                        <div>
-                                            <p class="font-medium text-foreground dark:text-white/90">General Work Policy</p>
-                                            <p class="text-sm text-muted-foreground">
-                                                {{ $policy->fileFor('general_work')?->original_name }}</p>
-                                        </div>
-                                    </div>
-                                    <a href="{{ route('admin.settings.policy.pdf.file', 'general_work') }}" target="_blank"
-                                        class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-                                        <x-ui.icon name="eye" class="inline-block size-4 align-[-0.125em]" /> View
-                                    </a>
-                                </div>
-                            @endif
+                                @endif
+                            @endforeach
                         @endforeach
                     </div>
-                </div>
+                </x-ui.card>
             @endif
 
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <!-- Left Column - Alcohol & Drug Testing Policy -->
-                <div class="space-y-6">
-                    <div
-                        class="rounded-2xl border border-border bg-card shadow-sm dark:bg-white/[0.03]">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5">
-                            <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
-                                <x-ui.icon name="file-heart" class="inline-block size-4 align-[-0.125em] mr-2" />Alcohol & Drug Testing Policy
-                            </h3>
+                @foreach ($uploads as $name => [$title, $icon, $label, $filenameId, $help])
+                    <x-ui.card :title="$title">
+                        <div class="grid gap-2">
+                            <p class="label">{{ $label }}</p>
+                            <label for="{{ $name }}" data-dropzone @class([
+                                'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed bg-muted/40 p-6 text-center transition-colors hover:bg-muted has-[input:focus-visible]:border-ring',
+                                'border-destructive' => $errors->has($name),
+                            ])>
+                                <x-ui.icon :name="$icon" class="size-8 text-muted-foreground" />
+                                <span class="text-sm text-muted-foreground"><span class="font-medium text-primary">Click to upload</span> or drag and drop</span>
+                                <span class="text-xs text-muted-foreground">PDF files only (MAX. 10MB)</span>
+                                <span id="{{ $filenameId }}" class="hidden text-sm font-medium text-success"></span>
+                                <input id="{{ $name }}" name="{{ $name }}" type="file" class="sr-only" accept=".pdf,application/pdf"
+                                    data-filename="{{ $filenameId }}" @error($name) aria-invalid="true" aria-describedby="{{ $name }}-error" @enderror />
+                            </label>
+                            <p class="text-xs text-muted-foreground">{{ $help }}</p>
+                            @error($name)
+                                <p id="{{ $name }}-error" role="alert" class="text-sm text-destructive">{{ $message }}</p>
+                            @enderror
                         </div>
-                        <div class="space-y-6 border-t border-border p-5 sm:p-6">
-                            <div>
-                                <label for="alcohol_drug_test_policy_pdf"
-                                    class="mb-1.5 block text-sm font-medium text-foreground">
-                                    Upload Alcohol & Drug Test Policy PDF
-                                </label>
-                                <div class="flex items-center justify-center w-full">
-                                    <label for="alcohol_drug_test_policy_pdf"
-                                        class="flex flex-col items-center justify-center w-full h-40 border-2 border-input border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted transition-colors duration-200">
-                                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <x-ui.icon name="file-text" class="inline-block size-8 align-[-0.125em] mb-3 text-red-500 dark:text-red-400" />
-                                            <p class="mb-2 text-sm text-muted-foreground">
-                                                <span class="font-semibold">Click to upload</span> or drag and drop
-                                            </p>
-                                            <p class="text-xs text-muted-foreground">PDF files only (MAX. 10MB)
-                                            </p>
-                                            <div id="alcohol_pdf_filename"
-                                                class="mt-2 text-sm font-medium text-foreground hidden">
-                                            </div>
-                                        </div>
-                                        <input id="alcohol_drug_test_policy_pdf" name="alcohol_drug_test_policy_pdf"
-                                            type="file" class="hidden" accept=".pdf,application/pdf" />
-                                    </label>
-                                </div>
-                                <div class="mt-2 text-xs text-muted-foreground">
-                                    <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-1" />Upload a PDF file containing the Alcohol & Drug
-                                    Testing Policy
-                                </div>
-                                @error('alcohol_drug_test_policy_pdf')
-                                    <p class="mt-1 text-sm text-red-500 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column - General Work Policy -->
-                <div class="space-y-6">
-                    <div
-                        class="rounded-2xl border border-border bg-card shadow-sm dark:bg-white/[0.03]">
-                        <div class="px-5 py-4 sm:px-6 sm:py-5">
-                            <h3 class="text-lg font-semibold text-foreground dark:text-white/90">
-                                <x-ui.icon name="briefcase" class="inline-block size-4 align-[-0.125em] mr-2" />General Work Policy
-                            </h3>
-                        </div>
-                        <div class="space-y-6 border-t border-border p-5 sm:p-6">
-                            <div>
-                                <label for="general_work_policy_pdf"
-                                    class="mb-1.5 block text-sm font-medium text-foreground">
-                                    Upload General Work Policy PDF
-                                </label>
-                                <div class="flex items-center justify-center w-full">
-                                    <label for="general_work_policy_pdf"
-                                        class="flex flex-col items-center justify-center w-full h-40 border-2 border-input border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted transition-colors duration-200">
-                                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <x-ui.icon name="file-text" class="inline-block size-8 align-[-0.125em] mb-3 text-red-500 dark:text-red-400" />
-                                            <p class="mb-2 text-sm text-muted-foreground">
-                                                <span class="font-semibold">Click to upload</span> or drag and drop
-                                            </p>
-                                            <p class="text-xs text-muted-foreground">PDF files only (MAX. 10MB)
-                                            </p>
-                                            <div id="general_pdf_filename"
-                                                class="mt-2 text-sm font-medium text-foreground hidden">
-                                            </div>
-                                        </div>
-                                        <input id="general_work_policy_pdf" name="general_work_policy_pdf" type="file"
-                                            class="hidden" accept=".pdf,application/pdf" />
-                                    </label>
-                                </div>
-                                <div class="mt-2 text-xs text-muted-foreground">
-                                    <x-ui.icon name="info" class="inline-block size-4 align-[-0.125em] mr-1" />Upload a PDF file containing the General Work
-                                    Policy
-                                </div>
-                                @error('general_work_policy_pdf')
-                                    <p class="mt-1 text-sm text-red-500 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    </x-ui.card>
+                @endforeach
             </div>
 
-            <!-- Form Actions -->
-            <div class="mt-8 flex justify-end space-x-3 pt-6 border-t border-border">
-                <a href="{{ route('admin.dashboard') }}"
-                    class="inline-flex items-center justify-center rounded-lg border border-input bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-theme-xs hover:bg-muted/50 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 transition-colors duration-200">
-                    <x-ui.icon name="x" class="inline-block size-4 align-[-0.125em] mr-2" />Cancel
-                </a>
-                <button type="submit"
-                    class="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-primary/90 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 transition-colors duration-200">
-                    <x-ui.icon name="save" class="inline-block size-4 align-[-0.125em] mr-2" />Upload Policies
-                </button>
+            <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <x-ui.button variant="outline" :href="route('admin.dashboard')">Cancel</x-ui.button>
+                <x-ui.button type="submit" icon="upload">Upload Policies</x-ui.button>
             </div>
         </form>
     </div>
@@ -187,96 +77,41 @@
 
 @push('scripts')
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Alcohol & Drug Policy PDF upload
-            const alcoholPdfInput = document.getElementById('alcohol_drug_test_policy_pdf');
-            const alcoholFilenameDisplay = document.getElementById('alcohol_pdf_filename');
+        document.addEventListener('DOMContentLoaded', function () {
+            const maxSize = 10 * 1024 * 1024; // 10MB
 
-            alcoholPdfInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    // Validate file type
-                    if (file.type !== 'application/pdf') {
-                        alert('Please upload only PDF files.');
-                        this.value = '';
-                        alcoholFilenameDisplay.classList.add('hidden');
+            document.querySelectorAll('input[data-filename]').forEach((input) => {
+                const display = document.getElementById(input.dataset.filename);
+                const reset = (message) => {
+                    input.value = '';
+                    display.classList.add('hidden');
+                    window.showAppAlert(message, 'error', 'Invalid file');
+                };
+
+                input.addEventListener('change', function () {
+                    const file = this.files[0];
+                    if (!file) {
+                        display.classList.add('hidden');
                         return;
                     }
+                    if (file.type !== 'application/pdf') return reset('Please upload only PDF files.');
+                    if (file.size > maxSize) return reset('File size must be less than 10MB.');
 
-                    // Validate file size (10MB)
-                    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-                    if (file.size > maxSize) {
-                        alert('File size must be less than 10MB.');
-                        this.value = '';
-                        alcoholFilenameDisplay.classList.add('hidden');
-                        return;
-                    }
-
-                    // Display filename
-                    alcoholFilenameDisplay.textContent = `Selected: ${file.name}`;
-                    alcoholFilenameDisplay.classList.remove('hidden');
-                    alcoholFilenameDisplay.classList.add('text-green-600', 'dark:text-green-400');
-                } else {
-                    alcoholFilenameDisplay.classList.add('hidden');
-                }
+                    display.textContent = `Selected: ${file.name}`;
+                    display.classList.remove('hidden');
+                });
             });
 
-            // General Work Policy PDF upload
-            const generalPdfInput = document.getElementById('general_work_policy_pdf');
-            const generalFilenameDisplay = document.getElementById('general_pdf_filename');
-
-            generalPdfInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    // Validate file type
-                    if (file.type !== 'application/pdf') {
-                        alert('Please upload only PDF files.');
-                        this.value = '';
-                        generalFilenameDisplay.classList.add('hidden');
-                        return;
-                    }
-
-                    // Validate file size (10MB)
-                    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-                    if (file.size > maxSize) {
-                        alert('File size must be less than 10MB.');
-                        this.value = '';
-                        generalFilenameDisplay.classList.add('hidden');
-                        return;
-                    }
-
-                    // Display filename
-                    generalFilenameDisplay.textContent = `Selected: ${file.name}`;
-                    generalFilenameDisplay.classList.remove('hidden');
-                    generalFilenameDisplay.classList.add('text-green-600', 'dark:text-green-400');
-                } else {
-                    generalFilenameDisplay.classList.add('hidden');
-                }
-            });
-
-            // Drag and drop functionality
-            const dropZones = document.querySelectorAll('label[for*="policy_pdf"]');
-
-            dropZones.forEach(zone => {
-                zone.addEventListener('dragover', function(e) {
+            document.querySelectorAll('[data-dropzone]').forEach((zone) => {
+                const highlight = (on) => zone.classList.toggle('border-primary', on);
+                zone.addEventListener('dragover', (e) => { e.preventDefault(); highlight(true); });
+                zone.addEventListener('dragleave', (e) => { e.preventDefault(); highlight(false); });
+                zone.addEventListener('drop', (e) => {
                     e.preventDefault();
-                    this.classList.add('border-primary', 'bg-primary/10');
-                });
-
-                zone.addEventListener('dragleave', function(e) {
-                    e.preventDefault();
-                    this.classList.remove('border-primary', 'bg-primary/10');
-                });
-
-                zone.addEventListener('drop', function(e) {
-                    e.preventDefault();
-                    this.classList.remove('border-primary', 'bg-primary/10');
-
-                    const files = e.dataTransfer.files;
-                    const input = this.querySelector('input[type="file"]');
-
-                    if (files.length > 0) {
-                        input.files = files;
+                    highlight(false);
+                    const input = zone.querySelector('input[type="file"]');
+                    if (e.dataTransfer.files.length > 0) {
+                        input.files = e.dataTransfer.files;
                         input.dispatchEvent(new Event('change'));
                     }
                 });
