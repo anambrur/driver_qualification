@@ -303,398 +303,248 @@
             </x-ui.card>
             {{-- /section:license --}}
 
-            <!-- Experience Section -->
-            <div id="section-experience"
-                class="rounded-xl border mb-6 bg-card">
-                <div class="px-5 py-4 sm:px-6 sm:py-5 border-b">
-                    <h3 class="text-lg font-semibold">
-                        Experience
-                    </h3>
-                </div>
-                <div class="p-5 sm:p-6">
-                    <div class="overflow-x-auto"><table class="w-full min-w-[40rem]">
+            {{-- section:experience --}}
+            <x-ui.card id="section-experience" title="Experience" class="scroll-mt-24">
+                <x-ui.table>
+                    <thead>
+                        <tr>
+                            <th>Equipment Class</th>
+                            <th>Experience</th>
+                            <th>Date From MM/DO/YYYY</th>
+                            <th>Date To MM/DO/YYYY</th>
+                            <th>Approx Miles</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php
+                            $equipmentClasses = [
+                                'Straight Truck',
+                                'Truck-Tractor',
+                                'Semi-Trailers',
+                                'Double/Triples',
+                                'Flatbed',
+                                'Bus',
+                                'Other',
+                            ];
+                        @endphp
+
+                        @foreach ($equipmentClasses as $index => $equipmentClass)
+                            <tr>
+                                <td data-label="Equipment Class" class="font-medium">
+                                    {{ $equipmentClass }}
+                                    <input type="hidden" name="equipment_class[]" value="{{ $equipmentClass }}">
+                                </td>
+                                <td data-label="Experience">
+                                    <select name="experience[]" aria-label="{{ $equipmentClass }} experience" class="select w-full">
+                                        <option value="no" {{ old('experience.' . $index) == 'no' ? 'selected' : '' }}>No</option>
+                                        <option value="yes" {{ old('experience.' . $index) == 'yes' ? 'selected' : '' }}>Yes</option>
+                                    </select>
+                                </td>
+                                <td data-label="Date From">
+                                    <input type="date" name="experience_from_date[]" value="{{ old('experience_from_date.' . $index) }}"
+                                        aria-label="{{ $equipmentClass }} date from" @error('experience_from_date.' . $index) aria-invalid="true" @enderror class="input w-full" />
+                                    @error('experience_from_date.' . $index)
+                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                                <td data-label="Date To">
+                                    <input type="date" name="experience_to_date[]" value="{{ old('experience_to_date.' . $index) }}"
+                                        aria-label="{{ $equipmentClass }} date to" @error('experience_to_date.' . $index) aria-invalid="true" @enderror class="input w-full" />
+                                    @error('experience_to_date.' . $index)
+                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                                <td data-label="Approx Miles">
+                                    <input type="text" name="approx_miles[]" value="{{ old('approx_miles.' . $index) }}" placeholder="0"
+                                        aria-label="{{ $equipmentClass }} approx miles" @error('approx_miles.' . $index) aria-invalid="true" @enderror class="input w-full" />
+                                    @error('approx_miles.' . $index)
+                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </x-ui.table>
+            </x-ui.card>
+            {{-- /section:experience --}}
+
+            {{-- section:accidents --}}
+            <x-ui.card id="section-accidents" title="Accidents/Crashes Previous 3 Years" class="scroll-mt-24">
+                <fieldset class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center" @error('accident') data-invalid="true" @enderror>
+                    <legend class="contents text-sm font-medium">Have you had any accidents/crashes in the last 3 years? <span class="text-destructive">*</span></legend>
+                    <div class="flex items-center gap-6">
+                        <label class="label gap-2 font-normal">
+                            <input type="radio" name="accident" value="yes" {{ old('accident') == 'yes' ? 'checked' : '' }} class="input" />
+                            Yes
+                        </label>
+                        <label class="label gap-2 font-normal">
+                            <input type="radio" name="accident" value="no" {{ old('accident', 'no') == 'no' ? 'checked' : '' }} class="input" />
+                            No
+                        </label>
+                    </div>
+                    @error('accident')
+                        <p role="alert" class="text-sm text-destructive">{{ $message }}</p>
+                    @enderror
+                </fieldset>
+
+                <div id="accident_fields">
+                    <x-ui.table>
                         <thead>
-                            <tr class="border">
-                                <th
-                                    class="border p-3 text-left text-sm font-semibold">
-                                    Equipment Class
-                                </th>
-                                <th
-                                    class="border p-3 text-left text-sm font-semibold">
-                                    Experience
-                                </th>
-                                <th
-                                    class="border p-3 text-left text-sm font-semibold">
-                                    Date From MM/DO/YYYY
-                                </th>
-                                <th
-                                    class="border p-3 text-left text-sm font-semibold">
-                                    Date To MM/DO/YYYY
-                                </th>
-                                <th
-                                    class="border p-3 text-left text-sm font-semibold">
-                                    Approx Miles
-                                </th>
+                            <tr>
+                                <th>Date MM/DO/YYYY</th>
+                                <th>Location City/State</th>
+                                <th>Number of Injuries</th>
+                                <th>Number of Fatalities</th>
+                                <th>Hazmat Spill?</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @php
-                                $equipmentClasses = [
-                                    'Straight Truck',
-                                    'Truck-Tractor',
-                                    'Semi-Trailers',
-                                    'Double/Triples',
-                                    'Flatbed',
-                                    'Bus',
-                                    'Other',
-                                ];
-                            @endphp
-
-                            @foreach ($equipmentClasses as $index => $equipmentClass)
-                                <tr class="border">
-                                    <td
-                                        class="border p-3 text-sm">
-                                        {{ $equipmentClass }}
-                                        <input type="hidden" name="equipment_class[]"
-                                            value="{{ $equipmentClass }}">
-                                    </td>
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <select name="experience[]"
-                                            class="select w-full">
-                                            <option value="no"
-                                                {{ old('experience.' . $index) == 'no' ? 'selected' : '' }}>No
-                                            </option>
-                                            <option value="yes"
-                                                {{ old('experience.' . $index) == 'yes' ? 'selected' : '' }}>
-                                                Yes
-                                            </option>
-                                        </select>
-                                    </td>
-
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <input type="date" name="experience_from_date[]"
-                                            value="{{ old('experience_from_date.' . $index) }}"
-                                            class="input w-full" />
-                                    </td>
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <input type="date" name="experience_to_date[]"
-                                            value="{{ old('experience_to_date.' . $index) }}"
-                                            class="input w-full" />
-                                    </td>
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <input type="text" name="approx_miles[]"
-                                            value="{{ old('approx_miles.' . $index) }}" placeholder="0"
-                                            class="input w-full" />
-                                    </td>
-                                </tr>
-                            @endforeach
+                            <tr>
+                                <td data-label="Date">
+                                    <input type="date" name="accident_date[]" value="{{ old('accident_date.0') }}" aria-label="Accident date"
+                                        @error('accident_date.0') aria-invalid="true" @enderror class="input w-full" />
+                                    @error('accident_date.0')
+                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                                <td data-label="Location">
+                                    <input type="text" name="accident_location[]" value="{{ old('accident_location.0') }}" aria-label="Accident location"
+                                        @error('accident_location.0') aria-invalid="true" @enderror class="input w-full" />
+                                    @error('accident_location.0')
+                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                                <td data-label="Injuries">
+                                    <input type="text" name="number_of_injuries[]" value="{{ old('number_of_injuries.0') }}" placeholder="0" aria-label="Number of injuries"
+                                        @error('number_of_injuries.0') aria-invalid="true" @enderror class="input w-full" />
+                                    @error('number_of_injuries.0')
+                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                                <td data-label="Fatalities">
+                                    <input type="text" name="number_of_fatalities[]" value="{{ old('number_of_fatalities.0') }}" placeholder="0" aria-label="Number of fatalities"
+                                        @error('number_of_fatalities.0') aria-invalid="true" @enderror class="input w-full" />
+                                    @error('number_of_fatalities.0')
+                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                                <td data-label="Hazmat Spill?">
+                                    <select name="hazmat_spill[]" aria-label="Hazmat spill" class="select w-full">
+                                        <option value="no" {{ old('hazmat_spill.0') == 'no' ? 'selected' : '' }}>No</option>
+                                        <option value="yes" {{ old('hazmat_spill.0') == 'yes' ? 'selected' : '' }}>Yes</option>
+                                    </select>
+                                </td>
+                            </tr>
                         </tbody>
-                    </table></div>
-                </div>
-            </div>
-
-
-            <!-- Accidents/Crashes Section -->
-            <div id="section-accidents"
-                class="rounded-xl border mb-6 bg-card">
-                <div class="px-5 py-4 sm:px-6 sm:py-5 border-b">
-                    <h3 class="text-lg font-semibold">
-                        Accidents/Crashes Previous 3 Years
-                    </h3>
-                    <!-- Question wrapper -->
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
-                        <p class="text-sm font-medium">Have you had any
-                            accidents/crashes
-                            in the last 3 years? <span class="text-destructive">*</span></p>
-                        <div class="flex items-center gap-6">
-                            <!-- YES -->
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="radio" name="accident" value="yes"
-                                    {{ old('accident') == 'yes' ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">Yes</span>
-                            </label>
-                            <!-- NO -->
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="radio" name="accident" value="no"
-                                    {{ old('accident', 'no') == 'no' ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">No</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-5 sm:p-6">
-                    <div id="accident_fields">
-                        <div class="overflow-x-auto"><table class="w-full min-w-[40rem]">
-                            <thead>
-                                <tr class="border">
-                                    <th
-                                        class="border p-3 text-left text-sm font-semibold">
-                                        Date MM/DO/YYYY
-                                    </th>
-                                    <th
-                                        class="border p-3 text-left text-sm font-semibold">
-                                        Location City/State
-                                    </th>
-                                    <th
-                                        class="border p-3 text-left text-sm font-semibold">
-                                        Number of Injuries
-                                    </th>
-                                    <th
-                                        class="border p-3 text-left text-sm font-semibold">
-                                        Number of Fatalities
-                                    </th>
-                                    <th
-                                        class="border p-3 text-left text-sm font-semibold">
-                                        Hazmat Spill?
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Initial row -->
-                                <tr class="border">
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <input type="date" name="accident_date[]"
-                                            value="{{ old('accident_date.0') }}"
-                                            class="input w-full" />
-                                    </td>
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <input type="text" name="accident_location[]"
-                                            value="{{ old('accident_location.0') }}"
-                                            class="input w-full" />
-                                    </td>
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <input type="text" name="number_of_injuries[]"
-                                            value="{{ old('number_of_injuries.0') }}" placeholder="0"
-                                            class="input w-full" />
-                                    </td>
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <input type="text" name="number_of_fatalities[]"
-                                            value="{{ old('number_of_fatalities.0') }}" placeholder="0"
-                                            class="input w-full" />
-                                    </td>
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <select name="hazmat_spill[]"
-                                            class="select w-full">
-                                            <option value="no"
-                                                {{ old('hazmat_spill.0') == 'no' ? 'selected' : '' }}>
-                                                No</option>
-                                            <option value="yes"
-                                                {{ old('hazmat_spill.0') == 'yes' ? 'selected' : '' }}>
-                                                Yes</option>
-                                        </select>
-                                    </td>
-                                </tr>
-                                <!-- Additional rows will be appended here by JavaScript -->
-                            </tbody>
-                        </table></div>
-                    </div>
-
-                    <div class="my-4 flex justify-between">
-                        <div>
-                            <button type="button" id="accident_add"
-                                class="btn" data-variant="secondary">
-                                Add Another Accident/Crash
-                            </button>
-                        </div>
-                        <div>
-                            <button type="button" id="accident_remove"
-                                class="btn" data-variant="destructive">
-                                Remove Last Accident
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- Moving Traffic Violations Section -->
-            <div id="section-violations"
-                class="rounded-xl border mb-6 bg-card">
-                <div class="px-5 py-4 sm:px-6 sm:py-5 border-b">
-                    <h3 class="text-lg font-semibold">
-                        Moving Traffic Violations Previous 3 Years
-                    </h3>
-                    <!-- Question wrapper -->
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
-                        <p class="text-sm font-medium">Have you had any
-                            traffic
-                            violations
-                            in the last 3 years? <span class="text-destructive">*</span></p>
-                        <div class="flex items-center gap-6">
-                            <!-- YES -->
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="radio" name="violation" value="yes"
-                                    {{ old('violation') == 'yes' ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">Yes</span>
-                            </label>
-                            <!-- NO -->
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="radio" name="violation" value="no"
-                                    {{ old('violation', 'no') == 'no' ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">No</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-5 sm:p-6">
-                    <div id="violation_fields">
-                        <div class="overflow-x-auto"><table class="w-full min-w-[40rem]">
-                            <thead>
-                                <tr class="border">
-                                    <th
-                                        class="border p-3 text-left text-sm font-semibold">
-                                        Date MM/DO/YYYY
-                                    </th>
-                                    <th
-                                        class="border p-3 text-left text-sm font-semibold">
-                                        Location City/State
-                                    </th>
-                                    <th
-                                        class="border p-3 text-left text-sm font-semibold">
-                                        Offense
-                                    </th>
-                                    <th
-                                        class="border p-3 text-left text-sm font-semibold">
-                                        Vehicle Type
-                                    </th>
-
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Initial row -->
-                                <tr class="border">
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <input type="date" name="violation_date[]"
-                                            value="{{ old('violation_date.0') }}"
-                                            class="input w-full" />
-                                    </td>
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <input type="text" name="violation_location[]"
-                                            value="{{ old('violation_location.0') }}"
-                                            class="input w-full" />
-                                    </td>
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <input type="text" name="offense[]"
-                                            value="{{ old('offense.0') }}" placeholder="0"
-                                            class="input w-full" />
-                                    </td>
-                                    <td
-                                        class="border p-3 text-sm">
-                                        <input type="text" name="vehicle_type[]"
-                                            value="{{ old('vehicle_type.0') }}"
-                                            class="input w-full" />
-                                    </td>
-                                </tr>
-                                <!-- Additional rows will be appended here by JavaScript -->
-                            </tbody>
-                        </table></div>
-                    </div>
-
-                    <div class="my-4 flex justify-between">
-                        <div>
-                            <button type="button" id="violation_add"
-                                class="btn" data-variant="secondary">
-                                Add Another Violation
-                            </button>
-                        </div>
-                        <div>
-                            <button type="button" id="violation_remove"
-                                class="btn" data-variant="destructive">
-                                Remove Last Violation
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- Forfeitures Section -->
-            <div
-                class="rounded-xl border mb-6 bg-card">
-                <div class="px-5 py-4 sm:px-6 sm:py-5 border-b">
-                    <h3 class="text-lg font-semibold">
-                        Forfeitures Previous 3 Years
-                    </h3>
-                    <!-- Question wrapper -->
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
-                        <p class="text-sm font-medium">A. Have you ever been
-                            denied a
-                            license, permit or privilege to operate a motor vehicle? <span
-                                class="text-destructive">*</span>
-                        </p>
-                        <div class="flex items-center gap-6">
-                            <!-- YES -->
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="radio" name="denied_license" value="yes"
-                                    {{ old('denied_license') == 'yes' ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">Yes</span>
-                            </label>
-                            <!-- NO -->
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="radio" name="denied_license" value="no"
-                                    {{ old('denied_license', 'no') == 'no' ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">No</span>
-                            </label>
-                        </div>
-                    </div>
-
-
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
-                        <p class="text-sm font-medium">B. Has any license,
-                            permit
-                            or
-                            privilege ever been revoked? <span class="text-destructive">*</span></p>
-                        <div class="flex items-center gap-6">
-                            <!-- YES -->
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="radio" name="license_revoked" value="yes"
-                                    {{ old('license_revoked') == 'yes' ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">Yes</span>
-                            </label>
-                            <!-- NO -->
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="radio" name="license_revoked" value="no"
-                                    {{ old('license_revoked', 'no') == 'no' ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">No</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="">
-                        <p class="text-sm font-medium">C. If yes to either
-                            question above,
-                            briefly describe the circumstances.
-                        </p>
-                        <textarea name="forfeitures" rows="3"
-                            class="textarea w-full mt-2 p-2">
-                {{ old('forfeitures') }}</textarea>
-
-
-                    </div>
+                    </x-ui.table>
                 </div>
 
-            </div>
+                <div class="mt-4 flex flex-wrap justify-between gap-2">
+                    <x-ui.button id="accident_add" variant="secondary" icon="plus">Add Another Accident/Crash</x-ui.button>
+                    <x-ui.button id="accident_remove" variant="destructive" icon="trash-2">Remove Last Accident</x-ui.button>
+                </div>
+            </x-ui.card>
+            {{-- /section:accidents --}}
 
+            {{-- section:violations --}}
+            <x-ui.card id="section-violations" title="Moving Traffic Violations Previous 3 Years" class="scroll-mt-24">
+                <fieldset class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center" @error('violation') data-invalid="true" @enderror>
+                    <legend class="contents text-sm font-medium">Have you had any traffic violations in the last 3 years? <span class="text-destructive">*</span></legend>
+                    <div class="flex items-center gap-6">
+                        <label class="label gap-2 font-normal">
+                            <input type="radio" name="violation" value="yes" {{ old('violation') == 'yes' ? 'checked' : '' }} class="input" />
+                            Yes
+                        </label>
+                        <label class="label gap-2 font-normal">
+                            <input type="radio" name="violation" value="no" {{ old('violation', 'no') == 'no' ? 'checked' : '' }} class="input" />
+                            No
+                        </label>
+                    </div>
+                    @error('violation')
+                        <p role="alert" class="text-sm text-destructive">{{ $message }}</p>
+                    @enderror
+                </fieldset>
+
+                <div id="violation_fields">
+                    <x-ui.table>
+                        <thead>
+                            <tr>
+                                <th>Date MM/DO/YYYY</th>
+                                <th>Location City/State</th>
+                                <th>Offense</th>
+                                <th>Vehicle Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td data-label="Date">
+                                    <input type="date" name="violation_date[]" value="{{ old('violation_date.0') }}" aria-label="Violation date"
+                                        @error('violation_date.0') aria-invalid="true" @enderror class="input w-full" />
+                                    @error('violation_date.0')
+                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                                <td data-label="Location">
+                                    <input type="text" name="violation_location[]" value="{{ old('violation_location.0') }}" aria-label="Violation location"
+                                        @error('violation_location.0') aria-invalid="true" @enderror class="input w-full" />
+                                    @error('violation_location.0')
+                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                                <td data-label="Offense">
+                                    <input type="text" name="offense[]" value="{{ old('offense.0') }}" placeholder="0" aria-label="Offense"
+                                        @error('offense.0') aria-invalid="true" @enderror class="input w-full" />
+                                    @error('offense.0')
+                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                                <td data-label="Vehicle Type">
+                                    <input type="text" name="vehicle_type[]" value="{{ old('vehicle_type.0') }}" aria-label="Vehicle type"
+                                        @error('vehicle_type.0') aria-invalid="true" @enderror class="input w-full" />
+                                    @error('vehicle_type.0')
+                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                            </tr>
+                        </tbody>
+                    </x-ui.table>
+                </div>
+
+                <div class="mt-4 flex flex-wrap justify-between gap-2">
+                    <x-ui.button id="violation_add" variant="secondary" icon="plus">Add Another Violation</x-ui.button>
+                    <x-ui.button id="violation_remove" variant="destructive" icon="trash-2">Remove Last Violation</x-ui.button>
+                </div>
+            </x-ui.card>
+            {{-- /section:violations --}}
+
+            {{-- section:forfeitures --}}
+            <x-ui.card title="Forfeitures Previous 3 Years">
+                <div class="space-y-4">
+                    @foreach (['denied_license' => 'A. Have you ever been denied a license, permit or privilege to operate a motor vehicle?', 'license_revoked' => 'B. Has any license, permit or privilege ever been revoked?'] as $question => $legend)
+                        <fieldset class="flex flex-col gap-3 sm:flex-row sm:items-center" @error($question) data-invalid="true" @enderror>
+                            <legend class="contents text-sm font-medium">{{ $legend }} <span class="text-destructive">*</span></legend>
+                            <div class="flex items-center gap-6">
+                                <label class="label gap-2 font-normal">
+                                    <input type="radio" name="{{ $question }}" value="yes" {{ old($question) == 'yes' ? 'checked' : '' }} class="input" />
+                                    Yes
+                                </label>
+                                <label class="label gap-2 font-normal">
+                                    <input type="radio" name="{{ $question }}" value="no" {{ old($question, 'no') == 'no' ? 'checked' : '' }} class="input" />
+                                    No
+                                </label>
+                            </div>
+                            @error($question)
+                                <p role="alert" class="text-sm text-destructive">{{ $message }}</p>
+                            @enderror
+                        </fieldset>
+                    @endforeach
+
+                    <x-ui.field label="C. If yes to either question above, briefly describe the circumstances." for="forfeitures" name="forfeitures">
+                        <textarea id="forfeitures" name="forfeitures" rows="3" @error('forfeitures') aria-invalid="true" @enderror class="textarea w-full">{{ old('forfeitures') }}</textarea>
+                    </x-ui.field>
+                </div>
+            </x-ui.card>
+            {{-- /section:forfeitures --}}
 
             <!-- Employment Record Section -->
             <div id="section-employment"
@@ -1076,6 +926,7 @@
             }
             // /script:residences
 
+            // script:accidents
             // Accident fields management
             let accidentCount = 1;
             const accidentAddBtn = document.getElementById('accident_add');
@@ -1085,26 +936,25 @@
             if (accidentAddBtn && accidentTableBody) {
                 accidentAddBtn.addEventListener('click', function() {
                     const newRow = document.createElement('tr');
-                    newRow.className = 'border';
                     newRow.innerHTML = `
-            <td class="border p-3 text-sm">
-                <input type="date" name="accident_date[]"
+            <td data-label="Date">
+                <input type="date" name="accident_date[]" aria-label="Accident date"
                     class="input w-full" />
             </td>
-            <td class="border p-3 text-sm">
-                <input type="text" name="accident_location[]"
+            <td data-label="Location">
+                <input type="text" name="accident_location[]" aria-label="Accident location"
                     class="input w-full" />
             </td>
-            <td class="border p-3 text-sm">
-                <input type="text" name="number_of_injuries[]" placeholder="0"
+            <td data-label="Injuries">
+                <input type="text" name="number_of_injuries[]" placeholder="0" aria-label="Number of injuries"
                     class="input w-full" />
             </td>
-            <td class="border p-3 text-sm">
-                <input type="text" name="number_of_fatalities[]" placeholder="0"
+            <td data-label="Fatalities">
+                <input type="text" name="number_of_fatalities[]" placeholder="0" aria-label="Number of fatalities"
                     class="input w-full" />
             </td>
-            <td class="border p-3 text-sm">
-                <select name="hazmat_spill[]"
+            <td data-label="Hazmat Spill?">
+                <select name="hazmat_spill[]" aria-label="Hazmat spill"
                     class="select w-full">
                     <option value="no">No</option>
                     <option value="yes">Yes</option>
@@ -1125,9 +975,9 @@
                     }
                 });
             }
+            // /script:accidents
 
-
-
+            // script:violations
             // violation fields management
             let violationCount = 1;
             const violationFields = document.getElementById('violation_fields');
@@ -1138,22 +988,21 @@
             if (violationAddBtn && violationTableBody) {
                 violationAddBtn.addEventListener('click', function() {
                     const newRow = document.createElement('tr');
-                    newRow.className = 'border';
                     newRow.innerHTML = `
-                <td class="border p-3 text-sm">
-                    <input type="date" name="violation_date[]"
+                <td data-label="Date">
+                    <input type="date" name="violation_date[]" aria-label="Violation date"
                         class="input w-full" />
                 </td>
-                <td class="border p-3 text-sm">
-                    <input type="text" name="violation_location[]"
+                <td data-label="Location">
+                    <input type="text" name="violation_location[]" aria-label="Violation location"
                         class="input w-full" />
                 </td>
-                <td class="border p-3 text-sm">
-                    <input type="text" name="offense[]" placeholder="0"
+                <td data-label="Offense">
+                    <input type="text" name="offense[]" placeholder="0" aria-label="Offense"
                         class="input w-full" />
                 </td>
-                <td class="border p-3 text-sm">
-                    <input type="text" name="vehicle_type[]" placeholder="0"
+                <td data-label="Vehicle Type">
+                    <input type="text" name="vehicle_type[]" placeholder="0" aria-label="Vehicle type"
                         class="input w-full" />
                 </td>
             `;
@@ -1171,9 +1020,7 @@
                     }
                 });
             }
-
-
-
+            // /script:violations
 
             // Employment Record fields management
             let employmentRecordCount = 1;
