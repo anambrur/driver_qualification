@@ -137,7 +137,7 @@
                 </div>
             </form>
             <x-slot:footer>
-                <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
+                <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
                 <button type="submit" form="vehicle-form" class="btn">{{ svg('lucide-check', '', ['data-icon' => 'inline-start', 'aria-hidden' => 'true']) }} Save vehicle</button>
             </x-slot:footer>
         </x-ui.dialog>

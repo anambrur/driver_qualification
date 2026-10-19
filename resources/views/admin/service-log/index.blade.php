@@ -115,7 +115,7 @@
                 </div>
             </form>
             <x-slot:footer>
-                <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
+                <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
                 <button type="submit" form="service-log-form" class="btn">{{ svg('lucide-check', '', ['data-icon' => 'inline-start', 'aria-hidden' => 'true']) }} Save service log</button>
             </x-slot:footer>
         </x-ui.dialog>
@@ -136,7 +136,7 @@
             <x-ui.detail label="Documents" class="sm:col-span-2"><ul data-view="documents" class="grid gap-1" role="list"></ul></x-ui.detail>
         </dl>
         <x-slot:footer>
-            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Close</button>
+            <button type="button" class="btn" data-variant="outline" data-dialog-close>Close</button>
         </x-slot:footer>
     </x-ui.dialog>
 @endsection

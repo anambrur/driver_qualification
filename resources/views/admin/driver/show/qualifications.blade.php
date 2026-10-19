@@ -60,12 +60,20 @@
                     <x-ui.button :href="route('admin.compliance.driver.documents.download', $docDetail['document_id'])" variant="ghost" size="icon-sm" icon="download" aria-label="Download {{ $docDetail['type_name'] }}" title="Download" />
                 @endif
                 @can('drivers.edit')
-                    <x-ui.button :variant="$docDetail['status'] === 'valid' ? 'outline' : null" size="sm"
-                        onclick="openUploadModal({{ $driver->id }}, {{ $docDetail['type_id'] }}, 'driver')">
-                        {{ $docDetail['status'] === 'valid' ? 'Replace' : 'Complete' }}
-                    </x-ui.button>
-                    <x-ui.button variant="ghost" size="icon-sm" icon="bell" aria-label="Send reminder for {{ $docDetail['type_name'] }}" title="Send reminder"
-                        onclick="sendReminderEmail({{ $driver->id }}, {{ $docDetail['type_id'] }}, 'driver')" />
+                    @if ($docDetail['type_id'])
+                        <x-ui.button :variant="$docDetail['status'] === 'valid' ? 'outline' : null" size="sm"
+                            data-action="upload-document" :data-id="$driver->id" :data-type-id="$docDetail['type_id']" data-asset-type="driver">
+                            {{ $docDetail['status'] === 'valid' ? 'Replace' : 'Complete' }}
+                        </x-ui.button>
+                        <x-ui.button variant="ghost" size="icon-sm" icon="bell" aria-label="Send reminder for {{ $docDetail['type_name'] }}" title="Send reminder"
+                            data-action="send-reminder" :data-id="$driver->id" :data-type-id="$docDetail['type_id']" data-asset-type="driver" />
+                    @else
+                        {{-- The CDL comes from the license step, not a compliance upload. --}}
+                        <x-ui.button :variant="$docDetail['status'] === 'valid' ? 'outline' : null" size="sm"
+                            :href="route('admin.driver.license', ['driver_id' => $driver->id, 'edit' => '1'])">
+                            {{ $docDetail['status'] === 'valid' ? 'Replace' : 'Complete' }}
+                        </x-ui.button>
+                    @endif
                 @endcan
             </div>
         </li>

@@ -61,12 +61,12 @@
 
         <div id="{{ $name }}_preview" class="mt-4 hidden">
             <img id="{{ $name }}_preview_img" alt="" class="mx-auto h-32 rounded-lg border object-contain">
-            <button type="button" onclick="removePreview('{{ $name }}')" class="mt-2 text-sm font-medium text-destructive hover:underline">{{ $removeLabel }}</button>
+            <button type="button" data-remove-preview="{{ $name }}" class="mt-2 text-sm font-medium text-destructive hover:underline">{{ $removeLabel }}</button>
         </div>
         @if ($pdf)
             <div id="{{ $name }}_pdf_preview" class="mt-4 hidden">
                 <div id="{{ $name }}_pdf_preview_content" class="text-center"></div>
-                <button type="button" onclick="removePreview('{{ $name }}')" class="mt-2 text-sm font-medium text-destructive hover:underline">{{ $removeLabel }}</button>
+                <button type="button" data-remove-preview="{{ $name }}" class="mt-2 text-sm font-medium text-destructive hover:underline">{{ $removeLabel }}</button>
             </div>
         @endif
     </div>

@@ -100,7 +100,7 @@
                 </div>
             </form>
             <x-slot:footer>
-                <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
+                <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
                 <button type="submit" form="schedule-form" class="btn">{{ svg('lucide-check', '', ['data-icon' => 'inline-start', 'aria-hidden' => 'true']) }} Save schedule</button>
             </x-slot:footer>
         </x-ui.dialog>
@@ -119,7 +119,7 @@
             <x-ui.detail label="Internal notes" class="sm:col-span-2"><span data-view="notes" class="whitespace-pre-line"></span></x-ui.detail>
         </dl>
         <x-slot:footer>
-            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Close</button>
+            <button type="button" class="btn" data-variant="outline" data-dialog-close>Close</button>
             @can('scheduled.edit')
                 <button type="button" class="btn" data-mark-completed>{{ svg('lucide-circle-check', '', ['data-icon' => 'inline-start', 'aria-hidden' => 'true']) }} Record service done</button>
             @endcan

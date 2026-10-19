@@ -99,6 +99,24 @@
                     .catch((error) => showToast(error.message || 'Error deleting document', 'error'));
             });
         }
+
+        document.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-action]');
+            if (!button) return;
+            const data = button.dataset;
+
+            switch (data.action) {
+                case 'upload-document':
+                    openUploadModal(Number(data.id), Number(data.typeId), data.assetType);
+                    break;
+                case 'send-reminder':
+                    sendReminderEmail(Number(data.id), Number(data.typeId), data.assetType);
+                    break;
+                case 'delete-document':
+                    deleteComplianceDocument(data.documentId, data.documentName);
+                    break;
+            }
+        });
     </script>
     @if ($driver->status === 'pending')
         @can('drivers.hire')

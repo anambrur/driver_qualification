@@ -60,7 +60,7 @@
                 <x-ui.radio-group name="status" legend="Status" :options="['1' => 'Active', '0' => 'Inactive']" value="1" required />
             </form>
             <x-slot:footer>
-                <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
+                <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
                 <button type="submit" form="document-type-form" class="btn">Save</button>
             </x-slot:footer>
         </x-ui.dialog>

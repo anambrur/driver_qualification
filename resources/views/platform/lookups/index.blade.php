@@ -37,7 +37,7 @@
             </x-ui.field>
         </form>
         <x-slot:footer>
-            <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
+            <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
             <button type="submit" form="lookup-form" class="btn">Save</button>
         </x-slot:footer>
     </x-ui.dialog>

@@ -1,5 +1,5 @@
 @php($error = $errors->userDeletion->first('password'))
-<x-ui.button variant="destructive" icon="user-round-x" onclick="document.getElementById('confirm-user-deletion').showModal()">{{ __('Close Account') }}</x-ui.button>
+<x-ui.button variant="destructive" icon="user-round-x" data-dialog-open="confirm-user-deletion">{{ __('Close Account') }}</x-ui.button>
 
 <x-ui.dialog id="confirm-user-deletion" size="sm" icon="triangle-alert" :title="__('Are you sure you want to close your account?')"
     :description="__('Your account and company will be deactivated and you will be logged out. Please enter your password to confirm.')">
@@ -16,7 +16,7 @@
         </x-ui.field>
     </form>
     <x-slot:footer>
-        <x-ui.button variant="outline" onclick="this.closest('dialog').close()">{{ __('Cancel') }}</x-ui.button>
+        <x-ui.button variant="outline" data-dialog-close>{{ __('Cancel') }}</x-ui.button>
         <x-ui.button type="submit" form="delete-user-form" variant="destructive">{{ __('Close Account') }}</x-ui.button>
     </x-slot:footer>
 </x-ui.dialog>

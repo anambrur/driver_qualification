@@ -13,7 +13,7 @@
         </x-ui.field>
     </form>
     <x-slot:footer>
-        <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
+        <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
         <button type="submit" form="hireForm" class="btn">Confirm hire</button>
     </x-slot:footer>
 </x-ui.dialog>
@@ -40,7 +40,7 @@
         </x-ui.field>
     </form>
     <x-slot:footer>
-        <button type="button" class="btn" data-variant="outline" onclick="this.closest('dialog').close()">Cancel</button>
+        <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
         <button type="submit" form="notHireForm" class="btn bg-destructive! text-white! hover:bg-destructive/90!">Confirm not hiring</button>
     </x-slot:footer>
 </x-ui.dialog>

@@ -62,6 +62,21 @@ document.addEventListener('click', (event) => {
     }
 });
 
+// <button data-dialog-open="id"> opens that <dialog>; <button data-dialog-close> closes its own dialog.
+// <button data-remove-preview="field"> calls the page's removePreview(field) (x-application.upload).
+document.addEventListener("click", (event) => {
+    const button = event.target instanceof Element ? event.target.closest("[data-dialog-open], [data-dialog-close], [data-remove-preview]") : null;
+    if (!button) return;
+
+    if (button.dataset.dialogOpen !== undefined) {
+        document.getElementById(button.dataset.dialogOpen)?.showModal();
+    } else if (button.dataset.dialogClose !== undefined) {
+        button.closest("dialog")?.close();
+    } else {
+        window.removePreview?.(button.dataset.removePreview);
+    }
+});
+
 // <a href="..." data-confirm="Title" data-confirm-text="..."> asks in the same dialog before following the link.
 document.addEventListener("click", (event) => {
     const link = event.target instanceof Element ? event.target.closest("a[data-confirm]") : null;

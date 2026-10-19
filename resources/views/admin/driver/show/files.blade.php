@@ -47,8 +47,7 @@
                                 <x-ui.button :href="route('admin.compliance.driver.documents.download', $document->id)" variant="ghost" size="icon-sm" icon="download" aria-label="Download {{ $typeName }}" title="Download" />
                                 @can('drivers.edit')
                                     <x-ui.button variant="ghost" size="icon-sm" icon="trash-2" class="text-destructive" aria-label="Delete {{ $typeName }}" title="Delete"
-                                        data-document-id="{{ $document->id }}" data-document-name="{{ $typeName }}"
-                                        onclick="deleteComplianceDocument(this.dataset.documentId, this.dataset.documentName)" />
+                                        data-action="delete-document" data-document-id="{{ $document->id }}" data-document-name="{{ $typeName }}" />
                                 @endcan
                             </div>
                         </td>

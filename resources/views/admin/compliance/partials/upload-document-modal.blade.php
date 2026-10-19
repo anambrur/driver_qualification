@@ -50,7 +50,7 @@
                         <p id="fileSize" class="text-xs text-muted-foreground"></p>
                     </div>
                 </div>
-                <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" aria-label="Remove file" onclick="removeFile()">
+                <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" aria-label="Remove file" data-upload-action="remove-file">
                     {{ svg('lucide-x', '', ['aria-hidden' => 'true']) }}
                 </button>
             </div>
@@ -58,7 +58,7 @@
         </div>
     </form>
     <x-slot:footer>
-        <button type="button" class="btn" data-variant="outline" onclick="closeUploadModal()">Cancel</button>
+        <button type="button" class="btn" data-variant="outline" data-upload-action="close">Cancel</button>
         <button type="submit" form="uploadDocumentForm" id="uploadSubmitBtn" class="btn">
             {{ svg('lucide-upload', '', ['data-icon' => 'inline-start', 'aria-hidden' => 'true']) }} Upload Document
         </button>
@@ -99,6 +99,12 @@
             showError('');
             select.disabled = false;
         };
+
+        dialog.addEventListener('click', (event) => {
+            const action = event.target.closest('[data-upload-action]')?.dataset.uploadAction;
+            if (action === 'remove-file') window.removeFile();
+            if (action === 'close') window.closeUploadModal();
+        });
 
         window.openUploadModal = (assetId, documentTypeId, assetType = 'vehicle') => {
             form.reset();

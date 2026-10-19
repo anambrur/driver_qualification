@@ -37,23 +37,14 @@
                 });
         };
 
-        if (typeof showAppConfirm === 'function') {
-            showAppConfirm(confirmMessage, {
-                title: 'Send reminder?',
-                confirmButtonText: 'Yes, send email',
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    runSend();
-                }
-            });
-            return;
-        }
-
-        if (!confirm(confirmMessage)) {
-            return;
-        }
-
-        runSend();
+        showAppConfirm(confirmMessage, {
+            title: 'Send reminder?',
+            confirmButtonText: 'Yes, send email',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                runSend();
+            }
+        });
     }
 
     function sendReminderEmail(entityId, docTypeId, assetType) {

@@ -18,8 +18,8 @@
                 </div>
                 @can('drivers.hire')
                     <x-slot:footer class="flex-col sm:flex-row">
-                        <x-ui.button icon="user-round-check" class="w-full sm:w-auto" onclick="document.getElementById('hire-dialog').showModal()">Hire applicant</x-ui.button>
-                        <x-ui.button variant="destructive" icon="user-round-x" class="w-full sm:w-auto" onclick="document.getElementById('not-hire-dialog').showModal()">Do not hire</x-ui.button>
+                        <x-ui.button icon="user-round-check" class="w-full sm:w-auto" data-dialog-open="hire-dialog">Hire applicant</x-ui.button>
+                        <x-ui.button variant="destructive" icon="user-round-x" class="w-full sm:w-auto" data-dialog-open="not-hire-dialog">Do not hire</x-ui.button>
                     </x-slot:footer>
                 @endcan
             </x-ui.card>
