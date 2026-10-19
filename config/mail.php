@@ -130,4 +130,22 @@ return [
         'name' => env('MAIL_REPLY_TO_NAME'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Mail Settings
+    |--------------------------------------------------------------------------
+    |
+    | Notifications (MailMessage) render through Laravel's markdown mail
+    | components. The ones published in resources/views/vendor/mail carry the
+    | platform brand; the rest fall back to the framework's own.
+    |
+    */
+
+    'markdown' => [
+        'theme' => 'default',
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
 ];

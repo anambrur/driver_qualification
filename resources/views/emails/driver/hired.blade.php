@@ -1,5 +1,7 @@
 @extends('emails.layouts.compliance')
 
+@section('eyebrow', 'Application update')
+
 @section('content')
     <p style="margin:0 0 16px;font-size:16px;line-height:24px;">
         Hello {{ $driver->first_name }},

@@ -34,4 +34,19 @@ final class Theme
             'logoDark' => $logoDark ? asset('storage/'.$logoDark) : ($logo ? asset('storage/'.$logo) : null),
         ];
     }
+
+    /**
+     * The logo URL for emails, or null when there is none or its format is one that many mail
+     * clients do not show (webp, svg); emails then show the site name alone.
+     */
+    public static function emailLogo(): ?string
+    {
+        $logo = settings('logo');
+
+        if (! is_string($logo) || ! in_array(strtolower(pathinfo($logo, PATHINFO_EXTENSION)), ['png', 'jpg', 'jpeg', 'gif'], true)) {
+            return null;
+        }
+
+        return asset('storage/'.$logo);
+    }
 }
