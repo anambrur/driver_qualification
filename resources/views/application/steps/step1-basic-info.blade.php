@@ -6,12 +6,9 @@
     <x-application.step :company="$company" :driver="$driver" :step="1" title="Driver's Application"
         description="Your personal details, residences, license, experience and employment history.">
         <x-slot:aside>
-            <div
-                class="hidden lg:block rounded-xl border p-4 bg-card">
-                <label for="driver-section-jump"
-                    class="label text-xs mb-2">Jump to section</label>
-                <select id="driver-section-jump"
-                    class="select w-full driver-section-jump mt-2">
+            <div class="hidden rounded-xl border bg-card p-4 lg:block">
+                <label for="driver-section-jump" class="label text-xs">Jump to section</label>
+                <select id="driver-section-jump" class="select driver-section-jump mt-2 w-full">
                     <option value="">Select…</option>
                     <option value="section-applicant">Applicant</option>
                     <option value="section-residences">Residences</option>
@@ -26,14 +23,12 @@
         </x-slot:aside>
 
         <form action="{{ route('public.application.store.step1', ['slug' => $company->slug]) }}" method="POST"
-            id="driverForm" enctype="multipart/form-data" class="grid grid-cols-1">
+            id="driverForm" enctype="multipart/form-data" class="grid grid-cols-1 gap-6">
             @csrf
 
-            <div class="mb-4 lg:hidden rounded-xl border p-4 bg-card">
-                <label for="driver-section-jump-mobile"
-                    class="label text-xs mb-2">Jump to section</label>
-                <select id="driver-section-jump-mobile"
-                    class="select w-full driver-section-jump mt-2">
+            <div class="rounded-xl border bg-card p-4 lg:hidden">
+                <label for="driver-section-jump-mobile" class="label text-xs">Jump to section</label>
+                <select id="driver-section-jump-mobile" class="select driver-section-jump mt-2 w-full">
                     <option value="">Select…</option>
                     <option value="section-applicant">Applicant</option>
                     <option value="section-residences">Residences</option>
@@ -46,186 +41,81 @@
                 </select>
             </div>
 
-            <!-- Personal Information Section -->
-            <div id="section-applicant"
-                class="rounded-xl border mb-6 bg-card">
-                <div class="px-5 py-4 sm:px-6 sm:py-5 border-b">
-                    <h3 class="text-lg font-semibold">
-                        Applicant Information
-                    </h3>
-                </div>
-                <div class="p-5 sm:p-6 space-y-6">
-                    <!-- Name Row -->
+            {{-- section:applicant --}}
+            <x-ui.card id="section-applicant" title="Applicant Information" class="scroll-mt-24">
+                <div class="space-y-6">
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                        <div>
-                            <label for="first_name"
-                                class="label mb-2">
-                                First Name <span class="text-destructive">*</span>
-                            </label>
-                            <input type="text" id="first_name" name="first_name"
-                                value="{{ old('first_name') }}" required
-                                class="input w-full" />
-                        </div>
-
-                        <div>
-                            <label for="middle_name"
-                                class="label mb-2">
-                                Middle Name
-                            </label>
-                            <input type="text" id="middle_name" name="middle_name"
-                                value="{{ old('middle_name') }}"
-                                class="input w-full" />
-                        </div>
-
-                        <div>
-                            <label for="last_name"
-                                class="label mb-2">
-                                Last Name <span class="text-destructive">*</span>
-                            </label>
-                            <input type="text" id="last_name" name="last_name" value="{{ old('last_name') }}"
-                                required
-                                class="input w-full" />
-                        </div>
-
-                        <div>
-                            <label for="suffix"
-                                class="label mb-2">
-                                Suffix
-                            </label>
-                            <input type="text" id="suffix" name="suffix" value="{{ old('suffix') }}"
-                                class="input w-full" />
-                        </div>
+                        <x-ui.field label="First Name" for="first_name" name="first_name" required>
+                            <x-ui.input id="first_name" name="first_name" required />
+                        </x-ui.field>
+                        <x-ui.field label="Middle Name" for="middle_name" name="middle_name">
+                            <x-ui.input id="middle_name" name="middle_name" />
+                        </x-ui.field>
+                        <x-ui.field label="Last Name" for="last_name" name="last_name" required>
+                            <x-ui.input id="last_name" name="last_name" required />
+                        </x-ui.field>
+                        <x-ui.field label="Suffix" for="suffix" name="suffix">
+                            <x-ui.input id="suffix" name="suffix" />
+                        </x-ui.field>
                     </div>
 
-                    <!-- Business Information Section -->
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div>
-                            <label for="business_name"
-                                class="label mb-2">
-                                Business Name
-                            </label>
-                            <input type="text" id="business_name" name="business_name"
-                                value="{{ old('business_name') }}"
-                                class="input w-full" />
-                        </div>
-
-                        <div>
-                            <label for="employer_identification_number"
-                                class="label mb-2">
-                                Employer Identification Number
-                            </label>
-                            <input type="text" id="employer_identification_number"
-                                name="employer_identification_number"
-                                value="{{ old('employer_identification_number') }}"
-                                class="input w-full" />
-                        </div>
+                        <x-ui.field label="Business Name" for="business_name" name="business_name">
+                            <x-ui.input id="business_name" name="business_name" />
+                        </x-ui.field>
+                        <x-ui.field label="Employer Identification Number" for="employer_identification_number" name="employer_identification_number">
+                            <x-ui.input id="employer_identification_number" name="employer_identification_number" />
+                        </x-ui.field>
                     </div>
 
-                    <div>
-                        <label class="label mb-2">
-                            Federal Tax Classification
-                        </label>
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <fieldset class="grid gap-2" @error('federal_tax_classification') data-invalid="true" @enderror>
+                        <legend class="label mb-2">Federal Tax Classification</legend>
+                        <div class="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 xl:grid-cols-4">
                             @foreach (['individual_sole_proprietor' => 'Individual/Sole Proprietor', 'c_corporation' => 'C Corporation', 's_corporation' => 'S Corporation', 'llc' => 'LLC'] as $value => $label)
-                                <label class="label inline-flex items-center gap-2 font-normal">
-                                    <input type="radio" name="federal_tax_classification"
-                                        value="{{ $value }}"
-                                        {{ old('federal_tax_classification') == $value ? 'checked' : '' }}
-                                        class="input" />
-                                    <span
-                                        class="ml-2 text-sm">{{ $label }}</span>
+                                <label class="label gap-2 font-normal">
+                                    <input type="radio" name="federal_tax_classification" value="{{ $value }}"
+                                        {{ old('federal_tax_classification') == $value ? 'checked' : '' }} class="input" />
+                                    {{ $label }}
                                 </label>
                             @endforeach
                         </div>
-                    </div>
+                        @error('federal_tax_classification')
+                            <p role="alert" class="text-sm text-destructive">{{ $message }}</p>
+                        @enderror
+                    </fieldset>
 
-                    <!-- Personal Details -->
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div>
-                            <label for="date_of_birth"
-                                class="label mb-2">
-                                Date of Birth <span class="text-destructive">*</span>
-                            </label>
-                            <input type="date" id="date_of_birth" name="date_of_birth"
-                                value="{{ old('date_of_birth') }}" required
-                                class="input w-full" />
-                        </div>
-
-                        <div>
-                            <label for="ssn"
-                                class="label mb-2">
-                                Social Security Number <span class="text-destructive">*</span>
-                            </label>
-                            <input type="text" id="ssn" name="ssn" value="{{ old('ssn') }}"
-                                required placeholder="XXX-XX-XXXX"
-                                class="input w-full" />
-                        </div>
+                        <x-ui.field label="Date of Birth" for="date_of_birth" name="date_of_birth" required>
+                            <x-ui.input type="date" id="date_of_birth" name="date_of_birth" required />
+                        </x-ui.field>
+                        <x-ui.field label="Social Security Number" for="ssn" name="ssn" required>
+                            <x-ui.input id="ssn" name="ssn" required placeholder="XXX-XX-XXXX" />
+                        </x-ui.field>
                     </div>
 
-                    <!-- Contact Information -->
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div>
-                            <label for="main_phone"
-                                class="label mb-2">
-                                Main Phone Number <span class="text-destructive">*</span>
-                            </label>
-                            <input type="tel" id="main_phone" name="main_phone"
-                                value="{{ old('main_phone') }}" required
-                                class="input w-full" />
-                        </div>
-
-                        <div>
-                            <label for="alt_phone"
-                                class="label mb-2">
-                                Alt Phone Number
-                            </label>
-                            <input type="tel" id="alt_phone" name="alt_phone"
-                                value="{{ old('alt_phone') }}"
-                                class="input w-full" />
-                        </div>
+                        <x-ui.field label="Main Phone Number" for="main_phone" name="main_phone" required>
+                            <x-ui.input type="tel" id="main_phone" name="main_phone" required />
+                        </x-ui.field>
+                        <x-ui.field label="Alt Phone Number" for="alt_phone" name="alt_phone">
+                            <x-ui.input type="tel" id="alt_phone" name="alt_phone" />
+                        </x-ui.field>
                     </div>
 
-                    <div>
-                        <label for="email"
-                            class="label mb-2">
-                            Email Address <span class="text-destructive">*</span>
-                        </label>
-                        <input type="email" id="email" name="email" value="{{ old('email') }}"
-                            required
-                            class="input w-full" />
-                    </div>
+                    <x-ui.field label="Email Address" for="email" name="email" required>
+                        <x-ui.input type="email" id="email" name="email" required />
+                    </x-ui.field>
 
-
-                    <!-- Address Information Section -->
-                    <div>
-                        <label for="address"
-                            class="label mb-2">
-                            Address <span class="text-destructive">*</span>
-                        </label>
-                        <input type="text" id="address" name="address" value="{{ old('address') }}"
-                            required
-                            class="input w-full" />
-                    </div>
+                    <x-ui.field label="Address" for="address" name="address" required>
+                        <x-ui.input id="address" name="address" required />
+                    </x-ui.field>
 
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                        <div>
-                            <label for="city"
-                                class="label mb-2">
-                                City <span class="text-destructive">*</span>
-                            </label>
-                            <input type="text" id="city" name="city" value="{{ old('city') }}"
-                                required
-                                class="input w-full" />
-                        </div>
-
-
-                        <div>
-                            <label for="country"
-                                class="label mb-2">
-                                Country <span class="text-destructive">*</span>
-                            </label>
-                            <select id="country" name="country" required
-                                class="select w-full">
+                        <x-ui.field label="City" for="city" name="city" required>
+                            <x-ui.input id="city" name="city" required />
+                        </x-ui.field>
+                        <x-ui.field label="Country" for="country" name="country" required>
+                            <x-ui.select id="country" name="country" required>
                                 <option value="">Select Country</option>
                                 @foreach ($countries as $country)
                                     <option value="{{ $country->id }}"
@@ -233,265 +123,135 @@
                                         {{ $country->name }}
                                     </option>
                                 @endforeach
-                            </select>
-                            @error('country')
-                                <p class="mt-1 text-sm text-destructive">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="state"
-                                class="label mb-2">
-                                State <span class="text-destructive">*</span>
-                            </label>
-                            <select id="state" name="state" required
-                                class="select w-full">
+                            </x-ui.select>
+                        </x-ui.field>
+                        <x-ui.field label="State" for="state" name="state" required>
+                            <x-ui.select id="state" name="state" required>
                                 <option value="">Select State</option>
                                 @if (isset($states) && $states->count())
                                     @foreach ($states as $state)
-                                        <option value="{{ $state->id }}"
-                                            {{ old('state') == $state->id ? 'selected' : '' }}>
+                                        <option value="{{ $state->id }}" {{ old('state') == $state->id ? 'selected' : '' }}>
                                             {{ $state->name }}
                                         </option>
                                     @endforeach
                                 @endif
-                            </select>
-                            @error('state')
-                                <p class="mt-1 text-sm text-destructive">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="postal_code"
-                                class="label mb-2">
-                                Postal Code <span class="text-destructive">*</span>
-                            </label>
-                            <input type="text" id="postal_code" name="postal_code"
-                                value="{{ old('postal_code') }}" required
-                                class="input w-full" />
-                        </div>
+                            </x-ui.select>
+                        </x-ui.field>
+                        <x-ui.field label="Postal Code" for="postal_code" name="postal_code" required>
+                            <x-ui.input id="postal_code" name="postal_code" required />
+                        </x-ui.field>
                     </div>
 
-                    <!-- Additional Documents -->
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <label class="label inline-flex items-center gap-2 font-normal">
-                            <input type="checkbox" name="twic_card" value="1"
-                                {{ old('twic_card') ? 'checked' : '' }}
-                                class="input" />
-                            <span class="ml-2 text-sm">Do you have a TWIC
-                                Card?</span>
+                        <label class="label gap-2 font-normal">
+                            <input type="checkbox" name="twic_card" value="1" {{ old('twic_card') ? 'checked' : '' }} class="input" />
+                            Do you have a TWIC Card?
                         </label>
-
-                        <label class="label inline-flex items-center gap-2 font-normal">
-                            <input type="checkbox" name="passport" value="1"
-                                {{ old('passport') ? 'checked' : '' }}
-                                class="input" />
-                            <span class="ml-2 text-sm">Do you have a
-                                passport?</span>
+                        <label class="label gap-2 font-normal">
+                            <input type="checkbox" name="passport" value="1" {{ old('passport') ? 'checked' : '' }} class="input" />
+                            Do you have a passport?
                         </label>
                     </div>
 
-                    <div id="section-photo" class="pt-4 border-t">
+                    <div id="section-photo" class="scroll-mt-24 border-t pt-6">
                         <x-driver-photo-upload />
                     </div>
                 </div>
-            </div>
+            </x-ui.card>
+            {{-- /section:applicant --}}
 
+            {{-- section:residences --}}
+            <x-ui.card id="section-residences" title="Residences Previous 3 Years" class="scroll-mt-24">
+                <label class="label mb-3 gap-2 font-normal">
+                    <input type="checkbox" name="same_address" value="1" id="same_address_checkbox"
+                        {{ old('same_address') ? 'checked' : '' }} class="input" />
+                    Same address as from Applicant Information.
+                </label>
 
-            <!-- Residences Section -->
-            <div id="section-residences"
-                class="rounded-xl border mb-6 bg-card">
-                <div class="px-5 py-4 sm:px-6 sm:py-5 border-b">
-                    <h3 class="text-lg font-semibold">
-                        Residences Previous 3 Years
-                    </h3>
-                </div>
-                <div class="p-5 sm:p-6">
-                    <label class="label inline-flex items-center gap-2 font-normal pb-4">
-                        <input type="checkbox" name="same_address" value="1" id="same_address_checkbox"
-                            {{ old('same_address') ? 'checked' : '' }}
-                            class="input" />
-                        <span class="ml-2 text-sm">Same address as from
-                            Applicant
-                            Information.</span>
-                    </label>
+                <p class="mb-4 text-sm text-muted-foreground">List residence for previous 3 years if you lived at the above address less than 3 years.</p>
 
-                    <p class="text-sm pb-4 text-muted-foreground">List residence for previous 3
-                        years if
-                        you
-                        lived at
-                        the above address less than 3 years.
-                    </p>
+                <div id="residence_fields" class="space-y-4">
+                    <div class="residence-field grid gap-4 rounded-lg border p-4">
+                        <x-ui.field label="Address" for="residence_address_0" name="residence_address.0">
+                            <input type="text" id="residence_address_0" name="residence_address[]"
+                                value="{{ old('residence_address.0') }}" @error('residence_address.0') aria-invalid="true" @enderror
+                                class="input w-full residence-address" />
+                        </x-ui.field>
 
-                    <div id="residence_fields">
-                        <!-- Initial residence field -->
-                        <div
-                            class="residence-field mb-6 p-4 border rounded-lg">
-                            <div class="pb-4">
-                                <label for="residence_address_0"
-                                    class="label mb-2">
-                                    Address
-                                </label>
-                                <input type="text" id="residence_address_0" name="residence_address[]"
-                                    value="{{ old('residence_address.0') }}"
-                                    class="input w-full residence-address" />
-                            </div>
-
-                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                                <div>
-                                    <label for="residence_city_0"
-                                        class="label mb-2">
-                                        City
-                                    </label>
-                                    <input type="text" id="residence_city_0" name="residence_city[]"
-                                        value="{{ old('residence_city.0') }}"
-                                        class="input w-full residence-city" />
-                                </div>
-
-                                <div>
-                                    <label for="residence_country_0"
-                                        class="label mb-2">
-                                        Country
-                                    </label>
-                                    <select id="residence_country_0" name="residence_country[]"
-                                        class="select w-full residence-country">
-                                        <option value="">Select Country</option>
-                                        @foreach ($countries as $country)
-                                            <option value="{{ $country->id }}"
-                                                {{ old('residence_country.0', $defaultCountry) == $country->id ? 'selected' : '' }}>
-                                                {{ $country->name }}
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <x-ui.field label="City" for="residence_city_0" name="residence_city.0">
+                                <input type="text" id="residence_city_0" name="residence_city[]"
+                                    value="{{ old('residence_city.0') }}" @error('residence_city.0') aria-invalid="true" @enderror
+                                    class="input w-full residence-city" />
+                            </x-ui.field>
+                            <x-ui.field label="Country" for="residence_country_0" name="residence_country.0">
+                                <select id="residence_country_0" name="residence_country[]" @error('residence_country.0') aria-invalid="true" @enderror
+                                    class="select w-full residence-country">
+                                    <option value="">Select Country</option>
+                                    @foreach ($countries as $country)
+                                        <option value="{{ $country->id }}"
+                                            {{ old('residence_country.0', $defaultCountry) == $country->id ? 'selected' : '' }}>
+                                            {{ $country->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </x-ui.field>
+                            <x-ui.field label="State" for="residence_state_0" name="residence_state.0">
+                                <select id="residence_state_0" name="residence_state[]" @error('residence_state.0') aria-invalid="true" @enderror
+                                    class="select w-full residence-state">
+                                    <option value="">Select State</option>
+                                    @if (isset($states) && $states->count())
+                                        @foreach ($states as $state)
+                                            <option value="{{ $state->id }}" {{ old('residence_state.0') == $state->id ? 'selected' : '' }}>
+                                                {{ $state->name }}
                                             </option>
                                         @endforeach
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label for="residence_state_0"
-                                        class="label mb-2">
-                                        State
-                                    </label>
-                                    <select id="residence_state_0" name="residence_state[]"
-                                        class="select w-full residence-state">
-                                        <option value="">Select State</option>
-                                        @if (isset($states) && $states->count())
-                                            @foreach ($states as $state)
-                                                <option value="{{ $state->id }}"
-                                                    {{ old('residence_state.0') == $state->id ? 'selected' : '' }}>
-                                                    {{ $state->name }}
-                                                </option>
-                                            @endforeach
-                                        @endif
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label for="residence_postal_code_0"
-                                        class="label mb-2">
-                                        Postal Code
-                                    </label>
-                                    <input type="text" id="residence_postal_code_0"
-                                        name="residence_postal_code[]"
-                                        value="{{ old('residence_postal_code.0') }}"
-                                        class="input w-full residence-postal-code" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="my-4 flex justify-between">
-                        <div>
-                            <button type="button" id="residence_add"
-                                class="btn" data-variant="secondary">
-                                Add Another Residence
-                            </button>
-                        </div>
-                        <div>
-                            <button type="button" id="residence_remove"
-                                class="btn" data-variant="destructive">
-                                Remove Last Residence
-                            </button>
+                                    @endif
+                                </select>
+                            </x-ui.field>
+                            <x-ui.field label="Postal Code" for="residence_postal_code_0" name="residence_postal_code.0">
+                                <input type="text" id="residence_postal_code_0" name="residence_postal_code[]"
+                                    value="{{ old('residence_postal_code.0') }}" @error('residence_postal_code.0') aria-invalid="true" @enderror
+                                    class="input w-full residence-postal-code" />
+                            </x-ui.field>
                         </div>
                     </div>
                 </div>
-            </div>
 
-
-            <!-- Driving License Section -->
-            <div id="section-license"
-                class="rounded-xl border mb-6 bg-card">
-                <div class="px-5 py-4 sm:px-6 sm:py-5 border-b">
-                    <h3 class="text-lg font-semibold">
-                        Drivers License Information
-                    </h3>
+                <div class="mt-4 flex flex-wrap justify-between gap-2">
+                    <x-ui.button id="residence_add" variant="secondary" icon="plus">Add Another Residence</x-ui.button>
+                    <x-ui.button id="residence_remove" variant="destructive" icon="trash-2">Remove Last Residence</x-ui.button>
                 </div>
-                <div class="p-5 sm:p-6">
-                    <p class="text-sm pb-4 text-muted-foreground">List all driver licenses held
-                        within
-                        the last
-                        3 years. Enter your first and last name exactly as it appears on your license.
-                    </p>
-                    <div
-                        class="rounded-lg mb-4 py-2 px-4 border">
-                        <p>Warning! Triple check the license information for accuracy. If you enter the wrong
-                            information,
-                            all documents relating to your license will have to be discarded and completed
-                            again.
-                            Failure to
-                            enter accurate license information may result in non-consideration and a rejected
-                            application!
-                        </p>
-                    </div>
+            </x-ui.card>
+            {{-- /section:residences --}}
+
+            {{-- section:license --}}
+            <x-ui.card id="section-license" title="Drivers License Information" class="scroll-mt-24">
+                <div class="space-y-6">
+                    <p class="text-sm text-muted-foreground">List all driver licenses held within the last 3 years. Enter your first and last name exactly as it appears on your license.</p>
+
+                    <x-ui.alert tone="warning" icon="triangle-alert">
+                        Warning! Triple check the license information for accuracy. If you enter the wrong information, all documents relating to your license will have to be discarded and completed again. Failure to enter accurate license information may result in non-consideration and a rejected application!
+                    </x-ui.alert>
 
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                        <div>
-                            <label for="license_first_name"
-                                class="label mb-2">
-                                First Name <span class="text-destructive">*</span>
-                            </label>
-                            <input type="text" id="license_first_name" name="license_first_name"
-                                value="{{ old('license_first_name') }}" required
-                                class="input w-full" />
-                        </div>
-
-                        <div>
-                            <label for="license_last_name"
-                                class="label mb-2">
-                                Last Name <span class="text-destructive">*</span>
-                            </label>
-                            <input type="text" id="license_last_name" name="license_last_name"
-                                value="{{ old('license_last_name') }}" required
-                                class="input w-full" />
-                        </div>
-
-                        <div>
-                            <label for="license_issued"
-                                class="label mb-2">
-                                Issued <span class="text-destructive">*</span>
-                            </label>
-                            <input type="date" id="license_issued" name="license_issued"
-                                value="{{ old('license_issued') }}" required
-                                class="input w-full" />
-                        </div>
-
-                        <div>
-                            <label for="license_expires"
-                                class="label mb-2">
-                                Expires <span class="text-destructive">*</span>
-                            </label>
-                            <input type="date" id="license_expires" name="license_expires"
-                                value="{{ old('license_expires') }}" required
-                                class="input w-full" />
-                        </div>
+                        <x-ui.field label="First Name" for="license_first_name" name="license_first_name" required>
+                            <x-ui.input id="license_first_name" name="license_first_name" required />
+                        </x-ui.field>
+                        <x-ui.field label="Last Name" for="license_last_name" name="license_last_name" required>
+                            <x-ui.input id="license_last_name" name="license_last_name" required />
+                        </x-ui.field>
+                        <x-ui.field label="Issued" for="license_issued" name="license_issued" required>
+                            <x-ui.input type="date" id="license_issued" name="license_issued" required />
+                        </x-ui.field>
+                        <x-ui.field label="Expires" for="license_expires" name="license_expires" required>
+                            <x-ui.input type="date" id="license_expires" name="license_expires" required />
+                        </x-ui.field>
                     </div>
 
-                    <div class="grid mt-4 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        <div>
-                            <label for="license_country"
-                                class="label mb-2">
-                                Country <span class="text-destructive">*</span>
-                            </label>
-                            <select id="license_country" name="license_country" required
-                                class="select w-full">
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <x-ui.field label="Country" for="license_country" name="license_country" required>
+                            <x-ui.select id="license_country" name="license_country" required>
                                 <option value="">Select Country</option>
                                 @foreach ($countries as $country)
                                     <option value="{{ $country->id }}"
@@ -499,151 +259,49 @@
                                         {{ $country->name }}
                                     </option>
                                 @endforeach
-                            </select>
-                        </div>
-
-                        <div>
-                            <label for="license_state"
-                                class="label mb-2">
-                                State <span class="text-destructive">*</span>
-                            </label>
-                            <select id="license_state" name="license_state" required
-                                class="select w-full">
+                            </x-ui.select>
+                        </x-ui.field>
+                        <x-ui.field label="State" for="license_state" name="license_state" required>
+                            <x-ui.select id="license_state" name="license_state" required>
                                 <option value="">Select State</option>
                                 @if (isset($states) && $states->count())
                                     @foreach ($states as $state)
-                                        <option value="{{ $state->id }}"
-                                            {{ old('license_state') == $state->id ? 'selected' : '' }}>
+                                        <option value="{{ $state->id }}" {{ old('license_state') == $state->id ? 'selected' : '' }}>
                                             {{ $state->name }}
                                         </option>
                                     @endforeach
                                 @endif
-                            </select>
-                        </div>
-
-                        <div>
-                            <label for="license_class"
-                                class="label mb-2">
-                                Class <span class="text-destructive">*</span>
-                            </label>
-                            <select id="license_class" name="license_class" required
-                                class="select w-full">
-                                <option value="">Select license class</option>
-                                <option value="Class A (CDL-A)"
-                                    {{ old('license_class') == 'Class A (CDL-A)' ? 'selected' : '' }}>Class A
-                                    (CDL-A)
-                                </option>
-                                <option value="Class B (CDL-B)"
-                                    {{ old('license_class') == 'Class B (CDL-B)' ? 'selected' : '' }}>Class B
-                                    (CDL-B)
-                                </option>
-                                <option value="Class C (CDL-C)"
-                                    {{ old('license_class') == 'Class C (CDL-C)' ? 'selected' : '' }}>Class C
-                                    (CDL-C)
-                                </option>
-                                <option value="Class D"
-                                    {{ old('license_class') == 'Class D' ? 'selected' : '' }}>
-                                    Class D
-                                </option>
-                                <option value="Class C (Non-Commercial)"
-                                    {{ old('license_class') == 'Class C (Non-Commercial)' ? 'selected' : '' }}>
-                                    Class C
-                                    (Non-Commercial)
-                                </option>
-                                <option value="Class M"
-                                    {{ old('license_class') == 'Class M' ? 'selected' : '' }}>
-                                    Class M
-                                </option>
-                                <option value="Class E"
-                                    {{ old('license_class') == 'Class E' ? 'selected' : '' }}>
-                                    Class E
-                                </option>
-                                <option value="Class F"
-                                    {{ old('license_class') == 'Class F' ? 'selected' : '' }}>
-                                    Class F
-                                </option>
-                                <option value="Class DJ/MJ"
-                                    {{ old('license_class') == 'Class DJ/MJ' ? 'selected' : '' }}>
-                                    Class DJ/MJ
-                                </option>
-                            </select>
-                        </div>
+                            </x-ui.select>
+                        </x-ui.field>
+                        <x-ui.field label="Class" for="license_class" name="license_class" required>
+                            <x-ui.select id="license_class" name="license_class" required placeholder="Select license class"
+                                :options="collect(['Class A (CDL-A)', 'Class B (CDL-B)', 'Class C (CDL-C)', 'Class D', 'Class C (Non-Commercial)', 'Class M', 'Class E', 'Class F', 'Class DJ/MJ'])->mapWithKeys(fn ($class) => [$class => $class])" />
+                        </x-ui.field>
                     </div>
 
-                    <div class="grid mt-4 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                        <div>
-                            <label for="license_number"
-                                class="label mb-2">
-                                License Number <span class="text-destructive">*</span>
-                            </label>
-                            <input type="text" id="license_number" name="license_number"
-                                value="{{ old('license_number') }}" required
-                                class="input w-full" />
-                        </div>
-
-                        <div>
-                            <label for="repeat_license_number"
-                                class="label mb-2">
-                                Repeat License Number: <span class="text-destructive">*</span>
-                            </label>
-                            <input type="text" id="repeat_license_number" name="repeat_license_number"
-                                value="{{ old('repeat_license_number') }}" required
-                                class="input w-full" />
-                        </div>
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <x-ui.field label="License Number" for="license_number" name="license_number" required>
+                            <x-ui.input id="license_number" name="license_number" required />
+                        </x-ui.field>
+                        <x-ui.field label="Repeat License Number:" for="repeat_license_number" name="repeat_license_number" required>
+                            <x-ui.input id="repeat_license_number" name="repeat_license_number" required />
+                        </x-ui.field>
                     </div>
 
-                    <div class="mt-4">
-                        <p class="mb-2 text-sm font-medium">Endorsements:</p>
-                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="checkbox" name="is_h_placarded_hazmat" value="1"
-                                    {{ old('is_h_placarded_hazmat') ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">H - Placarded
-                                    Hazmat.</span>
-                            </label>
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="checkbox" name="is_n_tank_vehicle" value="1"
-                                    {{ old('is_n_tank_vehicle') ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">N - Tank
-                                    Vehicles.</span>
-                            </label>
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="checkbox" name="is_p_passengers" value="1"
-                                    {{ old('is_p_passengers') ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">P -
-                                    Passengers.</span>
-                            </label>
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="checkbox" name="is_t_double_trailer" value="1"
-                                    {{ old('is_t_double_trailer') ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">T - Double/Triple
-                                    Trailers.</span>
-                            </label>
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="checkbox" name="is_s_school_bus" value="1"
-                                    {{ old('is_s_school_bus') ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">S - School
-                                    Bus.</span>
-                            </label>
-                            <label class="label inline-flex items-center gap-2 font-normal">
-                                <input type="checkbox" name="is_x_placarded_hazmat" value="1"
-                                    {{ old('is_x_placarded_hazmat') ? 'checked' : '' }}
-                                    class="input" />
-                                <span class="ml-2 text-sm">X - Placarded
-                                    Hazmat &
-                                    Tank
-                                    Vehicles.</span>
-                            </label>
+                    <fieldset>
+                        <legend class="label mb-2">Endorsements:</legend>
+                        <div class="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+                            @foreach (['is_h_placarded_hazmat' => 'H - Placarded Hazmat.', 'is_n_tank_vehicle' => 'N - Tank Vehicles.', 'is_p_passengers' => 'P - Passengers.', 'is_t_double_trailer' => 'T - Double/Triple Trailers.', 'is_s_school_bus' => 'S - School Bus.', 'is_x_placarded_hazmat' => 'X - Placarded Hazmat & Tank Vehicles.'] as $endorsement => $label)
+                                <label class="label gap-2 font-normal">
+                                    <input type="checkbox" name="{{ $endorsement }}" value="1" {{ old($endorsement) ? 'checked' : '' }} class="input" />
+                                    {{ $label }}
+                                </label>
+                            @endforeach
                         </div>
-                    </div>
+                    </fieldset>
                 </div>
-            </div>
-
+            </x-ui.card>
+            {{-- /section:license --}}
 
             <!-- Experience Section -->
             <div id="section-experience"
@@ -1346,6 +1004,7 @@
                 });
             }
 
+            // script:residences
             // Residence fields management
             let residenceCount = 1;
             const residenceFields = document.getElementById('residence_fields');
@@ -1355,33 +1014,23 @@
             if (residenceAddBtn) {
                 residenceAddBtn.addEventListener('click', function() {
                     const newField = document.createElement('div');
-                    newField.className =
-                        'residence-field mb-6 p-4 border rounded-lg';
+                    newField.className = 'residence-field grid gap-4 rounded-lg border p-4';
                     newField.innerHTML = `
-                <div class="pb-4">
-                    <label for="residence_address_${residenceCount}"
-                        class="label mb-2">
-                        Address
-                    </label>
+                <div class="field gap-2">
+                    <label for="residence_address_${residenceCount}" class="label">Address</label>
                     <input type="text" id="residence_address_${residenceCount}" name="residence_address[]"
                         class="input w-full residence-address" />
                 </div>
 
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                    <div>
-                        <label for="residence_city_${residenceCount}"
-                            class="label mb-2">
-                            City
-                        </label>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="field gap-2">
+                        <label for="residence_city_${residenceCount}" class="label">City</label>
                         <input type="text" id="residence_city_${residenceCount}" name="residence_city[]"
                             class="input w-full residence-city" />
                     </div>
 
-                    <div>
-                        <label for="residence_country_${residenceCount}"
-                            class="label mb-2">
-                            Country
-                        </label>
+                    <div class="field gap-2">
+                        <label for="residence_country_${residenceCount}" class="label">Country</label>
                         <select id="residence_country_${residenceCount}" name="residence_country[]"
                             class="select w-full residence-country">
                             <option value="">Select Country</option>
@@ -1391,11 +1040,8 @@
                         </select>
                     </div>
 
-                    <div>
-                        <label for="residence_state_${residenceCount}"
-                            class="label mb-2">
-                            State
-                        </label>
+                    <div class="field gap-2">
+                        <label for="residence_state_${residenceCount}" class="label">State</label>
                         <select id="residence_state_${residenceCount}" name="residence_state[]"
                             class="select w-full residence-state">
                             <option value="">Select State</option>
@@ -1407,11 +1053,8 @@
                         </select>
                     </div>
 
-                    <div>
-                        <label for="residence_postal_code_${residenceCount}"
-                            class="label mb-2">
-                            Postal Code
-                        </label>
+                    <div class="field gap-2">
+                        <label for="residence_postal_code_${residenceCount}" class="label">Postal Code</label>
                         <input type="text" id="residence_postal_code_${residenceCount}" name="residence_postal_code[]"
                             class="input w-full residence-postal-code" />
                     </div>
@@ -1431,6 +1074,7 @@
                     }
                 });
             }
+            // /script:residences
 
             // Accident fields management
             let accidentCount = 1;
@@ -1483,6 +1127,7 @@
             }
 
 
+
             // violation fields management
             let violationCount = 1;
             const violationFields = document.getElementById('violation_fields');
@@ -1526,6 +1171,7 @@
                     }
                 });
             }
+
 
 
 
