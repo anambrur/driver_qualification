@@ -335,8 +335,8 @@
         {{-- Animated background orbs --}}
         <div class="absolute inset-0 overflow-hidden pointer-events-none">
             <div class="absolute top-20 left-10 w-72 h-72 bg-primary/75 rounded-full blur-3xl animate-float"></div>
-            <div class="absolute bottom-20 right-10 w-96 h-96 bg-success-400/10 dark:bg-success-500/10 rounded-full blur-3xl animate-float-delayed"></div>
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-light-400/5 rounded-full blur-3xl animate-pulse-ring"></div>
+            <div class="absolute bottom-20 right-10 w-96 h-96 bg-success/10 rounded-full blur-3xl animate-float-delayed"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-info/5 rounded-full blur-3xl animate-pulse-ring"></div>
         </div>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-12 lg:py-0">
@@ -346,13 +346,13 @@
                     <!-- Added header element wrapper for SEO semantic flow -->
                     <header>
                         <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 mb-6">
-                            <span class="w-2 h-2 rounded-full bg-success-500 animate-pulse"></span>
+                            <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
                             <span class="text-xs font-semibold text-primary uppercase tracking-wider">DOT Compliance Platform</span>
                         </div>
 
                         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight mb-6">
                             Every Driver File.
-                            <span class="bg-gradient-to-r from-primary via-[color-mix(in_oklch,var(--primary)_88%,black)] to-blue-light-500 bg-clip-text text-transparent animate-gradient">Always Audit-Ready.</span>
+                            <span class="bg-gradient-to-r from-primary via-[color-mix(in_oklch,var(--primary)_88%,black)] to-highlight bg-clip-text text-transparent animate-gradient">Always Audit-Ready.</span>
                         </h1>
                     </header>
 
@@ -379,13 +379,13 @@
                     </div>
 
                     <div class="flex items-center gap-6 justify-center lg:justify-start text-sm text-muted-foreground">
-                        <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-success-500" fill="currentColor" viewBox="0 0 20 20">
+                        <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                             </svg> No credit card</span>
-                        <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-success-500" fill="currentColor" viewBox="0 0 20 20">
+                        <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                             </svg> Free 14-day trial</span>
-                        <span class="hidden sm:flex items-center gap-1.5"><svg class="w-4 h-4 text-success-500" fill="currentColor" viewBox="0 0 20 20">
+                        <span class="hidden sm:flex items-center gap-1.5"><svg class="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                             </svg> Cancel anytime</span>
                     </div>
@@ -397,27 +397,27 @@
                         {{-- Main dashboard card --}}
                         <div class="glass-card rounded-3xl p-6 shadow-2xl animate-float" style="animation-duration: 7s;">
                             <div class="flex items-center gap-3 mb-4">
-                                <div class="w-3 h-3 rounded-full bg-error-400"></div>
-                                <div class="w-3 h-3 rounded-full bg-warning-400"></div>
-                                <div class="w-3 h-3 rounded-full bg-success-400"></div>
+                                <div class="w-3 h-3 rounded-full bg-destructive"></div>
+                                <div class="w-3 h-3 rounded-full bg-warning"></div>
+                                <div class="w-3 h-3 rounded-full bg-success"></div>
                                 <span class="text-xs font-medium text-muted-foreground ml-2">Compliance Dashboard</span>
                             </div>
                             <div class="space-y-3">
-                                <div class="flex items-center justify-between p-3 rounded-xl bg-success-50 dark:bg-success-500/10">
+                                <div class="flex items-center justify-between p-3 rounded-xl bg-success/10">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-lg bg-success-500 flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div class="w-8 h-8 rounded-lg bg-success flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                             </svg></div><span class="text-sm font-medium">CDL Valid</span>
                                     </div>
-                                    <span class="text-xs font-semibold text-success-600 bg-success-100 dark:bg-success-500/20 px-2 py-1 rounded-full">Active</span>
+                                    <span class="text-xs font-semibold text-success bg-success/15 px-2 py-1 rounded-full">Active</span>
                                 </div>
-                                <div class="flex items-center justify-between p-3 rounded-xl bg-warning-50 dark:bg-warning-500/10">
+                                <div class="flex items-center justify-between p-3 rounded-xl bg-warning/10">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-lg bg-warning-500 flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div class="w-8 h-8 rounded-lg bg-warning flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg></div><span class="text-sm font-medium">Medical Card</span>
                                     </div>
-                                    <span class="text-xs font-semibold text-warning-600 bg-warning-100 dark:bg-warning-500/20 px-2 py-1 rounded-full">Expiring</span>
+                                    <span class="text-xs font-semibold text-warning bg-warning/15 px-2 py-1 rounded-full">Expiring</span>
                                 </div>
                                 <div class="flex items-center justify-between p-3 rounded-xl bg-primary/10">
                                     <div class="flex items-center gap-2">
@@ -429,9 +429,9 @@
                                 </div>
                             </div>
                             <div class="mt-4 p-3 rounded-xl bg-muted/50">
-                                <div class="flex justify-between items-center mb-2"><span class="text-xs font-medium text-muted-foreground">Compliance Score</span><span class="text-sm font-bold text-success-600">94%</span></div>
+                                <div class="flex justify-between items-center mb-2"><span class="text-xs font-medium text-muted-foreground">Compliance Score</span><span class="text-sm font-bold text-success">94%</span></div>
                                 <div class="w-full bg-muted rounded-full h-2">
-                                    <div class="bg-gradient-to-r from-success-400 to-success-500 h-2 rounded-full" style="width: 94%"></div>
+                                    <div class="bg-gradient-to-r from-success/75 to-success h-2 rounded-full" style="width: 94%"></div>
                                 </div>
                             </div>
                         </div>
@@ -439,7 +439,7 @@
                         {{-- Floating notification --}}
                         <div class="absolute -top-4 -right-4 glass-card rounded-2xl p-3 shadow-xl animate-float-delayed z-10" style="animation-duration: 5s;">
                             <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 rounded-full bg-success-500 flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="w-8 h-8 rounded-full bg-success flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                     </svg></div>
                                 <div>
@@ -485,15 +485,15 @@
                     <p class="text-sm text-muted-foreground mt-1">Trucking Companies</p>
                 </div>
                 <div class="text-center">
-                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-success-500 to-success-600 bg-clip-text text-transparent">50K+</p>
+                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-success to-[color-mix(in_oklch,var(--success)_80%,black)] bg-clip-text text-transparent">50K+</p>
                     <p class="text-sm text-muted-foreground mt-1">Driver Files Managed</p>
                 </div>
                 <div class="text-center">
-                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-blue-light-500 to-blue-light-600 bg-clip-text text-transparent">99.9%</p>
+                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-info to-[color-mix(in_oklch,var(--info)_80%,black)] bg-clip-text text-transparent">99.9%</p>
                     <p class="text-sm text-muted-foreground mt-1">Audit Pass Rate</p>
                 </div>
                 <div class="text-center">
-                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-warning-500 to-orange-500 bg-clip-text text-transparent">24/7</p>
+                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-warning to-[color-mix(in_oklch,var(--warning)_70%,var(--destructive))] bg-clip-text text-transparent">24/7</p>
                     <p class="text-sm text-muted-foreground mt-1">Compliance Monitoring</p>
                 </div>
             </div>
@@ -506,7 +506,7 @@
     <section id="features" class="py-20 lg:py-28 bg-muted/50 relative overflow-hidden">
         <div class="absolute inset-0 pointer-events-none">
             <div class="absolute top-0 right-0 w-96 h-96 bg-primary/75 rounded-full blur-3xl"></div>
-            <div class="absolute bottom-0 left-0 w-96 h-96 bg-success-400/5 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 w-96 h-96 bg-success/5 rounded-full blur-3xl"></div>
         </div>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -526,21 +526,21 @@
                 ['icon' => '
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />', 'color' => 'warning', 'title' => 'Expiration Alerts', 'desc' => 'Licenses, medicals, MVRs — get notified before they expire. Automated email reminders keep you compliant.'],
                 ['icon' => '
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />', 'color' => 'blue-light', 'title' => 'Fleet Compliance', 'desc' => 'Vehicle & trailer document tracking with real-time compliance scores and maintenance scheduling.'],
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />', 'color' => 'info', 'title' => 'Fleet Compliance', 'desc' => 'Vehicle & trailer document tracking with real-time compliance scores and maintenance scheduling.'],
                 ['icon' => '
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />', 'color' => 'purple', 'title' => 'Maintenance Tracking', 'desc' => 'Service logs, scheduled maintenance, and preventive care management for your entire fleet.'],
                 ['icon' => '
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />', 'color' => 'error', 'title' => 'Audit-Ready Reports', 'desc' => 'Generate complete, compliant driver files for DOT inspections instantly. One-click export to PDF.'],
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />', 'color' => 'destructive', 'title' => 'Audit-Ready Reports', 'desc' => 'Generate complete, compliant driver files for DOT inspections instantly. One-click export to PDF.'],
                 ];
-                $colorMap = ['brand' => 'primary', 'success' => 'success-500', 'warning' => 'warning-500', 'blue-light' => 'blue-light-500', 'purple' => 'purple-500', 'error' => 'error-500'];
-                $bgMap = ['brand' => 'primary/10', 'success' => 'success-50 dark:bg-success-500/10', 'warning' => 'warning-50 dark:bg-warning-500/10', 'blue-light' => 'blue-light-50 dark:bg-blue-light-500/10', 'purple' => 'purple-500/10', 'error' => 'error-50 dark:bg-error-500/10'];
+                $colorMap = ['brand' => 'text-primary', 'success' => 'text-success', 'warning' => 'text-warning', 'info' => 'text-info', 'purple' => 'text-[var(--chart-5)]', 'destructive' => 'text-destructive'];
+                $bgMap = ['brand' => 'bg-primary/10', 'success' => 'bg-success/10', 'warning' => 'bg-warning/10', 'info' => 'bg-info/10', 'purple' => 'bg-[color-mix(in_oklch,var(--chart-5)_10%,transparent)]', 'destructive' => 'bg-destructive/10'];
                 @endphp
 
                 @foreach ($features as $i => $f)
                 <div class="glass-card rounded-2xl p-6 transition-all duration-500 cursor-default group" style="animation: fadeInUp 0.6s ease-out {{ $i * 0.1 }}s both;">
-                    <div class="feature-icon-wrap w-12 h-12 rounded-xl bg-{{ $bgMap[$f['color']] }} flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-{{ $colorMap[$f['color']] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">{!! $f['icon'] !!}</svg>
+                    <div class="feature-icon-wrap w-12 h-12 rounded-xl {{ $bgMap[$f['color']] }} flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 {{ $colorMap[$f['color']] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">{!! $f['icon'] !!}</svg>
                     </div>
                     <h3 class="text-lg font-bold mb-2">{{ $f['title'] }}</h3>
                     <p class="text-sm text-muted-foreground leading-relaxed">{{ $f['desc'] }}</p>
@@ -556,8 +556,8 @@
     <section id="how-it-works" class="py-20 lg:py-28 bg-card">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center max-w-3xl mx-auto mb-16">
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-success-50 dark:bg-success-500/10 text-xs font-semibold text-success-600 dark:text-success-400 uppercase tracking-wider mb-4">How It Works</span>
-                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Get Audit-Ready in <span class="bg-gradient-to-r from-success-500 to-success-600 bg-clip-text text-transparent">3 Simple Steps</span></h2>
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-success/10 text-xs font-semibold text-success uppercase tracking-wider mb-4">How It Works</span>
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Get Audit-Ready in <span class="bg-gradient-to-r from-success to-[color-mix(in_oklch,var(--success)_80%,black)] bg-clip-text text-transparent">3 Simple Steps</span></h2>
                 <p class="text-lg text-muted-foreground">No complex setup. No steep learning curve. Start managing your driver files in minutes.</p>
             </div>
 
@@ -632,7 +632,7 @@
                     <ul class="space-y-3 mb-8 grow">
                         @foreach ($plan->marketing_bullets as $feature)
                         <li class="flex items-start gap-2 text-sm">
-                            <svg class="w-5 h-5 text-success-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-5 h-5 text-success shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                             </svg>
                             <span class="text-muted-foreground">{{ $feature }}</span>
@@ -666,7 +666,7 @@
                     <div class="mb-6"><span class="text-4xl font-extrabold">${{ $sp['price'] }}</span><span class="text-sm text-muted-foreground">/month</span></div>
                     <ul class="space-y-3 mb-8 grow">
                         @foreach ($sp['features'] as $feat)
-                        <li class="flex items-start gap-2 text-sm"><svg class="w-5 h-5 text-success-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <li class="flex items-start gap-2 text-sm"><svg class="w-5 h-5 text-success shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                             </svg><span class="text-muted-foreground">{{ $feat }}</span></li>
                         @endforeach
@@ -687,8 +687,8 @@
     <section id="testimonials" class="py-20 lg:py-28 bg-card">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center max-w-3xl mx-auto mb-16">
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-warning-50 dark:bg-warning-500/10 text-xs font-semibold text-warning-600 dark:text-warning-400 uppercase tracking-wider mb-4">Testimonials</span>
-                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Trusted by Carriers <span class="bg-gradient-to-r from-warning-500 to-orange-500 bg-clip-text text-transparent">Nationwide</span></h2>
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-warning/10 text-xs font-semibold text-warning uppercase tracking-wider mb-4">Testimonials</span>
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Trusted by Carriers <span class="bg-gradient-to-r from-warning to-[color-mix(in_oklch,var(--warning)_70%,var(--destructive))] bg-clip-text text-transparent">Nationwide</span></h2>
             </div>
 
             <div class="grid md:grid-cols-3 gap-8">
@@ -704,7 +704,7 @@
                 <div class="glass-card rounded-2xl p-8 transition-all duration-500 flex flex-col">
                     <div class="flex gap-1 mb-4">
                         @for ($s = 0; $s < $t['rating']; $s++)
-                            <svg class="w-5 h-5 text-warning-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                             @endfor
                     </div>
@@ -757,8 +757,8 @@
     <section id="faq" class="py-20 lg:py-28 bg-card">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-blue-light-50 dark:bg-blue-light-500/10 text-xs font-semibold text-blue-light-600 dark:text-blue-light-400 uppercase tracking-wider mb-4">FAQ</span>
-                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">Frequently Asked <span class="bg-gradient-to-r from-blue-light-500 to-blue-light-600 bg-clip-text text-transparent">Questions</span></h2>
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-info/10 text-xs font-semibold text-info uppercase tracking-wider mb-4">FAQ</span>
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">Frequently Asked <span class="bg-gradient-to-r from-info to-[color-mix(in_oklch,var(--info)_80%,black)] bg-clip-text text-transparent">Questions</span></h2>
             </div>
 
             <div x-data="{ openFaq: null }" class="space-y-4">
@@ -894,8 +894,8 @@
 
             <template x-if="submitted">
                 <div class="text-center py-8">
-                    <div class="w-16 h-16 mx-auto rounded-full bg-success-50 dark:bg-success-500/10 flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8 text-success-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-16 h-16 mx-auto rounded-full bg-success/10 flex items-center justify-center mb-4">
+                        <svg class="w-8 h-8 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
                     </div>

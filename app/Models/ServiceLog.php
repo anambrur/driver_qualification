@@ -112,7 +112,7 @@ class ServiceLog extends Model
     {
         $html = '';
         foreach ($this->maintenanceCategories as $category) {
-            $html .= '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs mr-1">'.e($category->name).'</span>';
+            $html .= '<span class="px-2 py-1 bg-info/15 text-info rounded-full text-xs mr-1">'.e($category->name).'</span>';
         }
 
         return $html;

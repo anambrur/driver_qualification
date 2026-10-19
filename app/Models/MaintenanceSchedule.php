@@ -129,9 +129,9 @@ class MaintenanceSchedule extends Model
     public function getStatusBadgeAttribute()
     {
         $badges = [
-            'active' => 'bg-green-100 text-green-800',
-            'paused' => 'bg-yellow-100 text-yellow-800',
-            'completed' => 'bg-blue-100 text-blue-800',
+            'active' => 'bg-success/15 text-success',
+            'paused' => 'bg-warning/15 text-warning',
+            'completed' => 'bg-info/15 text-info',
         ];
 
         $class = $badges[$this->status] ?? 'bg-muted text-foreground';

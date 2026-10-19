@@ -86,8 +86,8 @@
 
     function showFieldError(el, message) {
         if (!el) return;
-        el.classList.add('border-red-500');
         el.setAttribute('aria-invalid', 'true');
+        el.dataset.jsInvalid = '';
 
         let err = el.parentElement && el.parentElement.querySelector('.js-field-error');
         if (!err && el.parentElement) {
@@ -100,8 +100,8 @@
 
     function clearFieldError(el) {
         if (!el) return;
-        el.classList.remove('border-red-500');
         el.removeAttribute('aria-invalid');
+        delete el.dataset.jsInvalid;
         const err = el.parentElement && el.parentElement.querySelector('.js-field-error');
         if (err) err.remove();
     }
@@ -121,8 +121,9 @@
         let count = 0;
 
         form.querySelectorAll('.js-field-error').forEach(function (n) { n.remove(); });
-        form.querySelectorAll('.border-red-500').forEach(function (n) {
-            n.classList.remove('border-red-500');
+        form.querySelectorAll('[data-js-invalid]').forEach(function (n) {
+            n.removeAttribute('aria-invalid');
+            delete n.dataset.jsInvalid;
         });
 
         form.querySelectorAll('[required]').forEach(function (el) {
@@ -261,7 +262,7 @@
         });
 
         // Scroll to first server-side error
-        const serverError = form.querySelector('.text-red-500, .text-error-500, .border-red-500');
+        const serverError = form.querySelector('[aria-invalid="true"]');
         if (serverError) {
             serverError.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
