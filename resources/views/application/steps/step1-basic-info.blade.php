@@ -546,286 +546,143 @@
             </x-ui.card>
             {{-- /section:forfeitures --}}
 
-            <!-- Employment Record Section -->
-            <div id="section-employment"
-                class="rounded-xl border mb-6 bg-card">
-                <div class="px-5 py-4 sm:px-6 sm:py-5 border-b">
-                    <h3 class="text-lg font-semibold">
-                        Employment Record Previous 3 Years
-                    </h3>
-                </div>
-                <div class="p-5 sm:p-6">
-                    <p class="text-sm pb-4 text-destructive">List all employers for the previous
-                        3
-                        years and
-                        an additional 7 years if you were employed as a DRIVER.
-                    </p>
+            {{-- section:employment --}}
+            <x-ui.card id="section-employment" title="Employment Record Previous 3 Years" class="scroll-mt-24">
+                <p class="mb-4 text-sm text-destructive">List all employers for the previous 3 years and an additional 7 years if you were employed as a DRIVER.</p>
 
-                    <div id="employment_record_fields">
-                        <!-- Initial employment record field -->
-                        <div
-                            class="employment-record-field mb-8 p-6 border rounded-lg bg-muted/40">
-                            <h4 class="text-lg font-semibold mb-4">Employment
-                                Record 1
-                            </h4>
+                <div id="employment_record_fields" class="space-y-6">
+                    <div class="employment-record-field grid gap-4 rounded-lg border bg-muted/40 p-4 sm:p-6">
+                        <h3 class="text-base font-semibold">Employment Record 1</h3>
 
-                            <div class="pb-4">
-                                <label for="employer_name_0"
-                                    class="label mb-2">
-                                    Employer Name
-                                </label>
-                                <input type="text" id="employer_name_0" name="employer_name[]"
-                                    value="{{ old('employer_name.0') }}"
-                                    class="input w-full" />
-                            </div>
+                        <x-ui.field label="Employer Name" for="employer_name_0" name="employer_name.0">
+                            <input type="text" id="employer_name_0" name="employer_name[]"
+                                value="{{ old('employer_name.0') }}" @error('employer_name.0') aria-invalid="true" @enderror class="input w-full" />
+                        </x-ui.field>
 
-                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                                <div>
-                                    <label for="employer_record_address_0"
-                                        class="label mb-2">
-                                        Address
-                                    </label>
-                                    <input type="text" id="employer_record_address_0"
-                                        name="employer_record_address[]"
-                                        value="{{ old('employer_record_address.0') }}"
-                                        class="input w-full" />
-                                </div>
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <x-ui.field label="Address" for="employer_record_address_0" name="employer_record_address.0">
+                                <input type="text" id="employer_record_address_0" name="employer_record_address[]"
+                                    value="{{ old('employer_record_address.0') }}" @error('employer_record_address.0') aria-invalid="true" @enderror class="input w-full" />
+                            </x-ui.field>
+                            <x-ui.field label="City" for="employer_record_city_0" name="employer_record_city.0">
+                                <input type="text" id="employer_record_city_0" name="employer_record_city[]"
+                                    value="{{ old('employer_record_city.0') }}" @error('employer_record_city.0') aria-invalid="true" @enderror class="input w-full" />
+                            </x-ui.field>
+                        </div>
 
-                                <div>
-                                    <label for="employer_record_city_0"
-                                        class="label mb-2">
-                                        City
-                                    </label>
-                                    <input type="text" id="employer_record_city_0"
-                                        name="employer_record_city[]"
-                                        value="{{ old('employer_record_city.0') }}"
-                                        class="input w-full" />
-                                </div>
-                            </div>
-
-                            <div class="grid mt-4 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                <div>
-                                    <label for="employer_record_country_0"
-                                        class="label mb-2">
-                                        Country
-                                    </label>
-                                    <select id="employer_record_country_0" name="employer_record_country[]"
-                                        class="select w-full">
-                                        <option value="">Select Country</option>
-                                        @foreach ($countries as $country)
-                                            <option value="{{ $country->id }}"
-                                                {{ old('employer_record_country.0', $defaultCountry) == $country->id ? 'selected' : '' }}>
-                                                {{ $country->name }}
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <x-ui.field label="Country" for="employer_record_country_0" name="employer_record_country.0">
+                                <select id="employer_record_country_0" name="employer_record_country[]" @error('employer_record_country.0') aria-invalid="true" @enderror class="select w-full">
+                                    <option value="">Select Country</option>
+                                    @foreach ($countries as $country)
+                                        <option value="{{ $country->id }}"
+                                            {{ old('employer_record_country.0', $defaultCountry) == $country->id ? 'selected' : '' }}>
+                                            {{ $country->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </x-ui.field>
+                            <x-ui.field label="State" for="employer_record_state_0" name="employer_record_state.0">
+                                <select id="employer_record_state_0" name="employer_record_state[]" @error('employer_record_state.0') aria-invalid="true" @enderror class="select w-full">
+                                    <option value="">Select State</option>
+                                    @if (isset($states) && $states->count())
+                                        @foreach ($states as $state)
+                                            <option value="{{ $state->id }}" {{ old('employer_record_state.0') == $state->id ? 'selected' : '' }}>
+                                                {{ $state->name }}
                                             </option>
                                         @endforeach
-                                    </select>
-                                </div>
+                                    @endif
+                                </select>
+                            </x-ui.field>
+                            <x-ui.field label="Postal Code" for="employer_record_postal_code_0" name="employer_record_postal_code.0">
+                                <input type="text" id="employer_record_postal_code_0" name="employer_record_postal_code[]"
+                                    value="{{ old('employer_record_postal_code.0') }}" @error('employer_record_postal_code.0') aria-invalid="true" @enderror class="input w-full" />
+                            </x-ui.field>
+                        </div>
 
-                                <div>
-                                    <label for="employer_record_state_0"
-                                        class="label mb-2">
-                                        State
-                                    </label>
-                                    <select id="employer_record_state_0" name="employer_record_state[]"
-                                        class="select w-full">
-                                        <option value="">Select State</option>
-                                        @if (isset($states) && $states->count())
-                                            @foreach ($states as $state)
-                                                <option value="{{ $state->id }}"
-                                                    {{ old('employer_record_state.0') == $state->id ? 'selected' : '' }}>
-                                                    {{ $state->name }}
-                                                </option>
-                                            @endforeach
-                                        @endif
-                                    </select>
-                                </div>
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <x-ui.field label="Phone" for="employer_record_phone_0" name="employer_record_phone.0">
+                                <input type="text" id="employer_record_phone_0" name="employer_record_phone[]"
+                                    value="{{ old('employer_record_phone.0') }}" @error('employer_record_phone.0') aria-invalid="true" @enderror class="input w-full" />
+                            </x-ui.field>
+                            <x-ui.field label="Fax" for="employer_record_fax_0" name="employer_record_fax.0">
+                                <input type="text" id="employer_record_fax_0" name="employer_record_fax[]"
+                                    value="{{ old('employer_record_fax.0') }}" @error('employer_record_fax.0') aria-invalid="true" @enderror class="input w-full" />
+                            </x-ui.field>
+                            <x-ui.field label="Email" for="employer_record_email_0" name="employer_record_email.0">
+                                <input type="email" id="employer_record_email_0" name="employer_record_email[]"
+                                    value="{{ old('employer_record_email.0') }}" @error('employer_record_email.0') aria-invalid="true" @enderror class="input w-full" />
+                            </x-ui.field>
+                        </div>
 
-                                <div>
-                                    <label for="employer_record_postal_code_0"
-                                        class="label mb-2">
-                                        Postal Code
-                                    </label>
-                                    <input type="text" id="employer_record_postal_code_0"
-                                        name="employer_record_postal_code[]"
-                                        value="{{ old('employer_record_postal_code.0') }}"
-                                        class="input w-full" />
-                                </div>
-                            </div>
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <x-ui.field label="Position Held" for="employer_record_position_0" name="employer_record_position.0">
+                                <input type="text" id="employer_record_position_0" name="employer_record_position[]"
+                                    value="{{ old('employer_record_position.0') }}" @error('employer_record_position.0') aria-invalid="true" @enderror class="input w-full" />
+                            </x-ui.field>
+                            <x-ui.field label="Date From" for="employer_record_date_from_0" name="employer_record_date_from.0">
+                                <input type="date" id="employer_record_date_from_0" name="employer_record_date_from[]"
+                                    value="{{ old('employer_record_date_from.0') }}" @error('employer_record_date_from.0') aria-invalid="true" @enderror class="input w-full" />
+                            </x-ui.field>
+                            <x-ui.field label="Date To" for="employer_record_date_to_0" name="employer_record_date_to.0">
+                                <input type="date" id="employer_record_date_to_0" name="employer_record_date_to[]"
+                                    value="{{ old('employer_record_date_to.0') }}" @error('employer_record_date_to.0') aria-invalid="true" @enderror class="input w-full" />
+                            </x-ui.field>
+                        </div>
 
-                            <div class="grid mt-4 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                <div>
-                                    <label for="employer_record_phone_0"
-                                        class="label mb-2">
-                                        Phone
-                                    </label>
-                                    <input type="text" id="employer_record_phone_0"
-                                        name="employer_record_phone[]"
-                                        value="{{ old('employer_record_phone.0') }}"
-                                        class="input w-full" />
-                                </div>
+                        <x-ui.field label="Reason for Leaving" for="employer_record_reason_for_leaving_0" name="employer_record_reason_for_leaving.0">
+                            <input type="text" id="employer_record_reason_for_leaving_0" name="employer_record_reason_for_leaving[]"
+                                value="{{ old('employer_record_reason_for_leaving.0') }}" @error('employer_record_reason_for_leaving.0') aria-invalid="true" @enderror class="input w-full" />
+                        </x-ui.field>
 
-                                <div>
-                                    <label for="employer_record_fax_0"
-                                        class="label mb-2">
-                                        Fax
-                                    </label>
-                                    <input type="text" id="employer_record_fax_0"
-                                        name="employer_record_fax[]"
-                                        value="{{ old('employer_record_fax.0') }}"
-                                        class="input w-full" />
-                                </div>
-
-                                <div>
-                                    <label for="employer_record_email_0"
-                                        class="label mb-2">
-                                        Email
-                                    </label>
-                                    <input type="email" id="employer_record_email_0"
-                                        name="employer_record_email[]"
-                                        value="{{ old('employer_record_email.0') }}"
-                                        class="input w-full" />
-                                </div>
-                            </div>
-
-                            <div class="grid mt-4 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                <div>
-                                    <label for="employer_record_position_0"
-                                        class="label mb-2">
-                                        Position Held
-                                    </label>
-                                    <input type="text" id="employer_record_position_0"
-                                        name="employer_record_position[]"
-                                        value="{{ old('employer_record_position.0') }}"
-                                        class="input w-full" />
-                                </div>
-
-                                <div>
-                                    <label for="employer_record_date_from_0"
-                                        class="label mb-2">
-                                        Date From
-                                    </label>
-                                    <input type="date" id="employer_record_date_from_0"
-                                        name="employer_record_date_from[]"
-                                        value="{{ old('employer_record_date_from.0') }}"
-                                        class="input w-full" />
-                                </div>
-
-                                <div>
-                                    <label for="employer_record_date_to_0"
-                                        class="label mb-2">
-                                        Date To
-                                    </label>
-                                    <input type="date" id="employer_record_date_to_0"
-                                        name="employer_record_date_to[]"
-                                        value="{{ old('employer_record_date_to.0') }}"
-                                        class="input w-full" />
-                                </div>
-                            </div>
-
-                            <div class="my-4">
-                                <label for="employer_record_reason_for_leaving_0"
-                                    class="label mb-2">
-                                    Reason for Leaving
+                        <fieldset class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <legend class="contents text-sm font-medium">Were you subject to the DOT/FMCSA regulations while employed by this carrier?</legend>
+                            <div class="flex items-center gap-6">
+                                <label class="label gap-2 font-normal">
+                                    <input type="radio" name="employed_regulations[]" value="yes" {{ old('employed_regulations.0') == 'yes' ? 'checked' : '' }} class="input" />
+                                    Yes
                                 </label>
-                                <input type="text" id="employer_record_reason_for_leaving_0"
-                                    name="employer_record_reason_for_leaving[]"
-                                    value="{{ old('employer_record_reason_for_leaving.0') }}"
-                                    class="input w-full" />
+                                <label class="label gap-2 font-normal">
+                                    <input type="radio" name="employed_regulations[]" value="no" {{ old('employed_regulations.0', 'no') == 'no' ? 'checked' : '' }} class="input" />
+                                    No
+                                </label>
                             </div>
+                        </fieldset>
 
-                            <!-- Question wrapper -->
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
-                                <p class="text-sm font-medium">Were you
-                                    subject to
-                                    the
-                                    DOT/FMCSA regulations while employed by this carrier?
-                                </p>
-                                <div class="flex items-center gap-6">
-                                    <!-- YES -->
-                                    <label class="label inline-flex items-center gap-2 font-normal">
-                                        <input type="radio" name="employed_regulations[]" value="yes"
-                                            {{ old('employed_regulations.0') == 'yes' ? 'checked' : '' }}
-                                            class="input" />
-                                        <span class="ml-2 text-sm">Yes</span>
-                                    </label>
-                                    <!-- NO -->
-                                    <label class="label inline-flex items-center gap-2 font-normal">
-                                        <input type="radio" name="employed_regulations[]" value="no"
-                                            {{ old('employed_regulations.0', 'no') == 'no' ? 'checked' : '' }}
-                                            class="input" />
-                                        <span class="ml-2 text-sm">No</span>
-                                    </label>
-                                </div>
+                        <fieldset class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <legend class="contents text-sm font-medium">Was your job designated as a safety sensitive function, in any DOT regulated mode, subject to the alcohol and controlled substances testing requirements required by 49 CFR Part 40?</legend>
+                            <div class="flex items-center gap-6">
+                                <label class="label gap-2 font-normal">
+                                    <input type="radio" name="safety_sensitive_function[]" value="yes" {{ old('safety_sensitive_function.0') == 'yes' ? 'checked' : '' }} class="input" />
+                                    Yes
+                                </label>
+                                <label class="label gap-2 font-normal">
+                                    <input type="radio" name="safety_sensitive_function[]" value="no" {{ old('safety_sensitive_function.0', 'no') == 'no' ? 'checked' : '' }} class="input" />
+                                    No
+                                </label>
                             </div>
-
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
-                                <p class="text-sm font-medium">Was your job
-                                    designated as
-                                    a
-                                    safety sensitive function, in any DOT regulated mode, subject to the alcohol
-                                    and
-                                    controlled substances testing requirements required by 49 CFR Part 40?
-                                </p>
-                                <div class="flex items-center gap-6">
-                                    <!-- YES -->
-                                    <label class="label inline-flex items-center gap-2 font-normal">
-                                        <input type="radio" name="safety_sensitive_function[]"
-                                            value="yes"
-                                            {{ old('safety_sensitive_function.0') == 'yes' ? 'checked' : '' }}
-                                            class="input" />
-                                        <span class="ml-2 text-sm">Yes</span>
-                                    </label>
-                                    <!-- NO -->
-                                    <label class="label inline-flex items-center gap-2 font-normal">
-                                        <input type="radio" name="safety_sensitive_function[]"
-                                            value="no"
-                                            {{ old('safety_sensitive_function.0', 'no') == 'no' ? 'checked' : '' }}
-                                            class="input" />
-                                        <span class="ml-2 text-sm">No</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Additional employment records will be appended here by JavaScript -->
-                    </div>
-
-                    <div class="my-4 flex justify-between">
-                        <div>
-                            <button type="button" id="employment_record_add"
-                                class="btn" data-variant="secondary">
-                                Add Another Employment Record
-                            </button>
-                        </div>
-                        <div>
-                            <button type="button" id="employment_record_remove"
-                                class="btn" data-variant="destructive">
-                                Remove Last Employment Record
-                            </button>
-                        </div>
+                        </fieldset>
                     </div>
                 </div>
 
+                <div class="mt-4 flex flex-wrap justify-between gap-2">
+                    <x-ui.button id="employment_record_add" variant="secondary" icon="plus">Add Another Employment Record</x-ui.button>
+                    <x-ui.button id="employment_record_remove" variant="destructive" icon="trash-2">Remove Last Employment Record</x-ui.button>
+                </div>
+            </x-ui.card>
+            {{-- /section:employment --}}
 
-            </div>
-
-            <!-- Form Actions -->
-            <div
-                class="sticky bottom-0 z-30 -mx-4 mt-6 border-t px-4 py-4 backdrop-blur sm:mx-0 sm:rounded-xl bg-background/95">
+            {{-- section:actions --}}
+            <div class="sticky bottom-0 z-30 -mx-4 border-t bg-background/95 px-4 py-4 backdrop-blur sm:mx-0 sm:rounded-xl">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-xs text-muted-foreground">Saves as draft and continues to
-                        license documents.</p>
-                    <div class="flex gap-3 justify-end">
-                        <a href="{{ route('public.application.step1', ['slug' => $company->slug]) }}"
-                            class="btn" data-variant="secondary">
-                            Cancel
-                        </a>
-                        <button type="submit"
-                            class="btn" data-variant="primary">
-                            Continue
-                        </button>
+                    <p class="text-xs text-muted-foreground">Saves as draft and continues to license documents.</p>
+                    <div class="flex justify-end gap-3">
+                        <x-ui.button :href="route('public.application.step1', ['slug' => $company->slug])" variant="secondary">Cancel</x-ui.button>
+                        <x-ui.button type="submit" variant="primary" icon-end="arrow-right">Continue</x-ui.button>
                     </div>
                 </div>
             </div>
+            {{-- /section:actions --}}
         </form>
     </x-application.step>
 @endsection
@@ -1022,6 +879,7 @@
             }
             // /script:violations
 
+            // script:employment
             // Employment Record fields management
             let employmentRecordCount = 1;
             const employmentRecordFields = document.getElementById('employment_record_fields');
@@ -1031,46 +889,33 @@
             if (employmentRecordAddBtn) {
                 employmentRecordAddBtn.addEventListener('click', function() {
                     const newField = document.createElement('div');
-                    newField.className =
-                        'employment-record-field mb-8 p-6 border rounded-lg';
+                    newField.className = 'employment-record-field grid gap-4 rounded-lg border bg-muted/40 p-4 sm:p-6';
                     newField.innerHTML = `
-            <h4 class="text-lg font-semibold mb-4">Employment Record ${employmentRecordCount + 1}</h4>
-            
-            <div class="pb-4">
-                <label for="employer_name_${employmentRecordCount}"
-                    class="label mb-2">
-                    Employer Name
-                </label>
+            <h3 class="text-base font-semibold">Employment Record ${employmentRecordCount + 1}</h3>
+
+            <div class="field gap-2">
+                <label for="employer_name_${employmentRecordCount}" class="label">Employer Name</label>
                 <input type="text" id="employer_name_${employmentRecordCount}" name="employer_name[]"
                     class="input w-full" />
             </div>
 
-            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                <div>
-                    <label for="employer_record_address_${employmentRecordCount}"
-                        class="label mb-2">
-                        Address
-                    </label>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="field gap-2">
+                    <label for="employer_record_address_${employmentRecordCount}" class="label">Address</label>
                     <input type="text" id="employer_record_address_${employmentRecordCount}" name="employer_record_address[]"
                         class="input w-full" />
                 </div>
 
-                <div>
-                    <label for="employer_record_city_${employmentRecordCount}"
-                        class="label mb-2">
-                        City
-                    </label>
+                <div class="field gap-2">
+                    <label for="employer_record_city_${employmentRecordCount}" class="label">City</label>
                     <input type="text" id="employer_record_city_${employmentRecordCount}" name="employer_record_city[]"
                         class="input w-full" />
                 </div>
             </div>
 
-            <div class="grid mt-4 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <div>
-                    <label for="employer_record_country_${employmentRecordCount}"
-                        class="label mb-2">
-                        Country
-                    </label>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="field gap-2">
+                    <label for="employer_record_country_${employmentRecordCount}" class="label">Country</label>
                     <select id="employer_record_country_${employmentRecordCount}" name="employer_record_country[]"
                         class="select w-full">
                         <option value="">Select Country</option>
@@ -1080,11 +925,8 @@
                     </select>
                 </div>
 
-                <div>
-                    <label for="employer_record_state_${employmentRecordCount}"
-                        class="label mb-2">
-                        State
-                    </label>
+                <div class="field gap-2">
+                    <label for="employer_record_state_${employmentRecordCount}" class="label">State</label>
                     <select id="employer_record_state_${employmentRecordCount}" name="employer_record_state[]"
                         class="select w-full">
                         <option value="">Select State</option>
@@ -1096,114 +938,90 @@
                     </select>
                 </div>
 
-                <div>
-                    <label for="employer_record_postal_code_${employmentRecordCount}"
-                        class="label mb-2">
-                        Postal Code
-                    </label>
+                <div class="field gap-2">
+                    <label for="employer_record_postal_code_${employmentRecordCount}" class="label">Postal Code</label>
                     <input type="text" id="employer_record_postal_code_${employmentRecordCount}" name="employer_record_postal_code[]"
                         class="input w-full" />
                 </div>
             </div>
 
-            <div class="grid mt-4 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <div>
-                    <label for="employer_record_phone_${employmentRecordCount}"
-                        class="label mb-2">
-                        Phone
-                    </label>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="field gap-2">
+                    <label for="employer_record_phone_${employmentRecordCount}" class="label">Phone</label>
                     <input type="text" id="employer_record_phone_${employmentRecordCount}" name="employer_record_phone[]"
                         class="input w-full" />
                 </div>
 
-                <div>
-                    <label for="employer_record_fax_${employmentRecordCount}"
-                        class="label mb-2">
-                        Fax
-                    </label>
+                <div class="field gap-2">
+                    <label for="employer_record_fax_${employmentRecordCount}" class="label">Fax</label>
                     <input type="text" id="employer_record_fax_${employmentRecordCount}" name="employer_record_fax[]"
                         class="input w-full" />
                 </div>
 
-                <div>
-                    <label for="employer_record_email_${employmentRecordCount}"
-                        class="label mb-2">
-                        Email
-                    </label>
+                <div class="field gap-2">
+                    <label for="employer_record_email_${employmentRecordCount}" class="label">Email</label>
                     <input type="email" id="employer_record_email_${employmentRecordCount}" name="employer_record_email[]"
                         class="input w-full" />
                 </div>
             </div>
 
-            <div class="grid mt-4 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <div>
-                    <label for="employer_record_position_${employmentRecordCount}"
-                        class="label mb-2">
-                        Position Held
-                    </label>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="field gap-2">
+                    <label for="employer_record_position_${employmentRecordCount}" class="label">Position Held</label>
                     <input type="text" id="employer_record_position_${employmentRecordCount}" name="employer_record_position[]"
                         class="input w-full" />
                 </div>
 
-                <div>
-                    <label for="employer_record_date_from_${employmentRecordCount}"
-                        class="label mb-2">
-                        Date From
-                    </label>
+                <div class="field gap-2">
+                    <label for="employer_record_date_from_${employmentRecordCount}" class="label">Date From</label>
                     <input type="date" id="employer_record_date_from_${employmentRecordCount}" name="employer_record_date_from[]"
                         class="input w-full" />
                 </div>
 
-                <div>
-                    <label for="employer_record_date_to_${employmentRecordCount}"
-                        class="label mb-2">
-                        Date To
-                    </label>
+                <div class="field gap-2">
+                    <label for="employer_record_date_to_${employmentRecordCount}" class="label">Date To</label>
                     <input type="date" id="employer_record_date_to_${employmentRecordCount}" name="employer_record_date_to[]"
                         class="input w-full" />
                 </div>
             </div>
 
-            <div class="my-4">
-                <label for="employer_record_reason_for_leaving_${employmentRecordCount}"
-                    class="label mb-2">
-                    Reason for Leaving
-                </label>
+            <div class="field gap-2">
+                <label for="employer_record_reason_for_leaving_${employmentRecordCount}" class="label">Reason for Leaving</label>
                 <input type="text" id="employer_record_reason_for_leaving_${employmentRecordCount}" name="employer_record_reason_for_leaving[]"
                     class="input w-full" />
             </div>
 
-            <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-4">
-                <p class="text-sm font-medium">Were you subject to the DOT/FMCSA regulations while employed by this carrier?</p>
+            <fieldset class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <legend class="contents text-sm font-medium">Were you subject to the DOT/FMCSA regulations while employed by this carrier?</legend>
                 <div class="flex items-center gap-6">
-                    <label class="label inline-flex items-center gap-2 font-normal">
+                    <label class="label gap-2 font-normal">
                         <input type="radio" name="employed_regulations[]" value="yes"
                             class="input" />
-                        <span class="ml-2 text-sm">Yes</span>
+                        Yes
                     </label>
-                    <label class="label inline-flex items-center gap-2 font-normal">
+                    <label class="label gap-2 font-normal">
                         <input type="radio" name="employed_regulations[]" value="no" checked
                             class="input" />
-                        <span class="ml-2 text-sm">No</span>
+                        No
                     </label>
                 </div>
-            </div>
+            </fieldset>
 
-            <div class="flex flex-col sm:flex-row sm:items-center gap-3 mt-4">
-                <p class="text-sm font-medium">Was your job designated as a safety sensitive function?</p>
+            <fieldset class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <legend class="contents text-sm font-medium">Was your job designated as a safety sensitive function?</legend>
                 <div class="flex items-center gap-6">
-                    <label class="label inline-flex items-center gap-2 font-normal">
+                    <label class="label gap-2 font-normal">
                         <input type="radio" name="safety_sensitive_function[]" value="yes"
                             class="input" />
-                        <span class="ml-2 text-sm">Yes</span>
+                        Yes
                     </label>
-                    <label class="label inline-flex items-center gap-2 font-normal">
+                    <label class="label gap-2 font-normal">
                         <input type="radio" name="safety_sensitive_function[]" value="no" checked
                             class="input" />
-                        <span class="ml-2 text-sm">No</span>
+                        No
                     </label>
                 </div>
-            </div>
+            </fieldset>
         `;
                     employmentRecordFields.appendChild(newField);
                     employmentRecordCount++;
@@ -1219,11 +1037,7 @@
                     }
                 });
             }
-
-
-
-
-
+            // /script:employment
         });
     </script>
     <script src="{{ asset('js/driver-form-validation.js') }}"></script>
