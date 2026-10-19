@@ -74,8 +74,9 @@ it('keeps the edit flow: from_edit, the edit links, back to driver edit and skip
         ->assertSee(route('admin.driver.violation', ['driver_id' => $this->driver->id]).'?edit=1', false);
 })->with('admin steps');
 
-it('skips step 2 with an action=skip submit and steps 3 and 4 with a link to the next step', function () {
-    adminStepPage(2, '?edit=1')->assertSee('name="action" value="skip"', false);
+it('skips to the next step with a link, never with a submit', function () {
+    adminStepPage(2, '?edit=1')->assertDontSee('value="skip"', false)
+        ->assertSee('href="'.route('admin.driver.medical.card', ['driver_id' => $this->driver->id, 'edit' => '1']).'"', false);
     adminStepPage(3, '?edit=1')->assertDontSee('value="skip"', false)
         ->assertSee('href="'.route('admin.driver.forfeiture', ['driver_id' => $this->driver->id, 'edit' => '1']).'"', false);
     adminStepPage(4, '?edit=1')->assertDontSee('value="skip"', false)
@@ -191,10 +192,10 @@ function legalText(string $html, string $from, string $to): string
 }
 
 it('keeps the legal text word for word the same as the public application step', function (int $step, string $from, string $to) {
-    // The admin pages name the signed-in user as the employer and as the contact; give both the company's values
+    // The admin policy steps use the signed-in user's email as the contact; give the user the company's
     $company = DriverAdmin::companyOf($this->owner);
     $company->forceFill(['company_name' => 'Acme Freight', 'phone' => '(209) 555-0142', 'email' => 'hr@acme.test'])->save();
-    $this->owner->forceFill(['name' => 'Acme Freight', 'email' => 'hr@acme.test'])->save();
+    $this->owner->forceFill(['email' => 'hr@acme.test'])->save();
     Applicant::fakeOtp();
     $applicant = Applicant::draft($company, ['first_name' => 'Jane', 'last_name' => 'Roe']);
     DriverDocument::create(['driver_id' => $applicant->id]);
@@ -211,11 +212,24 @@ it('keeps the legal text word for word the same as the public application step',
     'general work policy' => [10, 'Kindly explore', 'confirms my acknowledgment and agreement.'],
 ]);
 
-it('keeps the admin employer wording: the signed-in user is named in the consent and PSP text', function () {
+it('names the company, not the signed-in user, as the employer in the consent and PSP text', function () {
     $this->owner->forceFill(['name' => 'Pat Admin'])->save();
+    DriverAdmin::companyOf($this->owner)->forceFill(['company_name' => 'Acme Freight'])->save();
 
-    adminStepPage(7)->assertSee('hereby provide consent to <strong>Pat Admin</strong>', false);
-    adminStepPage(8)->assertSee('application for employment with <strong>Pat Admin ("Prospective Employer")</strong>', false);
+    adminStepPage(7)->assertSee('hereby provide consent to <strong>Acme Freight</strong>', false)->assertSee('const employerName = "Acme Freight"', false)->assertDontSee('Pat Admin</strong>', false);
+    adminStepPage(8)->assertSee('application for employment with <strong>Acme Freight ("Prospective Employer")</strong>', false)->assertDontSee('Pat Admin (', false);
+    adminStepPage(9)->assertSee('const employerName = "Acme Freight"', false);
+});
+
+it('opens step 1 of an existing driver in the edit flow, with the other steps linked', function () {
+    $this->actingAs($this->owner)->get(route('admin.driver.edit', $this->driver->id))->assertOk()
+        ->assertSee('Document Edit Process')
+        ->assertSee(route('admin.driver.license', ['driver_id' => $this->driver->id]).'?edit=1', false)
+        ->assertDontSee('Back to Driver Edit');
+
+    $this->actingAs($this->owner)->get(route('admin.driver.create'))->assertOk()
+        ->assertSee('Application Process')
+        ->assertDontSee('Document Edit Process');
 });
 
 it('shows the policy PDF from the admin settings route with the admin contact', function (int $step, string $column, string $policy) {

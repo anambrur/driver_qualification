@@ -47,7 +47,7 @@
                 :back="$isEditMode ? route('admin.driver.edit', ['id' => $driver_id]) : route('admin.driver.create')"
                 :back-label="$isEditMode ? 'Back to Driver Edit' : 'Back to Step 1'"
                 :submit="$isEditMode ? 'Update & Continue to Step 3' : 'Save & Continue to Step 3'"
-                :skip="$isEditMode ? 'Skip to Next Step' : null" />
+                :skip="$isEditMode ? 'Skip to Next Step' : null" :skip-href="route('admin.driver.medical.card', ['driver_id' => $driver_id, 'edit' => '1'])" />
         </form>
     </x-application.step>
 @endsection

@@ -162,7 +162,7 @@ class DriverController extends Controller
         return view('admin.driver.show', compact('driver', 'compliance', 'uploadedDocuments', 'activityLogs'));
     }
 
-    public function edit($id, Request $request)
+    public function edit($id)
     {
         $driver = Driver::with([
             'company',
@@ -180,7 +180,8 @@ class DriverController extends Controller
 
         return view('admin.driver.edit', [
             'form' => DriverForm::for($driver),
-            'isEditMode' => $request->query('edit') === '1',
+            // Step 1 of the edit flow: the progress bar links the other steps in edit mode
+            'isEditMode' => true,
         ]);
     }
 

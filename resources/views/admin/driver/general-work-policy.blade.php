@@ -116,7 +116,7 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const employerName = @json($authUser->name ?? 'Employer');
+            const employerName = @json($driver->company?->company_name ?? 'Employer');
             const isEditMode = {{ $isEditMode ? 'true' : 'false' }};
             const hasExistingPolicyAck =
                 {{ $driver_document && $driver_document->general_work_policy_signature ? 'true' : 'false' }};

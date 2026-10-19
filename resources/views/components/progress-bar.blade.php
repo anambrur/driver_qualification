@@ -83,9 +83,9 @@
         @endforeach
     </ol>
 
-    @if (($isEditMode && $driverId) || $finishLaterUrl)
+    @if (($isEditMode && $driverId && $currentStep > 1) || $finishLaterUrl)
     <x-slot:footer class="grid border-t pt-4">
-        @if ($isEditMode && $driverId)
+        @if ($isEditMode && $driverId && $currentStep > 1)
             <x-ui.button :href="route('admin.driver.edit', ['id' => $driverId])" variant="outline" icon="arrow-left" class="w-full">Back to Driver Edit</x-ui.button>
         @elseif ($finishLaterUrl)
             <x-ui.button :href="$finishLaterUrl" variant="outline" icon="log-out" class="w-full"

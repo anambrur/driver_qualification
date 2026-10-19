@@ -54,20 +54,20 @@
                 @endif
                 <div class="grid gap-6">
                     <div class="grid gap-4 rounded-lg border bg-muted/40 p-5">
-                        <p class="text-base">I, <strong>{{ $driver->first_name }} {{ $driver->last_name }}</strong>, hereby provide consent to <strong>{{ $authUser->name }}</strong> to conduct a limited query of the FMCSA Commercial Driver's License Drug and Alcohol Clearinghouse (Clearinghouse) to determine whether drug or alcohol violation information about me exists in the Clearinghouse.</p>
-                        <x-ui.alert tone="success" icon="circle-check">I am consenting to multiple unlimited queries and for the duration of employment with {{ $authUser->name }}.</x-ui.alert>
+                        <p class="text-base">I, <strong>{{ $driver->first_name }} {{ $driver->last_name }}</strong>, hereby provide consent to <strong>{{ $driver->company->company_name }}</strong> to conduct a limited query of the FMCSA Commercial Driver's License Drug and Alcohol Clearinghouse (Clearinghouse) to determine whether drug or alcohol violation information about me exists in the Clearinghouse.</p>
+                        <x-ui.alert tone="success" icon="circle-check">I am consenting to multiple unlimited queries and for the duration of employment with {{ $driver->company->company_name }}.</x-ui.alert>
                     </div>
 
                     <x-ui.alert tone="warning" title="Important Information About Limited Queries:" data-attention>
-                        I understand that if the limited query conducted by {{ $authUser->name }} indicates that drug or alcohol violation information about me exists in the Clearinghouse, FMCSA will not disclose that information to {{ $authUser->name }} without first obtaining additional specific consent from me.
+                        I understand that if the limited query conducted by {{ $driver->company->company_name }} indicates that drug or alcohol violation information about me exists in the Clearinghouse, FMCSA will not disclose that information to {{ $driver->company->company_name }} without first obtaining additional specific consent from me.
                     </x-ui.alert>
                     <x-ui.alert tone="danger" title="Consequences of Refusing Consent:" data-attention>
-                        I further understand that if I refuse to provide consent for {{ $authUser->name }} to conduct a limited query of the Clearinghouse, {{ $authUser->name }} must prohibit me from performing safety-sensitive functions, including driving a commercial motor vehicle, as required by FMCSA's drug and alcohol program regulations.
+                        I further understand that if I refuse to provide consent for {{ $driver->company->company_name }} to conduct a limited query of the Clearinghouse, {{ $driver->company->company_name }} must prohibit me from performing safety-sensitive functions, including driving a commercial motor vehicle, as required by FMCSA's drug and alcohol program regulations.
                     </x-ui.alert>
 
                     <label class="flex items-start gap-3 text-sm leading-relaxed">
                         <input type="checkbox" name="consent_agreement" value="1" class="input mt-0.5" @if (! $isEditMode) required @endif />
-                        <span>I have read and understand the above consent statements. I voluntarily provide my consent for {{ $authUser->name }} to conduct multiple unlimited queries of the FMCSA Drug and Alcohol Clearinghouse for the duration of my employment.</span>
+                        <span>I have read and understand the above consent statements. I voluntarily provide my consent for {{ $driver->company->company_name }} to conduct multiple unlimited queries of the FMCSA Drug and Alcohol Clearinghouse for the duration of my employment.</span>
                     </label>
 
                     <div class="grid gap-5 md:grid-cols-2">
@@ -107,7 +107,7 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const employerName = @json($authUser->name);
+            const employerName = @json($driver->company->company_name);
             const isEditMode = {{ $isEditMode ? 'true' : 'false' }};
             const hasExistingConsent =
             {{ $driver_document && $driver_document->fmcsa_consent ? 'true' : 'false' }};
