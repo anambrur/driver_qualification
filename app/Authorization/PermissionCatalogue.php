@@ -151,6 +151,47 @@ final class PermissionCatalogue
     ];
 
     /**
+     * Platform permissions for the role screens: name => [group, label, description].
+     *
+     * @var array<string, array{0: string, 1: string, 2: string}>
+     */
+    public const PLATFORM_DETAILS = [
+        'platform.staff.manage' => ['Staff and roles', 'Manage staff and roles', 'Invite, edit and disable platform staff, assign roles and edit roles.'],
+        'platform.companies.view' => ['Companies', 'View companies', 'Company profiles and status. Never the company\'s own data.'],
+        'platform.companies.manage' => ['Companies', 'Manage companies', 'Create and edit companies and transfer ownership.'],
+        'platform.companies.lifecycle' => ['Companies', 'Suspend and reactivate', 'Suspend, reactivate and deactivate companies.'],
+        'platform.companies.purge' => ['Companies', 'Purge companies', 'Permanently delete a company after its retention period.'],
+        'platform.assets.transfer' => ['Companies', 'Transfer assets', 'Move drivers, vehicles and trailers between companies.'],
+        'platform.plans.manage' => ['Catalogue', 'Manage plans', 'Plans, prices and the features each plan includes.'],
+        'platform.features.manage' => ['Catalogue', 'Manage features', 'Turn features on or off across the platform.'],
+        'platform.overrides.manage' => ['Catalogue', 'Company overrides', 'Give one company extra features or limits.'],
+        'platform.subscriptions.view' => ['Billing', 'View subscriptions', 'Subscription dashboards and lists.'],
+        'platform.subscriptions.manage' => ['Billing', 'Manage subscriptions', 'Grant, expire, suspend and move company subscriptions.'],
+        'platform.payments.view' => ['Billing', 'View payments', 'Payment history and invoices.'],
+        'platform.settings.manage' => ['Settings and content', 'Site settings and lookups', 'Site settings, live chat, policy PDFs and global lookups.'],
+        'platform.content.manage' => ['Settings and content', 'Homepage content', 'Landing page, testimonials, FAQs and demo requests.'],
+        'platform.audit.view' => ['Audit and support', 'View audit log', 'Every change made on the platform and in companies.'],
+        'platform.support.request' => ['Audit and support', 'Request support sessions', 'Ask a company for temporary access to its data.'],
+        'platform.support.approve' => ['Audit and support', 'Approve support sessions', 'Give the second, four-eyes approval for a support session.'],
+    ];
+
+    /**
+     * PLATFORM_DETAILS grouped for the role form: group => [name => [label, description]].
+     *
+     * @return array<string, array<string, array{0: string, 1: string}>>
+     */
+    public static function platformGroups(): array
+    {
+        $groups = [];
+
+        foreach (self::PLATFORM_DETAILS as $name => [$group, $label, $description]) {
+            $groups[$group][$name] = [$label, $description];
+        }
+
+        return $groups;
+    }
+
+    /**
      * @return list<string>
      */
     public static function tenantNames(): array

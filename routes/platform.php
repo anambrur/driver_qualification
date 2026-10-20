@@ -18,6 +18,7 @@ use App\Http\Controllers\Platform\FeatureController;
 use App\Http\Controllers\Platform\LandingPageController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlanPriceController;
+use App\Http\Controllers\Platform\PlatformRoleController;
 use App\Http\Controllers\Platform\StaffController;
 use App\Http\Controllers\Platform\SubscriptionController;
 use App\Http\Controllers\Platform\SupportSessionController;
@@ -144,6 +145,17 @@ Route::prefix('platform')->name('platform.')->group(function () use ($can) {
             Route::get('/{staff}/edit', [StaffController::class, 'edit'])->name('edit');
             Route::put('/{staff}', [StaffController::class, 'update'])->name('update');
             Route::post('/{staff}/status', [StaffController::class, 'status'])->name('status');
+        });
+
+        // Platform roles: built-in ones editable and resettable (Platform Owner locked), custom ones free
+        Route::prefix('roles')->name('roles.')->whereNumber('role')->middleware($can('staff.manage'))->group(function () {
+            Route::get('/', [PlatformRoleController::class, 'index'])->name('index');
+            Route::get('/create', [PlatformRoleController::class, 'create'])->name('create');
+            Route::post('/', [PlatformRoleController::class, 'store'])->name('store');
+            Route::get('/{role}/edit', [PlatformRoleController::class, 'edit'])->name('edit');
+            Route::put('/{role}', [PlatformRoleController::class, 'update'])->name('update');
+            Route::post('/{role}/reset', [PlatformRoleController::class, 'reset'])->name('reset');
+            Route::delete('/{role}', [PlatformRoleController::class, 'destroy'])->name('destroy');
         });
 
         Route::get('audit', [AuditLogController::class, 'index'])->name('audit.index')->middleware($can('audit.view'));

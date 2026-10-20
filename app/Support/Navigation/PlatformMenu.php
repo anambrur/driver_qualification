@@ -45,6 +45,7 @@ final class PlatformMenu
             ['Site settings', 'platform.settings.site.index', 'platform.settings.manage', 'settings'],
             ['Live chat', 'platform.settings.tawk.index', 'platform.settings.manage', 'message-circle'],
             ['Staff', 'platform.staff.index', 'platform.staff.manage', 'user-cog'],
+            ['Roles and permissions', 'platform.roles.index', 'platform.staff.manage', 'shield-check'],
             ['Audit log', 'platform.audit.index', 'platform.audit.view', 'history'],
         ],
     ];

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Carbon;
 use Spatie\Permission\Models\Role as SpatieRole;
 
 /**
@@ -12,6 +13,8 @@ use Spatie\Permission\Models\Role as SpatieRole;
  * @property string $guard_name
  * @property string|null $system_key
  * @property bool $is_system
+ * @property string|null $description
+ * @property Carbon|null $customized_at
  */
 class Role extends SpatieRole
 {
@@ -19,6 +22,7 @@ class Role extends SpatieRole
     {
         return [
             'is_system' => 'boolean',
+            'customized_at' => 'datetime',
         ];
     }
 

@@ -132,6 +132,6 @@ class PlatformStaffService
      */
     public function roles(): Collection
     {
-        return Role::query()->where('team_id', 0)->where('guard_name', 'platform')->orderBy('id')->get();
+        return Role::query()->where('team_id', 0)->where('guard_name', 'platform')->with('permissions:id,name')->orderByDesc('is_system')->orderBy('id')->get();
     }
 }
