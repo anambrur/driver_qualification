@@ -260,8 +260,8 @@
                     @if(settings('logo'))
                         <img src="{{ asset('storage/' . settings('logo')) }}" alt="{{ settings('site_name', 'Company') }} Logo" class="h-11 lg:h-14 w-auto max-w-[200px] lg:max-w-[240px] object-contain">
                     @else
-                        <img src="{{ asset('images/logo/logo.svg') }}" alt="Driver Qualification File Management Logo" class="h-11 lg:h-14 w-auto object-contain dark:hidden">
-                        <img src="{{ asset('images/logo/logo-dark.svg') }}" alt="Driver Qualification File Management Logo" class="h-11 lg:h-14 w-auto object-contain hidden dark:block">
+                        <img src="{{ asset('images/logo/logo-icon.svg') }}" alt="" width="40" height="40" class="size-9 lg:size-10 shrink-0">
+                        <span class="text-lg lg:text-xl font-semibold text-foreground">{{ settings('site_name', config('app.name')) }}</span>
                     @endif
                 </a>
 
@@ -793,7 +793,10 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
                 <div>
-                    <img src="{{ asset('images/logo/logo-dark.svg') }}" alt="Logo" class="h-8 mb-4">
+                    <div class="flex items-center gap-2 mb-4">
+                        <img src="{{ asset('images/logo/logo-icon.svg') }}" alt="" width="32" height="32" class="size-8 shrink-0">
+                        <span class="text-lg font-semibold text-white">{{ settings('site_name', config('app.name')) }}</span>
+                    </div>
                     <p class="text-sm leading-relaxed">Complete Driver Qualification File management. Stay DOT audit-ready with automated compliance tracking.</p>
                 </div>
                 <div>

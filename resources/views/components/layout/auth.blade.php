@@ -44,8 +44,13 @@
             <div class="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-background/5 blur-3xl" aria-hidden="true"></div>
             <div class="pointer-events-none absolute -bottom-32 -left-16 size-96 rounded-full bg-primary/75 blur-3xl" aria-hidden="true"></div>
 
-            <a href="{{ url('/') }}" class="relative inline-flex w-fit">
-                <img src="{{ $logo ?? asset('images/logo/logo-dark.svg') }}" alt="{{ $siteName }}" class="h-10 w-auto max-w-56 object-contain">
+            <a href="{{ url('/') }}" class="relative inline-flex w-fit items-center gap-2">
+                @if ($logo)
+                    <img src="{{ $logo }}" alt="{{ $siteName }}" class="h-10 w-auto max-w-56 object-contain">
+                @else
+                    <img src="{{ asset('images/logo/logo-icon.svg') }}" alt="" width="40" height="40" class="size-10 shrink-0">
+                    <span class="text-xl font-semibold">{{ $siteName }}</span>
+                @endif
             </a>
 
             <div class="relative max-w-md">
@@ -75,12 +80,12 @@
 
         <div class="flex min-w-0 flex-col">
             <header class="flex items-center justify-between gap-4 p-4 sm:p-6">
-                <a href="{{ url('/') }}" class="inline-flex lg:invisible">
+                <a href="{{ url('/') }}" class="inline-flex items-center gap-2 lg:invisible">
                     @if ($logo)
                         <img src="{{ $logo }}" alt="{{ $siteName }}" class="h-9 w-auto max-w-48 object-contain">
                     @else
-                        <img src="{{ asset('images/logo/logo.svg') }}" alt="{{ $siteName }}" class="h-9 w-auto dark:hidden">
-                        <img src="{{ asset('images/logo/logo-dark.svg') }}" alt="" aria-hidden="true" class="hidden h-9 w-auto dark:block">
+                        <img src="{{ asset('images/logo/logo-icon.svg') }}" alt="" width="36" height="36" class="size-9 shrink-0">
+                        <span class="text-lg font-semibold text-foreground">{{ $siteName }}</span>
                     @endif
                 </a>
                 <x-ui.theme-toggle />

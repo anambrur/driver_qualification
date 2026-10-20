@@ -2,7 +2,6 @@
 
 namespace Tests\Support;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Assert;
 
@@ -70,13 +69,5 @@ final class Perf
             $after,
             "N+1 suspected: {$before} queries with {$small} rows, {$after} with {$large} rows."
         );
-    }
-
-    /**
-     * Make lazy loading throw for the rest of the test (catches N+1 in views/DataTables).
-     */
-    public static function forbidLazyLoading(): void
-    {
-        Model::preventLazyLoading();
     }
 }

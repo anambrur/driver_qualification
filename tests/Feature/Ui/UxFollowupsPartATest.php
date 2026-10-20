@@ -83,7 +83,7 @@ describe('favicon', function () {
         $this->get('/')->assertOk()
             ->assertSee('<link rel="icon" type="image/png" href="'.asset('storage/settings/icon.png').'">', false)
             ->assertSee('<link rel="apple-touch-icon" href="'.asset('storage/settings/icon.png').'">', false)
-            ->assertDontSee(asset('images/logo/logo-icon.svg'), false);
+            ->assertDontSee('<link rel="icon" type="image/svg+xml" href="'.asset('images/logo/logo-icon.svg').'">', false);
     });
 
     it('ships a real favicon.ico', function () {
