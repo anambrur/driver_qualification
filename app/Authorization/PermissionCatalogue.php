@@ -144,6 +144,7 @@ final class PermissionCatalogue
         'platform.subscriptions.manage' => true,
         'platform.payments.view' => false,
         'platform.settings.manage' => true,
+        'platform.content.manage' => true,
         'platform.audit.view' => false,
         'platform.support.request' => true,
         'platform.support.approve' => true,

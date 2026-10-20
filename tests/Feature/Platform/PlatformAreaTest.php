@@ -7,8 +7,11 @@ use App\Models\Plan;
 use App\Models\PlanPrice;
 use App\Models\User;
 use App\Notifications\PlatformResetPasswordNotification;
+use Database\Factories\DemoRequestFactory;
+use Database\Factories\FaqFactory;
 use Database\Factories\PlanFactory;
 use Database\Factories\PlatformUserFactory;
+use Database\Factories\TestimonialFactory;
 use Database\Seeders\CountryStateSeeder;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Arr;
@@ -149,6 +152,9 @@ it('opens each screen only to the roles that hold its permission', function (str
     ['platform_admin', 'platform.asset-transfers.index', 200],
     ['platform_admin', 'platform.lookups.fuel-types.index', 200],
     ['platform_admin', 'platform.staff.index', 403],
+    ['platform_admin', 'platform.content.landing.edit', 200],
+    ['billing_manager', 'platform.content.testimonials.index', 403],
+    ['platform_support', 'platform.content.demo-requests.index', 403],
     ['platform_owner', 'platform.staff.index', 200],
 ]);
 
@@ -156,6 +162,10 @@ it('renders every platform screen', function () {
     $company = Actors::company();
     $plan = PlanFactory::new()->create();
     $staff = Actors::platformSupport();
+    $testimonial = TestimonialFactory::new()->create();
+    $faq = FaqFactory::new()->create();
+    DemoRequestFactory::new()->create();
+    DemoRequestFactory::new()->handled()->create();
 
     $this->actingAs(Actors::platformOwner(), 'platform');
 
@@ -169,6 +179,9 @@ it('renders every platform screen', function () {
         route('platform.settings.site.index'), route('platform.settings.tawk.index'),
         route('platform.staff.index'), route('platform.staff.create'), route('platform.staff.edit', $staff),
         route('platform.audit.index', ['action' => 'platform.']), route('platform.asset-transfers.index'), route('platform.asset-transfers.create'),
+        route('platform.content.landing.edit'), route('platform.content.testimonials.index'), route('platform.content.testimonials.create'),
+        route('platform.content.testimonials.edit', $testimonial), route('platform.content.faqs.index'), route('platform.content.faqs.create'),
+        route('platform.content.faqs.edit', $faq), route('platform.content.demo-requests.index'), route('platform.content.demo-requests.index', ['status' => 'handled']),
     ] as $url) {
         $this->get($url)->assertOk()->assertHeader('X-Robots-Tag', 'noindex, nofollow');
     }

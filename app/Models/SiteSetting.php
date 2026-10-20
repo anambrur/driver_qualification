@@ -53,6 +53,7 @@ class SiteSetting extends Model
         'search_console_verification',
         'mail_from_name',
         'mail_from_address',
+        'landing',
     ];
 
     protected function casts(): array
@@ -64,6 +65,7 @@ class SiteSetting extends Model
             'grace_days' => 'integer',
             'support_session_max_minutes' => 'integer',
             'tawk_widget_code' => 'encrypted',
+            'landing' => 'array',
         ];
     }
 

@@ -7,11 +7,25 @@
     
     <!-- SEO: title, description, canonical, Open Graph, Twitter, JSON-LD (see app/Support/Seo.php) -->
     @php
+        // Sections shown on the page (Platform > Content); nav and footer links follow them
+        $show = [
+            'features' => $landing['features']['enabled'] && ! empty($landing['features']['items']),
+            'how-it-works' => $landing['steps']['enabled'] && ! empty($landing['steps']['items']),
+            'pricing' => (bool) $landing['pricing']['enabled'],
+            'testimonials' => $landing['testimonials']['enabled'] && $testimonials->isNotEmpty(),
+            'faq' => $landing['faq']['enabled'] && $faqs->isNotEmpty(),
+        ];
+        $navLinks = array_filter(
+            ['features' => 'Features', 'how-it-works' => 'How It Works', 'pricing' => 'Pricing', 'testimonials' => 'Testimonials', 'faq' => 'FAQ'],
+            fn (string $anchor) => $show[$anchor],
+            ARRAY_FILTER_USE_KEY,
+        );
+        $hero = $landing['hero'];
         $seoTitle = settings('meta_title', settings('site_name', 'Driver Qualification Platform')).' — Always Audit-Ready';
         $seoDescription = settings('meta_description', 'Complete Driver Qualification File management platform. Stay DOT audit-ready with automated tracking, expiration alerts, and digital document management.');
     @endphp
     <title>{{ $seoTitle }}</title>
-    <x-seo :title="$seoTitle" :description="$seoDescription" :schema="\App\Support\Seo::homeSchema($plans)" />
+    <x-seo :title="$seoTitle" :description="$seoDescription" :schema="\App\Support\Seo::homeSchema($plans, $show['faq'] ? $faqs : null)" />
 
     @include('partials.favicon')
 
@@ -267,11 +281,9 @@
 
                 {{-- Desktop Nav --}}
                 <div class="hidden lg:flex items-center gap-8">
-                    <a href="#features" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Features</a>
-                    <a href="#how-it-works" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">How It Works</a>
-                    <a href="#pricing" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Pricing</a>
-                    <a href="#testimonials" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Testimonials</a>
-                    <a href="#faq" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">FAQ</a>
+                    @foreach ($navLinks as $anchor => $label)
+                    <a href="#{{ $anchor }}" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">{{ $label }}</a>
+                    @endforeach
                 </div>
 
                 {{-- Auth Buttons --}}
@@ -304,11 +316,9 @@
         <div x-show="mobileOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
             class="lg:hidden bg-background/95 backdrop-blur-xl border-b border-border">
             <div class="px-4 py-4 space-y-2">
-                <a @click="mobileOpen = false" href="#features" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors">Features</a>
-                <a @click="mobileOpen = false" href="#how-it-works" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors">How It Works</a>
-                <a @click="mobileOpen = false" href="#pricing" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors">Pricing</a>
-                <a @click="mobileOpen = false" href="#testimonials" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors">Testimonials</a>
-                <a @click="mobileOpen = false" href="#faq" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors">FAQ</a>
+                @foreach ($navLinks as $anchor => $label)
+                <a @click="mobileOpen = false" href="#{{ $anchor }}" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors">{{ $label }}</a>
+                @endforeach
                 <hr class="border-border my-2">
                 @if (Route::has('login'))
                 @auth
@@ -341,20 +351,26 @@
                 <div class="text-center lg:text-left">
                     <!-- Added header element wrapper for SEO semantic flow -->
                     <header>
+                        @if (filled($hero['badge']))
                         <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 mb-6">
                             <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-                            <span class="text-xs font-semibold text-primary uppercase tracking-wider">DOT Compliance Platform</span>
+                            <span class="text-xs font-semibold text-primary uppercase tracking-wider">{{ $hero['badge'] }}</span>
                         </div>
+                        @endif
 
                         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight mb-6">
-                            Every Driver File.
-                            <span class="bg-gradient-to-r from-primary via-[color-mix(in_oklch,var(--primary)_88%,black)] to-highlight bg-clip-text text-transparent animate-gradient">Always Audit-Ready.</span>
+                            {{ $hero['title'] }}
+                            @if (filled($hero['highlight']))
+                            <span class="bg-gradient-to-r from-primary via-[color-mix(in_oklch,var(--primary)_88%,black)] to-highlight bg-clip-text text-transparent animate-gradient">{{ $hero['highlight'] }}</span>
+                            @endif
                         </h1>
                     </header>
 
+                    @if (filled($hero['subtitle']))
                     <p class="text-lg sm:text-xl text-muted-foreground leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0">
-                        Complete Driver Qualification Files — from hire to compliance. Automated tracking, expiration alerts, and digital document management.
+                        {{ $hero['subtitle'] }}
                     </p>
+                    @endif
 
                     <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
                         @if (Route::has('register'))
@@ -365,6 +381,7 @@
                             </svg>
                         </a>
                         @endif
+                        @if ($show['how-it-works'])
                         <a href="#how-it-works" class="px-8 py-4 text-base font-semibold text-foreground bg-background/60 backdrop-blur-sm border border-border hover:border-primary/50 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg inline-flex items-center justify-center gap-2">
                             <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -372,19 +389,18 @@
                             </svg>
                             See How It Works
                         </a>
+                        @endif
                     </div>
 
+                    @if (! empty($hero['bullets']))
                     <div class="flex items-center gap-6 justify-center lg:justify-start text-sm text-muted-foreground">
-                        <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
+                        @foreach ($hero['bullets'] as $bullet)
+                        <span @class(['items-center gap-1.5', 'flex' => ! $loop->last || $loop->count < 3, 'hidden sm:flex' => $loop->last && $loop->count === 3])><svg class="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                            </svg> No credit card</span>
-                        <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                            </svg> Free 14-day trial</span>
-                        <span class="hidden sm:flex items-center gap-1.5"><svg class="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                            </svg> Cancel anytime</span>
+                            </svg> {{ $bullet }}</span>
+                        @endforeach
                     </div>
+                    @endif
                 </div>
 
                 {{-- Right: CSS-only animated illustration --}}
@@ -473,32 +489,35 @@
     {{-- ============================================================ --}}
     {{-- TRUST / STATS BAR --}}
     {{-- ============================================================ --}}
+    @if ($landing['stats']['enabled'] && ! empty($landing['stats']['items']))
+    @php
+        $statStyles = [
+            'from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)]',
+            'from-success to-[color-mix(in_oklch,var(--success)_80%,black)]',
+            'from-info to-[color-mix(in_oklch,var(--info)_80%,black)]',
+            'from-warning to-[color-mix(in_oklch,var(--warning)_70%,var(--destructive))]',
+        ];
+        $statCols = [1 => 'md:grid-cols-1', 2 => 'md:grid-cols-2', 3 => 'md:grid-cols-3', 4 => 'md:grid-cols-4'];
+    @endphp
     <section class="py-12 bg-card border-b border-border">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            <div class="grid grid-cols-2 {{ $statCols[count($landing['stats']['items'])] ?? 'md:grid-cols-4' }} gap-6 md:gap-8">
+                @foreach ($landing['stats']['items'] as $stat)
                 <div class="text-center">
-                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] bg-clip-text text-transparent">5,200+</p>
-                    <p class="text-sm text-muted-foreground mt-1">Trucking Companies</p>
+                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r {{ $statStyles[$loop->index % 4] }} bg-clip-text text-transparent">{{ $stat['value'] }}</p>
+                    <p class="text-sm text-muted-foreground mt-1">{{ $stat['label'] }}</p>
                 </div>
-                <div class="text-center">
-                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-success to-[color-mix(in_oklch,var(--success)_80%,black)] bg-clip-text text-transparent">50K+</p>
-                    <p class="text-sm text-muted-foreground mt-1">Driver Files Managed</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-info to-[color-mix(in_oklch,var(--info)_80%,black)] bg-clip-text text-transparent">99.9%</p>
-                    <p class="text-sm text-muted-foreground mt-1">Audit Pass Rate</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-warning to-[color-mix(in_oklch,var(--warning)_70%,var(--destructive))] bg-clip-text text-transparent">24/7</p>
-                    <p class="text-sm text-muted-foreground mt-1">Compliance Monitoring</p>
-                </div>
+                @endforeach
             </div>
         </div>
     </section>
+    @endif
 
     {{-- ============================================================ --}}
     {{-- FEATURES GRID --}}
     {{-- ============================================================ --}}
+    @if ($show['features'])
+    @php $section = $landing['features']; @endphp
     <section id="features" class="py-20 lg:py-28 bg-muted/50 relative overflow-hidden">
         <div class="absolute inset-0 pointer-events-none">
             <div class="absolute top-0 right-0 w-96 h-96 bg-primary/75 rounded-full blur-3xl"></div>
@@ -507,77 +526,65 @@
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div class="text-center max-w-3xl mx-auto mb-16">
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-xs font-semibold text-primary uppercase tracking-wider mb-4">Features</span>
-                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Everything You Need for <span class="bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] bg-clip-text text-transparent">DOT Compliance</span></h2>
-                <p class="text-lg text-muted-foreground">Manage your entire driver qualification process from a single platform — built for 49 CFR Part 391 compliance.</p>
+                @if (filled($section['eyebrow']))
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-xs font-semibold text-primary uppercase tracking-wider mb-4">{{ $section['eyebrow'] }}</span>
+                @endif
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">{{ $section['heading'] }} <span class="bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] bg-clip-text text-transparent">{{ $section['highlight'] }}</span></h2>
+                @if (filled($section['subtitle']))
+                <p class="text-lg text-muted-foreground">{{ $section['subtitle'] }}</p>
+                @endif
             </div>
 
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                 @php
-                $features = [
-                ['icon' => '
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />', 'color' => 'brand', 'title' => 'DQF Checklists', 'desc' => '49 CFR Part 391 requirements tracked per driver, automatically. Never miss a required document again.'],
-                ['icon' => '
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />', 'color' => 'success', 'title' => 'Digital Applications', 'desc' => '10-step digital driver application workflow with OTP verification and real-time progress tracking.'],
-                ['icon' => '
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />', 'color' => 'warning', 'title' => 'Expiration Alerts', 'desc' => 'Licenses, medicals, MVRs — get notified before they expire. Automated email reminders keep you compliant.'],
-                ['icon' => '
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />', 'color' => 'info', 'title' => 'Fleet Compliance', 'desc' => 'Vehicle & trailer document tracking with real-time compliance scores and maintenance scheduling.'],
-                ['icon' => '
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />', 'color' => 'purple', 'title' => 'Maintenance Tracking', 'desc' => 'Service logs, scheduled maintenance, and preventive care management for your entire fleet.'],
-                ['icon' => '
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />', 'color' => 'destructive', 'title' => 'Audit-Ready Reports', 'desc' => 'Generate complete, compliant driver files for DOT inspections instantly. One-click export to PDF.'],
-                ];
                 $colorMap = ['brand' => 'text-primary', 'success' => 'text-success', 'warning' => 'text-warning', 'info' => 'text-info', 'purple' => 'text-[var(--chart-5)]', 'destructive' => 'text-destructive'];
                 $bgMap = ['brand' => 'bg-primary/10', 'success' => 'bg-success/10', 'warning' => 'bg-warning/10', 'info' => 'bg-info/10', 'purple' => 'bg-[color-mix(in_oklch,var(--chart-5)_10%,transparent)]', 'destructive' => 'bg-destructive/10'];
                 @endphp
 
-                @foreach ($features as $i => $f)
+                @foreach ($section['items'] as $i => $f)
                 <div class="glass-card rounded-2xl p-6 transition-all duration-500 cursor-default group" style="animation: fadeInUp 0.6s ease-out {{ $i * 0.1 }}s both;">
-                    <div class="feature-icon-wrap w-12 h-12 rounded-xl {{ $bgMap[$f['color']] }} flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 {{ $colorMap[$f['color']] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">{!! $f['icon'] !!}</svg>
+                    <div class="feature-icon-wrap w-12 h-12 rounded-xl {{ $bgMap[$f['color']] ?? $bgMap['brand'] }} flex items-center justify-center mb-4">
+                        <x-ui.icon :name="$f['icon']" class="w-6 h-6 {{ $colorMap[$f['color']] ?? $colorMap['brand'] }}" />
                     </div>
                     <h3 class="text-lg font-bold mb-2">{{ $f['title'] }}</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed">{{ $f['desc'] }}</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed">{{ $f['text'] }}</p>
                 </div>
                 @endforeach
             </div>
         </div>
     </section>
+    @endif
 
     {{-- ============================================================ --}}
     {{-- HOW IT WORKS --}}
     {{-- ============================================================ --}}
+    @if ($show['how-it-works'])
+    @php
+        $section = $landing['steps'];
+        $stepCols = [1 => 'md:grid-cols-1', 2 => 'md:grid-cols-2', 3 => 'md:grid-cols-3', 4 => 'md:grid-cols-4'];
+    @endphp
     <section id="how-it-works" class="py-20 lg:py-28 bg-card">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center max-w-3xl mx-auto mb-16">
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-success/10 text-xs font-semibold text-success uppercase tracking-wider mb-4">How It Works</span>
-                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Get Audit-Ready in <span class="bg-gradient-to-r from-success to-[color-mix(in_oklch,var(--success)_80%,black)] bg-clip-text text-transparent">3 Simple Steps</span></h2>
-                <p class="text-lg text-muted-foreground">No complex setup. No steep learning curve. Start managing your driver files in minutes.</p>
+                @if (filled($section['eyebrow']))
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-success/10 text-xs font-semibold text-success uppercase tracking-wider mb-4">{{ $section['eyebrow'] }}</span>
+                @endif
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">{{ $section['heading'] }} <span class="bg-gradient-to-r from-success to-[color-mix(in_oklch,var(--success)_80%,black)] bg-clip-text text-transparent">{{ $section['highlight'] }}</span></h2>
+                @if (filled($section['subtitle']))
+                <p class="text-lg text-muted-foreground">{{ $section['subtitle'] }}</p>
+                @endif
             </div>
 
-            <div class="grid md:grid-cols-3 gap-8 lg:gap-12">
-                @php
-                $steps = [
-                ['num' => '01', 'title' => 'Sign Up & Setup', 'desc' => 'Create your company profile, configure compliance requirements, and invite your team. Takes less than 5 minutes.', 'icon' => '
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />'],
-                ['num' => '02', 'title' => 'Add Drivers & Fleet', 'desc' => 'Onboard drivers digitally with our 10-step application. Register vehicles and trailers with document tracking.', 'icon' => '
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />'],
-                ['num' => '03', 'title' => 'Stay Compliant', 'desc' => 'Automated tracking, expiration alerts, and audit-ready reporting keep you compliant 24/7. Zero effort.', 'icon' => '
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />'],
-                ];
-                @endphp
-
-                @foreach ($steps as $i => $step)
+            <div class="grid {{ $stepCols[count($section['items'])] ?? 'md:grid-cols-4' }} gap-8 lg:gap-12">
+                @foreach ($section['items'] as $step)
                 <div class="relative text-center group">
                     <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] flex items-center justify-center shadow-xl shadow-primary/20 group-hover:shadow-2xl group-hover:shadow-primary/30 transition-all duration-300 group-hover:-translate-y-2">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">{!! $step['icon'] !!}</svg>
+                        <x-ui.icon :name="$step['icon']" class="w-8 h-8 text-white" />
                     </div>
-                    <span class="inline-block text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full mb-3">Step {{ $step['num'] }}</span>
+                    <span class="inline-block text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full mb-3">Step {{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }}</span>
                     <h3 class="text-xl font-bold mb-2">{{ $step['title'] }}</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">{{ $step['desc'] }}</p>
-                    @if ($i < 2)
+                    <p class="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">{{ $step['text'] }}</p>
+                    @if (! $loop->last)
                         <div class="hidden md:block absolute top-10 -right-6 lg:-right-6">
                         <svg class="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -589,10 +596,13 @@
         </div>
         </div>
     </section>
+    @endif
 
     {{-- ============================================================ --}}
     {{-- PRICING --}}
     {{-- ============================================================ --}}
+    @if ($show['pricing'])
+    @php $section = $landing['pricing']; @endphp
     <section id="pricing" class="py-20 lg:py-28 bg-muted/50 relative overflow-hidden">
         <div class="absolute inset-0 pointer-events-none">
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/75 rounded-full blur-3xl"></div>
@@ -600,9 +610,13 @@
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div class="text-center max-w-3xl mx-auto mb-16">
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-xs font-semibold text-primary uppercase tracking-wider mb-4">Pricing</span>
-                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Simple, Transparent <span class="bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] bg-clip-text text-transparent">Pricing</span></h2>
-                <p class="text-lg text-muted-foreground">Choose the plan that fits your fleet. All plans include a free trial.</p>
+                @if (filled($section['eyebrow']))
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-xs font-semibold text-primary uppercase tracking-wider mb-4">{{ $section['eyebrow'] }}</span>
+                @endif
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">{{ $section['heading'] }} <span class="bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] bg-clip-text text-transparent">{{ $section['highlight'] }}</span></h2>
+                @if (filled($section['subtitle']))
+                <p class="text-lg text-muted-foreground">{{ $section['subtitle'] }}</p>
+                @endif
             </div>
 
             <div class="grid sm:grid-cols-2 lg:grid-cols-{{ min(count($plans ?? []), 3) ?: 3 }} gap-8 max-w-5xl mx-auto">
@@ -676,40 +690,43 @@
             </div>
         </div>
     </section>
+    @endif
 
     {{-- ============================================================ --}}
     {{-- TESTIMONIALS --}}
     {{-- ============================================================ --}}
+    @if ($show['testimonials'])
+    @php $section = $landing['testimonials']; @endphp
     <section id="testimonials" class="py-20 lg:py-28 bg-card">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center max-w-3xl mx-auto mb-16">
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-warning/10 text-xs font-semibold text-warning uppercase tracking-wider mb-4">Testimonials</span>
-                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">Trusted by Carriers <span class="bg-gradient-to-r from-warning to-[color-mix(in_oklch,var(--warning)_70%,var(--destructive))] bg-clip-text text-transparent">Nationwide</span></h2>
+                @if (filled($section['eyebrow']))
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-warning/10 text-xs font-semibold text-warning uppercase tracking-wider mb-4">{{ $section['eyebrow'] }}</span>
+                @endif
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">{{ $section['heading'] }} <span class="bg-gradient-to-r from-warning to-[color-mix(in_oklch,var(--warning)_70%,var(--destructive))] bg-clip-text text-transparent">{{ $section['highlight'] }}</span></h2>
             </div>
 
             <div class="grid md:grid-cols-3 gap-8">
-                @php
-                $testimonials = [
-                ['quote' => 'We went from paper files and spreadsheets to being fully DOT audit-ready in a week. This platform saved us from a potential $16,000 fine.', 'name' => 'Marcus Johnson', 'role' => 'Fleet Manager', 'company' => 'JM Logistics, Texas', 'rating' => 5],
-                ['quote' => 'The expiration alerts alone are worth the price. We used to miss renewals constantly. Now everything is automated and we sleep better at night.', 'name' => 'Sarah Chen', 'role' => 'Compliance Officer', 'company' => 'Pacific Freight, California', 'rating' => 5],
-                ['quote' => 'Onboarding new drivers used to take 3 days of paperwork. Now it takes 30 minutes with the digital application. Our drivers love how easy it is.', 'name' => 'Robert Williams', 'role' => 'Owner-Operator', 'company' => 'Williams Trucking, Ohio', 'rating' => 5],
-                ];
-                @endphp
-
                 @foreach ($testimonials as $t)
                 <div class="glass-card rounded-2xl p-8 transition-all duration-500 flex flex-col">
                     <div class="flex gap-1 mb-4">
-                        @for ($s = 0; $s < $t['rating']; $s++)
+                        @for ($s = 0; $s < $t->rating; $s++)
                             <svg class="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                             @endfor
                     </div>
-                    <blockquote class="text-muted-foreground leading-relaxed mb-6 grow italic">"{{ $t['quote'] }}"</blockquote>
+                    <blockquote class="text-muted-foreground leading-relaxed mb-6 grow italic">"{{ $t->quote }}"</blockquote>
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary/75 to-[color-mix(in_oklch,var(--primary)_88%,black)] flex items-center justify-center text-white font-bold text-sm">{{ substr($t['name'], 0, 1) }}</div>
+                        @if ($t->avatar)
+                        <img src="{{ asset('storage/'.$t->avatar) }}" alt="" width="40" height="40" loading="lazy" class="w-10 h-10 rounded-full object-cover">
+                        @else
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary/75 to-[color-mix(in_oklch,var(--primary)_88%,black)] flex items-center justify-center text-white font-bold text-sm">{{ mb_substr($t->name, 0, 1) }}</div>
+                        @endif
                         <div>
-                            <p class="text-sm font-semibold">{{ $t['name'] }}</p>
-                            <p class="text-xs text-muted-foreground">{{ $t['role'] }}, {{ $t['company'] }}</p>
+                            <p class="text-sm font-semibold">{{ $t->name }}</p>
+                            @if ($t->role || $t->company)
+                            <p class="text-xs text-muted-foreground">{{ collect([$t->role, $t->company])->filter()->join(', ') }}</p>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -717,10 +734,12 @@
             </div>
         </div>
     </section>
+    @endif
 
     {{-- ============================================================ --}}
     {{-- CTA BANNER --}}
     {{-- ============================================================ --}}
+    @if ($landing['cta']['enabled'])
     <section class="py-20 lg:py-28 relative overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-br from-[color-mix(in_oklch,var(--primary)_88%,black)] via-[color-mix(in_oklch,var(--primary)_74%,black)] to-[color-mix(in_oklch,var(--primary)_46%,black)] animate-gradient"></div>
         <div class="absolute inset-0 pointer-events-none">
@@ -729,113 +748,144 @@
         </div>
 
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-            <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-6 tracking-tight">Ready to Go Audit-Ready?</h2>
-            <p class="text-lg sm:text-xl text-[color-mix(in_oklch,var(--primary)_16%,white)] mb-10 max-w-2xl mx-auto">Start your free trial today — no credit card required. Join 5,200+ trucking companies already using our platform.</p>
+            <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-6 tracking-tight">{{ $landing['cta']['title'] }}</h2>
+            @if (filled($landing['cta']['text']))
+            <p class="text-lg sm:text-xl text-[color-mix(in_oklch,var(--primary)_16%,white)] mb-10 max-w-2xl mx-auto">{{ $landing['cta']['text'] }}</p>
+            @endif
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 @if (Route::has('register'))
                 <a href="{{ route('register') }}" class="px-8 py-4 text-base font-semibold text-primary bg-card hover:bg-muted/50 rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 inline-flex items-center justify-center gap-2">Start Free Trial <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg></a>
                 @endif
+                @if ($landing['cta']['demo'])
                 <button @click="$dispatch('open-demo-modal')" class="px-8 py-4 text-base font-semibold text-white border-2 border-white/30 hover:border-white/60 hover:bg-white/10 rounded-2xl transition-all duration-300 hover:-translate-y-1 inline-flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     Schedule a Demo
                 </button>
+                @endif
             </div>
         </div>
     </section>
+    @endif
 
     {{-- ============================================================ --}}
     {{-- FAQ --}}
     {{-- ============================================================ --}}
+    @if ($show['faq'])
+    @php $section = $landing['faq']; @endphp
     <section id="faq" class="py-20 lg:py-28 bg-card">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <span class="inline-flex items-center px-3 py-1 rounded-full bg-info/10 text-xs font-semibold text-info uppercase tracking-wider mb-4">FAQ</span>
-                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">Frequently Asked <span class="bg-gradient-to-r from-info to-[color-mix(in_oklch,var(--info)_80%,black)] bg-clip-text text-transparent">Questions</span></h2>
+                @if (filled($section['eyebrow']))
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-info/10 text-xs font-semibold text-info uppercase tracking-wider mb-4">{{ $section['eyebrow'] }}</span>
+                @endif
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">{{ $section['heading'] }} <span class="bg-gradient-to-r from-info to-[color-mix(in_oklch,var(--info)_80%,black)] bg-clip-text text-transparent">{{ $section['highlight'] }}</span></h2>
             </div>
 
             <div x-data="{ openFaq: null }" class="space-y-4">
-                @php
-                $faqs = [
-                ['q' => 'What is a Driver Qualification File (DQF)?', 'a' => 'A Driver Qualification File is a federally-mandated set of documents that motor carriers must maintain for every driver they employ. Required under 49 CFR Part 391, it includes the driver\'s application, MVR, road test certificate, medical examiner\'s certificate, and more. Our platform digitizes and automates the entire process.'],
-                ['q' => 'What documents are required under 49 CFR Part 391?', 'a' => 'Key required documents include: Driver application for employment, MVR (Motor Vehicle Record) pulled annually, Medical Examiner\'s Certificate, Road test certificate or equivalent, Driver\'s license copy, Previous employer Safety Performance History, FMCSA Clearinghouse query, and Alcohol & drug testing records.'],
-                ['q' => 'How do automated expiration alerts work?', 'a' => 'Our system continuously monitors expiration dates for all driver documents — CDLs, medical cards, MVRs, and more. You\'ll receive automated email notifications at 90, 60, 30, and 7 days before expiration, ensuring you never miss a renewal deadline.'],
-                ['q' => 'Can drivers submit documents from their phones?', 'a' => 'Yes! Our digital application process is fully mobile-responsive. Drivers can complete the 10-step onboarding workflow, upload photos of documents, and sign consent forms directly from their smartphones — no app download required.'],
-                ['q' => 'Is my data secure?', 'a' => 'Absolutely. We use enterprise-grade encryption for all data at rest and in transit. Our platform features role-based access controls, audit trails, and secure document storage. Your sensitive driver information is protected with industry-leading security standards.'],
-                ['q' => 'Can I try the platform before committing?', 'a' => 'Yes! We offer a free 14-day trial with full access to all features. No credit card required to start. You can also schedule a personalized demo with our team to see the platform in action.'],
-                ];
-                @endphp
-
                 @foreach ($faqs as $i => $faq)
                 <div class="glass-card rounded-2xl overflow-hidden transition-all duration-300" :class="openFaq === {{ $i }} ? 'ring-1 ring-primary/30' : ''">
                     <button @click="openFaq = openFaq === {{ $i }} ? null : {{ $i }}" class="w-full flex items-center justify-between px-6 py-5 text-left">
-                        <span class="font-semibold text-foreground pr-4">{{ $faq['q'] }}</span>
+                        <span class="font-semibold text-foreground pr-4">{{ $faq->question }}</span>
                         <svg class="w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-300" :class="openFaq === {{ $i }} ? 'rotate-180 text-primary' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
                     <div x-show="openFaq === {{ $i }}" x-collapse x-cloak>
-                        <div class="px-6 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border pt-4">{{ $faq['a'] }}</div>
+                        <div class="px-6 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border pt-4 whitespace-pre-line">{{ $faq->answer }}</div>
                     </div>
                 </div>
                 @endforeach
             </div>
         </div>
     </section>
+    @endif
 
     {{-- ============================================================ --}}
     {{-- FOOTER --}}
     {{-- ============================================================ --}}
+    @php
+        $siteName = settings('site_name', config('app.name'));
+        $companyLinks = $landing['footer']['links'];
+        $legalLinks = array_filter(['Privacy Policy' => settings('privacy_url'), 'Terms of Service' => settings('terms_url')]);
+        $socialLinks = array_filter(['facebook' => settings('facebook_url'), 'x' => settings('twitter_url'), 'linkedin' => settings('linkedin_url')]);
+        $socialIcons = [
+            'facebook' => ['Facebook', 'M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.971h-1.513c-1.491 0-1.956.931-1.956 1.886v2.264h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z'],
+            'x' => ['X', 'M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z'],
+            'linkedin' => ['LinkedIn', 'M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z'],
+        ];
+    @endphp
     <footer class="bg-sidebar text-sidebar-foreground pt-16 pb-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
                 <div>
                     <div class="flex items-center gap-2 mb-4">
+                        @if (settings('logo_dark'))
+                        <img src="{{ asset('storage/'.settings('logo_dark')) }}" alt="{{ $siteName }}" class="h-10 w-auto max-w-[200px] object-contain">
+                        @else
                         <img src="{{ asset('images/logo/logo-icon.svg') }}" alt="" width="32" height="32" class="size-8 shrink-0">
-                        <span class="text-lg font-semibold text-white">{{ settings('site_name', config('app.name')) }}</span>
+                        <span class="text-lg font-semibold text-white">{{ $siteName }}</span>
+                        @endif
                     </div>
-                    <p class="text-sm leading-relaxed">Complete Driver Qualification File management. Stay DOT audit-ready with automated compliance tracking.</p>
+                    @if (filled($landing['footer']['tagline']))
+                    <p class="text-sm leading-relaxed">{{ $landing['footer']['tagline'] }}</p>
+                    @endif
+                    @if (settings('email') || settings('phone'))
+                    <ul class="mt-4 space-y-1 text-sm">
+                        @if (settings('email'))
+                        <li><a href="mailto:{{ settings('email') }}" class="text-sidebar-foreground hover:text-white transition-colors">{{ settings('email') }}</a></li>
+                        @endif
+                        @if (settings('phone'))
+                        <li><a href="tel:{{ preg_replace('/[^0-9+]/', '', settings('phone')) }}" class="text-sidebar-foreground hover:text-white transition-colors">{{ settings('phone') }}</a></li>
+                        @endif
+                    </ul>
+                    @endif
                 </div>
+                @if ($navLinks)
                 <div>
                     <h4 class="text-white font-semibold mb-4">Product</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="#features" class="text-sidebar-foreground hover:text-white transition-colors">Features</a></li>
-                        <li><a href="#pricing" class="text-sidebar-foreground hover:text-white transition-colors">Pricing</a></li>
-                        <li><a href="#how-it-works" class="text-sidebar-foreground hover:text-white transition-colors">How It Works</a></li>
-                        <li><a href="#faq" class="text-sidebar-foreground hover:text-white transition-colors">FAQ</a></li>
+                        @foreach ($navLinks as $anchor => $label)
+                        <li><a href="#{{ $anchor }}" class="text-sidebar-foreground hover:text-white transition-colors">{{ $label }}</a></li>
+                        @endforeach
                     </ul>
                 </div>
+                @endif
+                @if ($companyLinks)
                 <div>
                     <h4 class="text-white font-semibold mb-4">Company</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="text-sidebar-foreground hover:text-white transition-colors">About Us</a></li>
-                        <li><a href="#" class="text-sidebar-foreground hover:text-white transition-colors">Blog</a></li>
-                        <li><a href="#" class="text-sidebar-foreground hover:text-white transition-colors">Careers</a></li>
-                        <li><a href="#" class="text-sidebar-foreground hover:text-white transition-colors">Contact</a></li>
+                        @foreach ($companyLinks as $link)
+                        <li><a href="{{ $link['url'] }}" class="text-sidebar-foreground hover:text-white transition-colors">{{ $link['label'] }}</a></li>
+                        @endforeach
                     </ul>
                 </div>
+                @endif
+                @if ($legalLinks)
                 <div>
                     <h4 class="text-white font-semibold mb-4">Legal</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="text-sidebar-foreground hover:text-white transition-colors">Privacy Policy</a></li>
-                        <li><a href="#" class="text-sidebar-foreground hover:text-white transition-colors">Terms of Service</a></li>
-                        <li><a href="#" class="text-sidebar-foreground hover:text-white transition-colors">Security</a></li>
+                        @foreach ($legalLinks as $label => $url)
+                        <li><a href="{{ $url }}" class="text-sidebar-foreground hover:text-white transition-colors">{{ $label }}</a></li>
+                        @endforeach
                     </ul>
                 </div>
+                @endif
             </div>
             <div class="border-t border-sidebar-border pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <p class="text-sm">&copy; {{ date('Y') }} Driver Qualification Platform. All rights reserved.</p>
+                <p class="text-sm">{{ settings('footer_text') ?: '© '.date('Y').' '.(settings('legal_name') ?: $siteName).'. All rights reserved.' }}</p>
+                @if ($socialLinks)
                 <div class="flex gap-4">
-                    <a href="#" class="w-9 h-9 rounded-lg bg-sidebar-accent text-white hover:bg-highlight hover:text-sidebar flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
+                    @foreach ($socialLinks as $network => $url)
+                    <a href="{{ $url }}" target="_blank" rel="noopener" aria-label="{{ $socialIcons[$network][0] }}" class="w-9 h-9 rounded-lg bg-sidebar-accent text-white hover:bg-highlight hover:text-sidebar flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="{{ $socialIcons[$network][1] }}" />
                         </svg></a>
-                    <a href="#" class="w-9 h-9 rounded-lg bg-sidebar-accent text-white hover:bg-highlight hover:text-sidebar flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-                        </svg></a>
+                    @endforeach
                 </div>
+                @endif
             </div>
         </div>
     </footer>
@@ -843,7 +893,33 @@
     {{-- ============================================================ --}}
     {{-- DEMO MODAL --}}
     {{-- ============================================================ --}}
-    <div x-data="{ open: false, submitted: false, name: '', email: '', company: '', message: '' }"
+    @if ($landing['cta']['enabled'] && $landing['cta']['demo'])
+    <div x-data="{
+            open: false, submitted: false, sending: false, errors: {}, error: '',
+            form: { name: '', email: '', company: '', phone: '', message: '', website: '' },
+            async submit() {
+                this.sending = true; this.errors = {}; this.error = '';
+                try {
+                    const response = await fetch(@js(route('demo-requests.store')), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': @js(csrf_token()) },
+                        body: JSON.stringify(this.form),
+                    });
+                    if (response.ok) {
+                        this.submitted = true;
+                        this.form = { name: '', email: '', company: '', phone: '', message: '', website: '' };
+                    } else if (response.status === 422) {
+                        this.errors = (await response.json()).errors ?? {};
+                    } else {
+                        this.error = response.status === 429 ? 'Too many requests. Please try again in a few minutes.' : 'Something went wrong. Please try again.';
+                    }
+                } catch (e) {
+                    this.error = 'Something went wrong. Please try again.';
+                } finally {
+                    this.sending = false;
+                }
+            },
+        }"
         @open-demo-modal.window="open = true"
         x-show="open" x-cloak
         class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -867,25 +943,36 @@
                     <h3 class="text-2xl font-bold mb-2">Schedule a Demo</h3>
                     <p class="text-sm text-muted-foreground mb-6">Fill in your details and our team will reach out within 24 hours.</p>
 
-                    <form @submit.prevent="submitted = true" class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Full Name</label>
-                            <input x-model="name" type="text" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                    <form @submit.prevent="submit()" class="space-y-4">
+                        {{-- Honeypot: people never see or fill it --}}
+                        <div class="hidden" aria-hidden="true">
+                            <label>Website <input x-model="form.website" type="text" name="website" tabindex="-1" autocomplete="off"></label>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium mb-1">Email Address</label>
-                            <input x-model="email" type="email" required placeholder="john@company.com" class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                            <label for="demo-name" class="block text-sm font-medium mb-1">Full Name</label>
+                            <input id="demo-name" x-model="form.name" type="text" required maxlength="100" autocomplete="name" placeholder="John Doe" class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium mb-1">Company Name</label>
-                            <input x-model="company" type="text" placeholder="Your Trucking Company" class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                            <label for="demo-email" class="block text-sm font-medium mb-1">Email Address</label>
+                            <input id="demo-email" x-model="form.email" type="email" required maxlength="255" autocomplete="email" placeholder="john@company.com" class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium mb-1">Message (optional)</label>
-                            <textarea x-model="message" rows="3" placeholder="Tell us about your fleet size and needs..." class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"></textarea>
+                            <label for="demo-company" class="block text-sm font-medium mb-1">Company Name</label>
+                            <input id="demo-company" x-model="form.company" type="text" maxlength="150" autocomplete="organization" placeholder="Your Trucking Company" class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                         </div>
-                        <button type="submit" class="w-full py-3 bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] hover:from-[color-mix(in_oklch,var(--primary)_88%,black)] hover:to-[color-mix(in_oklch,var(--primary)_74%,black)] text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40">
-                            Request Demo
+                        <div>
+                            <label for="demo-phone" class="block text-sm font-medium mb-1">Phone (optional)</label>
+                            <input id="demo-phone" x-model="form.phone" type="tel" maxlength="50" autocomplete="tel" placeholder="(555) 123-4567" class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                        </div>
+                        <div>
+                            <label for="demo-message" class="block text-sm font-medium mb-1">Message (optional)</label>
+                            <textarea id="demo-message" maxlength="2000" x-model="form.message" rows="3" placeholder="Tell us about your fleet size and needs..." class="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"></textarea>
+                        </div>
+                        <template x-for="message in [...Object.values(errors).flat(), error].filter(Boolean)">
+                            <p role="alert" class="text-sm text-destructive" x-text="message"></p>
+                        </template>
+                        <button type="submit" :disabled="sending" class="w-full py-3 disabled:opacity-60 bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] hover:from-[color-mix(in_oklch,var(--primary)_88%,black)] hover:to-[color-mix(in_oklch,var(--primary)_74%,black)] text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40">
+                            <span x-text="sending ? 'Sending…' : 'Request Demo'">Request Demo</span>
                         </button>
                     </form>
                 </div>
@@ -905,6 +992,7 @@
             </template>
         </div>
     </div>
+    @endif
 
     @include('partials.tawk-widget')
 </body>

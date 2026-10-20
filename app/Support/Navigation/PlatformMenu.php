@@ -35,6 +35,12 @@ final class PlatformMenu
             ['Equipment types', 'platform.lookups.equipment-types.index', 'platform.settings.manage', 'caravan'],
             ['Maintenance categories', 'platform.lookups.maintenance-categories.index', 'platform.settings.manage', 'wrench'],
         ],
+        'Content' => [
+            ['Landing page', 'platform.content.landing.edit', 'platform.content.manage', 'layout-template'],
+            ['Testimonials', 'platform.content.testimonials.index', 'platform.content.manage', 'message-square-quote'],
+            ['FAQs', 'platform.content.faqs.index', 'platform.content.manage', 'circle-help'],
+            ['Demo requests', 'platform.content.demo-requests.index', 'platform.content.manage', 'inbox'],
+        ],
         'Administration' => [
             ['Site settings', 'platform.settings.site.index', 'platform.settings.manage', 'settings'],
             ['Live chat', 'platform.settings.tawk.index', 'platform.settings.manage', 'message-circle'],

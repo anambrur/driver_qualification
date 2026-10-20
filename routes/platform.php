@@ -12,12 +12,16 @@ use App\Http\Controllers\Platform\CompanyController;
 use App\Http\Controllers\Platform\CompanyOverrideController;
 use App\Http\Controllers\Platform\CompanySubscriptionController;
 use App\Http\Controllers\Platform\DashboardController;
+use App\Http\Controllers\Platform\DemoRequestController;
+use App\Http\Controllers\Platform\FaqController;
 use App\Http\Controllers\Platform\FeatureController;
+use App\Http\Controllers\Platform\LandingPageController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlanPriceController;
 use App\Http\Controllers\Platform\StaffController;
 use App\Http\Controllers\Platform\SubscriptionController;
 use App\Http\Controllers\Platform\SupportSessionController;
+use App\Http\Controllers\Platform\TestimonialController;
 use App\Http\Controllers\SiteSettingController;
 use App\Http\Controllers\TawkToSettingController;
 use App\Http\Controllers\VehicleGroupController;
@@ -119,6 +123,17 @@ Route::prefix('platform')->name('platform.')->group(function () use ($can) {
             Route::put('/site', [SiteSettingController::class, 'update'])->name('site.update');
             Route::get('/tawk', [TawkToSettingController::class, 'index'])->name('tawk.index');
             Route::put('/tawk', [TawkToSettingController::class, 'update'])->name('tawk.update');
+        });
+
+        // Public homepage content and demo requests
+        Route::prefix('content')->name('content.')->whereNumber(['testimonial', 'faq', 'demoRequest'])->middleware($can('content.manage'))->group(function () {
+            Route::get('/landing', [LandingPageController::class, 'edit'])->name('landing.edit');
+            Route::put('/landing', [LandingPageController::class, 'update'])->name('landing.update');
+            Route::resource('testimonials', TestimonialController::class)->except('show');
+            Route::resource('faqs', FaqController::class)->except('show');
+            Route::get('/demo-requests', [DemoRequestController::class, 'index'])->name('demo-requests.index');
+            Route::put('/demo-requests/{demoRequest}', [DemoRequestController::class, 'update'])->name('demo-requests.update');
+            Route::delete('/demo-requests/{demoRequest}', [DemoRequestController::class, 'destroy'])->name('demo-requests.destroy');
         });
 
         // Platform staff (04 §3): at least two active Platform Owners at all times

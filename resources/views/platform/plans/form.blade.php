@@ -35,6 +35,7 @@
                     <div class="flex flex-wrap items-end gap-6 pb-2">
                         <x-ui.switch name="is_public" label="Public" :checked="(bool) $plan->is_public" />
                         <x-ui.switch name="is_active" label="Active" :checked="(bool) $plan->is_active" />
+                        <x-ui.switch name="is_featured" label="Most popular" :checked="(bool) $plan->is_featured" />
                     </div>
                     <x-ui.field label="Description" name="description" class="sm:col-span-2">
                         <x-ui.textarea name="description" rows="3" maxlength="2000" :value="$plan->description" />

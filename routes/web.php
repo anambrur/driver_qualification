@@ -9,11 +9,13 @@ use App\Http\Controllers\CompanyInvitationController;
 use App\Http\Controllers\ComplianceDashboardController;
 use App\Http\Controllers\ComplianceReminderController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DemoRequestController;
 use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\DocumentUploadController;
 use App\Http\Controllers\DriverComplianceDashboardController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\DriverDocumentUploadController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MaintenanceScheduleController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
@@ -27,7 +29,6 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPermissionController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Middleware\ResolvePublicCompany;
-use App\Models\Plan;
 use Illuminate\Support\Facades\Route;
 
 Route::post('stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
@@ -35,11 +36,8 @@ Route::post('stripe/webhook', StripeWebhookController::class)->name('stripe.webh
 Route::get('robots.txt', [SeoController::class, 'robots'])->name('seo.robots');
 Route::get('sitemap.xml', [SeoController::class, 'sitemap'])->name('seo.sitemap');
 
-Route::get('/', function () {
-    $plans = Plan::query()->forSale()->get();
-
-    return view('welcome', compact('plans'));
-})->name('home');
+Route::get('/', HomeController::class)->name('home');
+Route::post('demo-request', [DemoRequestController::class, 'store'])->middleware('throttle:5,10,demo-request')->name('demo-requests.store');
 
 // New accounts are sent to pricing (PO-16); a lapsed company stays read-only (07 §4.3)
 Route::get('/dashboard', [DashboardController::class, 'index'])

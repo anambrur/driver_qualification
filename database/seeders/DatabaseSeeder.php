@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
         $this->call(PermissionSeeder::class);
         $this->call(PlatformRoleSeeder::class);
         $this->call(PlanSeeder::class);
+        $this->call(LandingContentSeeder::class);
 
         if (app()->environment(DemoSeeder::ENVIRONMENTS)) {
             $this->call(DemoSeeder::class);

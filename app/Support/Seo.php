@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Faq;
 use App\Models\Plan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -40,8 +41,11 @@ class Seo
         return $default ? (str_starts_with($default, 'http') ? $default : asset($default)) : null;
     }
 
-    /** @param Collection<int, Plan> $plans */
-    public static function homeSchema(Collection $plans): array
+    /**
+     * @param  Collection<int, Plan>  $plans
+     * @param  Collection<int, Faq>|null  $faqs  the FAQ shown on the page, if any
+     */
+    public static function homeSchema(Collection $plans, ?Collection $faqs = null): array
     {
         $name = settings('site_name', config('app.name'));
         $url = rtrim(config('app.url'), '/').'/';
@@ -84,6 +88,19 @@ class Seo
             unset($application['offers']);
         }
 
-        return ['@context' => 'https://schema.org', '@graph' => [$organization, $application]];
+        $graph = [$organization, $application];
+
+        if ($faqs?->isNotEmpty()) {
+            $graph[] = [
+                '@type' => 'FAQPage',
+                'mainEntity' => $faqs->map(fn (Faq $faq) => [
+                    '@type' => 'Question',
+                    'name' => $faq->question,
+                    'acceptedAnswer' => ['@type' => 'Answer', 'text' => $faq->answer],
+                ])->values()->all(),
+            ];
+        }
+
+        return ['@context' => 'https://schema.org', '@graph' => $graph];
     }
 }

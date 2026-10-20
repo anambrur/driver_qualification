@@ -13,6 +13,7 @@ class PlanRequest extends FormRequest
         $this->merge([
             'is_public' => $this->boolean('is_public'),
             'is_active' => $this->boolean('is_active'),
+            'is_featured' => $this->boolean('is_featured'),
             'marketing_bullets' => array_values(array_filter(array_map('trim', preg_split('/\R/', (string) $this->input('marketing_bullets')) ?: []))),
         ]);
     }
@@ -28,6 +29,7 @@ class PlanRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:2000'],
             'is_public' => ['boolean'],
             'is_active' => ['boolean'],
+            'is_featured' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'marketing_bullets' => ['array', 'max:20'],
             'marketing_bullets.*' => ['string', 'max:200'],

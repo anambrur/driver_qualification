@@ -59,7 +59,7 @@ final class RoleTemplates
         'platform_admin' => ['Platform Administrator', [
             'platform.companies.view', 'platform.companies.manage', 'platform.companies.lifecycle',
             'platform.assets.transfer', 'platform.plans.manage', 'platform.features.manage',
-            'platform.overrides.manage', 'platform.subscriptions.view', 'platform.settings.manage',
+            'platform.overrides.manage', 'platform.subscriptions.view', 'platform.settings.manage', 'platform.content.manage',
             'platform.audit.view', 'platform.support.request',
         ]],
         'billing_manager' => ['Billing Manager', [

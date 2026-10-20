@@ -54,7 +54,7 @@ it('colours every welcome feature icon with a whole token class', function () {
         'bg-[color-mix(in_oklch,var(--chart-5)_10%,transparent)]' => 'text-[var(--chart-5)]',
         'bg-destructive/10' => 'text-destructive',
     ] as $bg => $text) {
-        expect($html)->toContain('rounded-xl '.$bg.' flex')->toContain('<svg class="w-6 h-6 '.$text.'"');
+        expect($html)->toContain('rounded-xl '.$bg.' flex')->toMatch('/<svg [^>]*class="w-6 h-6 '.preg_quote($text, '/').'"/');
     }
 });
 

@@ -22,6 +22,8 @@ const ACL_PUBLIC_ROUTES = [
     // Landing page and health check.
     'GET /',
     'GET up',
+    // Homepage "Schedule a demo" form: throttled, honeypot, stores contact details only.
+    'POST demo-request',
     // SEO files: public by design (config/seo.php).
     'GET robots.txt',
     'GET sitemap.xml',

@@ -17,6 +17,7 @@ class Plan extends Model
         'description',
         'is_public',
         'is_active',
+        'is_featured',
         'sort_order',
         'marketing_bullets',
     ];
@@ -25,6 +26,7 @@ class Plan extends Model
         'marketing_bullets' => 'array',
         'is_public' => 'boolean',
         'is_active' => 'boolean',
+        'is_featured' => 'boolean',
     ];
 
     public function scopeActive(Builder $query): Builder
