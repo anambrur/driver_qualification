@@ -118,6 +118,13 @@
     }
 }
 
+/* @tailwindcss/forms draws a check mark on every checked checkbox; a switch shows only its thumb. */
+@layer components {
+    input[type="checkbox"][role="switch"]:checked {
+        background-image: none;
+    }
+}
+
 @utility no-scrollbar {
     scrollbar-width: none;
     &::-webkit-scrollbar {
