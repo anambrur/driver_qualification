@@ -10,6 +10,7 @@ use App\Services\Billing\AccessStateResolver;
 use App\Services\Entitlements\EntitlementResolver;
 use App\Services\Entitlements\Entitlements;
 use App\Tenancy\TenantContext;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
@@ -46,6 +47,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Spatie binds its registrar while providers boot, so the override must come after (06 §2.6).
         $this->app->singleton(PermissionRegistrar::class, CatalogueRegistrar::class);
+
+        Model::preventLazyLoading(! $this->app->isProduction());
 
         Gate::before(fn ($user, string $ability) => $this->app->make(PermissionGate::class)->before($user, $ability));
 
