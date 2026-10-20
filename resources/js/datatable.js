@@ -34,7 +34,7 @@ window.dqTable = (root, options = {}) => {
         processing: true,
         autoWidth: false,
         pageLength: 25,
-        lengthMenu: [10, 25, 50, 100],
+        lengthMenu: [10, 25, 50, 100].map((value) => ({ label: `${value} / page`, value })),
         searchDelay: 400,
         stateSave: true,
         stateDuration: 60 * 60,
@@ -56,7 +56,7 @@ window.dqTable = (root, options = {}) => {
         language: {
             search: "",
             searchPlaceholder: "Search…",
-            lengthMenu: "_MENU_ per page",
+            lengthMenu: "_MENU_",
             info: "_START_–_END_ of _TOTAL_",
             infoEmpty: "No results",
             infoFiltered: "(filtered from _MAX_)",
@@ -79,6 +79,19 @@ window.dqTable = (root, options = {}) => {
         },
         ...rest,
     });
+
+    // Search and page size join the card header bar; the top row they leave empty goes
+    const emptied = new Set();
+    wrapper.querySelectorAll("[data-dt-slot]").forEach((slot) => {
+        const control = wrapper.querySelector(`.dt-${slot.dataset.dtSlot}`);
+        if (!control) return;
+        emptied.add(control.closest(".dt-layout-row"));
+        slot.append(control);
+    });
+    emptied.forEach((row) => {
+        if (row && !row.querySelector(".dt-layout-cell > *")) row.remove();
+    });
+    wrapper.querySelector(".dt-length select")?.setAttribute("aria-label", "Rows per page");
 
     const setFilter = (name, value) => {
         filters[name] = value;

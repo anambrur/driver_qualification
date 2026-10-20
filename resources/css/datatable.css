@@ -26,9 +26,10 @@ div.dt-container .dt-layout-row.dt-layout-table {
     }
 }
 
-div.dt-container .dt-search input,
-div.dt-container .dt-length select {
-    height: 2.25rem;
+/* Search and page size sit in the card header bar (x-ui.datatable), at the small control height. */
+.dt-search input,
+.dt-length select {
+    height: 2rem;
     border: 1px solid var(--input);
     border-radius: calc(var(--radius) - 2px);
     background-color: transparent;
@@ -38,24 +39,33 @@ div.dt-container .dt-length select {
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
 }
 
-div.dt-container .dt-search input {
-    width: min(20rem, 100%);
-    margin-left: 0;
+.dt-search input {
+    width: 100%;
+    margin-left: 0 !important;
+    padding-left: 2rem !important;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat left 0.625rem center / 0.875rem;
 }
 
-div.dt-container .dt-length select {
+@media (width >= 40rem) {
+    .dt-search input {
+        width: 15rem;
+    }
+}
+
+.dt-length select {
     padding-right: 2rem;
-    margin-right: 0.5rem;
+    margin-right: 0 !important;
 }
 
-div.dt-container .dt-search input:focus-visible,
-div.dt-container .dt-length select:focus-visible {
+.dt-search input:focus-visible,
+.dt-length select:focus-visible {
     outline: none;
     border-color: var(--ring);
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent);
 }
 
-div.dt-container .dt-search label {
+.dt-search label,
+.dt-length label:empty {
     display: none;
 }
 

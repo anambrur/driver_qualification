@@ -10,19 +10,22 @@
     @endpush
 @endonce
 <section id="{{ $id }}" {{ $attributes->class('card gap-0! py-0!') }}>
-    @if ($title || isset($toolbar))
-        <header class="flex! flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            @if ($title)
-                <div class="min-w-0">
-                    <h2 class="text-base font-medium">{{ $title }}</h2>
-                    @if ($description)
-                        <p class="text-sm text-muted-foreground">{{ $description }}</p>
-                    @endif
-                </div>
-            @endif
+    {{-- One compact bar: title on the left; search, page filters and page size on the right (moved in by dqTable). --}}
+    <header class="flex! flex-col gap-3 border-b border-border px-4 py-3 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+        @if ($title)
+            <div class="min-w-0">
+                <h2 class="text-base font-semibold">{{ $title }}</h2>
+                @if ($description)
+                    <p class="text-sm text-muted-foreground">{{ $description }}</p>
+                @endif
+            </div>
+        @endif
+        <div class="flex flex-wrap items-center gap-2 lg:ml-auto lg:justify-end">
+            <div data-dt-slot="search" class="min-w-0 flex-1 sm:flex-none"></div>
             {{ $toolbar ?? '' }}
-        </header>
-    @endif
+            <div data-dt-slot="length"></div>
+        </div>
+    </header>
     <table class="table table-stack w-full" aria-label="{{ $title ?? 'Records' }}">
         <thead>
             <tr>{{ $slot }}</tr>
