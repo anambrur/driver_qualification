@@ -6,6 +6,7 @@ use App\Http\Requests\Users\InviteUserRequest;
 use App\Models\User;
 use App\Services\Authorization\RoleService;
 use App\Services\Users\InvitationService;
+use App\Support\Ui\Toast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -28,7 +29,7 @@ class CompanyInvitationController extends Controller
 
         $this->invitations->invite($this->actor($request), $data['email'], (int) $data['role_id']);
 
-        toastr()->success('Invitation sent.');
+        Toast::success('Invitation sent.');
 
         return redirect()->route('users.index');
     }
@@ -37,7 +38,7 @@ class CompanyInvitationController extends Controller
     {
         $this->invitations->resend($this->actor($request), $invitation);
 
-        toastr()->success('Invitation sent.');
+        Toast::success('Invitation sent.');
 
         return redirect()->route('users.index');
     }
@@ -46,7 +47,7 @@ class CompanyInvitationController extends Controller
     {
         $this->invitations->revoke($this->actor($request), $invitation);
 
-        toastr()->success('Invitation revoked.');
+        Toast::success('Invitation revoked.');
 
         return redirect()->route('users.index');
     }

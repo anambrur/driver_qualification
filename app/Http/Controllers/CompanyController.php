@@ -6,6 +6,7 @@ use App\Exceptions\LimitReached;
 use App\Models\Company;
 use App\Models\PolicyPdf;
 use App\Services\Files\StoredFileService;
+use App\Support\Ui\Toast;
 use App\Tenancy\TenantContext;
 use Exception;
 use Illuminate\Http\Request;
@@ -47,7 +48,7 @@ class CompanyController extends Controller
         // Any error checking
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
+                Toast::error($error);
             }
 
             return back()->withInput()->withErrors($validator);
@@ -101,7 +102,7 @@ class CompanyController extends Controller
                 Storage::disk('public')->delete($oldLogo);
             }
 
-            toastr()->success('Company updated successfully!');
+            Toast::success('Company updated successfully!');
 
             return redirect()->route('admin.settings.company.edit', $company->id);
         } catch (Exception $e) {
@@ -115,7 +116,7 @@ class CompanyController extends Controller
                 'request_data' => $request->except(['password', 'password_confirmation']),
             ]);
 
-            toastr()->error('Failed to update company. Please try again.');
+            Toast::error('Failed to update company. Please try again.');
 
             return back()->withInput()->withErrors([
                 'system_error' => 'An error occurred while updating the company. Please try again.',
@@ -151,7 +152,7 @@ class CompanyController extends Controller
 
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
+                Toast::error($error);
             }
 
             return back()->withInput()->withErrors($validator);
@@ -159,7 +160,7 @@ class CompanyController extends Controller
 
         // Check if at least one file was uploaded
         if (! $request->hasFile('alcohol_drug_test_policy_pdf') && ! $request->hasFile('general_work_policy_pdf')) {
-            toastr()->warning('Please select at least one PDF file to upload.');
+            Toast::warning('Please select at least one PDF file to upload.');
 
             return back()->withInput();
         }
@@ -189,7 +190,7 @@ class CompanyController extends Controller
                 $message = 'General Work Policy PDF uploaded successfully!';
             }
 
-            toastr()->success($message);
+            Toast::success($message);
 
             return redirect()->route('admin.settings.policy.pdf');
         } catch (LimitReached $e) {
@@ -200,7 +201,7 @@ class CompanyController extends Controller
                 'request_data' => $request->except(['alcohol_drug_test_policy_pdf', 'general_work_policy_pdf']),
             ]);
 
-            toastr()->error('An error occurred while uploading the PDF files. Please try again.');
+            Toast::error('An error occurred while uploading the PDF files. Please try again.');
 
             return back()->withInput()->withErrors(['system_error' => 'Upload failed. Please try again.']);
         }

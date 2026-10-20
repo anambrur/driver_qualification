@@ -8,6 +8,7 @@ use App\Models\PlatformUser;
 use App\Models\SiteSetting;
 use App\Support\Ui\Color;
 use App\Support\Ui\Theme;
+use App\Support\Ui\Toast;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -101,7 +102,7 @@ class SiteSettingController extends Controller
             AuditLog::record($actor, null, 'site_settings.updated', $setting, $changes);
         }
 
-        toastr()->success('Site settings updated successfully.');
+        Toast::success('Site settings updated successfully.');
 
         return redirect()->back();
     }

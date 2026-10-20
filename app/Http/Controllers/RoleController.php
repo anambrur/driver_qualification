@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Roles\RoleRequest;
 use App\Models\User;
 use App\Services\Authorization\RoleService;
+use App\Support\Ui\Toast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -41,7 +42,7 @@ class RoleController extends Controller
 
         $this->roles->create($this->actor($request), $data['name'], array_values($data['permissions'] ?? []));
 
-        toastr()->success('Role created successfully');
+        Toast::success('Role created successfully');
 
         return redirect()->route('admin.roles.index');
     }
@@ -72,7 +73,7 @@ class RoleController extends Controller
 
         $this->roles->update($this->actor($request), $role, $data['name'], array_values($data['permissions'] ?? []));
 
-        toastr()->success('Role updated successfully');
+        Toast::success('Role updated successfully');
 
         return redirect()->route('admin.roles.index');
     }
@@ -81,7 +82,7 @@ class RoleController extends Controller
     {
         $this->roles->delete($this->actor($request), $role);
 
-        toastr()->success('Role deleted successfully');
+        Toast::success('Role deleted successfully');
 
         return redirect()->route('admin.roles.index');
     }

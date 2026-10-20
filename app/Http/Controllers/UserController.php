@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\Authorization\RoleService;
 use App\Services\Users\InvitationService;
 use App\Services\Users\UserService;
+use App\Support\Ui\Toast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -55,7 +56,7 @@ class UserController extends Controller
 
         $this->users->update($actor, $this->users->find($actor, $user), $data['name'], array_map('intval', $data['roles'] ?? []));
 
-        toastr()->success('User updated successfully!');
+        Toast::success('User updated successfully!');
 
         return redirect()->route('users.index');
     }
@@ -76,7 +77,7 @@ class UserController extends Controller
 
         $this->users->setStatus($actor, $this->users->find($actor, $user), $status);
 
-        toastr()->success($message);
+        Toast::success($message);
 
         return redirect()->route('users.index');
     }

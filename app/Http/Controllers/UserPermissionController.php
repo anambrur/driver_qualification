@@ -6,6 +6,7 @@ use App\Http\Requests\Users\GrantPermissionRequest;
 use App\Models\User;
 use App\Services\Authorization\RoleAssignmentService;
 use App\Services\Users\UserService;
+use App\Support\Ui\Toast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -25,7 +26,7 @@ class UserPermissionController extends Controller
 
         $this->assignments->grantDirect($actor, $this->users->find($actor, $user), $request->validated('permission'));
 
-        toastr()->success('Permission granted.');
+        Toast::success('Permission granted.');
 
         return back();
     }
@@ -36,7 +37,7 @@ class UserPermissionController extends Controller
 
         $this->assignments->revokeDirect($actor, $this->users->find($actor, $user), $permission);
 
-        toastr()->success('Permission revoked.');
+        Toast::success('Permission revoked.');
 
         return back();
     }

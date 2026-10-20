@@ -9,6 +9,7 @@ use App\Services\Billing\TrialActivationService;
 use App\Services\Stripe\CheckoutService;
 use App\Services\Stripe\StripeClientFactory;
 use App\Services\Stripe\StripeEventProcessor;
+use App\Support\Ui\Toast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -28,10 +29,10 @@ class CheckoutController extends Controller
         try {
             return redirect()->away($checkout->createSubscriptionCheckout($user->company, $user, $price)->url);
         } catch (InvalidArgumentException $e) {
-            toastr()->error($e->getMessage());
+            Toast::error($e->getMessage());
         } catch (\Throwable $e) {
             Log::error('Checkout failed', ['company_id' => $user->company_id, 'plan_price_id' => $price->id, 'error' => $e->getMessage()]);
-            toastr()->error('Unable to start checkout. Please try again.');
+            Toast::error('Unable to start checkout. Please try again.');
         }
 
         return redirect()->route('pricing.plans');
@@ -43,11 +44,11 @@ class CheckoutController extends Controller
 
         try {
             $trials->activate($user->company, $user);
-            toastr()->success('Your free trial is active. No credit card required.');
+            Toast::success('Your free trial is active. No credit card required.');
 
             return redirect()->route('checkout.success');
         } catch (InvalidArgumentException $e) {
-            toastr()->error($e->getMessage());
+            Toast::error($e->getMessage());
 
             return redirect()->route('pricing.plans');
         }

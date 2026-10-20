@@ -29,6 +29,7 @@ use App\Services\Files\StoredFileService;
 use App\Services\OTPService;
 use App\Services\PhoneNumberService;
 use App\Support\Driver\DriverForm;
+use App\Support\Ui\Toast;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -125,7 +126,7 @@ class ApplicationFormController extends Controller
 
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
+                Toast::error($error);
             }
 
             return back()->withInput();
@@ -134,7 +135,7 @@ class ApplicationFormController extends Controller
         $phone = $this->formatPhoneNumber($request->phone);
 
         if (! $this->otpService->validatePhoneNumber($phone)) {
-            toastr()->error('Invalid phone number format. Please enter a valid number.');
+            Toast::error('Invalid phone number format. Please enter a valid number.');
 
             return back()->withInput();
         }
@@ -143,13 +144,13 @@ class ApplicationFormController extends Controller
             $status = $this->otpService->checkOTPStatus($phone);
 
             if (! $status['can_resend']) {
-                toastr()->error('Please wait before requesting a new OTP.');
+                Toast::error('Please wait before requesting a new OTP.');
 
                 return back()->withInput();
             }
 
             if ($status['attempts_count'] >= $status['max_attempts']) {
-                toastr()->error('Maximum OTP attempts reached. Please try again later.');
+                Toast::error('Maximum OTP attempts reached. Please try again later.');
 
                 return back()->withInput();
             }
@@ -164,17 +165,17 @@ class ApplicationFormController extends Controller
                     'otp_sent_at' => now()->timestamp,
                 ]);
 
-                toastr()->success('OTP sent successfully!');
+                Toast::success('OTP sent successfully!');
 
                 return redirect()->route('public.application.verify.otp', $slug);
             } else {
-                toastr()->error($result['message']);
+                Toast::error($result['message']);
 
                 return back()->withInput();
             }
         } catch (\Exception $e) {
             Log::error('OTP Send Error: '.$e->getMessage());
-            toastr()->error('An error occurred while sending OTP. Please try again.');
+            Toast::error('An error occurred while sending OTP. Please try again.');
 
             return back()->withInput();
         }
@@ -190,7 +191,7 @@ class ApplicationFormController extends Controller
         $method = Session::get('otp_method', 'direct_sms');
 
         if (! $phone) {
-            toastr()->error('Please start the application process first.');
+            Toast::error('Please start the application process first.');
 
             return redirect()->route('public.application.start', $slug);
         }
@@ -209,7 +210,7 @@ class ApplicationFormController extends Controller
         $phone = Session::get('otp_verification_phone');
 
         if (! $phone) {
-            toastr()->error('Session expired. Please start again.');
+            Toast::error('Session expired. Please start again.');
 
             return redirect()->route('public.application.start', $slug);
         }
@@ -219,7 +220,7 @@ class ApplicationFormController extends Controller
         ]);
 
         if ($validator->fails()) {
-            toastr()->error('Please enter a valid 6-digit OTP.');
+            Toast::error('Please enter a valid 6-digit OTP.');
 
             return back()->withInput();
         }
@@ -279,11 +280,11 @@ class ApplicationFormController extends Controller
                 'current_step' => 1,
             ]);
 
-            toastr()->success('Phone number verified successfully!');
+            Toast::success('Phone number verified successfully!');
 
             return redirect()->route('public.application.step1', $slug);
         } else {
-            toastr()->error($result['message']);
+            Toast::error($result['message']);
 
             return back()->withInput();
         }
@@ -302,7 +303,7 @@ class ApplicationFormController extends Controller
 
     public function verifyResume(Request $request, $slug)
     {
-        toastr()->info('Use "Return to Application" to resume with a code sent to your phone.');
+        Toast::info('Use "Return to Application" to resume with a code sent to your phone.');
 
         return redirect()->route('application.form', $slug);
     }
@@ -475,7 +476,7 @@ class ApplicationFormController extends Controller
 
             Session::put('current_step', 2);
 
-            toastr()->success('Basic information saved successfully!');
+            Toast::success('Basic information saved successfully!');
 
             return redirect()->route('public.application.step2', [
                 'slug' => $slug,
@@ -485,7 +486,7 @@ class ApplicationFormController extends Controller
             throw $e;
         } catch (\Exception $e) {
             Log::error('Step 1 Save Error: '.$e->getMessage());
-            toastr()->error('Failed to save information. Please try again.');
+            Toast::error('Failed to save information. Please try again.');
 
             return back()->withInput();
         }
@@ -539,7 +540,7 @@ class ApplicationFormController extends Controller
 
             Session::put('current_step', 3);
 
-            toastr()->success('License uploaded successfully!');
+            Toast::success('License uploaded successfully!');
 
             return redirect()->route('public.application.step3', [
                 'slug' => $slug,
@@ -549,7 +550,7 @@ class ApplicationFormController extends Controller
             throw $e;
         } catch (\Exception $e) {
             Log::error('Step 2 Save Error: '.$e->getMessage());
-            toastr()->error('Failed to upload license. Please try again.');
+            Toast::error('Failed to upload license. Please try again.');
 
             return back()->withInput();
         }
@@ -583,7 +584,7 @@ class ApplicationFormController extends Controller
 
             Session::put('current_step', 4);
 
-            toastr()->success('Medical card uploaded successfully!');
+            Toast::success('Medical card uploaded successfully!');
 
             return redirect()->route('public.application.step4', [
                 'slug' => $slug,
@@ -593,7 +594,7 @@ class ApplicationFormController extends Controller
             throw $e;
         } catch (\Exception $e) {
             Log::error('Step 3 Save Error: '.$e->getMessage());
-            toastr()->error('Failed to upload medical card. Please try again.');
+            Toast::error('Failed to upload medical card. Please try again.');
 
             return back()->withInput();
         }
@@ -626,7 +627,7 @@ class ApplicationFormController extends Controller
 
             Session::put('current_step', 5);
 
-            toastr()->success('Forfeiture information saved successfully!');
+            Toast::success('Forfeiture information saved successfully!');
 
             return redirect()->route('public.application.step5', [
                 'slug' => $slug,
@@ -636,7 +637,7 @@ class ApplicationFormController extends Controller
             throw $e;
         } catch (\Exception $e) {
             Log::error('Step 4 Save Error: '.$e->getMessage());
-            toastr()->error('Failed to save forfeiture information. Please try again.');
+            Toast::error('Failed to save forfeiture information. Please try again.');
 
             return back()->withInput();
         }
@@ -671,7 +672,7 @@ class ApplicationFormController extends Controller
 
             Session::put('current_step', 6);
 
-            toastr()->success('Violation record saved successfully!');
+            Toast::success('Violation record saved successfully!');
 
             return redirect()->route('public.application.step6', [
                 'slug' => $slug,
@@ -679,7 +680,7 @@ class ApplicationFormController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Step 5 Save Error: '.$e->getMessage());
-            toastr()->error('Failed to save violation record. Please try again.');
+            Toast::error('Failed to save violation record. Please try again.');
 
             return back()->withInput();
         }
@@ -712,7 +713,7 @@ class ApplicationFormController extends Controller
 
             Session::put('current_step', 7);
 
-            toastr()->success('Alcohol and drug test statement saved successfully!');
+            Toast::success('Alcohol and drug test statement saved successfully!');
 
             return redirect()->route('public.application.step7', [
                 'slug' => $slug,
@@ -720,7 +721,7 @@ class ApplicationFormController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Step 6 Save Error: '.$e->getMessage());
-            toastr()->error('Failed to save statement. Please try again.');
+            Toast::error('Failed to save statement. Please try again.');
 
             return back()->withInput();
         }
@@ -753,7 +754,7 @@ class ApplicationFormController extends Controller
 
             Session::put('current_step', 8);
 
-            toastr()->success('FMCSA Clearinghouse consent saved successfully!');
+            Toast::success('FMCSA Clearinghouse consent saved successfully!');
 
             return redirect()->route('public.application.step8', [
                 'slug' => $slug,
@@ -761,7 +762,7 @@ class ApplicationFormController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Step 7 Save Error: '.$e->getMessage());
-            toastr()->error('Failed to save consent. Please try again.');
+            Toast::error('Failed to save consent. Please try again.');
 
             return back()->withInput();
         }
@@ -794,7 +795,7 @@ class ApplicationFormController extends Controller
 
             Session::put('current_step', 9);
 
-            toastr()->success('PSP Driver Disclosure & Authorization saved successfully!');
+            Toast::success('PSP Driver Disclosure & Authorization saved successfully!');
 
             return redirect()->route('public.application.step9', [
                 'slug' => $slug,
@@ -802,7 +803,7 @@ class ApplicationFormController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Step 8 Save Error: '.$e->getMessage());
-            toastr()->error('Failed to save authorization. Please try again.');
+            Toast::error('Failed to save authorization. Please try again.');
 
             return back()->withInput();
         }
@@ -837,7 +838,7 @@ class ApplicationFormController extends Controller
 
             Session::put('current_step', 10);
 
-            toastr()->success('Alcohol & Drug Testing Policy saved successfully!');
+            Toast::success('Alcohol & Drug Testing Policy saved successfully!');
 
             return redirect()->route('public.application.step10', [
                 'slug' => $slug,
@@ -845,7 +846,7 @@ class ApplicationFormController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Step 9 Save Error: '.$e->getMessage());
-            toastr()->error('Failed to save policy agreement. Please try again.');
+            Toast::error('Failed to save policy agreement. Please try again.');
 
             return back()->withInput();
         }
@@ -907,12 +908,12 @@ class ApplicationFormController extends Controller
 
             Session::put('last_application_phone', $phone);
 
-            toastr()->success('Application submitted successfully! We will review it shortly.');
+            Toast::success('Application submitted successfully! We will review it shortly.');
 
             return redirect()->route('public.application.complete', $slug);
         } catch (\Exception $e) {
             Log::error('Step 10 Save Error: '.$e->getMessage());
-            toastr()->error('Failed to submit application. Please try again.');
+            Toast::error('Failed to submit application. Please try again.');
 
             return back()->withInput();
         }
@@ -962,7 +963,7 @@ class ApplicationFormController extends Controller
 
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
+                Toast::error($error);
             }
 
             return back()->withInput();
@@ -989,7 +990,7 @@ class ApplicationFormController extends Controller
             'status_check_company_id' => $company->id,
         ]);
 
-        toastr()->info('If an application matches those details, we have sent a code to that phone.');
+        Toast::info('If an application matches those details, we have sent a code to that phone.');
 
         return redirect()->route('public.application.status.verify', $slug);
     }
@@ -1015,7 +1016,7 @@ class ApplicationFormController extends Controller
         $dob = Session::get('status_check_dob');
 
         if (! $phone || ! $dob || (int) Session::get('status_check_company_id') !== (int) $company->id) {
-            toastr()->error('Please enter your phone number and date of birth first.');
+            Toast::error('Please enter your phone number and date of birth first.');
 
             return redirect()->route('public.application.status', $slug);
         }
@@ -1025,7 +1026,7 @@ class ApplicationFormController extends Controller
         ]);
 
         if ($validator->fails()) {
-            toastr()->error('Please enter the 6-digit code sent to your phone.');
+            Toast::error('Please enter the 6-digit code sent to your phone.');
 
             return back();
         }
@@ -1033,7 +1034,7 @@ class ApplicationFormController extends Controller
         $result = $this->otpService->verifyOTP($phone, $request->otp);
 
         if (! $result['success']) {
-            toastr()->error('Invalid or expired code.');
+            Toast::error('Invalid or expired code.');
 
             return back();
         }
@@ -1043,7 +1044,7 @@ class ApplicationFormController extends Controller
         $driver = $this->statusCheckDriver($company, $phone, $dob);
 
         if (! $driver) {
-            toastr()->error('No application found with those details.');
+            Toast::error('No application found with those details.');
 
             return redirect()->route('public.application.status', $slug);
         }
@@ -1090,13 +1091,13 @@ class ApplicationFormController extends Controller
 
             DB::commit();
 
-            toastr()->success('Application withdrawn successfully.');
+            Toast::success('Application withdrawn successfully.');
 
             return redirect()->route('public.application.start', $slug);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Withdraw Error: '.$e->getMessage());
-            toastr()->error('Failed to withdraw application. Please try again.');
+            Toast::error('Failed to withdraw application. Please try again.');
 
             return back();
         }
@@ -1183,7 +1184,7 @@ class ApplicationFormController extends Controller
             : null;
 
         if (! $driver) {
-            toastr()->error('Please start the application process first.');
+            Toast::error('Please start the application process first.');
 
             throw new HttpResponseException(redirect()->route('public.application.start', $company->slug));
         }

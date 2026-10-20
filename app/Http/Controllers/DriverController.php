@@ -15,6 +15,7 @@ use App\Services\Driver\DriverCrudService;
 use App\Services\Driver\DriverDocumentWizardService;
 use App\Services\Driver\DriverHireService;
 use App\Support\Driver\DriverForm;
+use App\Support\Ui\Toast;
 use App\Tenancy\TenantRule;
 use App\Traits\CompanyFilterTrait;
 use Exception;
@@ -59,7 +60,7 @@ class DriverController extends Controller
     public function create()
     {
         if ($this->getCompaniesForUser()->isEmpty()) {
-            toastr()->error('You do not have a company assigned.');
+            Toast::error('You do not have a company assigned.');
 
             return redirect()->route('admin.driver.index');
         }
@@ -72,7 +73,7 @@ class DriverController extends Controller
         try {
             $driver = $crud->create($request->validated(), Auth::id(), $request->file('photo'));
 
-            toastr()->success('Driver created successfully!');
+            Toast::success('Driver created successfully!');
 
             return redirect()->route('admin.driver.license', ['driver_id' => $driver->id]);
         } catch (LimitReached $e) {
@@ -83,7 +84,7 @@ class DriverController extends Controller
                 'request_data' => $request->except(['ssn', 'license_number']),
             ]);
 
-            toastr()->error('Failed to create driver. Please try again.');
+            Toast::error('Failed to create driver. Please try again.');
 
             return back()->withInput()->withErrors([
                 'system_error' => 'An error occurred while creating the driver. Please try again.',
@@ -202,7 +203,7 @@ class DriverController extends Controller
         try {
             $crud->update($driver, $request->validated(), $request->file('photo'));
 
-            toastr()->success('Driver updated successfully!');
+            Toast::success('Driver updated successfully!');
 
             return redirect()->route('admin.driver.license', [
                 'driver_id' => $id,
@@ -217,7 +218,7 @@ class DriverController extends Controller
                 'request_data' => $request->except(['ssn', 'license_number']),
             ]);
 
-            toastr()->error('Failed to update driver. Please try again.');
+            Toast::error('Failed to update driver. Please try again.');
 
             return back()->withInput()->withErrors([
                 'system_error' => 'An error occurred while updating the driver. Please try again.',
@@ -295,7 +296,7 @@ class DriverController extends Controller
 
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
+                Toast::error($error);
             }
 
             return back()->withInput();
@@ -305,7 +306,7 @@ class DriverController extends Controller
             $driver = $this->loadWizardDriver((int) $request->driver_id);
             $documents->saveLicense($driver, $request->file('license_front'), $request->file('license_back'));
 
-            toastr()->success('License documents saved successfully!');
+            Toast::success('License documents saved successfully!');
 
             return $this->wizardRedirect('admin.driver.medical.card', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (LimitReached $e) {
@@ -316,7 +317,7 @@ class DriverController extends Controller
                 'line' => $e->getLine(),
             ]);
 
-            toastr()->error('Something went wrong while uploading the license.');
+            Toast::error('Something went wrong while uploading the license.');
 
             return back()->withInput();
         }
@@ -342,7 +343,7 @@ class DriverController extends Controller
         try {
             $documents->saveMedicalCard($driver, $request->file('medical_card'), $validated['medical_certificate_expiration_date'] ?? null);
 
-            toastr()->success('Medical card saved successfully!');
+            Toast::success('Medical card saved successfully!');
 
             return $this->wizardRedirect('admin.driver.forfeiture', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (LimitReached $e) {
@@ -380,7 +381,7 @@ class DriverController extends Controller
             $driver = $this->loadWizardDriver((int) $request->driver_id);
             $documents->saveForfeiture($driver, $request->file('forfeiture_document'));
 
-            toastr()->success('Forfeiture document saved successfully!');
+            Toast::success('Forfeiture document saved successfully!');
 
             return $this->wizardRedirect('admin.driver.violation', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (LimitReached $e) {
@@ -426,7 +427,7 @@ class DriverController extends Controller
 
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
+                Toast::error($error);
             }
 
             return back()->withInput();
@@ -436,7 +437,7 @@ class DriverController extends Controller
             $driver = $this->loadWizardDriver((int) $request->driver_id);
             $documents->saveViolationRecord($driver, $request->all());
 
-            toastr()->success('Violation saved successfully!');
+            Toast::success('Violation saved successfully!');
 
             return $this->wizardRedirect('admin.driver.alcohol.and.drug.test', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
@@ -474,7 +475,7 @@ class DriverController extends Controller
 
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
+                Toast::error($error);
             }
 
             return back()->withInput();
@@ -484,7 +485,7 @@ class DriverController extends Controller
             $driver = $this->loadWizardDriver((int) $request->driver_id);
             $documents->saveAlcoholAndDrugTest($driver, $request->all());
 
-            toastr()->success('Alcohol and drug test statement saved successfully.');
+            Toast::success('Alcohol and drug test statement saved successfully.');
 
             return $this->wizardRedirect('admin.driver.fmcsa.consent', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
@@ -493,7 +494,7 @@ class DriverController extends Controller
                 'exception' => $e,
             ]);
 
-            toastr()->error('An error occurred while saving the alcohol and drug test statement. Please try again.');
+            Toast::error('An error occurred while saving the alcohol and drug test statement. Please try again.');
 
             return back()->withInput()->withErrors([
                 'error' => 'An unexpected error occurred. Please try again.',
@@ -511,7 +512,7 @@ class DriverController extends Controller
 
         $authUser = Auth::user();
         if (! $authUser) {
-            toastr()->error('Authenticated user not found.');
+            Toast::error('Authenticated user not found.');
 
             return redirect()->back();
         }
@@ -534,7 +535,7 @@ class DriverController extends Controller
 
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
+                Toast::error($error);
             }
 
             return back()->withInput();
@@ -544,12 +545,12 @@ class DriverController extends Controller
             $driver = $this->loadWizardDriver((int) $request->driver_id);
             $documents->saveFmcsaConsent($driver, $request->all());
 
-            toastr()->success('FMCSA Clearinghouse consent saved successfully.');
+            Toast::success('FMCSA Clearinghouse consent saved successfully.');
 
             return $this->wizardRedirect('admin.driver.psp', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
             Log::error('Error saving FMCSA consent: '.$e->getMessage());
-            toastr()->error('An error occurred while saving the FMCSA consent. Please try again.');
+            Toast::error('An error occurred while saving the FMCSA consent. Please try again.');
 
             return back()->withInput()->withErrors([
                 'error' => 'An unexpected error occurred. Please try again.',
@@ -566,7 +567,7 @@ class DriverController extends Controller
 
         $authUser = Auth::user();
         if (! $authUser) {
-            toastr()->error('Authenticated user not found.');
+            Toast::error('Authenticated user not found.');
 
             return redirect()->back();
         }
@@ -589,7 +590,7 @@ class DriverController extends Controller
 
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
+                Toast::error($error);
             }
 
             return back()->withInput();
@@ -599,7 +600,7 @@ class DriverController extends Controller
             $driver = $this->loadWizardDriver((int) $request->driver_id);
             $documents->savePspAuthorization($driver, $request->all());
 
-            toastr()->success('PSP Driver Disclosure & Authorization saved successfully.');
+            Toast::success('PSP Driver Disclosure & Authorization saved successfully.');
 
             return $this->wizardRedirect('admin.driver.alcohol.and.drug.test.policy', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
@@ -608,7 +609,7 @@ class DriverController extends Controller
                 'exception' => $e,
             ]);
 
-            toastr()->error('An error occurred while saving the PSP authorization. Please try again.');
+            Toast::error('An error occurred while saving the PSP authorization. Please try again.');
 
             return back()->withInput()->withErrors([
                 'error' => 'An unexpected error occurred. Please try again.',
@@ -626,7 +627,7 @@ class DriverController extends Controller
 
         $authUser = Auth::user();
         if (! $authUser) {
-            toastr()->error('Authenticated user not found.');
+            Toast::error('Authenticated user not found.');
 
             return redirect()->back();
         }
@@ -647,7 +648,7 @@ class DriverController extends Controller
 
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
+                Toast::error($error);
             }
 
             return back()->withInput();
@@ -657,12 +658,12 @@ class DriverController extends Controller
             $driver = $this->loadWizardDriver((int) $request->driver_id);
             $documents->saveAlcoholAndDrugTestPolicy($driver, $request->all());
 
-            toastr()->success('Alcohol & Drug Testing Policy saved successfully.');
+            Toast::success('Alcohol & Drug Testing Policy saved successfully.');
 
             return $this->wizardRedirect('admin.driver.general.work.policy', (int) $request->driver_id, $this->isEditFlow($request));
         } catch (Exception $e) {
             Log::error('Error saving Alcohol & Drug Testing Policy: '.$e->getMessage());
-            toastr()->error('An error occurred while saving the Alcohol & Drug Testing Policy. Please try again.');
+            Toast::error('An error occurred while saving the Alcohol & Drug Testing Policy. Please try again.');
 
             return back()->withInput()->withErrors([
                 'error' => 'An unexpected error occurred. Please try again.',
@@ -680,7 +681,7 @@ class DriverController extends Controller
 
         $authUser = Auth::user();
         if (! $authUser) {
-            toastr()->error('Authenticated user not found.');
+            Toast::error('Authenticated user not found.');
 
             return redirect()->back();
         }
@@ -701,7 +702,7 @@ class DriverController extends Controller
 
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
-                toastr()->error($error);
+                Toast::error($error);
             }
 
             return back()->withInput();
@@ -712,14 +713,14 @@ class DriverController extends Controller
             $fromEdit = $this->isEditFlow($request);
             $documents->saveGeneralWorkPolicy($driver, $request->all(), finalizeToPending: ! $fromEdit);
 
-            toastr()->success($fromEdit
+            Toast::success($fromEdit
                 ? 'General Work Policy updated successfully.'
                 : 'General Work Policy saved successfully.');
 
             return redirect()->route('admin.driver.index');
         } catch (Exception $e) {
             Log::error('Error saving General Work Policy: '.$e->getMessage());
-            toastr()->error('An error occurred while saving the General Work Policy. Please try again.');
+            Toast::error('An error occurred while saving the General Work Policy. Please try again.');
 
             return back()->withInput()->withErrors([
                 'error' => 'An unexpected error occurred. Please try again.',

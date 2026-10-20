@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\User;
 use App\Services\Platform\EmailIdentityService;
+use App\Support\Ui\Toast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,7 +51,7 @@ class ProfileController extends Controller
             $user->save();
         }
 
-        toastr()->success('Profile updated successfully!');
+        Toast::success('Profile updated successfully!');
 
         return Redirect::route('profile.edit');
     }

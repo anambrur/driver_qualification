@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Services\Billing\AccessState;
 use App\Services\Stripe\SubscriptionService;
+use App\Support\Ui\Toast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -32,7 +33,7 @@ class BillingController extends Controller
             return redirect()->away($subscriptions->createBillingPortalSession($request->user()->company, route('billing.index'))->url);
         } catch (\Throwable $e) {
             Log::warning('Billing portal failed', ['error' => $e->getMessage()]);
-            toastr()->error('Unable to open the billing portal right now.');
+            Toast::error('Unable to open the billing portal right now.');
 
             return redirect()->route('billing.index');
         }
@@ -49,10 +50,10 @@ class BillingController extends Controller
         try {
             $subscriptions->cancelAtPeriodEnd($subscription);
             AuditLog::record($request->user(), $subscription->company_id, 'subscription.cancel_requested', $subscription);
-            toastr()->success('Your subscription will end at the end of the current billing period.');
+            Toast::success('Your subscription will end at the end of the current billing period.');
         } catch (\Throwable $e) {
             Log::warning('Cancel failed', ['error' => $e->getMessage()]);
-            toastr()->error('Unable to cancel subscription.');
+            Toast::error('Unable to cancel subscription.');
         }
 
         return redirect()->route('billing.index');
@@ -69,10 +70,10 @@ class BillingController extends Controller
         try {
             $subscriptions->resume($subscription);
             AuditLog::record($request->user(), $subscription->company_id, 'subscription.resumed', $subscription);
-            toastr()->success('Your subscription has been resumed.');
+            Toast::success('Your subscription has been resumed.');
         } catch (\Throwable $e) {
             Log::warning('Resume failed', ['error' => $e->getMessage()]);
-            toastr()->error('Unable to resume subscription.');
+            Toast::error('Unable to resume subscription.');
         }
 
         return redirect()->route('billing.index');

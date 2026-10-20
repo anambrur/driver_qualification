@@ -26,6 +26,7 @@
         @yield('content')
     </main>
 
+    <x-ui.toaster />
     <x-ui.confirm-dialog />
 
     @stack('scripts')

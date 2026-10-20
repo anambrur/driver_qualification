@@ -46,9 +46,11 @@ const escapeHtml = (value) => {
 
 window.notify = (category, title, description = "") => {
     const toaster = document.getElementById("toaster");
-    if (toaster && typeof toaster.toast === "function") {
-        toaster.toast({ category, title: escapeHtml(title), description: escapeHtml(description) });
-    }
+    if (!toaster) return;
+    const show = () => toaster.toast({ category, title: escapeHtml(title), description: escapeHtml(description) });
+    // Basecoat sets up the toaster on DOMContentLoaded; session toasts can arrive just before that.
+    if (typeof toaster.toast === "function") show();
+    else toaster.addEventListener("basecoat:initialized", show, { once: true });
 };
 window.Alpine = Alpine;
 // Open the native date picker on click, not only on the (hidden) calendar indicator.

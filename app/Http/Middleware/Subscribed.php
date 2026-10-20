@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\Billing\AccessState;
+use App\Support\Ui\Toast;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,9 +30,7 @@ class Subscribed
             return response()->json(['message' => 'An active subscription is required.', 'access_state' => $state->value], 402);
         }
 
-        if (function_exists('toastr')) {
-            toastr()->warning('An active subscription is required. Please choose a plan.');
-        }
+        Toast::warning('An active subscription is required. Please choose a plan.');
 
         return redirect()->route('pricing.plans');
     }

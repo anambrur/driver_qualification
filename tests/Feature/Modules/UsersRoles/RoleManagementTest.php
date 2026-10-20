@@ -3,6 +3,7 @@
 use App\Models\Company;
 use App\Models\Role;
 use App\Services\Authorization\RoleService;
+use App\Support\Ui\Toast;
 use Tests\Support\Actors;
 
 /*
@@ -22,10 +23,7 @@ function rolePermissionNames(Role $role): array
 
 function roleFlashes(): array
 {
-    return collect(session('flasher::envelopes', []))
-        // php-flasher >= 2.6 stores each envelope serialized
-        ->map(fn ($envelope) => (is_string($envelope) ? unserialize($envelope) : $envelope)->getMessage())
-        ->all();
+    return collect(session(Toast::SESSION_KEY, []))->pluck('message')->all();
 }
 
 describe('per-company roles', function () {

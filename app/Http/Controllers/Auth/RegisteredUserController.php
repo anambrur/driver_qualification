@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\Company\CompanyProvisioner;
 use App\Services\Platform\EmailIdentityService;
+use App\Support\Ui\Toast;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,7 +75,7 @@ class RegisteredUserController extends Controller
         } catch (\Exception $e) {
             Log::error('Registration Failed: '.$e->getMessage());
 
-            toastr()->error('An error occurred during registration. Please try again.');
+            Toast::error('An error occurred during registration. Please try again.');
 
             return back()->withInput($request->except('password', 'password_confirmation'));
         }

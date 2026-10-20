@@ -113,6 +113,8 @@
         </div>
     </div>
 
+    <x-ui.toaster />
+
     @if ($area === 'tenant')
         @guest
             @include('partials.tawk-widget')

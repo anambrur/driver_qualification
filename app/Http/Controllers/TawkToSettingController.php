@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\PlatformUser;
 use App\Models\SiteSetting;
+use App\Support\Ui\Toast;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -51,7 +52,7 @@ class TawkToSettingController extends Controller
         $actor = $request->user('platform');
         AuditLog::record($actor, null, 'site_settings.tawk_updated', $setting, ['tawk_enabled' => $updates['tawk_enabled']]);
 
-        toastr()->success('Tawk.to chat settings updated successfully.');
+        Toast::success('Tawk.to chat settings updated successfully.');
 
         return redirect()->back();
     }

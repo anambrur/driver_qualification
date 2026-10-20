@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use App\Features\Feature;
+use App\Support\Ui\Toast;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,9 +30,7 @@ class LimitReached extends RuntimeException
             ], 422);
         }
 
-        if (function_exists('toastr')) {
-            toastr()->error($this->getMessage());
-        }
+        Toast::error($this->getMessage());
 
         return back()->withErrors(['limit' => $this->getMessage()]);
     }
