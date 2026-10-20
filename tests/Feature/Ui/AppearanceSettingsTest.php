@@ -2,6 +2,7 @@
 
 use App\Models\SiteSetting;
 use App\Support\Ui\Color;
+use App\Support\Ui\Theme;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\Actors;
@@ -97,7 +98,7 @@ it('falls back to the default colour when the stored value is not a hex colour',
     $this->actingAs(Actors::platformOwner(), 'platform')
         ->get(route('platform.dashboard'))
         ->assertOk()
-        ->assertSee('--brand:#465fff', false)
+        ->assertSee('--brand:'.Theme::DEFAULT_BRAND, false)
         ->assertDontSee('--brand:red}', false);
 });
 
@@ -105,7 +106,7 @@ it('picks white or near-black text for contrast', function (string $brand, strin
     expect(Color::foreground($brand))->toBe($foreground);
 })->with([
     'dark blue' => ['#1d4ed8', '#ffffff'],
-    'default brand' => ['#465fff', '#ffffff'],
+    'default brand' => [Theme::DEFAULT_BRAND, '#ffffff'],
     'yellow' => ['#facc15', '#101828'],
     'white' => ['#ffffff', '#101828'],
 ]);

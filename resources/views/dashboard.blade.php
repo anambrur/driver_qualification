@@ -16,7 +16,7 @@
     @endphp
 
     <div class="p-4 sm:p-6 lg:p-8">
-        <x-ui.page-header title="Dashboard" description="Your drivers, fleet and compliance at a glance.">
+        <x-ui.page-header :title="'Welcome back, '.\Illuminate\Support\Str::before($user->name, ' ')" description="Here's your compliance overview.">
             @if ($company)
                 <x-slot:actions>
                     <div class="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2">
@@ -106,7 +106,7 @@
                         @else
                             <dl class="grid grid-cols-3 gap-4">
                                 @foreach (['Total units' => $fleetStats['units'], 'Vehicles' => $fleetStats['vehicles'], 'Trailers' => $fleetStats['trailers']] as $label => $value)
-                                    <div class="rounded-lg bg-muted/50 p-4">
+                                    <div class="rounded-xl bg-primary/5 p-4">
                                         <dt class="text-xs text-muted-foreground">{{ $label }}</dt>
                                         <dd class="mt-1 text-2xl font-semibold tabular-nums">{{ $value }}</dd>
                                     </div>
@@ -125,11 +125,11 @@
                             <x-ui.empty-state icon="wrench" title="No services logged" description="Log services to keep a maintenance history for each unit." class="border-0 p-6!" />
                         @else
                             <dl class="grid grid-cols-2 gap-4">
-                                <div class="rounded-lg bg-muted/50 p-4">
+                                <div class="rounded-xl bg-primary/5 p-4">
                                     <dt class="text-xs text-muted-foreground">All services</dt>
                                     <dd class="mt-1 text-2xl font-semibold tabular-nums">{{ $maintenanceStats['total_services'] }}</dd>
                                 </div>
-                                <div class="rounded-lg bg-muted/50 p-4">
+                                <div class="rounded-xl bg-primary/5 p-4">
                                     <dt class="text-xs text-muted-foreground">Last 30 days</dt>
                                     <dd class="mt-1 text-2xl font-semibold tabular-nums">{{ $maintenanceStats['recent_30_days'] }}</dd>
                                 </div>

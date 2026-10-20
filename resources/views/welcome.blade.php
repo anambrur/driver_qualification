@@ -191,28 +191,28 @@
         }
 
         .dark .glass-card {
-            background: rgba(29, 41, 57, 0.6);
+            background: color-mix(in oklch, var(--card) 60%, transparent);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .glass-card:hover {
             background: rgba(255, 255, 255, 0.85);
-            border-color: rgba(70, 95, 255, 0.3);
+            border-color: color-mix(in oklch, var(--brand) 30%, transparent);
             transform: translateY(-4px);
-            box-shadow: 0 20px 40px -12px rgba(70, 95, 255, 0.15);
+            box-shadow: 0 20px 40px -12px color-mix(in oklch, var(--brand) 15%, transparent);
         }
 
         .dark .glass-card:hover {
-            background: rgba(29, 41, 57, 0.8);
-            border-color: rgba(70, 95, 255, 0.4);
+            background: color-mix(in oklch, var(--card) 80%, transparent);
+            border-color: color-mix(in oklch, var(--primary) 40%, transparent);
         }
 
         .hero-gradient {
-            background: linear-gradient(135deg, #eff6ff 0%, #ecf3ff 25%, #f0f9ff 50%, #ecfdf3 75%, #eff6ff 100%);
+            background: linear-gradient(135deg, var(--background) 0%, color-mix(in oklch, var(--brand) 6%, var(--background)) 35%, var(--background) 60%, color-mix(in oklch, var(--highlight) 10%, var(--background)) 100%);
         }
 
         .dark .hero-gradient {
-            background: linear-gradient(135deg, #0c111d 0%, #161950 30%, #0c111d 60%, #053321 100%);
+            background: linear-gradient(135deg, var(--background) 0%, color-mix(in oklch, var(--brand) 35%, var(--background)) 30%, var(--background) 60%, color-mix(in oklch, var(--highlight) 12%, var(--background)) 100%);
         }
 
         .shimmer-btn {
@@ -239,7 +239,7 @@
             right: -2rem;
             width: 4rem;
             height: 2px;
-            background: linear-gradient(90deg, #465fff, transparent);
+            background: linear-gradient(90deg, var(--brand), transparent);
         }
     </style>
 </head>

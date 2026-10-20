@@ -1,6 +1,6 @@
 @import "tailwindcss" source(none);
 @import "basecoat-css";
-@import "@fontsource-variable/geist";
+@import "@fontsource-variable/plus-jakarta-sans";
 
 @source "../views";
 @source "../js";
@@ -14,88 +14,93 @@
 
 /*
  * Design tokens (shadcn/ui variable names, consumed by Basecoat).
- * --brand / --brand-foreground / --highlight are overridden at runtime from
+ * --brand / --brand-foreground / --highlight / --sidebar-base are overridden at runtime from
  * Platform → Settings → Site → Appearance (partials/theme-head).
+ * The sidebar is dark in both modes: --sidebar-base is the brand, darkened (Color::shade).
  */
 :root {
-    --brand: #465fff;
+    --brand: #1f5c4f;
     --brand-foreground: #ffffff;
-    --highlight: #0ba5ec;
+    --highlight: #d4a24c;
+    --sidebar-base: #1b4139;
 
-    --radius: 0.625rem;
-    --background: #f9fafb;
-    --foreground: #101828;
+    --radius: 0.75rem;
+    --background: #f4f7f5;
+    --foreground: #12302a;
     --card: #ffffff;
-    --card-foreground: #101828;
+    --card-foreground: #12302a;
     --popover: #ffffff;
-    --popover-foreground: #101828;
+    --popover-foreground: #12302a;
     --primary: var(--brand);
     --primary-foreground: var(--brand-foreground);
-    --secondary: #f2f4f7;
-    --secondary-foreground: #1d2939;
-    --muted: #f2f4f7;
-    --muted-foreground: #667085;
-    --accent: #f2f4f7;
-    --accent-foreground: #101828;
-    --destructive: #d92d20;
-    --success: #039855;
-    --warning: #dc6803;
-    --info: #0086c9;
-    --border: #e4e7ec;
-    --input: #d0d5dd;
+    --secondary: #e9f1ed;
+    --secondary-foreground: #1b3d35;
+    --muted: #eef3f0;
+    --muted-foreground: #5d6f69;
+    --accent: #e9f1ed;
+    --accent-foreground: #12302a;
+    --destructive: #d14343;
+    --success: #2e8b62;
+    --warning: #c77c11;
+    --info: #2f7fb5;
+    --border: #e1e9e5;
+    --input: #cfdcd6;
     --ring: var(--brand);
     --chart-1: var(--brand);
     --chart-2: var(--highlight);
-    --chart-3: #12b76a;
-    --chart-4: #f79009;
-    --chart-5: #7a5af8;
-    --sidebar: #ffffff;
-    --sidebar-foreground: #344054;
-    --sidebar-primary: var(--brand);
-    --sidebar-primary-foreground: var(--brand-foreground);
-    --sidebar-accent: #f2f4f7;
-    --sidebar-accent-foreground: #101828;
-    --sidebar-border: #e4e7ec;
-    --sidebar-ring: var(--brand);
+    --chart-3: #6fbfa5;
+    --chart-4: #a78bfa;
+    --chart-5: #f0a07a;
+    --sidebar: var(--sidebar-base);
+    --sidebar-foreground: rgb(255 255 255 / 0.78);
+    --sidebar-muted: rgb(255 255 255 / 0.55);
+    --sidebar-primary: #ffffff;
+    --sidebar-primary-foreground: var(--sidebar-base);
+    --sidebar-accent: rgb(255 255 255 / 0.1);
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: rgb(255 255 255 / 0.08);
+    --sidebar-ring: rgb(255 255 255 / 0.6);
     --sidebar-width: 16rem;
     --sidebar-rail-width: 4rem;
     --header-height: 4rem;
 }
 
 .dark {
-    --background: #0c111d;
-    --foreground: #f2f4f7;
-    --card: #101828;
-    --card-foreground: #f2f4f7;
-    --popover: #101828;
-    --popover-foreground: #f2f4f7;
-    --secondary: #1d2939;
-    --secondary-foreground: #f2f4f7;
-    --muted: #1d2939;
-    --muted-foreground: #98a2b3;
-    --accent: #1d2939;
-    --accent-foreground: #f2f4f7;
-    --destructive: #f97066;
-    --success: #32d583;
-    --warning: #fdb022;
-    --info: #36bffa;
-    --border: #1d2939;
-    --input: #344054;
-    --sidebar: #101828;
-    --sidebar-foreground: #d0d5dd;
-    --sidebar-accent: #1d2939;
-    --sidebar-accent-foreground: #f2f4f7;
-    --sidebar-border: #1d2939;
+    --background: #0b1714;
+    --foreground: #e8f0ec;
+    /* A deep brand reads poorly on the dark background; lift it and put dark text on it. */
+    --primary: color-mix(in oklch, var(--brand) 60%, white);
+    --primary: oklch(from var(--brand) 0.76 calc(c * 1.6) h);
+    --primary-foreground: #0b1714;
+    --ring: var(--primary);
+    --card: #10201c;
+    --card-foreground: #e8f0ec;
+    --popover: #10201c;
+    --popover-foreground: #e8f0ec;
+    --secondary: #1a2e29;
+    --secondary-foreground: #e8f0ec;
+    --muted: #1a2e29;
+    --muted-foreground: #93a8a1;
+    --accent: #1a2e29;
+    --accent-foreground: #e8f0ec;
+    --destructive: #f07a6e;
+    --success: #4cc68f;
+    --warning: #f0b44c;
+    --info: #5cb4e6;
+    --border: #1c302b;
+    --input: #2a413b;
+    --sidebar: color-mix(in oklch, var(--sidebar-base) 55%, #08120f);
     color-scheme: dark;
 }
 
 @theme {
-    --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     /* Tailwind's black, matched to the darkest neutral (bg-black/50 overlays). */
-    --color-black: #101828;
+    --color-black: #0b1714;
 }
 
 @theme inline {
+    --color-sidebar-muted: var(--sidebar-muted);
     --color-success: var(--success);
     --color-warning: var(--warning);
     --color-info: var(--info);
@@ -232,7 +237,7 @@
     }
 
     .sidebar-sublink {
-        @apply flex h-9 w-full items-center rounded-md px-3 text-sm text-muted-foreground outline-hidden transition-colors;
+        @apply flex h-9 w-full items-center rounded-md px-3 text-sm text-sidebar-muted outline-hidden transition-colors;
         @apply hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-[3px] focus-visible:ring-sidebar-ring/50;
 
         &[aria-current="page"] {
@@ -242,6 +247,15 @@
 
     .sidebar-flyout {
         @apply hidden;
+    }
+
+    /* The flyout is a light popover, not the dark sidebar. */
+    .sidebar-flyout .sidebar-sublink {
+        @apply text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50;
+
+        &[aria-current="page"] {
+            @apply bg-accent text-primary;
+        }
     }
 
     /* Desktop rail (html[data-sidebar=collapsed], set pre-paint and by the header toggle) */
@@ -310,6 +324,11 @@
         > h2 {
             color: var(--tone);
         }
+    }
+
+    /* Soft cards: a faint green-tinted shadow under Basecoat's ring. */
+    .card {
+        @apply shadow-[0_1px_2px_rgb(18_48_42/0.04),0_8px_24px_-12px_rgb(18_48_42/0.12)] dark:shadow-none;
     }
 
     .stat-icon {

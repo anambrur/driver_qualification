@@ -1,9 +1,9 @@
 {{-- Theme tokens + pre-paint colour mode. Include at the top of every <head>, before @vite. --}}
 @php($theme = \App\Support\Ui\Theme::current())
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0c111d" media="(prefers-color-scheme: dark)">
-<style>:root{--brand:{{ $theme['brand'] }};--brand-foreground:{{ $theme['brandForeground'] }};--highlight:{{ $theme['highlight'] }}}</style>
+<meta name="theme-color" content="#f4f7f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1714" media="(prefers-color-scheme: dark)">
+<style>:root{--brand:{{ $theme['brand'] }};--brand-foreground:{{ $theme['brandForeground'] }};--highlight:{{ $theme['highlight'] }};--sidebar-base:{{ $theme['sidebar'] }}}</style>
 <script>
     (function (d, fallback) {
         var mode;

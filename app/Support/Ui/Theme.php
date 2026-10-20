@@ -7,14 +7,14 @@ namespace App\Support\Ui;
  */
 final class Theme
 {
-    public const DEFAULT_BRAND = '#465fff';
+    public const DEFAULT_BRAND = '#1f5c4f';
 
-    public const DEFAULT_HIGHLIGHT = '#0ba5ec';
+    public const DEFAULT_HIGHLIGHT = '#d4a24c';
 
     public const MODES = ['light', 'dark', 'system'];
 
     /**
-     * @return array{brand: string, brandForeground: string, highlight: string, mode: string, logo: ?string, logoDark: ?string}
+     * @return array{brand: string, brandForeground: string, sidebar: string, highlight: string, mode: string, logo: ?string, logoDark: ?string}
      */
     public static function current(): array
     {
@@ -28,6 +28,7 @@ final class Theme
         return [
             'brand' => $brand,
             'brandForeground' => Color::foreground($brand),
+            'sidebar' => Color::shade($brand),
             'highlight' => Color::valid($highlight) ? strtolower($highlight) : self::DEFAULT_HIGHLIGHT,
             'mode' => in_array($mode, self::MODES, true) ? $mode : 'system',
             'logo' => $logo ? asset('storage/'.$logo) : null,

@@ -15,14 +15,14 @@
             <img src="{{ asset('images/logo/logo-icon.svg') }}" alt="" width="32" height="32" class="size-8 shrink-0" data-sidebar-icon>
             <span data-sidebar-label class="min-w-0">
                 @if ($theme['logo'])
-                    <img src="{{ $theme['logo'] }}" alt="{{ settings('site_name', config('app.name')) }}" class="h-7 w-auto max-w-40 object-contain dark:hidden">
-                    <img src="{{ $theme['logoDark'] }}" alt="{{ settings('site_name', config('app.name')) }}" class="hidden h-7 w-auto max-w-40 object-contain dark:block">
+                    {{-- The sidebar is dark in both modes. --}}
+                    <img src="{{ $theme['logoDark'] }}" alt="{{ settings('site_name', config('app.name')) }}" class="h-7 w-auto max-w-40 object-contain">
                 @else
-                    <span class="truncate text-base font-semibold text-foreground">{{ settings('site_name', config('app.name')) }}</span>
+                    <span class="truncate text-base font-semibold text-sidebar-primary">{{ settings('site_name', config('app.name')) }}</span>
                 @endif
             </span>
         </a>
-        <button type="button" class="btn ml-auto lg:hidden" data-variant="ghost" data-size="icon-sm" x-on:click="sidebarOpen = false" aria-label="Close navigation">
+        <button type="button" class="btn ml-auto text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:hidden" data-variant="ghost" data-size="icon-sm" x-on:click="sidebarOpen = false" aria-label="Close navigation">
             {{ svg('lucide-x', '', ['aria-hidden' => 'true']) }}
         </button>
     </div>
@@ -30,7 +30,7 @@
     <nav aria-label="{{ $label }}" class="sidebar-scroll custom-scrollbar scrollbar-on-hover flex-1 overflow-y-auto overflow-x-hidden py-4 pl-3 pr-1.5">
         @foreach ($groups as $group)
             <div @class(['mt-6' => ! $loop->first])>
-                <h2 class="sidebar-group-label mb-1 px-3 text-xs font-medium text-muted-foreground">{{ $group['label'] }}</h2>
+                <h2 class="sidebar-group-label mb-1 px-3 text-xs font-medium uppercase tracking-wider text-sidebar-muted">{{ $group['label'] }}</h2>
                 <ul class="flex flex-col gap-0.5" role="list">
                     @foreach ($group['items'] as $item)
                         @php($navId = 'nav-'.\Illuminate\Support\Str::slug($group['label'].'-'.$item['label']))

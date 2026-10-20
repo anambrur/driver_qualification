@@ -3,7 +3,7 @@
 <{{ $tag }} @if ($href) href="{{ $href }}" @endif
     {{ $attributes->class(['card flex-row! items-start gap-4 px-5 py-5', 'transition hover:ring-foreground/20 focus-visible:ring-ring' => $href]) }}>
     @if ($icon)
-        <span class="stat-icon flex size-10 shrink-0 items-center justify-center rounded-lg" data-tone="{{ $tone }}">
+        <span class="stat-icon flex size-11 shrink-0 items-center justify-center rounded-full" data-tone="{{ $tone }}">
             {{ svg('lucide-'.$icon, 'size-5', ['aria-hidden' => 'true']) }}
         </span>
     @endif
