@@ -29,7 +29,7 @@
                                     'sub' => collect([$testimonial->role, $testimonial->company])->filter()->join(', '),
                                 ])
                             </td>
-                            <td data-label="Quote" class="max-w-md text-muted-foreground"><p class="line-clamp-2">{{ $testimonial->quote }}</p></td>
+                            <td data-label="Quote" class="max-w-md whitespace-normal text-muted-foreground"><p class="line-clamp-2">{{ $testimonial->quote }}</p></td>
                             <td data-label="Rating" class="tabular-nums">{{ $testimonial->rating }} / 5</td>
                             <td data-label="Order" class="tabular-nums">{{ $testimonial->sort_order }}</td>
                             <td data-label="Active"><span class="badge" data-variant="{{ $testimonial->is_active ? 'secondary' : 'outline' }}">{{ $testimonial->is_active ? 'Yes' : 'No' }}</span></td>

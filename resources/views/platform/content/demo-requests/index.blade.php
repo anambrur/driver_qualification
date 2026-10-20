@@ -32,7 +32,7 @@
                                 </div>
                             </td>
                             <td data-label="Company">{{ $demoRequest->company ?: '—' }}</td>
-                            <td data-label="Message" class="max-w-md text-muted-foreground"><p class="whitespace-pre-line">{{ $demoRequest->message ?: '—' }}</p></td>
+                            <td data-label="Message" class="max-w-md whitespace-normal text-muted-foreground"><p class="whitespace-pre-line">{{ $demoRequest->message ?: '—' }}</p></td>
                             <td data-label="Received" class="whitespace-nowrap">
                                 {{ $demoRequest->created_at->format('M j, Y g:i A') }}
                                 @if ($demoRequest->handled_at)

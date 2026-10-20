@@ -22,7 +22,7 @@
                 <tbody>
                     @foreach ($faqs as $faq)
                         <tr>
-                            <td data-label="Question" data-primary>
+                            <td data-label="Question" data-primary class="max-w-2xl whitespace-normal">
                                 @include('platform.partials.cell', ['title' => $faq->question, 'href' => route('platform.content.faqs.edit', $faq), 'sub' => \Illuminate\Support\Str::limit($faq->answer, 90)])
                             </td>
                             <td data-label="Order" class="tabular-nums">{{ $faq->sort_order }}</td>

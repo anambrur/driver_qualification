@@ -72,10 +72,13 @@ table.dataTable > thead > tr > th,
 table.dataTable > thead > tr > td {
     border-bottom: 1px solid var(--border) !important;
     border-top: 1px solid var(--border);
-    background-color: color-mix(in oklch, var(--muted) 55%, transparent);
+    background-color: color-mix(in oklch, var(--muted) 60%, transparent);
     color: var(--muted-foreground);
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    height: 2.75rem;
     padding: 0.625rem 1rem !important;
     text-align: left;
     white-space: nowrap;
