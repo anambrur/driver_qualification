@@ -408,6 +408,25 @@ trix-editor.rich-text {
 }
 
 @layer components {
+    /* Light mode: solid card-coloured fields instead of Basecoat's transparent ones, so they
+       don't take the tinted page background (auth pages). Dark mode keeps bg-input/30. */
+    :root:not(.dark) :is(.input, .textarea, .select) {
+        background-color: var(--card);
+    }
+    /* Browser autofill: Chrome paints its own fill with !important, so cover it with an inset
+       shadow in the field colour (and re-add the focus ring, which also uses box-shadow). */
+    :is(.input, .textarea, .select):is(:autofill, :-webkit-autofill) {
+        --autofill-bg: var(--card);
+        -webkit-text-fill-color: var(--foreground);
+        caret-color: var(--foreground);
+        box-shadow: 0 0 0 1000px var(--autofill-bg) inset;
+        &:focus-visible {
+            box-shadow: 0 0 0 1000px var(--autofill-bg) inset, 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+        }
+    }
+    .dark :is(.input, .textarea, .select):is(:autofill, :-webkit-autofill) {
+        --autofill-bg: color-mix(in oklab, var(--input) 30%, var(--background));
+    }
     /* Date inputs: the forms plugin sets appearance:none, which hides the native picker icon.
        Draw a Lucide calendar instead and stretch the (invisible) native indicator over it. */
     .input:is([type=date], [type=datetime-local], [type=month], [type=week]) {
