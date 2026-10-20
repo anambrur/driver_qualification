@@ -102,7 +102,8 @@ it('renders the token-based pages', function (string $route) {
 
 it('keeps the welcome footer dark in both themes', function () {
     $this->get('/')->assertOk()
-        ->assertSee('<footer class="dark bg-background', false)
+        // The sidebar tokens: a .dark wrapper does not re-resolve bg-background below :root.
+        ->assertSee('<footer class="bg-sidebar text-sidebar-foreground', false)
         ->assertDontSee('-gray-', false)
         ->assertDontSee('-brand-5', false);
 });
