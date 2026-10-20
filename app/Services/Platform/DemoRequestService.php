@@ -7,16 +7,16 @@ use App\Models\DemoRequest;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * Homepage "Schedule a demo" submissions: stored for the platform inbox and mailed to support.
+ * Homepage "Schedule a demo" and Contact page submissions: stored for the platform inbox and mailed to support.
  */
 class DemoRequestService
 {
     /**
      * @param  array<string, mixed>  $attributes
      */
-    public function submit(array $attributes): DemoRequest
+    public function submit(array $attributes, string $source = DemoRequest::SOURCE_DEMO): DemoRequest
     {
-        $demoRequest = DemoRequest::query()->create($attributes);
+        $demoRequest = DemoRequest::query()->create(['source' => $source] + $attributes);
 
         $to = settings('support_email') ?: settings('email');
         if ($to) {

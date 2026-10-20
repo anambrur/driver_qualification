@@ -133,23 +133,6 @@
             </div>
         </x-ui.card>
 
-        <x-ui.card title="Footer" description="Logo, contact details, social links, privacy and terms links and the copyright line come from Site settings.">
-            <x-slot:action>
-                <x-ui.button variant="outline" size="sm" :href="route('platform.settings.site.index')">Site settings</x-ui.button>
-            </x-slot:action>
-            <div class="grid gap-4">
-                <x-ui.field label="Tagline" name="footer[tagline]">
-                    <x-ui.textarea name="footer[tagline]" rows="2" maxlength="300" :value="$landing['footer']['tagline']" />
-                </x-ui.field>
-                @include('platform.content.partials.rows', [
-                    'name' => 'footer[links]', 'rows' => $list('footer.links'), 'max' => Landing::LIMITS['links'],
-                    'label' => 'Link', 'empty' => 'No company links. The column is hidden.',
-                    'blank' => ['label' => '', 'url' => ''],
-                    'fields' => ['label' => ['label' => 'Label', 'max' => 40], 'url' => ['label' => 'URL (https://…)', 'max' => 255]],
-                ])
-            </div>
-        </x-ui.card>
-
         <div class="sticky bottom-0 z-10 -mx-1 flex justify-end gap-2 border-t border-border bg-background/90 px-1 py-3 backdrop-blur">
             <x-ui.button type="submit" icon="check">Save landing page</x-ui.button>
         </div>

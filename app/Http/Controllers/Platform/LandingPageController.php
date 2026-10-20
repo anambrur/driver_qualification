@@ -11,7 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 /**
- * Homepage copy: hero, stats, features, steps, section headings, call to action and footer.
+ * Homepage copy: hero, stats, features, steps, section headings and call to action. The footer has its own editor.
  */
 class LandingPageController extends Controller
 {

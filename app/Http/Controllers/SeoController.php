@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Page;
 use App\Models\Plan;
+use App\Models\Post;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 
@@ -30,11 +32,24 @@ class SeoController extends Controller
 
     public function sitemap(): Response
     {
+        $base = rtrim(config('app.url'), '/');
         $lastmod = Plan::active()->max('updated_at');
         $urls = collect(config('seo.sitemap_routes'))->map(fn (string $name) => [
-            'loc' => rtrim(config('app.url'), '/').route($name, [], false),
+            'loc' => $base.route($name, [], false),
             'lastmod' => $name === 'home' && $lastmod ? Carbon::parse($lastmod)->toAtomString() : null,
         ]);
+
+        $pages = Page::query()->where('is_published', true)->orderBy('id')->get(['slug', 'updated_at']);
+        foreach ($pages as $page) {
+            $urls->push(['loc' => $base.parse_url($page->url(), PHP_URL_PATH), 'lastmod' => $page->updated_at?->toAtomString()]);
+        }
+
+        if ($pages->contains('slug', 'blog')) {
+            Post::query()->published()->latestFirst()->get(['slug', 'updated_at'])->each(fn (Post $post) => $urls->push([
+                'loc' => $base.route('blog.show', $post, false),
+                'lastmod' => $post->updated_at?->toAtomString(),
+            ]));
+        }
 
         return response()
             ->view('seo.sitemap', ['urls' => $urls], 200)

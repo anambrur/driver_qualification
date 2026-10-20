@@ -124,7 +124,6 @@ describe('landing page', function () {
     it('saves the landing page, dropping blank rows, and audits it', function () {
         $input = landingInput(['hero' => ['title' => 'Compliance, done.'], 'faq' => ['enabled' => '0']]);
         $input['stats']['items'] = [['value' => '1,000+', 'label' => 'Fleets'], ['value' => '', 'label' => '']];
-        $input['footer']['links'] = [['label' => 'Blog', 'url' => 'https://blog.example.com']];
 
         $this->actingAs(Actors::platformOwner(), 'platform')
             ->put(route('platform.content.landing.update'), $input)
@@ -134,20 +133,18 @@ describe('landing page', function () {
         expect($landing['hero']['title'])->toBe('Compliance, done.')
             ->and($landing['stats']['items'])->toEqual([['value' => '1,000+', 'label' => 'Fleets']])
             ->and($landing['faq']['enabled'])->toBeFalse()
-            ->and($landing['footer']['links'])->toEqual([['label' => 'Blog', 'url' => 'https://blog.example.com']])
             ->and(Landing::content()['hero']['title'])->toBe('Compliance, done.')
             ->and(AuditLog::where('action', 'landing.updated')->count())->toBe(1);
     });
 
-    it('rejects an unknown icon, a non-http link and too many stats', function () {
+    it('rejects an unknown icon and too many stats', function () {
         $input = landingInput();
         $input['features']['items'][0]['icon'] = 'not-an-icon';
-        $input['footer']['links'] = [['label' => 'Evil', 'url' => 'javascript:alert(1)']];
         $input['stats']['items'] = array_fill(0, 5, ['value' => '1', 'label' => 'x']);
 
         $this->actingAs(Actors::platformOwner(), 'platform')
             ->put(route('platform.content.landing.update'), $input)
-            ->assertSessionHasErrors(['features.items.0.icon', 'footer.links.0.url', 'stats.items']);
+            ->assertSessionHasErrors(['features.items.0.icon', 'stats.items']);
 
         expect(SiteSetting::query()->value('landing'))->toBeNull();
     });

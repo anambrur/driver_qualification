@@ -118,7 +118,7 @@ it('renders the roles list and every role form', function () {
     $this->actingAs(Actors::platformOwner(), 'platform');
 
     $this->get(route('platform.roles.index'))->assertOk()->assertSee('Built-in')->assertSee('Billing Manager');
-    $this->get(route('platform.roles.create'))->assertOk()->assertSee('Homepage content');
+    $this->get(route('platform.roles.create'))->assertOk()->assertSee('Public site content');
     foreach (array_keys(RoleTemplates::PLATFORM_ROLES) as $key) {
         $this->get(route('platform.roles.edit', platformRole($key)->id))->assertOk();
     }

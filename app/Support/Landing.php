@@ -23,7 +23,7 @@ final class Landing
     ];
 
     /** Most rows each list takes. */
-    public const LIMITS = ['stats' => 4, 'features' => 9, 'steps' => 4, 'links' => 6];
+    public const LIMITS = ['stats' => 4, 'features' => 9, 'steps' => 4];
 
     /**
      * Saved sections over the defaults. A saved list replaces the default list.
@@ -117,10 +117,6 @@ final class Landing
                 'title' => 'Ready to Go Audit-Ready?',
                 'text' => 'Start your free trial today — no credit card required. Join 5,200+ trucking companies already using our platform.',
                 'demo' => true,
-            ],
-            'footer' => [
-                'tagline' => 'Complete Driver Qualification File management. Stay DOT audit-ready with automated compliance tracking.',
-                'links' => [],
             ],
         ];
     }

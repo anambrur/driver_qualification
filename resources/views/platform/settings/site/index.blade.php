@@ -118,39 +118,19 @@
             </div>
         </x-ui.card>
 
-        <x-ui.card title="Social links">
-            <div class="grid gap-4 sm:grid-cols-3">
-                <x-ui.field label="Facebook" name="facebook_url">
-                    <x-ui.input type="url" name="facebook_url" :value="$setting->facebook_url" maxlength="255" placeholder="https://facebook.com/…" />
-                </x-ui.field>
-                <x-ui.field label="X (Twitter)" name="twitter_url">
-                    <x-ui.input type="url" name="twitter_url" :value="$setting->twitter_url" maxlength="255" placeholder="https://x.com/…" />
-                </x-ui.field>
-                <x-ui.field label="LinkedIn" name="linkedin_url">
-                    <x-ui.input type="url" name="linkedin_url" :value="$setting->linkedin_url" maxlength="255" placeholder="https://linkedin.com/company/…" />
-                </x-ui.field>
-            </div>
-        </x-ui.card>
-
-        <x-ui.card title="Legal and contact" description="Shown in the homepage footer. New demo requests are emailed to the support email, or to the general email when it's empty.">
+        <x-ui.card title="Legal and contact" description="New demo requests and contact messages are emailed to the support email, or to the general email when it's empty. The public footer has its own editor under Content.">
+            <x-slot:action>
+                <x-ui.button variant="outline" size="sm" icon="panel-bottom" :href="route('platform.content.footer.edit')">Edit footer</x-ui.button>
+            </x-slot:action>
             <div class="grid gap-4 sm:grid-cols-2">
-                <x-ui.field label="Legal name" name="legal_name" hint="Used in the copyright line.">
+                <x-ui.field label="Legal name" name="legal_name" hint="Used in the footer copyright line ({company}).">
                     <x-ui.input name="legal_name" :value="$setting->legal_name" maxlength="255" />
-                </x-ui.field>
-                <x-ui.field label="Footer text" name="footer_text" hint="Replaces the default copyright line.">
-                    <x-ui.input name="footer_text" :value="$setting->footer_text" maxlength="255" />
                 </x-ui.field>
                 <x-ui.field label="Support email" name="support_email">
                     <x-ui.input type="email" name="support_email" :value="$setting->support_email" maxlength="255" />
                 </x-ui.field>
                 <x-ui.field label="Support phone" name="support_phone">
                     <x-ui.input name="support_phone" :value="$setting->support_phone" maxlength="50" />
-                </x-ui.field>
-                <x-ui.field label="Privacy policy URL" name="privacy_url">
-                    <x-ui.input type="url" name="privacy_url" :value="$setting->privacy_url" maxlength="255" placeholder="https://…" />
-                </x-ui.field>
-                <x-ui.field label="Terms of service URL" name="terms_url">
-                    <x-ui.input type="url" name="terms_url" :value="$setting->terms_url" maxlength="255" placeholder="https://…" />
                 </x-ui.field>
             </div>
         </x-ui.card>

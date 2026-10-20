@@ -26,6 +26,14 @@
         @yield('content')
     </main>
 
+    {{-- Applicants hand over personal data: link the platform privacy policy --}}
+    @php($privacy = \App\Models\Page::publishedUrl('privacy-policy'))
+    @if ($privacy)
+        <footer class="py-6 text-center text-xs text-muted-foreground">
+            <a href="{{ $privacy }}" target="_blank" rel="noopener" class="underline underline-offset-4 hover:text-foreground">Privacy Policy</a>
+        </footer>
+    @endif
+
     <x-ui.toaster />
     <x-ui.confirm-dialog />
 

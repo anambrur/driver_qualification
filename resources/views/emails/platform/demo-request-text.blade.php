@@ -1,4 +1,4 @@
-A visitor asked for a demo on the homepage.
+{{ $demoRequest->source === \App\Models\DemoRequest::SOURCE_CONTACT ? 'A visitor sent a message from the Contact page.' : 'A visitor asked for a demo on the homepage.' }}
 
 Name: {{ $demoRequest->name }}
 Email: {{ $demoRequest->email }}
@@ -13,4 +13,4 @@ Phone: {{ $demoRequest->phone }}
 {{ $demoRequest->message }}
 @endif
 
-Open demo requests: {{ route('platform.content.demo-requests.index') }}
+Open the inbox: {{ route('platform.content.demo-requests.index') }}

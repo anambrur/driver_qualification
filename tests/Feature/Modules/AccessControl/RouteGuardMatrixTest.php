@@ -24,6 +24,12 @@ const ACL_PUBLIC_ROUTES = [
     'GET up',
     // Homepage "Schedule a demo" form: throttled, honeypot, stores contact details only.
     'POST demo-request',
+    // Public site pages and blog (Platform > Content); drafts are 404.
+    'GET blog',
+    'GET blog/{post}',
+    'GET {page}',
+    // Contact page form: throttled, honeypot, stores contact details only.
+    'POST contact',
     // SEO files: public by design (config/seo.php).
     'GET robots.txt',
     'GET sitemap.xml',

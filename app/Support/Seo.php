@@ -49,9 +49,7 @@ class Seo
     {
         $name = settings('site_name', config('app.name'));
         $url = rtrim(config('app.url'), '/').'/';
-        $sameAs = array_values(array_filter([
-            settings('facebook_url'), settings('twitter_url'), settings('linkedin_url'),
-        ]));
+        $sameAs = array_values(array_filter(array_column(Footer::content()['social'], 'url')));
 
         $organization = array_filter([
             '@type' => 'Organization',

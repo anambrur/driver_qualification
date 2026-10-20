@@ -36,6 +36,14 @@
                                     Please do not reply directly to this email.
                                 @endif
                             </p>
+                            @php($legal = array_filter(['Privacy Policy' => \App\Models\Page::publishedUrl('privacy-policy'), 'Terms of Service' => \App\Models\Page::publishedUrl('terms-of-service')]))
+                            @if ($legal)
+                                <p style="margin:8px 0 0;font-size:12px;line-height:18px;color:#71717a;text-align:center;">
+                                    @foreach ($legal as $label => $url)
+                                        <a href="{{ $url }}" style="color:#71717a;text-decoration:underline;">{{ $label }}</a>@if (! $loop->last) &middot; @endif
+                                    @endforeach
+                                </p>
+                            @endif
                         </td>
                     </tr>
                 </table>

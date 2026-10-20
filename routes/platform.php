@@ -15,10 +15,13 @@ use App\Http\Controllers\Platform\DashboardController;
 use App\Http\Controllers\Platform\DemoRequestController;
 use App\Http\Controllers\Platform\FaqController;
 use App\Http\Controllers\Platform\FeatureController;
+use App\Http\Controllers\Platform\FooterController;
 use App\Http\Controllers\Platform\LandingPageController;
+use App\Http\Controllers\Platform\PageController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlanPriceController;
 use App\Http\Controllers\Platform\PlatformRoleController;
+use App\Http\Controllers\Platform\PostController;
 use App\Http\Controllers\Platform\StaffController;
 use App\Http\Controllers\Platform\SubscriptionController;
 use App\Http\Controllers\Platform\SupportSessionController;
@@ -126,10 +129,14 @@ Route::prefix('platform')->name('platform.')->group(function () use ($can) {
             Route::put('/tawk', [TawkToSettingController::class, 'update'])->name('tawk.update');
         });
 
-        // Public homepage content and demo requests
-        Route::prefix('content')->name('content.')->whereNumber(['testimonial', 'faq', 'demoRequest'])->middleware($can('content.manage'))->group(function () {
+        // Public site content: homepage, pages, blog, footer and the inbox
+        Route::prefix('content')->name('content.')->whereNumber(['testimonial', 'faq', 'demoRequest', 'post'])->middleware($can('content.manage'))->group(function () {
             Route::get('/landing', [LandingPageController::class, 'edit'])->name('landing.edit');
             Route::put('/landing', [LandingPageController::class, 'update'])->name('landing.update');
+            Route::get('/footer', [FooterController::class, 'edit'])->name('footer.edit');
+            Route::put('/footer', [FooterController::class, 'update'])->name('footer.update');
+            Route::resource('pages', PageController::class)->only(['index', 'edit', 'update']);
+            Route::resource('posts', PostController::class)->except('show')->scoped(['post' => 'id']);
             Route::resource('testimonials', TestimonialController::class)->except('show');
             Route::resource('faqs', FaqController::class)->except('show');
             Route::get('/demo-requests', [DemoRequestController::class, 'index'])->name('demo-requests.index');

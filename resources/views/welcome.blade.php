@@ -260,79 +260,13 @@
 
 <body class="bg-card text-foreground antialiased overflow-x-hidden">
 
-    {{-- ============================================================ --}}
-    {{-- NAVIGATION --}}
-    {{-- ============================================================ --}}
-    <nav x-data="{ mobileOpen: false, scrolled: false }"
-        x-init="window.addEventListener('scroll', () => { scrolled = window.scrollY > 20 })"
-        :class="scrolled ? 'bg-background/80 backdrop-blur-xl shadow-lg border-b border-border/50' : 'bg-transparent'"
-        class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" id="main-nav">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16 lg:h-20">
-                {{-- Logo --}}
-                <a href="/" class="flex items-center gap-2 group shrink-0" aria-label="{{ settings('site_name', 'Home') }}">
-                    @if(settings('logo'))
-                        <img src="{{ asset('storage/' . settings('logo')) }}" alt="{{ settings('site_name', 'Company') }} Logo" class="h-11 lg:h-14 w-auto max-w-[200px] lg:max-w-[240px] object-contain">
-                    @else
-                        <img src="{{ asset('images/logo/logo-icon.svg') }}" alt="" width="40" height="40" class="size-9 lg:size-10 shrink-0">
-                        <span class="text-lg lg:text-xl font-semibold text-foreground">{{ settings('site_name', config('app.name')) }}</span>
-                    @endif
-                </a>
-
-                {{-- Desktop Nav --}}
-                <div class="hidden lg:flex items-center gap-8">
-                    @foreach ($navLinks as $anchor => $label)
-                    <a href="#{{ $anchor }}" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">{{ $label }}</a>
-                    @endforeach
-                </div>
-
-                {{-- Auth Buttons --}}
-                <div class="hidden lg:flex items-center gap-3">
-                    @if (Route::has('login'))
-                    @auth
-                    <a href="{{ url('/dashboard') }}" class="px-5 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-xl transition-all duration-200 shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5">Dashboard</a>
-                    @else
-                    <a href="{{ route('login') }}" class="px-5 py-2.5 text-sm font-medium text-foreground hover:text-primary transition-colors">Log In</a>
-                    @if (Route::has('register'))
-                    <a href="{{ route('register') }}" class="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)] hover:from-[color-mix(in_oklch,var(--primary)_88%,black)] hover:to-[color-mix(in_oklch,var(--primary)_74%,black)] rounded-xl transition-all duration-200 shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/40 hover:-translate-y-0.5">Start Free Trial</a>
-                    @endif
-                    @endauth
-                    @endif
-                </div>
-
-                {{-- Mobile Toggle --}}
-                <button @click="mobileOpen = !mobileOpen" class="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors">
-                    <svg x-show="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                    <svg x-show="mobileOpen" x-cloak class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        {{-- Mobile Menu --}}
-        <div x-show="mobileOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-            class="lg:hidden bg-background/95 backdrop-blur-xl border-b border-border">
-            <div class="px-4 py-4 space-y-2">
-                @foreach ($navLinks as $anchor => $label)
-                <a @click="mobileOpen = false" href="#{{ $anchor }}" class="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors">{{ $label }}</a>
-                @endforeach
-                <hr class="border-border my-2">
-                @if (Route::has('login'))
-                @auth
-                <a href="{{ url('/dashboard') }}" class="block px-4 py-2.5 text-center rounded-xl text-sm font-semibold text-white bg-primary">Dashboard</a>
-                @else
-                <a href="{{ route('login') }}" class="block px-4 py-2.5 rounded-lg text-sm font-medium text-center hover:bg-muted">Log In</a>
-                @if (Route::has('register'))
-                <a href="{{ route('register') }}" class="block px-4 py-2.5 text-center rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-primary to-[color-mix(in_oklch,var(--primary)_88%,black)]">Start Free Trial</a>
-                @endif
-                @endauth
-                @endif
-            </div>
-        </div>
-    </nav>
+    @php
+        $headerLinks = [];
+        foreach ($navLinks as $anchor => $label) {
+            $headerLinks['#'.$anchor] = $label;
+        }
+    @endphp
+    <x-site.header :links="$headerLinks" />
 
     {{-- ============================================================ --}}
     {{-- HERO SECTION --}}
@@ -804,91 +738,7 @@
     </section>
     @endif
 
-    {{-- ============================================================ --}}
-    {{-- FOOTER --}}
-    {{-- ============================================================ --}}
-    @php
-        $siteName = settings('site_name', config('app.name'));
-        $companyLinks = $landing['footer']['links'];
-        $legalLinks = array_filter(['Privacy Policy' => settings('privacy_url'), 'Terms of Service' => settings('terms_url')]);
-        $socialLinks = array_filter(['facebook' => settings('facebook_url'), 'x' => settings('twitter_url'), 'linkedin' => settings('linkedin_url')]);
-        $socialIcons = [
-            'facebook' => ['Facebook', 'M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.971h-1.513c-1.491 0-1.956.931-1.956 1.886v2.264h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z'],
-            'x' => ['X', 'M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z'],
-            'linkedin' => ['LinkedIn', 'M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z'],
-        ];
-    @endphp
-    <footer class="bg-sidebar text-sidebar-foreground pt-16 pb-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-                <div>
-                    <div class="flex items-center gap-2 mb-4">
-                        @if (settings('logo_dark'))
-                        <img src="{{ asset('storage/'.settings('logo_dark')) }}" alt="{{ $siteName }}" class="h-10 w-auto max-w-[200px] object-contain">
-                        @else
-                        <img src="{{ asset('images/logo/logo-icon.svg') }}" alt="" width="32" height="32" class="size-8 shrink-0">
-                        <span class="text-lg font-semibold text-white">{{ $siteName }}</span>
-                        @endif
-                    </div>
-                    @if (filled($landing['footer']['tagline']))
-                    <p class="text-sm leading-relaxed">{{ $landing['footer']['tagline'] }}</p>
-                    @endif
-                    @if (settings('email') || settings('phone'))
-                    <ul class="mt-4 space-y-1 text-sm">
-                        @if (settings('email'))
-                        <li><a href="mailto:{{ settings('email') }}" class="text-sidebar-foreground hover:text-white transition-colors">{{ settings('email') }}</a></li>
-                        @endif
-                        @if (settings('phone'))
-                        <li><a href="tel:{{ preg_replace('/[^0-9+]/', '', settings('phone')) }}" class="text-sidebar-foreground hover:text-white transition-colors">{{ settings('phone') }}</a></li>
-                        @endif
-                    </ul>
-                    @endif
-                </div>
-                @if ($navLinks)
-                <div>
-                    <h4 class="text-white font-semibold mb-4">Product</h4>
-                    <ul class="space-y-2 text-sm">
-                        @foreach ($navLinks as $anchor => $label)
-                        <li><a href="#{{ $anchor }}" class="text-sidebar-foreground hover:text-white transition-colors">{{ $label }}</a></li>
-                        @endforeach
-                    </ul>
-                </div>
-                @endif
-                @if ($companyLinks)
-                <div>
-                    <h4 class="text-white font-semibold mb-4">Company</h4>
-                    <ul class="space-y-2 text-sm">
-                        @foreach ($companyLinks as $link)
-                        <li><a href="{{ $link['url'] }}" class="text-sidebar-foreground hover:text-white transition-colors">{{ $link['label'] }}</a></li>
-                        @endforeach
-                    </ul>
-                </div>
-                @endif
-                @if ($legalLinks)
-                <div>
-                    <h4 class="text-white font-semibold mb-4">Legal</h4>
-                    <ul class="space-y-2 text-sm">
-                        @foreach ($legalLinks as $label => $url)
-                        <li><a href="{{ $url }}" class="text-sidebar-foreground hover:text-white transition-colors">{{ $label }}</a></li>
-                        @endforeach
-                    </ul>
-                </div>
-                @endif
-            </div>
-            <div class="border-t border-sidebar-border pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <p class="text-sm">{{ settings('footer_text') ?: '© '.date('Y').' '.(settings('legal_name') ?: $siteName).'. All rights reserved.' }}</p>
-                @if ($socialLinks)
-                <div class="flex gap-4">
-                    @foreach ($socialLinks as $network => $url)
-                    <a href="{{ $url }}" target="_blank" rel="noopener" aria-label="{{ $socialIcons[$network][0] }}" class="w-9 h-9 rounded-lg bg-sidebar-accent text-white hover:bg-highlight hover:text-sidebar flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="{{ $socialIcons[$network][1] }}" />
-                        </svg></a>
-                    @endforeach
-                </div>
-                @endif
-            </div>
-        </div>
-    </footer>
+    <x-site.footer :cta="false" />
 
     {{-- ============================================================ --}}
     {{-- DEMO MODAL --}}

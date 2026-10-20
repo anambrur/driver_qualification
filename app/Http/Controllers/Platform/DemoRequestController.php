@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
- * Homepage "Schedule a demo" requests.
+ * The inbox: homepage "Schedule a demo" requests and Contact page messages.
  */
 class DemoRequestController extends Controller
 {
@@ -20,9 +20,11 @@ class DemoRequestController extends Controller
     public function index(Request $request): View
     {
         $status = $request->query('status') === 'handled' ? 'handled' : 'open';
+        $source = array_key_exists((string) $request->query('source'), DemoRequest::SOURCES) ? (string) $request->query('source') : null;
 
         $demoRequests = DemoRequest::query()
             ->when($status === 'handled', fn ($q) => $q->handled(), fn ($q) => $q->open())
+            ->when($source, fn ($q) => $q->where('source', $source))
             ->with('handler:id,name')
             ->latest('id')
             ->paginate(25)
@@ -31,6 +33,7 @@ class DemoRequestController extends Controller
         return view('platform.content.demo-requests.index', [
             'demoRequests' => $demoRequests,
             'status' => $status,
+            'source' => $source,
             'openCount' => DemoRequest::query()->open()->count(),
         ]);
     }
@@ -46,7 +49,7 @@ class DemoRequestController extends Controller
     {
         $this->content->deleteDemoRequest($this->actor($request), $demoRequest);
 
-        return back()->with('success', 'Demo request deleted.');
+        return back()->with('success', 'Message deleted.');
     }
 
     private function actor(Request $request): PlatformUser

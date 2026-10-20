@@ -172,7 +172,7 @@ final class PermissionCatalogue
         'platform.subscriptions.manage' => ['Billing', 'Manage subscriptions', 'Grant, expire, suspend and move company subscriptions.'],
         'platform.payments.view' => ['Billing', 'View payments', 'Payment history and invoices.'],
         'platform.settings.manage' => ['Settings and content', 'Site settings and lookups', 'Site settings, live chat, policy PDFs and global lookups.'],
-        'platform.content.manage' => ['Settings and content', 'Homepage content', 'Landing page, testimonials, FAQs and demo requests.'],
+        'platform.content.manage' => ['Settings and content', 'Public site content', 'Landing page, pages, blog, footer, testimonials, FAQs and the inbox.'],
         'platform.audit.view' => ['Audit and support', 'View audit log', 'Every change made on the platform and in companies.'],
         'platform.support.request' => ['Audit and support', 'Request support sessions', 'Ask a company for temporary access to its data.'],
         'platform.support.approve' => ['Audit and support', 'Approve support sessions', 'Give the second, four-eyes approval for a support session.'],

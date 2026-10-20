@@ -58,8 +58,7 @@ it('follows the saved landing page and its switches', function () {
     $landing['stats']['enabled'] = false;
     $landing['faq']['enabled'] = false;
     $landing['cta']['demo'] = false;
-    $landing['footer']['links'] = [['label' => 'Careers', 'url' => 'https://jobs.example.com']];
-    SiteSetting::getSettings()->update(['landing' => $landing, 'privacy_url' => 'https://example.com/privacy']);
+    SiteSetting::getSettings()->update(['landing' => $landing]);
 
     $this->get('/')->assertOk()
         ->assertSee('Fleet files, sorted.')
@@ -69,10 +68,7 @@ it('follows the saved landing page and its switches', function () {
         ->assertDontSee('Switched off?')
         ->assertDontSee('href="#faq"', false)
         ->assertDontSee('"@type":"FAQPage"', false)
-        ->assertDontSee('Schedule a Demo')
-        ->assertSee('href="https://jobs.example.com"', false)
-        ->assertSee('href="https://example.com/privacy"', false)
-        ->assertDontSee('Terms of Service');
+        ->assertDontSee('Schedule a Demo');
 });
 
 it('badges the featured plan as most popular', function () {

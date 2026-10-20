@@ -37,9 +37,12 @@ final class PlatformMenu
         ],
         'Content' => [
             ['Landing page', 'platform.content.landing.edit', 'platform.content.manage', 'layout-template'],
+            ['Pages', 'platform.content.pages.index', 'platform.content.manage', 'file-text'],
+            ['Blog posts', 'platform.content.posts.index', 'platform.content.manage', 'newspaper'],
+            ['Footer', 'platform.content.footer.edit', 'platform.content.manage', 'panel-bottom'],
             ['Testimonials', 'platform.content.testimonials.index', 'platform.content.manage', 'message-square-quote'],
             ['FAQs', 'platform.content.faqs.index', 'platform.content.manage', 'circle-help'],
-            ['Demo requests', 'platform.content.demo-requests.index', 'platform.content.manage', 'inbox'],
+            ['Inbox', 'platform.content.demo-requests.index', 'platform.content.manage', 'inbox'],
         ],
         'Administration' => [
             ['Site settings', 'platform.settings.site.index', 'platform.settings.manage', 'settings'],

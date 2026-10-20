@@ -3,11 +3,13 @@
 use App\Http\Controllers\ApplicationFormController;
 use App\Http\Controllers\AssetGroupController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyInvitationController;
 use App\Http\Controllers\ComplianceDashboardController;
 use App\Http\Controllers\ComplianceReminderController;
+use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoRequestController;
 use App\Http\Controllers\DocumentTypeController;
@@ -17,6 +19,7 @@ use App\Http\Controllers\DriverController;
 use App\Http\Controllers\DriverDocumentUploadController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MaintenanceScheduleController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
@@ -151,6 +154,15 @@ Route::prefix('{slug}/application')->name('public.application.')->middleware(Res
     Route::post('/withdraw/{driver_id}', [ApplicationFormController::class, 'withdraw'])
         ->name('withdraw');
 });
+
+// Public site pages and blog (Platform > Content). Registered after /{slug}/apply so a company
+// slug always wins there; post slugs "apply" and "application" are refused.
+Route::get('blog', [BlogController::class, 'index'])->name('blog.index');
+Route::get('blog/{post}', [BlogController::class, 'show'])->name('blog.show');
+Route::get('{page}', [PageController::class, 'show'])
+    ->where('page', 'about|careers|contact|security|privacy-policy|terms-of-service')
+    ->name('pages.show');
+Route::post('contact', [ContactMessageController::class, 'store'])->middleware('throttle:5,10,contact')->name('contact.store');
 
 // Optional: Add middleware to validate slug exists
 // Route::bind('slug', function ($slug) {

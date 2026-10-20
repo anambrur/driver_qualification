@@ -1,10 +1,12 @@
 @extends('emails.layouts.compliance')
 
-@section('eyebrow', 'Demo request')
+@php($contact = $demoRequest->source === \App\Models\DemoRequest::SOURCE_CONTACT)
+
+@section('eyebrow', $contact ? 'Contact message' : 'Demo request')
 
 @section('content')
     <p style="margin:0 0 16px;font-size:15px;line-height:24px;">
-        A visitor asked for a demo on the homepage.
+        {{ $contact ? 'A visitor sent a message from the Contact page.' : 'A visitor asked for a demo on the homepage.' }}
     </p>
 
     <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 24px;font-size:14px;line-height:22px;">
@@ -22,5 +24,5 @@
         <p style="margin:0 0 24px;font-size:14px;line-height:22px;white-space:pre-line;">{{ $demoRequest->message }}</p>
     @endif
 
-    @include('emails.partials.button', ['url' => route('platform.content.demo-requests.index'), 'label' => 'Open demo requests'])
+    @include('emails.partials.button', ['url' => route('platform.content.demo-requests.index'), 'label' => 'Open the inbox'])
 @endsection

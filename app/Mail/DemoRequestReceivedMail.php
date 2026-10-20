@@ -12,7 +12,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Tells the platform's support inbox about a new homepage demo request.
+ * Tells the platform's support inbox about a new homepage demo request or Contact page message.
  */
 class DemoRequestReceivedMail extends Mailable implements ShouldQueue
 {
@@ -35,7 +35,7 @@ class DemoRequestReceivedMail extends Mailable implements ShouldQueue
         return new Envelope(
             from: new Address(config('mail.from.address'), config('mail.from.name')),
             replyTo: [new Address($this->demoRequest->email, $this->demoRequest->name)],
-            subject: 'New demo request from '.$this->demoRequest->name,
+            subject: ($this->demoRequest->source === DemoRequest::SOURCE_CONTACT ? 'New contact message from ' : 'New demo request from ').$this->demoRequest->name,
         );
     }
 

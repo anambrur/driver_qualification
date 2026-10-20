@@ -6,9 +6,10 @@ return [
 
     // Route names that are public marketing pages. EVERYTHING else is noindex (safe default).
     // Add a route name here only after deciding the page is meant to appear in Google.
-    'indexable_routes' => ['home', 'login', 'register'],
+    'indexable_routes' => ['home', 'login', 'register', 'pages.show', 'blog.index', 'blog.show'],
 
     // Subset of the above that goes into /sitemap.xml (login/register are indexable but low value).
+    // Published site pages and blog posts are added by SeoController.
     'sitemap_routes' => ['home'],
 
     // Paths blocked in robots.txt (crawl-budget + defence in depth; noindex is still sent).

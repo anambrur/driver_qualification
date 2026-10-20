@@ -9,8 +9,26 @@
 @source "../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php";
 
 @plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* Rich-text editor (resources/js/editor.js): no attachments, theme colours */
+trix-toolbar .trix-button-group--file-tools {
+    display: none;
+}
+trix-toolbar .trix-button-group {
+    border-color: var(--border);
+}
+.dark trix-toolbar .trix-button {
+    filter: invert(1);
+}
+trix-editor.rich-text {
+    min-height: 18rem;
+    border-radius: var(--radius);
+    border-color: var(--input);
+    background: var(--background);
+}
 
 /*
  * Design tokens (shadcn/ui variable names, consumed by Basecoat).

@@ -8,13 +8,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A "Schedule a demo" request from the homepage, worked by platform staff.
+ * A "Schedule a demo" request from the homepage or a Contact page message, worked by platform staff.
  */
 class DemoRequest extends Model
 {
     use HasFactory;
 
+    public const SOURCE_DEMO = 'demo';
+
+    public const SOURCE_CONTACT = 'contact';
+
+    /** source => label */
+    public const SOURCES = [self::SOURCE_DEMO => 'Demo request', self::SOURCE_CONTACT => 'Contact message'];
+
     protected $fillable = [
+        'source',
         'name',
         'email',
         'company',

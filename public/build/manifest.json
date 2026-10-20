@@ -20,7 +20,7 @@
     "src": "node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-vietnamese-wght-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-DSxwu9U4.css",
+    "file": "assets/app-DRRMP_l1.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "names": [
@@ -53,5 +53,14 @@
     "name": "driver-form",
     "src": "resources/js/driver-form.js",
     "isEntry": true
+  },
+  "resources/js/editor.js": {
+    "file": "assets/editor-DIS5CyF0.js",
+    "name": "editor",
+    "src": "resources/js/editor.js",
+    "isEntry": true,
+    "css": [
+      "assets/editor-lev5Q_f0.css"
+    ]
   }
 }

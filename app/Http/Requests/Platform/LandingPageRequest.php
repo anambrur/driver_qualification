@@ -12,7 +12,7 @@ class LandingPageRequest extends FormRequest
     private const TOGGLED = ['stats', 'features', 'steps', 'pricing', 'testimonials', 'faq', 'cta'];
 
     /** Add/remove row lists. */
-    private const LISTS = ['stats.items', 'features.items', 'steps.items', 'footer.links'];
+    private const LISTS = ['stats.items', 'features.items', 'steps.items'];
 
     protected function prepareForValidation(): void
     {
@@ -92,11 +92,6 @@ class LandingPageRequest extends FormRequest
             'cta.title' => ['required', 'string', 'max:120'],
             'cta.text' => ['nullable', 'string', 'max:400'],
             'cta.demo' => ['boolean'],
-
-            'footer.tagline' => ['nullable', 'string', 'max:300'],
-            'footer.links' => ['array', 'max:'.Landing::LIMITS['links']],
-            'footer.links.*.label' => ['required', 'string', 'max:40'],
-            'footer.links.*.url' => ['required', 'url:http,https', 'max:255'],
         ];
     }
 
@@ -110,7 +105,6 @@ class LandingPageRequest extends FormRequest
             'features.items.*.icon' => 'feature icon', 'features.items.*.color' => 'feature colour',
             'features.items.*.title' => 'feature title', 'features.items.*.text' => 'feature text',
             'steps.items.*.icon' => 'step icon', 'steps.items.*.title' => 'step title', 'steps.items.*.text' => 'step text',
-            'footer.links.*.label' => 'link label', 'footer.links.*.url' => 'link URL',
         ];
     }
 

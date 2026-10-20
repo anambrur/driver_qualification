@@ -24,7 +24,7 @@ it('keeps the appearance section and every site setting field', function () {
         ->assertOk()
         ->assertSee('id="appearance"', false)
         ->assertSee(['name="site_name"', 'name="logo"', 'name="favicon"', 'name="meta_description"', 'name="google_analytics_id"',
-            'name="facebook_url"', 'name="trial_plan_id"', 'name="trial_days"', 'name="grace_days"', 'name="support_session_max_minutes"'], false);
+            'name="legal_name"', 'name="trial_plan_id"', 'name="trial_days"', 'name="grace_days"', 'name="support_session_max_minutes"'], false);
 });
 
 it('shows the live chat switch in its saved state', function () {
