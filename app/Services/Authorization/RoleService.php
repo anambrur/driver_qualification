@@ -3,11 +3,14 @@
 namespace App\Services\Authorization;
 
 use App\Authorization\PermissionCatalogue;
+use App\Authorization\RoleTemplates;
 use App\Authorization\TeamScope;
 use App\Authorization\TenantPermissionResolver;
+use App\Features\Feature;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Entitlements\Entitlements;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -16,7 +19,9 @@ use Illuminate\Support\Str;
 
 /**
  * Company roles (06 §8): same company only, grant only what you hold, locked roles untouched.
- * Role ids are looked up inside the actor's team, so a foreign id is a 404.
+ * Role ids are looked up inside the actor's team, so a foreign id is a 404. Built-in roles can be
+ * edited on any plan (marked customized_at, so CompanyRoleSync keeps the edit) and reset; custom
+ * roles need the Custom roles feature.
  */
 class RoleService
 {
@@ -36,6 +41,10 @@ class RoleService
                 ->whereColumn('model_has_roles.role_id', 'roles.id')
                 ->whereColumn('model_has_roles.team_id', 'roles.team_id')
                 ->limit(1)])
+            ->addSelect(['users_count' => DB::table('model_has_roles')
+                ->selectRaw('count(*)')
+                ->whereColumn('model_has_roles.role_id', 'roles.id')
+                ->whereColumn('model_has_roles.team_id', 'roles.team_id')])
             ->with('permissions:id,name')
             ->orderByDesc('is_system')
             ->orderBy('name')
@@ -48,11 +57,32 @@ class RoleService
     }
 
     /**
-     * Whether the actor may edit or delete the role: unlocked, and they hold all its permissions.
+     * Whether the actor may edit or delete the role: unlocked, they hold all its permissions,
+     * and a custom role also needs the Custom roles feature.
      */
     public function manageable(User $actor, Role $role): bool
     {
-        return ! $role->isLocked() && $this->resolver->holdsAll($actor, $role->permissions->pluck('name'));
+        return ! $role->isLocked()
+            && ($role->is_system || $this->customRolesAllowed($actor))
+            && $this->resolver->holdsAll($actor, $role->permissions->pluck('name'));
+    }
+
+    /**
+     * The company's plan includes Custom roles: creating, deleting and editing custom roles.
+     */
+    public function customRolesAllowed(User $actor): bool
+    {
+        return $actor->company !== null && Entitlements::for($actor->company)->allows(Feature::CustomRoles);
+    }
+
+    /**
+     * The built-in permissions of a system role, or null for a custom one.
+     *
+     * @return list<string>|null
+     */
+    public function defaults(Role $role): ?array
+    {
+        return $role->is_system ? RoleTemplates::permissionsFor($role->name) : null;
     }
 
     /**
@@ -95,6 +125,7 @@ class RoleService
     public function create(User $actor, string $name, array $permissions): Role
     {
         $this->requirePermission($actor, 'roles.create');
+        $this->requireCustomRoles($actor);
         $this->requireHeld($actor, $permissions);
 
         return DB::transaction(fn () => TeamScope::run($actor->company_id, function () use ($actor, $name, $permissions) {
@@ -123,17 +154,46 @@ class RoleService
                 throw new AuthorizationException('System roles keep their name.');
             }
 
+            if (! $role->is_system) {
+                $this->requireCustomRoles($actor);
+            }
+
             $this->requireHeld($actor, array_merge($before, $permissions));
 
-            $role->forceFill(['name' => $name])->save();
+            $added = array_values(array_diff($permissions, $before));
+            $removed = array_values(array_diff($before, $permissions));
+
+            $role->forceFill([
+                'name' => $name,
+                'customized_at' => $role->is_system && ($added || $removed) ? now() : $role->customized_at,
+            ])->save();
             $role->syncPermissions($permissions);
             $this->resolver->flush();
 
-            AuditLog::record($actor, $actor->company_id, 'role.updated', $role, [
-                'name' => $name,
-                'added' => array_values(array_diff($permissions, $before)),
-                'removed' => array_values(array_diff($before, $permissions)),
-            ]);
+            AuditLog::record($actor, $actor->company_id, 'role.updated', $role, ['name' => $name, 'added' => $added, 'removed' => $removed]);
+
+            return $role;
+        }));
+    }
+
+    /**
+     * Back to the built-in permissions; CompanyRoleSync follows the defaults again from then on.
+     */
+    public function reset(User $actor, int $roleId): Role
+    {
+        $this->requirePermission($actor, 'roles.edit');
+
+        return DB::transaction(fn () => TeamScope::run($actor->company_id, function () use ($actor, $roleId) {
+            $role = $this->editableRole($actor, $roleId);
+            $defaults = $this->defaults($role) ?? throw new AuthorizationException('Only built-in roles have defaults.');
+
+            $this->requireHeld($actor, array_merge($role->permissions()->pluck('name')->all(), $defaults));
+
+            $role->forceFill(['customized_at' => null])->save();
+            $role->syncPermissions($defaults);
+            $this->resolver->flush();
+
+            AuditLog::record($actor, $actor->company_id, 'role.reset', $role, ['name' => $role->name]);
 
             return $role;
         }));
@@ -142,6 +202,7 @@ class RoleService
     public function delete(User $actor, int $roleId): void
     {
         $this->requirePermission($actor, 'roles.delete');
+        $this->requireCustomRoles($actor);
 
         DB::transaction(fn () => TeamScope::run($actor->company_id, function () use ($actor, $roleId) {
             $role = $this->editableRole($actor, $roleId);
@@ -179,6 +240,13 @@ class RoleService
         }
 
         return $role;
+    }
+
+    private function requireCustomRoles(User $actor): void
+    {
+        if (! $this->customRolesAllowed($actor)) {
+            throw new AuthorizationException('Custom roles are not part of your plan.');
+        }
     }
 
     private function requirePermission(User $actor, string $permission): void

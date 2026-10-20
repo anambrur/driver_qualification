@@ -175,15 +175,17 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{user}/permissions/{permission}', [UserPermissionController::class, 'destroy'])->name('permissions.destroy')->middleware('permission:permissions.grant');
     });
 
-    // Company roles (10 §4): per team, so another company's role id is a 404
-    Route::prefix('roles')->name('admin.roles.')->whereNumber('role')->middleware('feature:custom_roles')->group(function () {
+    // Company roles (10 §4): per team, so another company's role id is a 404. Viewing roles and
+    // editing the built-in ones is core; creating and deleting roles needs the Custom roles feature.
+    Route::prefix('roles')->name('admin.roles.')->whereNumber('role')->group(function () {
         Route::get('/', [RoleController::class, 'index'])->name('index')->middleware('permission:roles.view');
-        Route::get('/create', [RoleController::class, 'create'])->name('create')->middleware('permission:roles.create');
-        Route::post('/', [RoleController::class, 'store'])->name('store')->middleware('permission:roles.create');
+        Route::get('/create', [RoleController::class, 'create'])->name('create')->middleware(['feature:custom_roles', 'permission:roles.create']);
+        Route::post('/', [RoleController::class, 'store'])->name('store')->middleware(['feature:custom_roles', 'permission:roles.create']);
         Route::get('/{role}', [RoleController::class, 'show'])->name('show')->middleware('permission:roles.view');
         Route::get('/{role}/edit', [RoleController::class, 'edit'])->name('edit')->middleware('permission:roles.edit');
         Route::put('/{role}', [RoleController::class, 'update'])->name('update')->middleware('permission:roles.edit');
-        Route::delete('/{role}', [RoleController::class, 'destroy'])->name('destroy')->middleware('permission:roles.delete');
+        Route::post('/{role}/reset', [RoleController::class, 'reset'])->name('reset')->middleware('permission:roles.edit');
+        Route::delete('/{role}', [RoleController::class, 'destroy'])->name('destroy')->middleware(['feature:custom_roles', 'permission:roles.delete']);
     });
 
     // ─── Billing (07 §6): per company. Reachable in every access state except blocked, so a

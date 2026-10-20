@@ -146,7 +146,7 @@ describe('roles', function () {
         $yard = Role::query()->where('team_id', $company->id)->where('name', 'Yard')->sole();
 
         $html = $this->actingAs($company->owner)->get(route('admin.roles.index'))->assertOk()
-            ->assertSee(['Roles Management', 'Add New Role', 'Yard', 'vehicles.view'])
+            ->assertSee(['Roles and permissions', 'New role', 'Yard', 'Custom'])
             ->assertSee('action="'.route('admin.roles.destroy', $yard->id).'"', false)
             ->assertSee('data-confirm="Delete the Yard role?"', false)
             ->assertDontSee('deleteRoleForm', false)
@@ -161,12 +161,12 @@ describe('roles', function () {
 
         $create = $this->actingAs($company->owner)->get(route('admin.roles.create'))->assertOk()
             ->assertSee('action="'.route('admin.roles.store').'"', false)
-            ->assertSee(['class="group-toggle input"', 'name="permissions[]"', 'value="vehicles.view"'], false)
+            ->assertSee(['>All</button>', 'name="permissions[]"', 'value="vehicles.view"'], false)
             ->getContent();
 
         $edit = $this->actingAs($company->owner)->get(route('admin.roles.edit', $role->id))->assertOk()
             ->assertSee('action="'.route('admin.roles.update', $role->id).'"', false)
-            ->assertSee('System roles keep their name.')
+            ->assertSee('Built-in roles keep their name.')
             ->assertSee('readonly', false)
             ->getContent();
 

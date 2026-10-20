@@ -2,6 +2,8 @@
 
 namespace App\Authorization;
 
+use Illuminate\Support\Str;
+
 /**
  * Every permission the app knows (06 §5 tenant, 04 §3 platform). PermissionSeeder syncs these
  * rows; nothing else creates permissions.
@@ -24,9 +26,10 @@ final class PermissionCatalogue
         'billing.manage' => [null, true, false],
         'document-types.toggle' => [null, true, false],
 
-        'roles.view' => ['custom_roles', false, false],
+        // Viewing roles and editing the built-in ones is core; custom roles need the plan feature
+        'roles.view' => [null, false, false],
         'roles.create' => ['custom_roles', true, false],
-        'roles.edit' => ['custom_roles', true, false],
+        'roles.edit' => [null, true, false],
         'roles.delete' => ['custom_roles', true, false],
         'permissions.grant' => ['custom_roles', true, false],
 
@@ -174,6 +177,42 @@ final class PermissionCatalogue
         'platform.support.request' => ['Audit and support', 'Request support sessions', 'Ask a company for temporary access to its data.'],
         'platform.support.approve' => ['Audit and support', 'Approve support sessions', 'Give the second, four-eyes approval for a support session.'],
     ];
+
+    /** Tenant permission prefix => group heading on the role form (default: the prefix, headlined). */
+    private const TENANT_GROUPS = [
+        'company' => 'Company profile', 'permissions' => 'Roles', 'scheduled' => 'Scheduled maintenance',
+        'fleets' => 'Fleet compliance', 'exports' => 'ZIP exports', 'pay' => 'Driver pay', 'mobile' => 'Mobile app',
+        'tracking' => 'GPS tracking', 'reminders' => 'Compliance reminders',
+    ];
+
+    /** Labels that read badly when built from the name. */
+    private const TENANT_LABELS = [
+        'permissions.grant' => 'Grant permissions to a user', 'document-types.toggle' => 'Switch document types on or off',
+        'drivers.dashboard' => 'Compliance dashboard', 'fleets.dashboard' => 'Compliance dashboard',
+    ];
+
+    /**
+     * Tenant permissions grouped for the role form: group => [name => label]. A self-scoped
+     * permission reads "… (own only)".
+     *
+     * @param  iterable<string>  $names
+     * @return array<string, array<string, string>>
+     */
+    public static function tenantGroups(iterable $names): array
+    {
+        $groups = [];
+
+        foreach ($names as $name) {
+            $prefix = strstr($name, '.', true) ?: $name;
+            $action = substr($name, strlen($prefix) + 1);
+            $label = self::TENANT_LABELS[$name]
+                ?? ucfirst(str_replace(['-', '.own'], [' ', ''], $action)).(str_ends_with($action, '.own') ? ' (own only)' : '');
+
+            $groups[self::TENANT_GROUPS[$prefix] ?? Str::headline($prefix)][$name] = $label;
+        }
+
+        return $groups;
+    }
 
     /**
      * PLATFORM_DETAILS grouped for the role form: group => [name => [label, description]].

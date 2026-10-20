@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Authorization\PermissionCatalogue;
 use App\Http\Requests\Roles\RoleRequest;
 use App\Models\User;
 use App\Services\Authorization\RoleService;
@@ -25,6 +26,8 @@ class RoleController extends Controller
         return view('admin.roles.index', [
             'roles' => $roles,
             'manageable' => $roles->filter(fn ($role) => $this->roles->manageable($this->actor($request), $role))->modelKeys(),
+            'customRoles' => $this->roles->customRolesAllowed($this->actor($request)),
+            'total' => count(PermissionCatalogue::TENANT),
         ]);
     }
 
@@ -32,7 +35,8 @@ class RoleController extends Controller
     {
         return view('admin.roles.form', [
             'role' => null,
-            'permissions' => $this->roles->grantable($this->actor($request)),
+            'groups' => PermissionCatalogue::tenantGroups(array_merge(...array_values($this->roles->grantable($this->actor($request))))),
+            'defaults' => null,
         ]);
     }
 
@@ -47,12 +51,22 @@ class RoleController extends Controller
         return redirect()->route('admin.roles.index');
     }
 
-    public function show(Request $request, int $role): RedirectResponse
+    /**
+     * Read-only: every permission of the role, for locked roles and roles the actor can't edit.
+     * Another company's role is a 404.
+     */
+    public function show(Request $request, int $role): View|RedirectResponse
     {
-        // Another company's role is a 404, not a redirect that confirms it exists
-        $this->roles->find($this->actor($request), $role);
+        $model = $this->roles->find($this->actor($request), $role);
 
-        return redirect()->route('admin.roles.edit', $role);
+        if ($this->actor($request)->can('roles.edit') && $this->roles->manageable($this->actor($request), $model)) {
+            return redirect()->route('admin.roles.edit', $role);
+        }
+
+        return view('admin.roles.show', [
+            'role' => $model,
+            'groups' => PermissionCatalogue::tenantGroups($model->permissions->pluck('name')->sort()),
+        ]);
     }
 
     public function edit(Request $request, int $role): View
@@ -63,7 +77,8 @@ class RoleController extends Controller
 
         return view('admin.roles.form', [
             'role' => $model,
-            'permissions' => $this->roles->grantable($this->actor($request)),
+            'groups' => PermissionCatalogue::tenantGroups(array_merge(...array_values($this->roles->grantable($this->actor($request))))),
+            'defaults' => $this->roles->defaults($model),
         ]);
     }
 
@@ -76,6 +91,15 @@ class RoleController extends Controller
         Toast::success('Role updated successfully');
 
         return redirect()->route('admin.roles.index');
+    }
+
+    public function reset(Request $request, int $role): RedirectResponse
+    {
+        $this->roles->reset($this->actor($request), $role);
+
+        Toast::success('Role reset to its default permissions');
+
+        return redirect()->route('admin.roles.edit', $role);
     }
 
     public function destroy(Request $request, int $role): RedirectResponse

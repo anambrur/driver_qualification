@@ -178,6 +178,7 @@ function isoFixtures(): array
         'GET roles/{role}' => $role,
         'GET roles/{role}/edit' => $role,
         'PUT roles/{role}' => $role,
+        'POST roles/{role}/reset' => $role,
         'DELETE roles/{role}' => $role,
         'POST users/invitations/{invitation}/resend' => $invitation,
         'DELETE users/invitations/{invitation}' => $invitation,
