@@ -8,10 +8,10 @@ use Tests\Feature\Modules\PublicApplication\Applicant;
 
 /*
 | UI-16 (phase 2, batch 8b): public application step 1 on x-ui cards and fields. The page keeps
-| its own markup instead of the admin driver form partials (those post indexed names such as
-| residence_address[0]; step 1 posts residence_address[] and driver-form.js is not loaded here),
-| so the field order, names and ids below are the contract with StoreApplicationStep1Request and
-| the step's own scripts.
+| its own markup instead of the admin driver form partials (driver-form.js is not loaded here).
+| Repeating rows post indexed names such as residence_address[0], like the admin form (UX
+| follow-ups part C), so the field order, names and ids below are the contract with
+| StoreApplicationStep1Request and the step's own scripts.
 */
 
 beforeEach(function () {
@@ -69,23 +69,23 @@ it('keeps every field in the same order with the same names and ids', function (
         'date_of_birth#date_of_birth', 'ssn#ssn', 'main_phone#main_phone', 'alt_phone#alt_phone', 'email#email',
         'address#address', 'city#city', 'country#country', 'state#state', 'postal_code#postal_code',
         'twic_card', 'passport', 'photo#photo', 'same_address#same_address_checkbox',
-        'residence_address[]#residence_address_0', 'residence_city[]#residence_city_0', 'residence_country[]#residence_country_0',
-        'residence_state[]#residence_state_0', 'residence_postal_code[]#residence_postal_code_0',
+        'residence_address[0]#residence_address_0', 'residence_city[0]#residence_city_0', 'residence_country[0]#residence_country_0',
+        'residence_state[0]#residence_state_0', 'residence_postal_code[0]#residence_postal_code_0',
         'license_first_name#license_first_name', 'license_last_name#license_last_name', 'license_issued#license_issued',
         'license_expires#license_expires', 'license_country#license_country', 'license_state#license_state',
         'license_class#license_class', 'license_number#license_number', 'repeat_license_number#repeat_license_number',
         'is_h_placarded_hazmat', 'is_n_tank_vehicle', 'is_p_passengers', 'is_t_double_trailer', 'is_s_school_bus', 'is_x_placarded_hazmat',
         ...$experience,
-        'accident', 'accident', 'accident_date[]', 'accident_location[]', 'number_of_injuries[]', 'number_of_fatalities[]', 'hazmat_spill[]',
-        'violation', 'violation', 'violation_date[]', 'violation_location[]', 'offense[]', 'vehicle_type[]',
+        'accident', 'accident', 'accident_date[0]', 'accident_location[0]', 'number_of_injuries[0]', 'number_of_fatalities[0]', 'hazmat_spill[0]',
+        'violation', 'violation', 'violation_date[0]', 'violation_location[0]', 'offense[0]', 'vehicle_type[0]',
         'denied_license', 'denied_license', 'license_revoked', 'license_revoked', 'forfeitures#forfeitures',
-        'employer_name[]#employer_name_0', 'employer_record_address[]#employer_record_address_0', 'employer_record_city[]#employer_record_city_0',
-        'employer_record_country[]#employer_record_country_0', 'employer_record_state[]#employer_record_state_0',
-        'employer_record_postal_code[]#employer_record_postal_code_0', 'employer_record_phone[]#employer_record_phone_0',
-        'employer_record_fax[]#employer_record_fax_0', 'employer_record_email[]#employer_record_email_0',
-        'employer_record_position[]#employer_record_position_0', 'employer_record_date_from[]#employer_record_date_from_0',
-        'employer_record_date_to[]#employer_record_date_to_0', 'employer_record_reason_for_leaving[]#employer_record_reason_for_leaving_0',
-        'employed_regulations[]', 'employed_regulations[]', 'safety_sensitive_function[]', 'safety_sensitive_function[]',
+        'employer_name[0]#employer_name_0', 'employer_record_address[0]#employer_record_address_0', 'employer_record_city[0]#employer_record_city_0',
+        'employer_record_country[0]#employer_record_country_0', 'employer_record_state[0]#employer_record_state_0',
+        'employer_record_postal_code[0]#employer_record_postal_code_0', 'employer_record_phone[0]#employer_record_phone_0',
+        'employer_record_fax[0]#employer_record_fax_0', 'employer_record_email[0]#employer_record_email_0',
+        'employer_record_position[0]#employer_record_position_0', 'employer_record_date_from[0]#employer_record_date_from_0',
+        'employer_record_date_to[0]#employer_record_date_to_0', 'employer_record_reason_for_leaving[0]#employer_record_reason_for_leaving_0',
+        'employed_regulations[0]', 'employed_regulations[0]', 'safety_sensitive_function[0]', 'safety_sensitive_function[0]',
     ]);
 });
 
@@ -96,14 +96,14 @@ it('keeps the required fields, the radio defaults and the repeater templates', f
         'license_first_name', 'license_last_name', 'license_issued', 'license_expires', 'license_number', 'repeat_license_number'] as $field) {
         expect($html)->toMatch('~<input[^>]*name="'.$field.'"[^>]*required~');
     }
-    foreach (['accident', 'violation', 'denied_license', 'license_revoked', 'employed_regulations[]', 'safety_sensitive_function[]'] as $question) {
+    foreach (['accident', 'violation', 'denied_license', 'license_revoked', 'employed_regulations[0]', 'safety_sensitive_function[0]'] as $question) {
         expect($html)->toMatch('~name="'.preg_quote($question, '~').'" value="no" checked~');
     }
 
-    expect($html)->toContain('id="residence_address_${residenceCount}" name="residence_address[]"')
-        ->toContain('<input type="date" name="accident_date[]"')
-        ->toContain('<input type="date" name="violation_date[]"')
-        ->toContain('id="employer_name_${employmentRecordCount}" name="employer_name[]"')
+    expect($html)->toContain('id="residence_address_${residenceCount}" name="residence_address[${residenceCount}]"')
+        ->toContain('<input type="date" name="accident_date[${accidentCount}]"')
+        ->toContain('<input type="date" name="violation_date[${violationCount}]"')
+        ->toContain('id="employer_name_${employmentRecordCount}" name="employer_name[${employmentRecordCount}]"')
         ->toContain('Was your job designated as a safety sensitive function, in any DOT regulated mode, subject to the alcohol and controlled substances testing requirements required by 49 CFR Part 40?');
 });
 

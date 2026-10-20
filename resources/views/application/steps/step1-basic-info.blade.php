@@ -3,6 +3,14 @@
 @section('title', 'Step 1: Basic Information')
 
 @section('content')
+    @php
+        $v = $form->values;
+        // Saved rows hold codes, posted values hold ids; the options post ids
+        $countryIds = $countries->pluck('id', 'iso_code');
+        $stateIds = $states->pluck('id', 'code');
+        $countryId = fn ($value) => $countryIds[(string) $value] ?? $value;
+        $stateId = fn ($value) => $stateIds[(string) $value] ?? $value;
+    @endphp
     <x-application.step :company="$company" :driver="$driver" :step="1" title="Driver's Application"
         description="Your personal details, residences, license, experience and employment history.">
         <x-slot:aside>
@@ -46,25 +54,25 @@
                 <div class="space-y-6">
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                         <x-ui.field label="First Name" for="first_name" name="first_name" required>
-                            <x-ui.input id="first_name" name="first_name" required />
+                            <x-ui.input id="first_name" name="first_name" :value="$v['first_name']" required />
                         </x-ui.field>
                         <x-ui.field label="Middle Name" for="middle_name" name="middle_name">
-                            <x-ui.input id="middle_name" name="middle_name" />
+                            <x-ui.input id="middle_name" name="middle_name" :value="$v['middle_name']" />
                         </x-ui.field>
                         <x-ui.field label="Last Name" for="last_name" name="last_name" required>
-                            <x-ui.input id="last_name" name="last_name" required />
+                            <x-ui.input id="last_name" name="last_name" :value="$v['last_name']" required />
                         </x-ui.field>
                         <x-ui.field label="Suffix" for="suffix" name="suffix">
-                            <x-ui.input id="suffix" name="suffix" />
+                            <x-ui.input id="suffix" name="suffix" :value="$v['suffix']" />
                         </x-ui.field>
                     </div>
 
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <x-ui.field label="Business Name" for="business_name" name="business_name">
-                            <x-ui.input id="business_name" name="business_name" />
+                            <x-ui.input id="business_name" name="business_name" :value="$v['business_name']" />
                         </x-ui.field>
                         <x-ui.field label="Employer Identification Number" for="employer_identification_number" name="employer_identification_number">
-                            <x-ui.input id="employer_identification_number" name="employer_identification_number" />
+                            <x-ui.input id="employer_identification_number" name="employer_identification_number" :value="$v['employer_identification_number']" />
                         </x-ui.field>
                     </div>
 
@@ -74,7 +82,7 @@
                             @foreach (['individual_sole_proprietor' => 'Individual/Sole Proprietor', 'c_corporation' => 'C Corporation', 's_corporation' => 'S Corporation', 'llc' => 'LLC'] as $value => $label)
                                 <label class="label gap-2 font-normal">
                                     <input type="radio" name="federal_tax_classification" value="{{ $value }}"
-                                        {{ old('federal_tax_classification') == $value ? 'checked' : '' }} class="input" />
+                                        {{ old('federal_tax_classification', $v['federal_tax_classification']) == $value ? 'checked' : '' }} class="input" />
                                     {{ $label }}
                                 </label>
                             @endforeach
@@ -86,40 +94,40 @@
 
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <x-ui.field label="Date of Birth" for="date_of_birth" name="date_of_birth" required>
-                            <x-ui.input type="date" id="date_of_birth" name="date_of_birth" required />
+                            <x-ui.input type="date" id="date_of_birth" name="date_of_birth" :value="$v['date_of_birth']" required />
                         </x-ui.field>
                         <x-ui.field label="Social Security Number" for="ssn" name="ssn" required>
-                            <x-ui.input id="ssn" name="ssn" required placeholder="XXX-XX-XXXX" />
+                            <x-ui.input id="ssn" name="ssn" :value="$v['ssn']" required placeholder="XXX-XX-XXXX" />
                         </x-ui.field>
                     </div>
 
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <x-ui.field label="Main Phone Number" for="main_phone" name="main_phone" required>
-                            <x-ui.input type="tel" id="main_phone" name="main_phone" required />
+                            <x-ui.input type="tel" id="main_phone" name="main_phone" :value="$v['main_phone']" required />
                         </x-ui.field>
                         <x-ui.field label="Alt Phone Number" for="alt_phone" name="alt_phone">
-                            <x-ui.input type="tel" id="alt_phone" name="alt_phone" />
+                            <x-ui.input type="tel" id="alt_phone" name="alt_phone" :value="$v['alt_phone']" />
                         </x-ui.field>
                     </div>
 
                     <x-ui.field label="Email Address" for="email" name="email" required>
-                        <x-ui.input type="email" id="email" name="email" required />
+                        <x-ui.input type="email" id="email" name="email" :value="$v['email']" required />
                     </x-ui.field>
 
                     <x-ui.field label="Address" for="address" name="address" required>
-                        <x-ui.input id="address" name="address" required />
+                        <x-ui.input id="address" name="address" :value="$v['address']" required />
                     </x-ui.field>
 
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                         <x-ui.field label="City" for="city" name="city" required>
-                            <x-ui.input id="city" name="city" required />
+                            <x-ui.input id="city" name="city" :value="$v['city']" required />
                         </x-ui.field>
                         <x-ui.field label="Country" for="country" name="country" required>
                             <x-ui.select id="country" name="country" required>
                                 <option value="">Select Country</option>
                                 @foreach ($countries as $country)
                                     <option value="{{ $country->id }}"
-                                        {{ old('country', $defaultCountry) == $country->id ? 'selected' : '' }}>
+                                        {{ $countryId(old('country', $v['country'])) == $country->id ? 'selected' : '' }}>
                                         {{ $country->name }}
                                     </option>
                                 @endforeach
@@ -130,7 +138,7 @@
                                 <option value="">Select State</option>
                                 @if (isset($states) && $states->count())
                                     @foreach ($states as $state)
-                                        <option value="{{ $state->id }}" {{ old('state') == $state->id ? 'selected' : '' }}>
+                                        <option value="{{ $state->id }}" {{ $stateId(old('state', $v['state'])) == $state->id ? 'selected' : '' }}>
                                             {{ $state->name }}
                                         </option>
                                     @endforeach
@@ -138,17 +146,17 @@
                             </x-ui.select>
                         </x-ui.field>
                         <x-ui.field label="Postal Code" for="postal_code" name="postal_code" required>
-                            <x-ui.input id="postal_code" name="postal_code" required />
+                            <x-ui.input id="postal_code" name="postal_code" :value="$v['postal_code']" required />
                         </x-ui.field>
                     </div>
 
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <label class="label gap-2 font-normal">
-                            <input type="checkbox" name="twic_card" value="1" {{ old('twic_card') ? 'checked' : '' }} class="input" />
+                            <input type="checkbox" name="twic_card" value="1" {{ (old() ? old('twic_card') : $v['twic_card']) ? 'checked' : '' }} class="input" />
                             Do you have a TWIC Card?
                         </label>
                         <label class="label gap-2 font-normal">
-                            <input type="checkbox" name="passport" value="1" {{ old('passport') ? 'checked' : '' }} class="input" />
+                            <input type="checkbox" name="passport" value="1" {{ (old() ? old('passport') : $v['passport']) ? 'checked' : '' }} class="input" />
                             Do you have a passport?
                         </label>
                     </div>
@@ -171,51 +179,53 @@
                 <p class="mb-4 text-sm text-muted-foreground">List residence for previous 3 years if you lived at the above address less than 3 years.</p>
 
                 <div id="residence_fields" class="space-y-4">
-                    <div class="residence-field grid gap-4 rounded-lg border p-4">
-                        <x-ui.field label="Address" for="residence_address_0" name="residence_address.0">
-                            <input type="text" id="residence_address_0" name="residence_address[]"
-                                value="{{ old('residence_address.0') }}" @error('residence_address.0') aria-invalid="true" @enderror
-                                class="input w-full residence-address" />
-                        </x-ui.field>
+                    @foreach ($form->rows['residences'] as $i => $row)
+                        <div class="residence-field grid gap-4 rounded-lg border p-4">
+                            <x-ui.field label="Address" for="residence_address_{{ $i }}" name="residence_address.{{ $i }}">
+                                <input type="text" id="residence_address_{{ $i }}" name="residence_address[{{ $i }}]"
+                                    value="{{ $row['address'] }}" @error('residence_address.' . $i) aria-invalid="true" @enderror
+                                    class="input w-full residence-address" />
+                            </x-ui.field>
 
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <x-ui.field label="City" for="residence_city_0" name="residence_city.0">
-                                <input type="text" id="residence_city_0" name="residence_city[]"
-                                    value="{{ old('residence_city.0') }}" @error('residence_city.0') aria-invalid="true" @enderror
-                                    class="input w-full residence-city" />
-                            </x-ui.field>
-                            <x-ui.field label="Country" for="residence_country_0" name="residence_country.0">
-                                <select id="residence_country_0" name="residence_country[]" @error('residence_country.0') aria-invalid="true" @enderror
-                                    class="select w-full residence-country">
-                                    <option value="">Select Country</option>
-                                    @foreach ($countries as $country)
-                                        <option value="{{ $country->id }}"
-                                            {{ old('residence_country.0', $defaultCountry) == $country->id ? 'selected' : '' }}>
-                                            {{ $country->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </x-ui.field>
-                            <x-ui.field label="State" for="residence_state_0" name="residence_state.0">
-                                <select id="residence_state_0" name="residence_state[]" @error('residence_state.0') aria-invalid="true" @enderror
-                                    class="select w-full residence-state">
-                                    <option value="">Select State</option>
-                                    @if (isset($states) && $states->count())
-                                        @foreach ($states as $state)
-                                            <option value="{{ $state->id }}" {{ old('residence_state.0') == $state->id ? 'selected' : '' }}>
-                                                {{ $state->name }}
+                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                <x-ui.field label="City" for="residence_city_{{ $i }}" name="residence_city.{{ $i }}">
+                                    <input type="text" id="residence_city_{{ $i }}" name="residence_city[{{ $i }}]"
+                                        value="{{ $row['city'] }}" @error('residence_city.' . $i) aria-invalid="true" @enderror
+                                        class="input w-full residence-city" />
+                                </x-ui.field>
+                                <x-ui.field label="Country" for="residence_country_{{ $i }}" name="residence_country.{{ $i }}">
+                                    <select id="residence_country_{{ $i }}" name="residence_country[{{ $i }}]" @error('residence_country.' . $i) aria-invalid="true" @enderror
+                                        class="select w-full residence-country">
+                                        <option value="">Select Country</option>
+                                        @foreach ($countries as $country)
+                                            <option value="{{ $country->id }}"
+                                                {{ $countryId($row['country']) == $country->id ? 'selected' : '' }}>
+                                                {{ $country->name }}
                                             </option>
                                         @endforeach
-                                    @endif
-                                </select>
-                            </x-ui.field>
-                            <x-ui.field label="Postal Code" for="residence_postal_code_0" name="residence_postal_code.0">
-                                <input type="text" id="residence_postal_code_0" name="residence_postal_code[]"
-                                    value="{{ old('residence_postal_code.0') }}" @error('residence_postal_code.0') aria-invalid="true" @enderror
-                                    class="input w-full residence-postal-code" />
-                            </x-ui.field>
+                                    </select>
+                                </x-ui.field>
+                                <x-ui.field label="State" for="residence_state_{{ $i }}" name="residence_state.{{ $i }}">
+                                    <select id="residence_state_{{ $i }}" name="residence_state[{{ $i }}]" @error('residence_state.' . $i) aria-invalid="true" @enderror
+                                        class="select w-full residence-state">
+                                        <option value="">Select State</option>
+                                        @if (isset($states) && $states->count())
+                                            @foreach ($states as $state)
+                                                <option value="{{ $state->id }}" {{ $stateId($row['state']) == $state->id ? 'selected' : '' }}>
+                                                    {{ $state->name }}
+                                                </option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                </x-ui.field>
+                                <x-ui.field label="Postal Code" for="residence_postal_code_{{ $i }}" name="residence_postal_code.{{ $i }}">
+                                    <input type="text" id="residence_postal_code_{{ $i }}" name="residence_postal_code[{{ $i }}]"
+                                        value="{{ $row['postal_code'] }}" @error('residence_postal_code.' . $i) aria-invalid="true" @enderror
+                                        class="input w-full residence-postal-code" />
+                                </x-ui.field>
+                            </div>
                         </div>
-                    </div>
+                    @endforeach
                 </div>
 
                 <div class="mt-4 flex flex-wrap justify-between gap-2">
@@ -236,16 +246,16 @@
 
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                         <x-ui.field label="First Name" for="license_first_name" name="license_first_name" required>
-                            <x-ui.input id="license_first_name" name="license_first_name" required />
+                            <x-ui.input id="license_first_name" name="license_first_name" :value="$v['license_first_name']" required />
                         </x-ui.field>
                         <x-ui.field label="Last Name" for="license_last_name" name="license_last_name" required>
-                            <x-ui.input id="license_last_name" name="license_last_name" required />
+                            <x-ui.input id="license_last_name" name="license_last_name" :value="$v['license_last_name']" required />
                         </x-ui.field>
                         <x-ui.field label="Issued" for="license_issued" name="license_issued" required>
-                            <x-ui.input type="date" id="license_issued" name="license_issued" required />
+                            <x-ui.input type="date" id="license_issued" name="license_issued" :value="$v['license_issued']" required />
                         </x-ui.field>
                         <x-ui.field label="Expires" for="license_expires" name="license_expires" required>
-                            <x-ui.input type="date" id="license_expires" name="license_expires" required />
+                            <x-ui.input type="date" id="license_expires" name="license_expires" :value="$v['license_expires']" required />
                         </x-ui.field>
                     </div>
 
@@ -255,7 +265,7 @@
                                 <option value="">Select Country</option>
                                 @foreach ($countries as $country)
                                     <option value="{{ $country->id }}"
-                                        {{ old('license_country', $defaultCountry) == $country->id ? 'selected' : '' }}>
+                                        {{ $countryId(old('license_country', $v['license_country'])) == $country->id ? 'selected' : '' }}>
                                         {{ $country->name }}
                                     </option>
                                 @endforeach
@@ -266,7 +276,7 @@
                                 <option value="">Select State</option>
                                 @if (isset($states) && $states->count())
                                     @foreach ($states as $state)
-                                        <option value="{{ $state->id }}" {{ old('license_state') == $state->id ? 'selected' : '' }}>
+                                        <option value="{{ $state->id }}" {{ $stateId(old('license_state', $v['license_state'])) == $state->id ? 'selected' : '' }}>
                                             {{ $state->name }}
                                         </option>
                                     @endforeach
@@ -274,17 +284,17 @@
                             </x-ui.select>
                         </x-ui.field>
                         <x-ui.field label="Class" for="license_class" name="license_class" required>
-                            <x-ui.select id="license_class" name="license_class" required placeholder="Select license class"
+                            <x-ui.select id="license_class" name="license_class" :value="$v['license_class']" required placeholder="Select license class"
                                 :options="collect(['Class A (CDL-A)', 'Class B (CDL-B)', 'Class C (CDL-C)', 'Class D', 'Class C (Non-Commercial)', 'Class M', 'Class E', 'Class F', 'Class DJ/MJ'])->mapWithKeys(fn ($class) => [$class => $class])" />
                         </x-ui.field>
                     </div>
 
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <x-ui.field label="License Number" for="license_number" name="license_number" required>
-                            <x-ui.input id="license_number" name="license_number" required />
+                            <x-ui.input id="license_number" name="license_number" :value="$v['license_number']" required />
                         </x-ui.field>
                         <x-ui.field label="Repeat License Number:" for="repeat_license_number" name="repeat_license_number" required>
-                            <x-ui.input id="repeat_license_number" name="repeat_license_number" required />
+                            <x-ui.input id="repeat_license_number" name="repeat_license_number" :value="$v['license_number']" required />
                         </x-ui.field>
                     </div>
 
@@ -293,7 +303,7 @@
                         <div class="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
                             @foreach (['is_h_placarded_hazmat' => 'H - Placarded Hazmat.', 'is_n_tank_vehicle' => 'N - Tank Vehicles.', 'is_p_passengers' => 'P - Passengers.', 'is_t_double_trailer' => 'T - Double/Triple Trailers.', 'is_s_school_bus' => 'S - School Bus.', 'is_x_placarded_hazmat' => 'X - Placarded Hazmat & Tank Vehicles.'] as $endorsement => $label)
                                 <label class="label gap-2 font-normal">
-                                    <input type="checkbox" name="{{ $endorsement }}" value="1" {{ old($endorsement) ? 'checked' : '' }} class="input" />
+                                    <input type="checkbox" name="{{ $endorsement }}" value="1" {{ (old() ? old($endorsement) : $v[$endorsement]) ? 'checked' : '' }} class="input" />
                                     {{ $label }}
                                 </label>
                             @endforeach
@@ -336,26 +346,26 @@
                                 </td>
                                 <td data-label="Experience">
                                     <select name="experience[]" aria-label="{{ $equipmentClass }} experience" class="select w-full">
-                                        <option value="no" {{ old('experience.' . $index) == 'no' ? 'selected' : '' }}>No</option>
-                                        <option value="yes" {{ old('experience.' . $index) == 'yes' ? 'selected' : '' }}>Yes</option>
+                                        <option value="no" {{ old('experience.' . $index, $v['experiences'][$index]['experience']) == 'no' ? 'selected' : '' }}>No</option>
+                                        <option value="yes" {{ old('experience.' . $index, $v['experiences'][$index]['experience']) == 'yes' ? 'selected' : '' }}>Yes</option>
                                     </select>
                                 </td>
                                 <td data-label="Date From">
-                                    <input type="date" name="experience_from_date[]" value="{{ old('experience_from_date.' . $index) }}"
+                                    <input type="date" name="experience_from_date[]" value="{{ old('experience_from_date.' . $index, $v['experiences'][$index]['from']) }}"
                                         aria-label="{{ $equipmentClass }} date from" @error('experience_from_date.' . $index) aria-invalid="true" @enderror class="input w-full" />
                                     @error('experience_from_date.' . $index)
                                         <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
                                     @enderror
                                 </td>
                                 <td data-label="Date To">
-                                    <input type="date" name="experience_to_date[]" value="{{ old('experience_to_date.' . $index) }}"
+                                    <input type="date" name="experience_to_date[]" value="{{ old('experience_to_date.' . $index, $v['experiences'][$index]['to']) }}"
                                         aria-label="{{ $equipmentClass }} date to" @error('experience_to_date.' . $index) aria-invalid="true" @enderror class="input w-full" />
                                     @error('experience_to_date.' . $index)
                                         <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
                                     @enderror
                                 </td>
                                 <td data-label="Approx Miles">
-                                    <input type="text" name="approx_miles[]" value="{{ old('approx_miles.' . $index) }}" placeholder="0"
+                                    <input type="text" name="approx_miles[]" value="{{ old('approx_miles.' . $index, $v['experiences'][$index]['miles']) }}" placeholder="0"
                                         aria-label="{{ $equipmentClass }} approx miles" @error('approx_miles.' . $index) aria-invalid="true" @enderror class="input w-full" />
                                     @error('approx_miles.' . $index)
                                         <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
@@ -374,11 +384,11 @@
                     <legend class="contents text-sm font-medium">Have you had any accidents/crashes in the last 3 years? <span class="text-destructive">*</span></legend>
                     <div class="flex items-center gap-6">
                         <label class="label gap-2 font-normal">
-                            <input type="radio" name="accident" value="yes" {{ old('accident') == 'yes' ? 'checked' : '' }} class="input" />
+                            <input type="radio" name="accident" value="yes" {{ old('accident', $v['accident']) == 'yes' ? 'checked' : '' }} class="input" />
                             Yes
                         </label>
                         <label class="label gap-2 font-normal">
-                            <input type="radio" name="accident" value="no" {{ old('accident', 'no') == 'no' ? 'checked' : '' }} class="input" />
+                            <input type="radio" name="accident" value="no" {{ old('accident', $v['accident']) == 'no' ? 'checked' : '' }} class="input" />
                             No
                         </label>
                     </div>
@@ -399,42 +409,44 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td data-label="Date">
-                                    <input type="date" name="accident_date[]" value="{{ old('accident_date.0') }}" aria-label="Accident date"
-                                        @error('accident_date.0') aria-invalid="true" @enderror class="input w-full" />
-                                    @error('accident_date.0')
-                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
-                                    @enderror
-                                </td>
-                                <td data-label="Location">
-                                    <input type="text" name="accident_location[]" value="{{ old('accident_location.0') }}" aria-label="Accident location"
-                                        @error('accident_location.0') aria-invalid="true" @enderror class="input w-full" />
-                                    @error('accident_location.0')
-                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
-                                    @enderror
-                                </td>
-                                <td data-label="Injuries">
-                                    <input type="text" name="number_of_injuries[]" value="{{ old('number_of_injuries.0') }}" placeholder="0" aria-label="Number of injuries"
-                                        @error('number_of_injuries.0') aria-invalid="true" @enderror class="input w-full" />
-                                    @error('number_of_injuries.0')
-                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
-                                    @enderror
-                                </td>
-                                <td data-label="Fatalities">
-                                    <input type="text" name="number_of_fatalities[]" value="{{ old('number_of_fatalities.0') }}" placeholder="0" aria-label="Number of fatalities"
-                                        @error('number_of_fatalities.0') aria-invalid="true" @enderror class="input w-full" />
-                                    @error('number_of_fatalities.0')
-                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
-                                    @enderror
-                                </td>
-                                <td data-label="Hazmat Spill?">
-                                    <select name="hazmat_spill[]" aria-label="Hazmat spill" class="select w-full">
-                                        <option value="no" {{ old('hazmat_spill.0') == 'no' ? 'selected' : '' }}>No</option>
-                                        <option value="yes" {{ old('hazmat_spill.0') == 'yes' ? 'selected' : '' }}>Yes</option>
-                                    </select>
-                                </td>
-                            </tr>
+                            @foreach ($form->rows['accidents'] as $i => $row)
+                                <tr>
+                                    <td data-label="Date">
+                                        <input type="date" name="accident_date[{{ $i }}]" value="{{ $row['date'] }}" aria-label="Accident date"
+                                            @error('accident_date.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                        @error('accident_date.' . $i)
+                                            <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                        @enderror
+                                    </td>
+                                    <td data-label="Location">
+                                        <input type="text" name="accident_location[{{ $i }}]" value="{{ $row['location'] }}" aria-label="Accident location"
+                                            @error('accident_location.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                        @error('accident_location.' . $i)
+                                            <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                        @enderror
+                                    </td>
+                                    <td data-label="Injuries">
+                                        <input type="text" name="number_of_injuries[{{ $i }}]" value="{{ $row['injuries'] }}" placeholder="0" aria-label="Number of injuries"
+                                            @error('number_of_injuries.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                        @error('number_of_injuries.' . $i)
+                                            <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                        @enderror
+                                    </td>
+                                    <td data-label="Fatalities">
+                                        <input type="text" name="number_of_fatalities[{{ $i }}]" value="{{ $row['fatalities'] }}" placeholder="0" aria-label="Number of fatalities"
+                                            @error('number_of_fatalities.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                        @error('number_of_fatalities.' . $i)
+                                            <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                        @enderror
+                                    </td>
+                                    <td data-label="Hazmat Spill?">
+                                        <select name="hazmat_spill[{{ $i }}]" aria-label="Hazmat spill" class="select w-full">
+                                            <option value="no" {{ $row['hazmat_spill'] == 'no' ? 'selected' : '' }}>No</option>
+                                            <option value="yes" {{ $row['hazmat_spill'] == 'yes' ? 'selected' : '' }}>Yes</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            @endforeach
                         </tbody>
                     </x-ui.table>
                 </div>
@@ -452,11 +464,11 @@
                     <legend class="contents text-sm font-medium">Have you had any traffic violations in the last 3 years? <span class="text-destructive">*</span></legend>
                     <div class="flex items-center gap-6">
                         <label class="label gap-2 font-normal">
-                            <input type="radio" name="violation" value="yes" {{ old('violation') == 'yes' ? 'checked' : '' }} class="input" />
+                            <input type="radio" name="violation" value="yes" {{ old('violation', $v['violation']) == 'yes' ? 'checked' : '' }} class="input" />
                             Yes
                         </label>
                         <label class="label gap-2 font-normal">
-                            <input type="radio" name="violation" value="no" {{ old('violation', 'no') == 'no' ? 'checked' : '' }} class="input" />
+                            <input type="radio" name="violation" value="no" {{ old('violation', $v['violation']) == 'no' ? 'checked' : '' }} class="input" />
                             No
                         </label>
                     </div>
@@ -476,36 +488,38 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td data-label="Date">
-                                    <input type="date" name="violation_date[]" value="{{ old('violation_date.0') }}" aria-label="Violation date"
-                                        @error('violation_date.0') aria-invalid="true" @enderror class="input w-full" />
-                                    @error('violation_date.0')
-                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
-                                    @enderror
-                                </td>
-                                <td data-label="Location">
-                                    <input type="text" name="violation_location[]" value="{{ old('violation_location.0') }}" aria-label="Violation location"
-                                        @error('violation_location.0') aria-invalid="true" @enderror class="input w-full" />
-                                    @error('violation_location.0')
-                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
-                                    @enderror
-                                </td>
-                                <td data-label="Offense">
-                                    <input type="text" name="offense[]" value="{{ old('offense.0') }}" placeholder="0" aria-label="Offense"
-                                        @error('offense.0') aria-invalid="true" @enderror class="input w-full" />
-                                    @error('offense.0')
-                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
-                                    @enderror
-                                </td>
-                                <td data-label="Vehicle Type">
-                                    <input type="text" name="vehicle_type[]" value="{{ old('vehicle_type.0') }}" aria-label="Vehicle type"
-                                        @error('vehicle_type.0') aria-invalid="true" @enderror class="input w-full" />
-                                    @error('vehicle_type.0')
-                                        <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
-                                    @enderror
-                                </td>
-                            </tr>
+                            @foreach ($form->rows['violations'] as $i => $row)
+                                <tr>
+                                    <td data-label="Date">
+                                        <input type="date" name="violation_date[{{ $i }}]" value="{{ $row['date'] }}" aria-label="Violation date"
+                                            @error('violation_date.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                        @error('violation_date.' . $i)
+                                            <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                        @enderror
+                                    </td>
+                                    <td data-label="Location">
+                                        <input type="text" name="violation_location[{{ $i }}]" value="{{ $row['location'] }}" aria-label="Violation location"
+                                            @error('violation_location.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                        @error('violation_location.' . $i)
+                                            <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                        @enderror
+                                    </td>
+                                    <td data-label="Offense">
+                                        <input type="text" name="offense[{{ $i }}]" value="{{ $row['offense'] }}" placeholder="0" aria-label="Offense"
+                                            @error('offense.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                        @error('offense.' . $i)
+                                            <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                        @enderror
+                                    </td>
+                                    <td data-label="Vehicle Type">
+                                        <input type="text" name="vehicle_type[{{ $i }}]" value="{{ $row['vehicle_type'] }}" aria-label="Vehicle type"
+                                            @error('vehicle_type.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                        @error('vehicle_type.' . $i)
+                                            <p role="alert" class="mt-1 text-xs text-destructive">{{ $message }}</p>
+                                        @enderror
+                                    </td>
+                                </tr>
+                            @endforeach
                         </tbody>
                     </x-ui.table>
                 </div>
@@ -525,11 +539,11 @@
                             <legend class="contents text-sm font-medium">{{ $legend }} <span class="text-destructive">*</span></legend>
                             <div class="flex items-center gap-6">
                                 <label class="label gap-2 font-normal">
-                                    <input type="radio" name="{{ $question }}" value="yes" {{ old($question) == 'yes' ? 'checked' : '' }} class="input" />
+                                    <input type="radio" name="{{ $question }}" value="yes" {{ old($question, $v[$question]) == 'yes' ? 'checked' : '' }} class="input" />
                                     Yes
                                 </label>
                                 <label class="label gap-2 font-normal">
-                                    <input type="radio" name="{{ $question }}" value="no" {{ old($question, 'no') == 'no' ? 'checked' : '' }} class="input" />
+                                    <input type="radio" name="{{ $question }}" value="no" {{ old($question, $v[$question]) == 'no' ? 'checked' : '' }} class="input" />
                                     No
                                 </label>
                             </div>
@@ -540,7 +554,7 @@
                     @endforeach
 
                     <x-ui.field label="C. If yes to either question above, briefly describe the circumstances." for="forfeitures" name="forfeitures">
-                        <textarea id="forfeitures" name="forfeitures" rows="3" @error('forfeitures') aria-invalid="true" @enderror class="textarea w-full">{{ old('forfeitures') }}</textarea>
+                        <textarea id="forfeitures" name="forfeitures" rows="3" @error('forfeitures') aria-invalid="true" @enderror class="textarea w-full">{{ old('forfeitures', $v['forfeitures']) }}</textarea>
                     </x-ui.field>
                 </div>
             </x-ui.card>
@@ -551,118 +565,120 @@
                 <p class="mb-4 text-sm text-destructive">List all employers for the previous 3 years and an additional 7 years if you were employed as a DRIVER.</p>
 
                 <div id="employment_record_fields" class="space-y-6">
-                    <div class="employment-record-field grid gap-4 rounded-lg border bg-muted/40 p-4 sm:p-6">
-                        <h3 class="text-base font-semibold">Employment Record 1</h3>
+                    @foreach ($form->rows['employment'] as $i => $row)
+                        <div class="employment-record-field grid gap-4 rounded-lg border bg-muted/40 p-4 sm:p-6">
+                            <h3 class="text-base font-semibold">Employment Record {{ $loop->iteration }}</h3>
 
-                        <x-ui.field label="Employer Name" for="employer_name_0" name="employer_name.0">
-                            <input type="text" id="employer_name_0" name="employer_name[]"
-                                value="{{ old('employer_name.0') }}" @error('employer_name.0') aria-invalid="true" @enderror class="input w-full" />
-                        </x-ui.field>
+                            <x-ui.field label="Employer Name" for="employer_name_{{ $i }}" name="employer_name.{{ $i }}">
+                                <input type="text" id="employer_name_{{ $i }}" name="employer_name[{{ $i }}]"
+                                    value="{{ $row['employer_name'] }}" @error('employer_name.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                            </x-ui.field>
 
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <x-ui.field label="Address" for="employer_record_address_0" name="employer_record_address.0">
-                                <input type="text" id="employer_record_address_0" name="employer_record_address[]"
-                                    value="{{ old('employer_record_address.0') }}" @error('employer_record_address.0') aria-invalid="true" @enderror class="input w-full" />
-                            </x-ui.field>
-                            <x-ui.field label="City" for="employer_record_city_0" name="employer_record_city.0">
-                                <input type="text" id="employer_record_city_0" name="employer_record_city[]"
-                                    value="{{ old('employer_record_city.0') }}" @error('employer_record_city.0') aria-invalid="true" @enderror class="input w-full" />
-                            </x-ui.field>
-                        </div>
+                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <x-ui.field label="Address" for="employer_record_address_{{ $i }}" name="employer_record_address.{{ $i }}">
+                                    <input type="text" id="employer_record_address_{{ $i }}" name="employer_record_address[{{ $i }}]"
+                                        value="{{ $row['address'] }}" @error('employer_record_address.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                </x-ui.field>
+                                <x-ui.field label="City" for="employer_record_city_{{ $i }}" name="employer_record_city.{{ $i }}">
+                                    <input type="text" id="employer_record_city_{{ $i }}" name="employer_record_city[{{ $i }}]"
+                                        value="{{ $row['city'] }}" @error('employer_record_city.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                </x-ui.field>
+                            </div>
 
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            <x-ui.field label="Country" for="employer_record_country_0" name="employer_record_country.0">
-                                <select id="employer_record_country_0" name="employer_record_country[]" @error('employer_record_country.0') aria-invalid="true" @enderror class="select w-full">
-                                    <option value="">Select Country</option>
-                                    @foreach ($countries as $country)
-                                        <option value="{{ $country->id }}"
-                                            {{ old('employer_record_country.0', $defaultCountry) == $country->id ? 'selected' : '' }}>
-                                            {{ $country->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </x-ui.field>
-                            <x-ui.field label="State" for="employer_record_state_0" name="employer_record_state.0">
-                                <select id="employer_record_state_0" name="employer_record_state[]" @error('employer_record_state.0') aria-invalid="true" @enderror class="select w-full">
-                                    <option value="">Select State</option>
-                                    @if (isset($states) && $states->count())
-                                        @foreach ($states as $state)
-                                            <option value="{{ $state->id }}" {{ old('employer_record_state.0') == $state->id ? 'selected' : '' }}>
-                                                {{ $state->name }}
+                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                <x-ui.field label="Country" for="employer_record_country_{{ $i }}" name="employer_record_country.{{ $i }}">
+                                    <select id="employer_record_country_{{ $i }}" name="employer_record_country[{{ $i }}]" @error('employer_record_country.' . $i) aria-invalid="true" @enderror class="select w-full">
+                                        <option value="">Select Country</option>
+                                        @foreach ($countries as $country)
+                                            <option value="{{ $country->id }}"
+                                                {{ $countryId($row['country']) == $country->id ? 'selected' : '' }}>
+                                                {{ $country->name }}
                                             </option>
                                         @endforeach
-                                    @endif
-                                </select>
-                            </x-ui.field>
-                            <x-ui.field label="Postal Code" for="employer_record_postal_code_0" name="employer_record_postal_code.0">
-                                <input type="text" id="employer_record_postal_code_0" name="employer_record_postal_code[]"
-                                    value="{{ old('employer_record_postal_code.0') }}" @error('employer_record_postal_code.0') aria-invalid="true" @enderror class="input w-full" />
-                            </x-ui.field>
-                        </div>
-
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            <x-ui.field label="Phone" for="employer_record_phone_0" name="employer_record_phone.0">
-                                <input type="text" id="employer_record_phone_0" name="employer_record_phone[]"
-                                    value="{{ old('employer_record_phone.0') }}" @error('employer_record_phone.0') aria-invalid="true" @enderror class="input w-full" />
-                            </x-ui.field>
-                            <x-ui.field label="Fax" for="employer_record_fax_0" name="employer_record_fax.0">
-                                <input type="text" id="employer_record_fax_0" name="employer_record_fax[]"
-                                    value="{{ old('employer_record_fax.0') }}" @error('employer_record_fax.0') aria-invalid="true" @enderror class="input w-full" />
-                            </x-ui.field>
-                            <x-ui.field label="Email" for="employer_record_email_0" name="employer_record_email.0">
-                                <input type="email" id="employer_record_email_0" name="employer_record_email[]"
-                                    value="{{ old('employer_record_email.0') }}" @error('employer_record_email.0') aria-invalid="true" @enderror class="input w-full" />
-                            </x-ui.field>
-                        </div>
-
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            <x-ui.field label="Position Held" for="employer_record_position_0" name="employer_record_position.0">
-                                <input type="text" id="employer_record_position_0" name="employer_record_position[]"
-                                    value="{{ old('employer_record_position.0') }}" @error('employer_record_position.0') aria-invalid="true" @enderror class="input w-full" />
-                            </x-ui.field>
-                            <x-ui.field label="Date From" for="employer_record_date_from_0" name="employer_record_date_from.0">
-                                <input type="date" id="employer_record_date_from_0" name="employer_record_date_from[]"
-                                    value="{{ old('employer_record_date_from.0') }}" @error('employer_record_date_from.0') aria-invalid="true" @enderror class="input w-full" />
-                            </x-ui.field>
-                            <x-ui.field label="Date To" for="employer_record_date_to_0" name="employer_record_date_to.0">
-                                <input type="date" id="employer_record_date_to_0" name="employer_record_date_to[]"
-                                    value="{{ old('employer_record_date_to.0') }}" @error('employer_record_date_to.0') aria-invalid="true" @enderror class="input w-full" />
-                            </x-ui.field>
-                        </div>
-
-                        <x-ui.field label="Reason for Leaving" for="employer_record_reason_for_leaving_0" name="employer_record_reason_for_leaving.0">
-                            <input type="text" id="employer_record_reason_for_leaving_0" name="employer_record_reason_for_leaving[]"
-                                value="{{ old('employer_record_reason_for_leaving.0') }}" @error('employer_record_reason_for_leaving.0') aria-invalid="true" @enderror class="input w-full" />
-                        </x-ui.field>
-
-                        <fieldset class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                            <legend class="contents text-sm font-medium">Were you subject to the DOT/FMCSA regulations while employed by this carrier?</legend>
-                            <div class="flex items-center gap-6">
-                                <label class="label gap-2 font-normal">
-                                    <input type="radio" name="employed_regulations[]" value="yes" {{ old('employed_regulations.0') == 'yes' ? 'checked' : '' }} class="input" />
-                                    Yes
-                                </label>
-                                <label class="label gap-2 font-normal">
-                                    <input type="radio" name="employed_regulations[]" value="no" {{ old('employed_regulations.0', 'no') == 'no' ? 'checked' : '' }} class="input" />
-                                    No
-                                </label>
+                                    </select>
+                                </x-ui.field>
+                                <x-ui.field label="State" for="employer_record_state_{{ $i }}" name="employer_record_state.{{ $i }}">
+                                    <select id="employer_record_state_{{ $i }}" name="employer_record_state[{{ $i }}]" @error('employer_record_state.' . $i) aria-invalid="true" @enderror class="select w-full">
+                                        <option value="">Select State</option>
+                                        @if (isset($states) && $states->count())
+                                            @foreach ($states as $state)
+                                                <option value="{{ $state->id }}" {{ $stateId($row['state']) == $state->id ? 'selected' : '' }}>
+                                                    {{ $state->name }}
+                                                </option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                </x-ui.field>
+                                <x-ui.field label="Postal Code" for="employer_record_postal_code_{{ $i }}" name="employer_record_postal_code.{{ $i }}">
+                                    <input type="text" id="employer_record_postal_code_{{ $i }}" name="employer_record_postal_code[{{ $i }}]"
+                                        value="{{ $row['postal_code'] }}" @error('employer_record_postal_code.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                </x-ui.field>
                             </div>
-                        </fieldset>
 
-                        <fieldset class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                            <legend class="contents text-sm font-medium">Was your job designated as a safety sensitive function, in any DOT regulated mode, subject to the alcohol and controlled substances testing requirements required by 49 CFR Part 40?</legend>
-                            <div class="flex items-center gap-6">
-                                <label class="label gap-2 font-normal">
-                                    <input type="radio" name="safety_sensitive_function[]" value="yes" {{ old('safety_sensitive_function.0') == 'yes' ? 'checked' : '' }} class="input" />
-                                    Yes
-                                </label>
-                                <label class="label gap-2 font-normal">
-                                    <input type="radio" name="safety_sensitive_function[]" value="no" {{ old('safety_sensitive_function.0', 'no') == 'no' ? 'checked' : '' }} class="input" />
-                                    No
-                                </label>
+                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                <x-ui.field label="Phone" for="employer_record_phone_{{ $i }}" name="employer_record_phone.{{ $i }}">
+                                    <input type="text" id="employer_record_phone_{{ $i }}" name="employer_record_phone[{{ $i }}]"
+                                        value="{{ $row['phone'] }}" @error('employer_record_phone.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                </x-ui.field>
+                                <x-ui.field label="Fax" for="employer_record_fax_{{ $i }}" name="employer_record_fax.{{ $i }}">
+                                    <input type="text" id="employer_record_fax_{{ $i }}" name="employer_record_fax[{{ $i }}]"
+                                        value="{{ $row['fax'] }}" @error('employer_record_fax.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                </x-ui.field>
+                                <x-ui.field label="Email" for="employer_record_email_{{ $i }}" name="employer_record_email.{{ $i }}">
+                                    <input type="email" id="employer_record_email_{{ $i }}" name="employer_record_email[{{ $i }}]"
+                                        value="{{ $row['email'] }}" @error('employer_record_email.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                </x-ui.field>
                             </div>
-                        </fieldset>
-                    </div>
+
+                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                <x-ui.field label="Position Held" for="employer_record_position_{{ $i }}" name="employer_record_position.{{ $i }}">
+                                    <input type="text" id="employer_record_position_{{ $i }}" name="employer_record_position[{{ $i }}]"
+                                        value="{{ $row['position'] }}" @error('employer_record_position.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                </x-ui.field>
+                                <x-ui.field label="Date From" for="employer_record_date_from_{{ $i }}" name="employer_record_date_from.{{ $i }}">
+                                    <input type="date" id="employer_record_date_from_{{ $i }}" name="employer_record_date_from[{{ $i }}]"
+                                        value="{{ $row['date_from'] }}" @error('employer_record_date_from.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                </x-ui.field>
+                                <x-ui.field label="Date To" for="employer_record_date_to_{{ $i }}" name="employer_record_date_to.{{ $i }}">
+                                    <input type="date" id="employer_record_date_to_{{ $i }}" name="employer_record_date_to[{{ $i }}]"
+                                        value="{{ $row['date_to'] }}" @error('employer_record_date_to.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                                </x-ui.field>
+                            </div>
+
+                            <x-ui.field label="Reason for Leaving" for="employer_record_reason_for_leaving_{{ $i }}" name="employer_record_reason_for_leaving.{{ $i }}">
+                                <input type="text" id="employer_record_reason_for_leaving_{{ $i }}" name="employer_record_reason_for_leaving[{{ $i }}]"
+                                    value="{{ $row['reason_for_leaving'] }}" @error('employer_record_reason_for_leaving.' . $i) aria-invalid="true" @enderror class="input w-full" />
+                            </x-ui.field>
+
+                            <fieldset class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <legend class="contents text-sm font-medium">Were you subject to the DOT/FMCSA regulations while employed by this carrier?</legend>
+                                <div class="flex items-center gap-6">
+                                    <label class="label gap-2 font-normal">
+                                        <input type="radio" name="employed_regulations[{{ $i }}]" value="yes" {{ $row['employed_regulations'] == 'yes' ? 'checked' : '' }} class="input" />
+                                        Yes
+                                    </label>
+                                    <label class="label gap-2 font-normal">
+                                        <input type="radio" name="employed_regulations[{{ $i }}]" value="no" {{ $row['employed_regulations'] == 'no' ? 'checked' : '' }} class="input" />
+                                        No
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <legend class="contents text-sm font-medium">Was your job designated as a safety sensitive function, in any DOT regulated mode, subject to the alcohol and controlled substances testing requirements required by 49 CFR Part 40?</legend>
+                                <div class="flex items-center gap-6">
+                                    <label class="label gap-2 font-normal">
+                                        <input type="radio" name="safety_sensitive_function[{{ $i }}]" value="yes" {{ $row['safety_sensitive_function'] == 'yes' ? 'checked' : '' }} class="input" />
+                                        Yes
+                                    </label>
+                                    <label class="label gap-2 font-normal">
+                                        <input type="radio" name="safety_sensitive_function[{{ $i }}]" value="no" {{ $row['safety_sensitive_function'] == 'no' ? 'checked' : '' }} class="input" />
+                                        No
+                                    </label>
+                                </div>
+                            </fieldset>
+                        </div>
+                    @endforeach
                 </div>
 
                 <div class="mt-4 flex flex-wrap justify-between gap-2">
@@ -713,7 +729,7 @@
 
             // script:residences
             // Residence fields management
-            let residenceCount = 1;
+            let residenceCount = {{ max(array_keys($form->rows['residences'])) + 1 }};
             const residenceFields = document.getElementById('residence_fields');
             const residenceAddBtn = document.getElementById('residence_add');
             const residenceRemoveBtn = document.getElementById('residence_remove');
@@ -725,20 +741,20 @@
                     newField.innerHTML = `
                 <div class="field gap-2">
                     <label for="residence_address_${residenceCount}" class="label">Address</label>
-                    <input type="text" id="residence_address_${residenceCount}" name="residence_address[]"
+                    <input type="text" id="residence_address_${residenceCount}" name="residence_address[${residenceCount}]"
                         class="input w-full residence-address" />
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div class="field gap-2">
                         <label for="residence_city_${residenceCount}" class="label">City</label>
-                        <input type="text" id="residence_city_${residenceCount}" name="residence_city[]"
+                        <input type="text" id="residence_city_${residenceCount}" name="residence_city[${residenceCount}]"
                             class="input w-full residence-city" />
                     </div>
 
                     <div class="field gap-2">
                         <label for="residence_country_${residenceCount}" class="label">Country</label>
-                        <select id="residence_country_${residenceCount}" name="residence_country[]"
+                        <select id="residence_country_${residenceCount}" name="residence_country[${residenceCount}]"
                             class="select w-full residence-country">
                             <option value="">Select Country</option>
                             @foreach ($countries as $country)
@@ -749,7 +765,7 @@
 
                     <div class="field gap-2">
                         <label for="residence_state_${residenceCount}" class="label">State</label>
-                        <select id="residence_state_${residenceCount}" name="residence_state[]"
+                        <select id="residence_state_${residenceCount}" name="residence_state[${residenceCount}]"
                             class="select w-full residence-state">
                             <option value="">Select State</option>
                             @if (isset($states) && $states->count())
@@ -762,7 +778,7 @@
 
                     <div class="field gap-2">
                         <label for="residence_postal_code_${residenceCount}" class="label">Postal Code</label>
-                        <input type="text" id="residence_postal_code_${residenceCount}" name="residence_postal_code[]"
+                        <input type="text" id="residence_postal_code_${residenceCount}" name="residence_postal_code[${residenceCount}]"
                             class="input w-full residence-postal-code" />
                     </div>
                 </div>
@@ -785,7 +801,7 @@
 
             // script:accidents
             // Accident fields management
-            let accidentCount = 1;
+            let accidentCount = {{ max(array_keys($form->rows['accidents'])) + 1 }};
             const accidentAddBtn = document.getElementById('accident_add');
             const accidentRemoveBtn = document.getElementById('accident_remove');
             const accidentTableBody = document.querySelector('#accident_fields tbody');
@@ -795,23 +811,23 @@
                     const newRow = document.createElement('tr');
                     newRow.innerHTML = `
             <td data-label="Date">
-                <input type="date" name="accident_date[]" aria-label="Accident date"
+                <input type="date" name="accident_date[${accidentCount}]" aria-label="Accident date"
                     class="input w-full" />
             </td>
             <td data-label="Location">
-                <input type="text" name="accident_location[]" aria-label="Accident location"
+                <input type="text" name="accident_location[${accidentCount}]" aria-label="Accident location"
                     class="input w-full" />
             </td>
             <td data-label="Injuries">
-                <input type="text" name="number_of_injuries[]" placeholder="0" aria-label="Number of injuries"
+                <input type="text" name="number_of_injuries[${accidentCount}]" placeholder="0" aria-label="Number of injuries"
                     class="input w-full" />
             </td>
             <td data-label="Fatalities">
-                <input type="text" name="number_of_fatalities[]" placeholder="0" aria-label="Number of fatalities"
+                <input type="text" name="number_of_fatalities[${accidentCount}]" placeholder="0" aria-label="Number of fatalities"
                     class="input w-full" />
             </td>
             <td data-label="Hazmat Spill?">
-                <select name="hazmat_spill[]" aria-label="Hazmat spill"
+                <select name="hazmat_spill[${accidentCount}]" aria-label="Hazmat spill"
                     class="select w-full">
                     <option value="no">No</option>
                     <option value="yes">Yes</option>
@@ -836,7 +852,7 @@
 
             // script:violations
             // violation fields management
-            let violationCount = 1;
+            let violationCount = {{ max(array_keys($form->rows['violations'])) + 1 }};
             const violationFields = document.getElementById('violation_fields');
             const violationAddBtn = document.getElementById('violation_add');
             const violationRemoveBtn = document.getElementById('violation_remove');
@@ -847,19 +863,19 @@
                     const newRow = document.createElement('tr');
                     newRow.innerHTML = `
                 <td data-label="Date">
-                    <input type="date" name="violation_date[]" aria-label="Violation date"
+                    <input type="date" name="violation_date[${violationCount}]" aria-label="Violation date"
                         class="input w-full" />
                 </td>
                 <td data-label="Location">
-                    <input type="text" name="violation_location[]" aria-label="Violation location"
+                    <input type="text" name="violation_location[${violationCount}]" aria-label="Violation location"
                         class="input w-full" />
                 </td>
                 <td data-label="Offense">
-                    <input type="text" name="offense[]" placeholder="0" aria-label="Offense"
+                    <input type="text" name="offense[${violationCount}]" placeholder="0" aria-label="Offense"
                         class="input w-full" />
                 </td>
                 <td data-label="Vehicle Type">
-                    <input type="text" name="vehicle_type[]" placeholder="0" aria-label="Vehicle type"
+                    <input type="text" name="vehicle_type[${violationCount}]" placeholder="0" aria-label="Vehicle type"
                         class="input w-full" />
                 </td>
             `;
@@ -881,7 +897,7 @@
 
             // script:employment
             // Employment Record fields management
-            let employmentRecordCount = 1;
+            let employmentRecordCount = {{ max(array_keys($form->rows['employment'])) + 1 }};
             const employmentRecordFields = document.getElementById('employment_record_fields');
             const employmentRecordAddBtn = document.getElementById('employment_record_add');
             const employmentRecordRemoveBtn = document.getElementById('employment_record_remove');
@@ -895,20 +911,20 @@
 
             <div class="field gap-2">
                 <label for="employer_name_${employmentRecordCount}" class="label">Employer Name</label>
-                <input type="text" id="employer_name_${employmentRecordCount}" name="employer_name[]"
+                <input type="text" id="employer_name_${employmentRecordCount}" name="employer_name[${employmentRecordCount}]"
                     class="input w-full" />
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div class="field gap-2">
                     <label for="employer_record_address_${employmentRecordCount}" class="label">Address</label>
-                    <input type="text" id="employer_record_address_${employmentRecordCount}" name="employer_record_address[]"
+                    <input type="text" id="employer_record_address_${employmentRecordCount}" name="employer_record_address[${employmentRecordCount}]"
                         class="input w-full" />
                 </div>
 
                 <div class="field gap-2">
                     <label for="employer_record_city_${employmentRecordCount}" class="label">City</label>
-                    <input type="text" id="employer_record_city_${employmentRecordCount}" name="employer_record_city[]"
+                    <input type="text" id="employer_record_city_${employmentRecordCount}" name="employer_record_city[${employmentRecordCount}]"
                         class="input w-full" />
                 </div>
             </div>
@@ -916,7 +932,7 @@
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div class="field gap-2">
                     <label for="employer_record_country_${employmentRecordCount}" class="label">Country</label>
-                    <select id="employer_record_country_${employmentRecordCount}" name="employer_record_country[]"
+                    <select id="employer_record_country_${employmentRecordCount}" name="employer_record_country[${employmentRecordCount}]"
                         class="select w-full">
                         <option value="">Select Country</option>
                         @foreach ($countries as $country)
@@ -927,7 +943,7 @@
 
                 <div class="field gap-2">
                     <label for="employer_record_state_${employmentRecordCount}" class="label">State</label>
-                    <select id="employer_record_state_${employmentRecordCount}" name="employer_record_state[]"
+                    <select id="employer_record_state_${employmentRecordCount}" name="employer_record_state[${employmentRecordCount}]"
                         class="select w-full">
                         <option value="">Select State</option>
                         @if (isset($states) && $states->count())
@@ -940,7 +956,7 @@
 
                 <div class="field gap-2">
                     <label for="employer_record_postal_code_${employmentRecordCount}" class="label">Postal Code</label>
-                    <input type="text" id="employer_record_postal_code_${employmentRecordCount}" name="employer_record_postal_code[]"
+                    <input type="text" id="employer_record_postal_code_${employmentRecordCount}" name="employer_record_postal_code[${employmentRecordCount}]"
                         class="input w-full" />
                 </div>
             </div>
@@ -948,19 +964,19 @@
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div class="field gap-2">
                     <label for="employer_record_phone_${employmentRecordCount}" class="label">Phone</label>
-                    <input type="text" id="employer_record_phone_${employmentRecordCount}" name="employer_record_phone[]"
+                    <input type="text" id="employer_record_phone_${employmentRecordCount}" name="employer_record_phone[${employmentRecordCount}]"
                         class="input w-full" />
                 </div>
 
                 <div class="field gap-2">
                     <label for="employer_record_fax_${employmentRecordCount}" class="label">Fax</label>
-                    <input type="text" id="employer_record_fax_${employmentRecordCount}" name="employer_record_fax[]"
+                    <input type="text" id="employer_record_fax_${employmentRecordCount}" name="employer_record_fax[${employmentRecordCount}]"
                         class="input w-full" />
                 </div>
 
                 <div class="field gap-2">
                     <label for="employer_record_email_${employmentRecordCount}" class="label">Email</label>
-                    <input type="email" id="employer_record_email_${employmentRecordCount}" name="employer_record_email[]"
+                    <input type="email" id="employer_record_email_${employmentRecordCount}" name="employer_record_email[${employmentRecordCount}]"
                         class="input w-full" />
                 </div>
             </div>
@@ -968,26 +984,26 @@
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div class="field gap-2">
                     <label for="employer_record_position_${employmentRecordCount}" class="label">Position Held</label>
-                    <input type="text" id="employer_record_position_${employmentRecordCount}" name="employer_record_position[]"
+                    <input type="text" id="employer_record_position_${employmentRecordCount}" name="employer_record_position[${employmentRecordCount}]"
                         class="input w-full" />
                 </div>
 
                 <div class="field gap-2">
                     <label for="employer_record_date_from_${employmentRecordCount}" class="label">Date From</label>
-                    <input type="date" id="employer_record_date_from_${employmentRecordCount}" name="employer_record_date_from[]"
+                    <input type="date" id="employer_record_date_from_${employmentRecordCount}" name="employer_record_date_from[${employmentRecordCount}]"
                         class="input w-full" />
                 </div>
 
                 <div class="field gap-2">
                     <label for="employer_record_date_to_${employmentRecordCount}" class="label">Date To</label>
-                    <input type="date" id="employer_record_date_to_${employmentRecordCount}" name="employer_record_date_to[]"
+                    <input type="date" id="employer_record_date_to_${employmentRecordCount}" name="employer_record_date_to[${employmentRecordCount}]"
                         class="input w-full" />
                 </div>
             </div>
 
             <div class="field gap-2">
                 <label for="employer_record_reason_for_leaving_${employmentRecordCount}" class="label">Reason for Leaving</label>
-                <input type="text" id="employer_record_reason_for_leaving_${employmentRecordCount}" name="employer_record_reason_for_leaving[]"
+                <input type="text" id="employer_record_reason_for_leaving_${employmentRecordCount}" name="employer_record_reason_for_leaving[${employmentRecordCount}]"
                     class="input w-full" />
             </div>
 
@@ -995,12 +1011,12 @@
                 <legend class="contents text-sm font-medium">Were you subject to the DOT/FMCSA regulations while employed by this carrier?</legend>
                 <div class="flex items-center gap-6">
                     <label class="label gap-2 font-normal">
-                        <input type="radio" name="employed_regulations[]" value="yes"
+                        <input type="radio" name="employed_regulations[${employmentRecordCount}]" value="yes"
                             class="input" />
                         Yes
                     </label>
                     <label class="label gap-2 font-normal">
-                        <input type="radio" name="employed_regulations[]" value="no" checked
+                        <input type="radio" name="employed_regulations[${employmentRecordCount}]" value="no" checked
                             class="input" />
                         No
                     </label>
@@ -1011,12 +1027,12 @@
                 <legend class="contents text-sm font-medium">Was your job designated as a safety sensitive function?</legend>
                 <div class="flex items-center gap-6">
                     <label class="label gap-2 font-normal">
-                        <input type="radio" name="safety_sensitive_function[]" value="yes"
+                        <input type="radio" name="safety_sensitive_function[${employmentRecordCount}]" value="yes"
                             class="input" />
                         Yes
                     </label>
                     <label class="label gap-2 font-normal">
-                        <input type="radio" name="safety_sensitive_function[]" value="no" checked
+                        <input type="radio" name="safety_sensitive_function[${employmentRecordCount}]" value="no" checked
                             class="input" />
                         No
                     </label>

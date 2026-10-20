@@ -28,6 +28,7 @@ use App\Services\Driver\DriverDocumentWizardService;
 use App\Services\Files\StoredFileService;
 use App\Services\OTPService;
 use App\Services\PhoneNumberService;
+use App\Support\Driver\DriverForm;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -439,19 +440,29 @@ class ApplicationFormController extends Controller
     public function step1($slug)
     {
         $company = $this->activeCompany($slug);
-        $driver = $this->applicationDriver($company);
+        $driver = $this->applicationDriver($company)->load([
+            'currentLicense',
+            'driver_documents',
+            'residence_addresses' => fn ($query) => $query->orderByDesc('is_current')->orderBy('id'),
+            'experiences',
+            'accidents' => fn ($query) => $query->orderByDesc('accident_date'),
+            'violations' => fn ($query) => $query->orderByDesc('violation_date'),
+            'forfeitures',
+            'employment_records' => fn ($query) => $query->orderByDesc('employer_record_date_to'),
+        ]);
         $countries = Country::orderBy('name')->get();
         $defaultCountry = Country::where('iso_code', 'US')->first();
         $states = $defaultCountry ? $defaultCountry->states()->orderBy('name')->get() : collect();
         $currentStep = 1;
+        $form = DriverForm::for($driver);
 
         return view('application.steps.step1-basic-info', compact(
             'company',
             'driver',
             'countries',
             'states',
-            'defaultCountry',
-            'currentStep'
+            'currentStep',
+            'form'
         ));
     }
 
