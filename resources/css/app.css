@@ -320,8 +320,9 @@
         color: var(--tone);
         background-color: color-mix(in oklch, var(--tone) 12%, transparent);
     }
+    /* Neutral (inactive, draft, …) is an outline so it never reads like a tinted success badge. */
     .badge[data-tone="neutral"] {
-        @apply bg-secondary text-secondary-foreground;
+        @apply border-border bg-transparent text-muted-foreground;
     }
 
     .alert[data-tone] {

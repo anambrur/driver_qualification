@@ -7,7 +7,7 @@
         </button>
     @endif
     @if ($canManage)
-        <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" title="{{ $type->status ? 'Deactivate' : 'Activate' }}"
+        <button type="button" @class(['btn', 'text-success' => $type->status, 'text-muted-foreground' => ! $type->status]) data-variant="ghost" data-size="icon-sm" title="{{ $type->status ? 'Deactivate' : 'Activate' }}"
             aria-label="{{ $type->status ? 'Deactivate' : 'Activate' }}" data-action="toggle-status" data-id="{{ $type->id }}" data-name="{{ $type->name }}"
             data-active="{{ $type->status ? '1' : '0' }}">{{ svg($type->status ? 'lucide-toggle-right' : 'lucide-toggle-left', '', ['aria-hidden' => 'true']) }}</button>
         <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" title="Edit" aria-label="Edit"
