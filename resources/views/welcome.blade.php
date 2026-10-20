@@ -13,11 +13,7 @@
     <title>{{ $seoTitle }}</title>
     <x-seo :title="$seoTitle" :description="$seoDescription" :schema="\App\Support\Seo::homeSchema($plans)" />
 
-    <!-- Favicon Integration -->
-    @if(settings('favicon'))
-        <link rel="icon" type="image/png" href="{{ asset('storage/' . settings('favicon')) }}">
-        <link rel="apple-touch-icon" href="{{ asset('storage/' . settings('favicon')) }}">
-    @endif
+    @include('partials.favicon')
 
     <!-- Google Analytics Integration -->
     @php

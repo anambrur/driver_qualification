@@ -48,11 +48,18 @@
                 </div>
                 <x-ui.badge :tone="$docTone[$docDetail['status']] ?? 'success'">{{ $docLabel[$docDetail['status']] ?? 'Valid' }}</x-ui.badge>
                 <div class="flex shrink-0 items-center gap-1">
-                    @if ($docDetail['status'] !== 'valid')
-                        <x-ui.button size="xs" data-action="upload-document" :data-id="$item['id']" :data-type-id="$docDetail['type_id']" :data-asset-type="$kind">Complete</x-ui.button>
+                    @if ($docDetail['type_id'])
+                        @if ($docDetail['status'] !== 'valid')
+                            <x-ui.button size="xs" data-action="upload-document" :data-id="$item['id']" :data-type-id="$docDetail['type_id']" :data-asset-type="$kind">Complete</x-ui.button>
+                        @endif
+                        <x-ui.button variant="ghost" size="icon-sm" icon="mail" title="Send reminder" aria-label="Send reminder"
+                            data-action="send-reminder" :data-id="$item['id']" :data-type-id="$docDetail['type_id']" :data-asset-type="$kind" />
+                    @elseif ($docDetail['status'] !== 'valid')
+                        {{-- The CDL comes from the license step, not a compliance upload. --}}
+                        @canany(['drivers.create', 'drivers.edit'])
+                            <x-ui.button size="xs" :href="route('admin.driver.license', ['driver_id' => $item['id'], 'edit' => '1'])">Complete</x-ui.button>
+                        @endcanany
                     @endif
-                    <x-ui.button variant="ghost" size="icon-sm" icon="mail" title="Send reminder" aria-label="Send reminder"
-                        data-action="send-reminder" :data-id="$item['id']" :data-type-id="$docDetail['type_id']" :data-asset-type="$kind" />
                 </div>
             </li>
         @endforeach

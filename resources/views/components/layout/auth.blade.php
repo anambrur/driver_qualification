@@ -31,11 +31,7 @@
     <x-seo :title="$title.' | '.$siteName" :description="$description" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    @if (settings('favicon'))
-        <link rel="icon" type="image/png" href="{{ asset('storage/' . settings('favicon')) }}">
-    @else
-        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    @endif
+    @include('partials.favicon')
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

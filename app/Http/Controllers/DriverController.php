@@ -117,7 +117,7 @@ class DriverController extends Controller
         $activityLogs = collect();
 
         foreach ($uploadedDocuments as $doc) {
-            $typeName = $doc->documentType?->name ?? 'Document';
+            $typeName = $doc->documentType->name ?? 'Document';
             $isReplace = $doc->created_at && $doc->updated_at
                 && $doc->created_at->timestamp !== $doc->updated_at->timestamp;
 

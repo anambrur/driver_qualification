@@ -24,7 +24,7 @@ it('keeps only the logos and the driver form script', function () {
         ->values()
         ->all();
 
-    expect($files)->toBe(['driver-form-validation.js', 'logo/auth-logo.svg', 'logo/logo-dark.svg', 'logo/logo-icon.svg', 'logo/logo.svg']);
+    expect($files)->toBe(['driver-form-validation.js', 'logo/logo-dark.svg', 'logo/logo-icon.svg', 'logo/logo.svg']);
 });
 
 it('still serves the logos the pages use', function () {
