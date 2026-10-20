@@ -26,7 +26,7 @@ it('defaults to the green brand and gold accent', function () {
     expect(Theme::current())
         ->brand->toBe('#1f5c4f')
         ->highlight->toBe('#d4a24c')
-        ->sidebar->toBe(Color::shade('#1f5c4f'));
+        ->sidebar->toBe('#0b3a38');
 });
 
 it('prints the sidebar shade of the brand in every shell', function () {

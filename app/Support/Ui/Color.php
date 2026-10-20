@@ -46,8 +46,8 @@ final class Color
             default => 60 * (($r - $g) / $delta + 4),
         };
 
-        $l = min($l, 0.18);
-        $s = min($s, 0.42);
+        $l = min($l, 0.135);
+        $s = min($s, 0.68);
         $c = (1 - abs(2 * $l - 1)) * $s;
         $x = $c * (1 - abs(fmod($h / 60, 2) - 1));
         $m = $l - $c / 2;

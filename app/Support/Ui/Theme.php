@@ -11,6 +11,8 @@ final class Theme
 
     public const DEFAULT_HIGHLIGHT = '#d4a24c';
 
+    public const DEFAULT_SIDEBAR = '#0b3a38';
+
     public const MODES = ['light', 'dark', 'system'];
 
     /**
@@ -28,7 +30,7 @@ final class Theme
         return [
             'brand' => $brand,
             'brandForeground' => Color::foreground($brand),
-            'sidebar' => Color::shade($brand),
+            'sidebar' => $brand === self::DEFAULT_BRAND ? self::DEFAULT_SIDEBAR : Color::shade($brand),
             'highlight' => Color::valid($highlight) ? strtolower($highlight) : self::DEFAULT_HIGHLIGHT,
             'mode' => in_array($mode, self::MODES, true) ? $mode : 'system',
             'logo' => $logo ? asset('storage/'.$logo) : null,
