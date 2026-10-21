@@ -22,6 +22,7 @@ use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlanPriceController;
 use App\Http\Controllers\Platform\PlatformRoleController;
 use App\Http\Controllers\Platform\PostController;
+use App\Http\Controllers\Platform\ReplyEmailController;
 use App\Http\Controllers\Platform\StaffController;
 use App\Http\Controllers\Platform\SubscriptionController;
 use App\Http\Controllers\Platform\SupportSessionController;
@@ -125,6 +126,8 @@ Route::prefix('platform')->name('platform.')->group(function () use ($can) {
         Route::prefix('settings')->name('settings.')->middleware($can('settings.manage'))->group(function () {
             Route::get('/site', [SiteSettingController::class, 'index'])->name('site.index');
             Route::put('/site', [SiteSettingController::class, 'update'])->name('site.update');
+            Route::post('/site/reply-email', [ReplyEmailController::class, 'store'])->middleware('throttle:3,1')->name('site.reply-email.store');
+            Route::delete('/site/reply-email', [ReplyEmailController::class, 'destroy'])->name('site.reply-email.destroy');
             Route::get('/tawk', [TawkToSettingController::class, 'index'])->name('tawk.index');
             Route::put('/tawk', [TawkToSettingController::class, 'update'])->name('tawk.update');
         });

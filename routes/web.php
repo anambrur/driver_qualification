@@ -22,6 +22,7 @@ use App\Http\Controllers\MaintenanceScheduleController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReplyEmailController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\ServiceLogController;
@@ -153,6 +154,12 @@ Route::prefix('{slug}/application')->name('public.application.')->middleware(Res
     // Delete/Withdraw Application
     Route::post('/withdraw/{driver_id}', [ApplicationFormController::class, 'withdraw'])
         ->name('withdraw');
+});
+
+// Signed links that confirm an email for replies; the signature is the authorization (opened from any device)
+Route::middleware(['signed', 'throttle:20,1'])->prefix('reply-email/verify')->name('reply-email.verify.')->group(function () {
+    Route::get('company/{company}/{hash}', [ReplyEmailController::class, 'verifyCompany'])->whereNumber('company')->name('company');
+    Route::get('platform/{hash}', [ReplyEmailController::class, 'verifyPlatform'])->name('platform');
 });
 
 // Public site pages and blog (Platform > Content). Registered after /{slug}/apply so a company
@@ -385,6 +392,8 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
     Route::prefix('settings')->group(function () {
         Route::get('/company/{id}/edit', [CompanyController::class, 'edit'])->name('admin.settings.company.edit')->middleware('permission:company.edit');
         Route::patch('/company/{id}', [CompanyController::class, 'update'])->name('admin.settings.company.update')->middleware('permission:company.edit');
+        Route::post('/company/reply-email', [ReplyEmailController::class, 'store'])->name('admin.settings.company.reply-email.store')->middleware(['permission:company.edit', 'throttle:3,1']);
+        Route::delete('/company/reply-email', [ReplyEmailController::class, 'destroy'])->name('admin.settings.company.reply-email.destroy')->middleware('permission:company.edit');
 
         Route::get('/policy-pdf', [CompanyController::class, 'policyPDF'])->name('admin.settings.policy.pdf')->middleware('permission:company.edit');
         Route::post('/policy-pdf', [CompanyController::class, 'policyPDFStore'])->name('admin.settings.policy.pdf.store')->middleware('permission:company.edit');

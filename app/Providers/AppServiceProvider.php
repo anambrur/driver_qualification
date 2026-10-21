@@ -9,14 +9,17 @@ use App\Models\User;
 use App\Services\Billing\AccessStateResolver;
 use App\Services\Entitlements\EntitlementResolver;
 use App\Services\Entitlements\Entitlements;
+use App\Services\Mail\MailIdentity;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\PermissionRegistrar;
+use Symfony\Component\Mime\Address;
 use Vonage\Client;
 use Vonage\Client\Credentials\Basic;
 
@@ -59,13 +62,17 @@ class AppServiceProvider extends ServiceProvider
             return $user instanceof User && $user->company && Entitlements::for($user->company)->allows($feature);
         });
 
-        $replyTo = config('mail.reply_to.address');
+        // Platform mail and notifications reply to the platform; company mail sets its own Reply-To (MailIdentity)
+        Event::listen(function (MessageSending $event) {
+            if ($event->message->getReplyTo() !== []) {
+                return;
+            }
 
-        if (is_string($replyTo) && $replyTo !== '') {
-            Mail::alwaysReplyTo(
-                $replyTo,
-                config('mail.reply_to.name') ?: null,
-            );
-        }
+            $platform = app(MailIdentity::class)->platformReplyTo();
+
+            if ($platform) {
+                $event->message->replyTo(new Address($platform->address, (string) $platform->name));
+            }
+        });
     }
 }

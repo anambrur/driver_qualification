@@ -104,6 +104,16 @@
                 <x-ui.button type="submit" icon="check">Update Company</x-ui.button>
             </div>
         </form>
+
+        <div class="mt-6 max-w-2xl">
+            @include('settings.partials.reply-email-card', [
+                'owner' => $company,
+                'description' => 'Emails to your drivers come from your company name. When a driver replies, the reply goes to this inbox.',
+                'fallback' => 'Until then, replies go to the company owner’s login email.',
+                'storeUrl' => route('admin.settings.company.reply-email.store'),
+                'destroyUrl' => route('admin.settings.company.reply-email.destroy'),
+            ])
+        </div>
     </div>
 @endsection
 

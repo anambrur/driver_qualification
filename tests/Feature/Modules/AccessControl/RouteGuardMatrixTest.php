@@ -30,6 +30,9 @@ const ACL_PUBLIC_ROUTES = [
     'GET {page}',
     // Contact page form: throttled, honeypot, stores contact details only.
     'POST contact',
+    // Email-for-replies confirmation links: `signed` + throttled; the link only confirms the address it was sent to.
+    'GET reply-email/verify/company/{company}/{hash}',
+    'GET reply-email/verify/platform/{hash}',
     // SEO files: public by design (config/seo.php).
     'GET robots.txt',
     'GET sitemap.xml',

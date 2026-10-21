@@ -47,6 +47,8 @@ class SiteSetting extends Model
         'search_console_verification',
         'mail_from_name',
         'mail_from_address',
+        'reply_to_email',
+        'pending_reply_to_email',
         'landing',
     ];
 

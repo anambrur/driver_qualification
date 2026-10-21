@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\CompanyInvitation;
+use App\Services\Mail\MailIdentity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -27,6 +28,8 @@ class CompanyInvitationMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
+            from: app(MailIdentity::class)->from($this->invitation->company),
+            replyTo: app(MailIdentity::class)->replyTo($this->invitation->company),
             subject: 'You have been invited to join '.$this->invitation->company->company_name,
         );
     }

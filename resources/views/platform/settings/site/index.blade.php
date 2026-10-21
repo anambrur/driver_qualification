@@ -157,4 +157,14 @@
             <x-ui.button type="submit" icon="check">Save settings</x-ui.button>
         </div>
     </form>
+
+    <div class="mt-6 max-w-5xl">
+        @include('settings.partials.reply-email-card', [
+            'owner' => $setting,
+            'description' => 'Platform emails and notifications are sent from the platform address. When someone replies, the reply goes to this inbox. Company emails use the company’s own email for replies.',
+            'fallback' => 'Until then, replies use the server’s default reply address, if one is set.',
+            'storeUrl' => route('platform.settings.site.reply-email.store'),
+            'destroyUrl' => route('platform.settings.site.reply-email.destroy'),
+        ])
+    </div>
 @endsection
