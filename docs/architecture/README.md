@@ -2,9 +2,9 @@
 
 This document set describes how DriverFilesHub becomes a company-based, multi-tenant SaaS application. That is the foundation the client's DOT Doc Hub use cases (trips, mobile app, tracking, pay, QuickBooks, messaging) will be built on.
 
-- Status: **decisions applied 13 October 2026**. Ready for Phase 0.
-- Written: 11 October 2026, against commit `d1d4d8d`.
-- Code and migrations have not been changed yet. Implementation follows [13-implementation-roadmap.md](13-implementation-roadmap.md).
+- Status: **Phase 0 done** (main `67bb97c`, 21 October 2026). Phase 1 next: [agent-prompts/README.md](agent-prompts/README.md).
+- Written: 11 October 2026, against commit `d1d4d8d`; decisions applied 13 October 2026.
+- Implementation follows [13-implementation-roadmap.md](13-implementation-roadmap.md).
 
 ## Documents
 
