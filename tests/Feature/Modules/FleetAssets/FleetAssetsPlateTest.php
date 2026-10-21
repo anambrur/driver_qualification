@@ -3,8 +3,11 @@
 use App\Models\Country;
 use App\Models\State;
 use App\Models\StoredFile;
+use App\Services\Files\StoredFileService;
 use App\Support\Fleet\PlateStates;
+use App\Tenancy\TenantContext;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Modules\FleetAssets\FleetAssets;
 use Tests\Support\Actors;
@@ -70,9 +73,37 @@ describe('validation', function () {
         'photo over 5 MB' => [['photo' => UploadedFile::fake()->image('big.jpg')->size(5121)], 'photo'],
     ]);
 
-    it('allows a state without a plate number, and no plate at all', function (string $kind) {
-        plateSave($this, Actors::companyOwner(), $kind, ['plate_state_code' => 'TX'])->assertOk();
-        plateSave($this, Actors::companyOwner(), $kind, [])->assertOk();
+    it('saves no state without a plate number, and allows no plate at all', function (string $kind) {
+        $owner = Actors::companyOwner();
+
+        plateSave($this, $owner, $kind, ['unit_no' => 'NS-1', 'plate_state_code' => 'TX'])->assertOk();
+        plateSave($this, $owner, $kind, ['unit_no' => 'NS-2'])->assertOk();
+
+        expect(FleetAssets::model($kind)::withoutTenancy()->whereIn('unit_no', ['NS-1', 'NS-2'])->pluck('plate_state_code')->filter()->all())->toBe([]);
+    })->with('fleet assets');
+
+    it('clears the state when the plate is cleared, and keeps both when the edit omits the plate', function (string $kind) {
+        $owner = Actors::companyOwner();
+        $asset = FleetAssets::assetOf($owner, $kind, ['plate_number' => 'ABC123', 'plate_state_code' => 'TX']);
+
+        plateSave($this, $owner, $kind, ['make' => 'Renamed'], $asset)->assertOk();
+        expect($asset->fresh()->only(['plate_number', 'plate_state_code']))->toBe(['plate_number' => 'ABC123', 'plate_state_code' => 'TX']);
+
+        plateSave($this, $owner, $kind, ['plate_number' => '', 'plate_state_code' => 'TX'], $asset)->assertOk();
+        expect($asset->fresh()->only(['plate_number', 'plate_state_code']))->toBe(['plate_number' => null, 'plate_state_code' => null]);
+    })->with('fleet assets');
+
+    it('treats plate and state as one pair when an edit sends only one of them', function (string $kind) {
+        $owner = Actors::companyOwner();
+        $plated = FleetAssets::assetOf($owner, $kind, ['plate_number' => 'ABC123', 'plate_state_code' => 'TX']);
+        $bare = FleetAssets::assetOf($owner, $kind);
+
+        plateSave($this, $owner, $kind, ['plate_state_code' => ''], $plated)->assertOk();
+        plateSave($this, $owner, $kind, ['plate_state_code' => 'TX'], $bare)->assertOk();
+        plateSave($this, $owner, $kind, ['plate_number' => 'NEW1'], $bare)->assertStatus(422)->assertJsonValidationErrors('plate_state_code');
+
+        expect($plated->fresh()->only(['plate_number', 'plate_state_code']))->toBe(['plate_number' => null, 'plate_state_code' => null])
+            ->and($bare->fresh()->only(['plate_number', 'plate_state_code']))->toBe(['plate_number' => null, 'plate_state_code' => null]);
     })->with('fleet assets');
 });
 
@@ -126,6 +157,24 @@ describe('photo upload, replace and remove', function () {
             ->and(StoredFile::withoutTenancy()->find($old->id))->toBeNull()
             ->and((int) $company->fresh()->storage_bytes)->toBe($before);
         Storage::disk('local')->assertMissing($old->path);
+    })->with('fleet assets');
+
+    it('keeps the new photo when purging the old one fails after commit', function (string $kind) {
+        $owner = Actors::companyOwner();
+        plateSave($this, $owner, $kind, ['unit_no' => 'PF-1', 'photo' => platePhoto('old.jpg')])->assertOk();
+        $asset = FleetAssets::model($kind)::withoutTenancy()->where('unit_no', 'PF-1')->firstOrFail();
+        $oldId = $asset->photo_file_id;
+        Exceptions::fake();
+        $files = Mockery::mock(StoredFileService::class, [app(TenantContext::class)])->makePartial();
+        $files->shouldReceive('purgeIfUnreferenced')->andThrow(new RuntimeException('Lock wait timeout'));
+        app()->instance(StoredFileService::class, $files);
+
+        plateSave($this, $owner, $kind, ['photo' => platePhoto('new.jpg')], $asset)->assertOk();
+
+        $new = StoredFile::withoutTenancy()->findOrFail($asset->fresh()->photo_file_id);
+        expect($new->id)->not->toBe($oldId);
+        Storage::disk('local')->assertExists($new->path);
+        Exceptions::assertReported(RuntimeException::class);
     })->with('fleet assets');
 
     it('keeps the photo when the form is saved without one', function (string $kind) {

@@ -20,7 +20,7 @@
     "src": "node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-vietnamese-wght-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-dun9K54s.css",
+    "file": "assets/app-DS1g2Uyf.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "names": [
@@ -37,7 +37,7 @@
     ]
   },
   "resources/js/datatable.js": {
-    "file": "assets/datatable-Cbgox7NA.js",
+    "file": "assets/datatable-DZHDWEbT.js",
     "name": "datatable",
     "src": "resources/js/datatable.js",
     "isEntry": true,

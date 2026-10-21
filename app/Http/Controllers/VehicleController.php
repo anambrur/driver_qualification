@@ -100,12 +100,9 @@ class VehicleController extends Controller
         ]);
     }
 
-    public function update(VehicleRequest $request, FleetAssetService $assets, $id)
+    public function update(VehicleRequest $request, FleetAssetService $assets)
     {
-        $vehicle = Vehicle::findOrFail($id);
-
-        // Check if user has access to this vehicle
-        Gate::authorize('update', $vehicle);
+        $vehicle = $request->vehicle() ?? abort(404);
 
         try {
             $assets->update($vehicle, $request->safe()->except(['photo', 'remove_photo']), $request->file('photo'), $request->boolean('remove_photo'));

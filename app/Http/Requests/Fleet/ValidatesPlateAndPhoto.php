@@ -17,6 +17,15 @@ trait ValidatesPlateAndPhoto
                 $this->merge([$field => strtoupper($this->input($field))]);
             }
         }
+
+        // Plate and state are one pair: sending either sends both, and no plate means no state
+        if ($this->route('id') === null || $this->hasAny(['plate_number', 'plate_state_code'])) {
+            $plate = $this->input('plate_number');
+            $this->merge([
+                'plate_number' => blank($plate) ? null : $plate,
+                'plate_state_code' => blank($plate) ? null : $this->input('plate_state_code'),
+            ]);
+        }
     }
 
     /**
@@ -35,10 +44,9 @@ trait ValidatesPlateAndPhoto
     /**
      * @return array<string, string>
      */
-    public function messages(): array
+    protected function plateAndPhotoMessages(): array
     {
         return [
-            'vin.not_regex' => 'A VIN never contains the letters I, O or Q.',
             'plate_state_code.required_with' => 'Select the state or province that issued the plate.',
             'plate_state_code.exists' => 'Select a US state or Canadian province.',
             'photo.max' => 'The photo may not be larger than 5 MB.',

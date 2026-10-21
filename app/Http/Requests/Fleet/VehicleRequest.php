@@ -14,13 +14,28 @@ class VehicleRequest extends FormRequest
 {
     use ValidatesPlateAndPhoto;
 
+    private ?Vehicle $vehicle = null;
+
     /**
      * Another company's vehicle is a 404, and the policy runs, before validation (03 §5).
      */
     public function authorize(): bool
     {
-        return $this->route('id') === null
-            || $this->user()?->can('update', Vehicle::query()->findOrFail($this->route('id'))) === true;
+        $vehicle = $this->vehicle();
+
+        return $vehicle === null || $this->user()?->can('update', $vehicle) === true;
+    }
+
+    /**
+     * The vehicle being edited (null on create), looked up once for authorize() and the controller.
+     */
+    public function vehicle(): ?Vehicle
+    {
+        if ($this->route('id') === null) {
+            return null;
+        }
+
+        return $this->vehicle ??= Vehicle::query()->findOrFail($this->route('id'));
     }
 
     /**
@@ -57,5 +72,13 @@ class VehicleRequest extends FormRequest
             'size_dimension' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:2000',
         ] + $this->plateAndPhotoRules();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return ['vin.not_regex' => 'A VIN never contains the letters I, O or Q.'] + $this->plateAndPhotoMessages();
     }
 }

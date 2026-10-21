@@ -97,12 +97,9 @@ class TrailerController extends Controller
         ]);
     }
 
-    public function update(TrailerRequest $request, FleetAssetService $assets, $id)
+    public function update(TrailerRequest $request, FleetAssetService $assets)
     {
-        $trailer = Trailer::findOrFail($id);
-
-        // Check if user has access to this trailer
-        Gate::authorize('update', $trailer);
+        $trailer = $request->trailer() ?? abort(404);
 
         try {
             $assets->update($trailer, $request->safe()->except(['photo', 'remove_photo']), $request->file('photo'), $request->boolean('remove_photo'));
