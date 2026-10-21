@@ -176,19 +176,9 @@
                 destroy: @json(route('admin.vehicle.destroy', ':id')),
                 restore: @json(route('admin.vehicle.restore', ':id')),
             },
-            afterFill: (form, record) => {
-                // fill() leaves file inputs alone; show the saved photo with a Remove option
-                form.elements.photo.value = '';
-                const current = form.querySelector('[data-current-photo]');
-                current.hidden = !record.photo_url;
-                const image = current.querySelector('img');
-                if (record.photo_url) image.src = record.photo_url;
-                else image.removeAttribute('src');
-            },
+            afterFill: window.dqCrud.photoPreview,
         });
 
-        document.querySelectorAll('#vehicle-form [name="vin"], #vehicle-form [name="plate_number"]').forEach((input) => input.addEventListener('input', (event) => {
-            event.target.value = event.target.value.toUpperCase();
-        }));
+        window.dqCrud.upperCase(document.getElementById('vehicle-form'), ['vin', 'plate_number']);
     </script>
 @endpush

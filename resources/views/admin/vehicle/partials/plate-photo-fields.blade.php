@@ -1,5 +1,5 @@
 {{-- Form section (vehicle and trailer dialogs): plate, plate state and photo. Needs $plateStates
-     (country => [code => name]). The current photo and "Remove photo" are set by the page's afterFill hook. --}}
+     (country => [code => name]). The page passes dqCrud.photoPreview as afterFill. --}}
 <div class="form-section">
     <h3 class="form-section-title">{{ svg('lucide-rectangle-horizontal', '', ['aria-hidden' => 'true']) }} Plate and photo</h3>
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -26,3 +26,4 @@
         </div>
     </div>
 </div>
+

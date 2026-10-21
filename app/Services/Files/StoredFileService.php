@@ -91,13 +91,22 @@ class StoredFileService
 
     /**
      * Purge each file once the current transaction commits, unless something still points at it.
+     * A failed purge is reported, not thrown: the save has committed and must keep its new file.
      */
     public function purgeWhenUnreferenced(?int ...$fileIds): void
     {
         $ids = array_values(array_unique(array_filter($fileIds)));
 
         if ($ids !== []) {
-            DB::afterCommit(fn () => array_map($this->purgeIfUnreferenced(...), $ids));
+            DB::afterCommit(function () use ($ids) {
+                foreach ($ids as $id) {
+                    try {
+                        $this->purgeIfUnreferenced($id);
+                    } catch (Throwable $e) {
+                        report($e);
+                    }
+                }
+            });
         }
     }
 

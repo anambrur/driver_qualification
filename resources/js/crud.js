@@ -63,6 +63,22 @@ const report = (table, { ok, json }, fallback) => {
 
 const at = (url, id) => url.replace(":id", encodeURIComponent(id));
 
+/** afterFill hook for a dialog with a photo input: clear the input, show record.photo_url in [data-current-photo]. */
+const photoPreview = (form, record) => {
+    form.elements.photo.value = "";
+    const current = form.querySelector("[data-current-photo]");
+    current.hidden = !record.photo_url;
+    const image = current.querySelector("img");
+    if (record.photo_url) image.src = record.photo_url;
+    else image.removeAttribute("src");
+};
+
+/** Upper-case the named inputs of a form as the user types. */
+const upperCase = (form, names) =>
+    names.forEach((name) => form?.elements.namedItem(name)?.addEventListener("input", (event) => {
+        event.target.value = event.target.value.toUpperCase();
+    }));
+
 /**
  * Wire a list page's add/edit dialog and its row actions (data-action="create|edit|delete|restore").
  *
@@ -133,4 +149,4 @@ const page = ({ table, dialog, singular, routes, defaults = {}, toForm = (record
     return { open };
 };
 
-window.dqCrud = { request, setErrors, fill, confirm, report, page, at };
+window.dqCrud = { request, setErrors, fill, confirm, report, page, at, photoPreview, upperCase };

@@ -14,13 +14,28 @@ class TrailerRequest extends FormRequest
 {
     use ValidatesPlateAndPhoto;
 
+    private ?Trailer $trailer = null;
+
     /**
      * Another company's trailer is a 404, and the policy runs, before validation (03 §5).
      */
     public function authorize(): bool
     {
-        return $this->route('id') === null
-            || $this->user()?->can('update', Trailer::query()->findOrFail($this->route('id'))) === true;
+        $trailer = $this->trailer();
+
+        return $trailer === null || $this->user()?->can('update', $trailer) === true;
+    }
+
+    /**
+     * The trailer being edited (null on create), looked up once for authorize() and the controller.
+     */
+    public function trailer(): ?Trailer
+    {
+        if ($this->route('id') === null) {
+            return null;
+        }
+
+        return $this->trailer ??= Trailer::query()->findOrFail($this->route('id'));
     }
 
     /**
@@ -47,5 +62,13 @@ class TrailerRequest extends FormRequest
             'vehicle_group_id' => 'nullable|exists:vehicle_groups,id',
             'notes' => 'nullable|string|max:2000',
         ] + $this->plateAndPhotoRules();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return ['vin.not_regex' => 'A VIN never contains the letters I, O or Q.'] + $this->plateAndPhotoMessages();
     }
 }
