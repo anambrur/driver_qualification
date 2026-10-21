@@ -34,6 +34,7 @@ class UserService
             ->when($filters['role'] ?? null, fn ($query, int $roleId) => $query->whereHas('roles', fn ($q) => $q->whereKey($roleId)))
             ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('status', $status))
             ->with('roles:id,name,system_key')
+            ->withCount('permissions')
             ->latest()
             ->paginate(15)
             ->withQueryString();

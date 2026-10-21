@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Authorization\PermissionCatalogue;
 use App\Http\Requests\Users\UpdateUserRequest;
 use App\Models\User;
 use App\Services\Authorization\RoleService;
@@ -41,11 +42,29 @@ class UserController extends Controller
 
     public function edit(Request $request, int $user): View
     {
-        $target = $this->users->find($this->actor($request), $user);
+        $actor = $this->actor($request);
+        $target = $this->users->find($actor, $user)->load('roles:id,name,system_key');
+        $ownerId = (int) $actor->company->owner_user_id;
+
+        // Extra permissions card (06 §8 rule 2): not on your own page or the Owner's.
+        $grantTarget = ! $target->is($actor) && (int) $target->id !== $ownerId;
+        $canGrant = $grantTarget && $actor->can('permissions.grant');
+        $grantable = [];
+        $held = [];
+
+        if ($canGrant) {
+            $target->load('roles.permissions:id,name', 'permissions:id,name');
+            $grantable = array_merge(...array_values($this->roles->grantable($actor)));
+            $held = $target->getAllPermissions()->pluck('name')->all();
+        }
 
         return view('admin.users.edit', [
-            'user' => $target->load('roles:id,name,system_key'),
-            'roles' => $this->roles->assignable($this->actor($request)),
+            'user' => $target,
+            'roles' => $this->roles->assignable($actor),
+            'canGrant' => $canGrant,
+            'grantable' => $grantable,
+            'grantGroups' => PermissionCatalogue::tenantGroups(array_diff($grantable, $held)),
+            'showUpgradeHint' => $grantTarget && (int) $actor->id === $ownerId && ! $this->roles->customRolesAllowed($actor),
         ]);
     }
 
