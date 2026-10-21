@@ -303,6 +303,8 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::get('/', [VehicleController::class, 'index'])->name('admin.vehicle.index')->middleware('permission:vehicles.view');
         Route::get('/dropdown-data', [VehicleController::class, 'getDropdownData'])->name('admin.vehicle.dropdown.data')->middleware('permission:vehicles.view');
         Route::post('/', [VehicleController::class, 'store'])->name('admin.vehicle.store')->middleware('permission:vehicles.create');
+        Route::get('/{id}', [VehicleController::class, 'show'])->name('admin.vehicle.show')->middleware('permission:vehicles.view')->whereNumber('id');
+        Route::get('/{id}/photo', [VehicleController::class, 'photo'])->name('admin.vehicle.photo')->middleware('permission:vehicles.view');
         Route::get('/{id}/edit', [VehicleController::class, 'edit'])->name('admin.vehicle.edit')->middleware('permission:vehicles.edit');
         Route::put('/{id}', [VehicleController::class, 'update'])->name('admin.vehicle.update')->middleware('permission:vehicles.edit');
         Route::delete('/{id}', [VehicleController::class, 'destroy'])->name('admin.vehicle.destroy')->middleware('permission:vehicles.delete');
@@ -315,6 +317,8 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::get('/', [TrailerController::class, 'index'])->name('admin.trailer.index')->middleware('permission:trailers.view');
         Route::get('/dropdown-data', [TrailerController::class, 'getDropdownData'])->name('admin.trailer.dropdown.data')->middleware('permission:trailers.view');
         Route::post('/', [TrailerController::class, 'store'])->name('admin.trailer.store')->middleware('permission:trailers.create');
+        Route::get('/{id}', [TrailerController::class, 'show'])->name('admin.trailer.show')->middleware('permission:trailers.view')->whereNumber('id');
+        Route::get('/{id}/photo', [TrailerController::class, 'photo'])->name('admin.trailer.photo')->middleware('permission:trailers.view');
         Route::get('/{id}/edit', [TrailerController::class, 'edit'])->name('admin.trailer.edit')->middleware('permission:trailers.edit');
         Route::put('/{id}', [TrailerController::class, 'update'])->name('admin.trailer.update')->middleware('permission:trailers.edit');
         Route::delete('/{id}', [TrailerController::class, 'destroy'])->name('admin.trailer.destroy')->middleware('permission:trailers.delete');

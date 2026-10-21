@@ -57,6 +57,9 @@ function isoFixtures(): array
         ->create()->id];
     $vehicle = fn (Company $a) => [VehicleFactory::new()->forCompany($a)->create()->id];
     $trailer = fn (Company $a) => [TrailerFactory::new()->forCompany($a)->create()->id];
+    // With a photo, so the 404 comes from tenancy and not from a missing file
+    $withPhoto = fn (string $factory) => fn (Company $a) => [$factory::new()->forCompany($a)
+        ->create(['photo_file_id' => StoredFileFactory::new()->forCompany($a)->create()->id])->id];
     $fleetDocument = fn (string $type) => function (Company $a) use ($type) {
         $asset = $type === 'vehicle' ? VehicleFactory::new()->forCompany($a)->create() : TrailerFactory::new()->forCompany($a)->create();
         $model = $type === 'vehicle' ? VehicleDocument::class : TrailerDocument::class;
@@ -137,11 +140,15 @@ function isoFixtures(): array
         'DELETE admin/vehicle/{id}' => $vehicle,
         'POST admin/vehicle/{id}/restore' => $deletedVehicle,
         'GET admin/vehicle/{id}/details' => $vehicle,
+        'GET admin/vehicle/{id}' => $vehicle,
+        'GET admin/vehicle/{id}/photo' => $withPhoto(VehicleFactory::class),
         'GET admin/trailer/{id}/edit' => $trailer,
         'PUT admin/trailer/{id}' => $trailer,
         'DELETE admin/trailer/{id}' => $trailer,
         'POST admin/trailer/{id}/restore' => $deletedTrailer,
         'GET admin/trailer/{id}/details' => $trailer,
+        'GET admin/trailer/{id}' => $trailer,
+        'GET admin/trailer/{id}/photo' => $withPhoto(TrailerFactory::class),
         'GET admin/compliance/vehicles/{id}/details' => $vehicle,
         'GET admin/compliance/trailers/{id}/details' => $trailer,
         'GET admin/compliance/documents/{documentId}/{assetType}/view' => $fleetDocument('vehicle'),

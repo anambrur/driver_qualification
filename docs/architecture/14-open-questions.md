@@ -35,6 +35,7 @@ The product owner answered the questions from the 11 October draft on **13 Octob
 | C9 | The accident register report is generated from accident trip events. Explicit columns hold the register fields. | [08](08-database-schema.md) §9 (`trip_events`) |
 | C10 (also given as "Q10") | Pre-trip checklist only; it is not treated as a DVIR | [08](08-database-schema.md) §9 |
 | Phase 3 | Scope unchanged | [13](13-implementation-roadmap.md) |
+| P1-1 (3.5) | Plates (21 Oct 2026, defaults accepted): no uniqueness on the plate (plates are reissued; one number can exist in two states); the plate state is required with a plate number and must be a US state or Canadian province; photo jpg, png or webp up to 5 MB, no PDF conversion; the plate shows on the vehicle and trailer lists and on the new vehicle and trailer pages only. The pages have no Edit button (editing stays in the list's dialog). Vehicle and trailer validation moved to FormRequests. | `app/Http/Requests/Fleet/`, `FleetAssetService`, `admin/{vehicle,trailer}/show` |
 
 ## 3. Still open
 
