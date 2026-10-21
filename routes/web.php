@@ -189,7 +189,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{user}', [UserController::class, 'update'])->name('update')->middleware('permission:users.edit');
         Route::post('/{user}/deactivate', [UserController::class, 'deactivate'])->name('deactivate')->middleware('permission:users.deactivate');
         Route::post('/{user}/reactivate', [UserController::class, 'reactivate'])->name('reactivate')->middleware('permission:users.deactivate');
-        // Direct grants: backend only, UI in Phase 1.6
+        // Direct grants (06 §8 rule 2), from the Extra permissions card on the edit page
         Route::post('/{user}/permissions', [UserPermissionController::class, 'store'])->name('permissions.store')->middleware('permission:permissions.grant');
         Route::delete('/{user}/permissions/{permission}', [UserPermissionController::class, 'destroy'])->name('permissions.destroy')->middleware('permission:permissions.grant');
     });

@@ -57,6 +57,9 @@
                                         @empty
                                             <x-ui.badge tone="neutral">No roles</x-ui.badge>
                                         @endforelse
+                                        @if ($listUser->permissions_count > 0)
+                                            <x-ui.badge tone="info" :title="$listUser->permissions_count.' '.Str::plural('permission', $listUser->permissions_count).' granted directly'">+{{ $listUser->permissions_count }} extra</x-ui.badge>
+                                        @endif
                                     </div>
                                 </td>
                                 <td data-label="Status">@include('partials.ui.status-badge', ['status' => $listUser->status === 'inactive' ? 'inactive' : 'active'])</td>

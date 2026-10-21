@@ -11,7 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 /**
- * Direct per-user grants (06 §8 rule 2). Backend only; the UI comes in Phase 1.6.
+ * Direct per-user grants (06 §8 rule 2), from the Extra permissions card on the user edit page.
  */
 class UserPermissionController extends Controller
 {
