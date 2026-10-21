@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\DataTables\Fleet\VehicleTable;
 use App\Exceptions\LimitReached;
 use App\Features\Feature;
+use App\Http\Requests\Fleet\VehicleRequest;
 use App\Models\AssetGroup;
 use App\Models\AssetTransfer;
 use App\Models\FuelType;
@@ -12,22 +13,18 @@ use App\Models\Vehicle;
 use App\Models\VehicleGroup;
 use App\Models\VehicleType;
 use App\Services\Entitlements\Limits;
+use App\Services\Files\StoredFileService;
+use App\Services\Fleet\FleetAssetService;
+use App\Support\Fleet\PlateStates;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Unique;
 
 class VehicleController extends Controller
 {
     use CompanyFilterTrait;
-
-    private const VALIDATION_MESSAGES = [
-        'vin.not_regex' => 'A VIN never contains the letters I, O or Q.',
-    ];
 
     public function index(Request $request)
     {
@@ -40,81 +37,15 @@ class VehicleController extends Controller
         $vehicleGroups = VehicleGroup::orderBy('name')->get(['id', 'name']);
         $fuelTypes = FuelType::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.vehicle.index', compact('vehicleTypes', 'vehicleGroups', 'fuelTypes'));
+        $plateStates = PlateStates::options();
+
+        return view('admin.vehicle.index', compact('vehicleTypes', 'vehicleGroups', 'fuelTypes', 'plateStates'));
     }
 
-    public function store(Request $request)
+    public function store(VehicleRequest $request, FleetAssetService $assets)
     {
-        // Always the user's own company
-        $request->merge(['company_id' => $this->getAllUserCompanyId()]);
-
-        $validator = Validator::make($request->all(), [
-            'company_id' => 'required|exists:companies,id',
-            'unit_no' => ['required', 'string', 'max:50', $this->uniqueInCompany('unit_no', $request->input('company_id'))],
-            'vin' => ['required', 'string', 'size:17', 'not_regex:/[IOQ]/i', $this->uniqueInCompany('vin', $request->input('company_id'))],
-            'year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
-            'make' => 'required|string|max:100',
-            'model' => 'required|string|max:100',
-            'vehicle_type_id' => 'nullable|exists:vehicle_types,id',
-            'owned_by' => 'nullable|string|max:100',
-            'color' => 'nullable|string|max:50',
-            'title_no' => 'nullable|string|max:100',
-            'tire_size' => 'nullable|string|max:50',
-            'odometer' => 'required|integer|min:0',
-            'engine_hours' => 'nullable|integer|min:0',
-            'gvw' => 'nullable|integer|min:0',
-            'vehicle_group_id' => 'nullable|exists:vehicle_groups,id',
-            'fuel_type_id' => 'nullable|exists:fuel_types,id',
-            'engine_type' => 'nullable|string|max:100',
-            'transmission' => 'nullable|string|max:100',
-            'suspension' => 'nullable|string|max:100',
-            'no_axles' => 'nullable|integer|min:1|max:10',
-            'configuration' => 'nullable|in:conventional,cabover',
-            'wheel_base' => 'nullable|integer|min:0',
-            'size_dimension' => 'nullable|string|max:100',
-            'notes' => 'nullable|string|max:2000',
-        ], self::VALIDATION_MESSAGES);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        DB::beginTransaction();
-
         try {
-            Limits::assertCanCreate((int) $request->company_id, Feature::MaxVehicles);
-
-            $vehicle = Vehicle::create([
-                'company_id' => $request->company_id,
-                'unit_no' => $request->unit_no,
-                'vin' => $request->vin,
-                'year' => $request->year,
-                'make' => $request->make,
-                'model' => $request->model,
-                'vehicle_type_id' => $request->vehicle_type_id,
-                'owned_by' => $request->owned_by,
-                'color' => $request->color,
-                'title_no' => $request->title_no,
-                'tire_size' => $request->tire_size,
-                'odometer' => $request->odometer,
-                'engine_hours' => $request->engine_hours,
-                'gvw' => $request->gvw,
-                'vehicle_group_id' => $request->vehicle_group_id,
-                'fuel_type_id' => $request->fuel_type_id,
-                'engine_type' => $request->engine_type,
-                'transmission' => $request->transmission,
-                'suspension' => $request->suspension,
-                'no_axles' => $request->no_axles,
-                'configuration' => $request->configuration,
-                'wheel_base' => $request->wheel_base,
-                'size_dimension' => $request->size_dimension,
-                'notes' => $request->notes,
-            ]);
-
-            DB::commit();
+            $vehicle = $assets->create(Vehicle::class, $request->safe()->except(['photo', 'remove_photo']), $request->file('photo'));
 
             return response()->json([
                 'success' => true,
@@ -122,11 +53,8 @@ class VehicleController extends Controller
                 'data' => $vehicle,
             ]);
         } catch (LimitReached $e) {
-            DB::rollBack();
-
             throw $e;
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Vehicle store error: '.$e->getMessage());
 
             return response()->json([
@@ -134,6 +62,27 @@ class VehicleController extends Controller
                 'message' => 'Failed to create vehicle. Please try again.',
             ], 500);
         }
+    }
+
+    public function show($id)
+    {
+        $vehicle = Vehicle::with(['vehicleType', 'vehicleGroup', 'fuelType'])->findOrFail($id);
+
+        // Check if user has access to this vehicle
+        Gate::authorize('view', $vehicle);
+
+        return view('admin.vehicle.show', compact('vehicle'));
+    }
+
+    /**
+     * The vehicle photo, inline, only through this authorized route (never a public URL).
+     */
+    public function photo($id, StoredFileService $files)
+    {
+        $vehicle = Vehicle::with('photoFile')->findOrFail($id);
+        Gate::authorize('view', $vehicle);
+
+        return $files->response($vehicle->photoFile);
     }
 
     public function edit($id)
@@ -145,71 +94,30 @@ class VehicleController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $vehicle,
+            'data' => $vehicle->toArray() + [
+                'photo_url' => $vehicle->photo_file_id ? route('admin.vehicle.photo', $vehicle->id) : null,
+            ],
         ]);
     }
 
-    public function update(Request $request, $id)
+    public function update(VehicleRequest $request, FleetAssetService $assets, $id)
     {
         $vehicle = Vehicle::findOrFail($id);
 
         // Check if user has access to this vehicle
         Gate::authorize('update', $vehicle);
 
-        // A vehicle never changes company here; the platform's Asset Transfer moves it (PO-08)
-        $request->merge(['company_id' => $vehicle->company_id]);
-
-        $validator = Validator::make($request->all(), [
-            'company_id' => [
-                'required',
-                'exists:companies,id',
-            ],
-            'unit_no' => ['required', 'string', 'max:50', $this->uniqueInCompany('unit_no', $request->input('company_id'), $vehicle->id)],
-            'vin' => ['required', 'string', 'size:17', 'not_regex:/[IOQ]/i', $this->uniqueInCompany('vin', $request->input('company_id'), $vehicle->id)],
-            'year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
-            'make' => 'required|string|max:100',
-            'model' => 'required|string|max:100',
-            'vehicle_type_id' => 'nullable|exists:vehicle_types,id',
-            'owned_by' => 'nullable|string|max:100',
-            'color' => 'nullable|string|max:50',
-            'title_no' => 'nullable|string|max:100',
-            'tire_size' => 'nullable|string|max:50',
-            'odometer' => 'required|integer|min:0',
-            'engine_hours' => 'nullable|integer|min:0',
-            'gvw' => 'nullable|integer|min:0',
-            'vehicle_group_id' => 'nullable|exists:vehicle_groups,id',
-            'fuel_type_id' => 'nullable|exists:fuel_types,id',
-            'engine_type' => 'nullable|string|max:100',
-            'transmission' => 'nullable|string|max:100',
-            'suspension' => 'nullable|string|max:100',
-            'no_axles' => 'nullable|integer|min:1|max:10',
-            'configuration' => 'nullable|in:conventional,cabover',
-            'wheel_base' => 'nullable|integer|min:0',
-            'size_dimension' => 'nullable|string|max:100',
-            'notes' => 'nullable|string|max:2000',
-        ], self::VALIDATION_MESSAGES);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        DB::beginTransaction();
-
         try {
-            $vehicle->update($validator->validated());
-
-            DB::commit();
+            $assets->update($vehicle, $request->safe()->except(['photo', 'remove_photo']), $request->file('photo'), $request->boolean('remove_photo'));
 
             return response()->json([
                 'success' => true,
                 'message' => 'Vehicle updated successfully!',
                 'data' => $vehicle,
             ]);
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Vehicle update error: '.$e->getMessage());
 
             return response()->json([
@@ -337,15 +245,5 @@ class VehicleController extends Controller
                 'message' => 'Vehicle not found',
             ], 404);
         }
-    }
-
-    /**
-     * Unit no and VIN are unique within a company (deleted vehicles included, as in the DB index).
-     */
-    private function uniqueInCompany(string $column, mixed $companyId, ?int $ignoreId = null): Unique
-    {
-        return Rule::unique('vehicles', $column)
-            ->where('company_id', is_scalar($companyId) ? $companyId : null)
-            ->ignore($ignoreId);
     }
 }

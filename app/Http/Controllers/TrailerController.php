@@ -5,27 +5,24 @@ namespace App\Http\Controllers;
 use App\DataTables\Fleet\TrailerTable;
 use App\Exceptions\LimitReached;
 use App\Features\Feature;
+use App\Http\Requests\Fleet\TrailerRequest;
 use App\Models\AssetTransfer;
 use App\Models\EquipmentType;
 use App\Models\Trailer;
 use App\Models\VehicleGroup;
 use App\Services\Entitlements\Limits;
+use App\Services\Files\StoredFileService;
+use App\Services\Fleet\FleetAssetService;
+use App\Support\Fleet\PlateStates;
 use App\Traits\CompanyFilterTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Unique;
 
 class TrailerController extends Controller
 {
     use CompanyFilterTrait;
-
-    private const VALIDATION_MESSAGES = [
-        'vin.not_regex' => 'A VIN never contains the letters I, O or Q.',
-    ];
 
     public function index(Request $request)
     {
@@ -37,46 +34,15 @@ class TrailerController extends Controller
         $equipmentTypes = EquipmentType::orderBy('name')->get(['id', 'name']);
         $vehicleGroups = VehicleGroup::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.trailer.index', compact('equipmentTypes', 'vehicleGroups'));
+        $plateStates = PlateStates::options();
+
+        return view('admin.trailer.index', compact('equipmentTypes', 'vehicleGroups', 'plateStates'));
     }
 
-    public function store(Request $request)
+    public function store(TrailerRequest $request, FleetAssetService $assets)
     {
-        // Always the user's own company
-        $request->merge(['company_id' => $this->getAllUserCompanyId()]);
-
-        $validator = Validator::make($request->all(), [
-            'company_id' => 'required|exists:companies,id',
-            'unit_no' => ['required', 'string', 'max:50', $this->uniqueInCompany('unit_no', $request->input('company_id'))],
-            'vin' => ['required', 'string', 'size:17', 'not_regex:/[IOQ]/i', $this->uniqueInCompany('vin', $request->input('company_id'))],
-            'year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
-            'make' => 'required|string|max:100',
-            'model' => 'required|string|max:100',
-            'equipment_type_id' => 'required|exists:equipment_types,id',
-            'owned_by' => 'nullable|string|max:100',
-            'color' => 'nullable|string|max:50',
-            'title_no' => 'nullable|string|max:100',
-            'tire_size' => 'nullable|string|max:50',
-            'gvw' => 'nullable|integer|min:0',
-            'vehicle_group_id' => 'nullable|exists:vehicle_groups,id',
-            'notes' => 'nullable|string|max:2000',
-        ], self::VALIDATION_MESSAGES);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        DB::beginTransaction();
-
         try {
-            Limits::assertCanCreate((int) $request->company_id, Feature::MaxTrailers);
-
-            $trailer = Trailer::create($validator->validated());
-
-            DB::commit();
+            $trailer = $assets->create(Trailer::class, $request->safe()->except(['photo', 'remove_photo']), $request->file('photo'));
 
             return response()->json([
                 'success' => true,
@@ -84,11 +50,8 @@ class TrailerController extends Controller
                 'data' => $trailer,
             ]);
         } catch (LimitReached $e) {
-            DB::rollBack();
-
             throw $e;
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Trailer store error: '.$e->getMessage());
 
             return response()->json([
@@ -96,6 +59,27 @@ class TrailerController extends Controller
                 'message' => 'Failed to create trailer. Please try again.',
             ], 500);
         }
+    }
+
+    public function show($id)
+    {
+        $trailer = Trailer::with(['equipmentType', 'vehicleGroup'])->findOrFail($id);
+
+        // Check if user has access to this trailer
+        Gate::authorize('view', $trailer);
+
+        return view('admin.trailer.show', compact('trailer'));
+    }
+
+    /**
+     * The trailer photo, inline, only through this authorized route (never a public URL).
+     */
+    public function photo($id, StoredFileService $files)
+    {
+        $trailer = Trailer::with('photoFile')->findOrFail($id);
+        Gate::authorize('view', $trailer);
+
+        return $files->response($trailer->photoFile);
     }
 
     public function edit($id)
@@ -107,61 +91,30 @@ class TrailerController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $trailer,
+            'data' => $trailer->toArray() + [
+                'photo_url' => $trailer->photo_file_id ? route('admin.trailer.photo', $trailer->id) : null,
+            ],
         ]);
     }
 
-    public function update(Request $request, $id)
+    public function update(TrailerRequest $request, FleetAssetService $assets, $id)
     {
         $trailer = Trailer::findOrFail($id);
 
         // Check if user has access to this trailer
         Gate::authorize('update', $trailer);
 
-        // A trailer never changes company here; the platform's Asset Transfer moves it (PO-08)
-        $request->merge(['company_id' => $trailer->company_id]);
-
-        $validator = Validator::make($request->all(), [
-            'company_id' => [
-                'required',
-                'exists:companies,id',
-            ],
-            'unit_no' => ['required', 'string', 'max:50', $this->uniqueInCompany('unit_no', $request->input('company_id'), $trailer->id)],
-            'vin' => ['required', 'string', 'size:17', 'not_regex:/[IOQ]/i', $this->uniqueInCompany('vin', $request->input('company_id'), $trailer->id)],
-            'year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
-            'make' => 'required|string|max:100',
-            'model' => 'required|string|max:100',
-            'equipment_type_id' => 'required|exists:equipment_types,id',
-            'owned_by' => 'nullable|string|max:100',
-            'color' => 'nullable|string|max:50',
-            'title_no' => 'nullable|string|max:100',
-            'tire_size' => 'nullable|string|max:50',
-            'gvw' => 'nullable|integer|min:0',
-            'vehicle_group_id' => 'nullable|exists:vehicle_groups,id',
-            'notes' => 'nullable|string|max:2000',
-        ], self::VALIDATION_MESSAGES);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        DB::beginTransaction();
-
         try {
-            $trailer->update($validator->validated());
-
-            DB::commit();
+            $assets->update($trailer, $request->safe()->except(['photo', 'remove_photo']), $request->file('photo'), $request->boolean('remove_photo'));
 
             return response()->json([
                 'success' => true,
                 'message' => 'Trailer updated successfully!',
                 'data' => $trailer,
             ]);
+        } catch (LimitReached $e) {
+            throw $e;
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Trailer update error: '.$e->getMessage());
 
             return response()->json([
@@ -282,15 +235,5 @@ class TrailerController extends Controller
                 'message' => 'Trailer not found',
             ], 404);
         }
-    }
-
-    /**
-     * Unit no and VIN are unique within a company (deleted trailers included, as in the DB index).
-     */
-    private function uniqueInCompany(string $column, mixed $companyId, ?int $ignoreId = null): Unique
-    {
-        return Rule::unique('trailers', $column)
-            ->where('company_id', is_scalar($companyId) ? $companyId : null)
-            ->ignore($ignoreId);
     }
 }

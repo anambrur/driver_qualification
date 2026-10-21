@@ -23,7 +23,7 @@ final class VehicleTable
         $canDelete = (bool) $user?->can('vehicles.delete');
 
         $query = Vehicle::query()
-            ->select(['vehicles.id', 'vehicles.company_id', 'unit_no', 'vin', 'year', 'make', 'model', 'odometer', 'notes',
+            ->select(['vehicles.id', 'vehicles.company_id', 'unit_no', 'vin', 'plate_number', 'plate_state_code', 'year', 'make', 'model', 'odometer', 'notes',
                 'vehicle_type_id', 'vehicle_group_id', 'fuel_type_id', 'vehicles.created_at', 'vehicles.deleted_at'])
             ->with(['vehicleType:id,name', 'vehicleGroup:id,name', 'fuelType:id,name']);
 
@@ -48,6 +48,7 @@ final class VehicleTable
             ->addColumn('vehicle_info', fn (Vehicle $vehicle) => view('admin.vehicle.partials.unit-cell', [
                 'icon' => 'truck', 'unit' => $vehicle->unit_no, 'title' => trim($vehicle->year.' '.$vehicle->make.' '.$vehicle->model),
                 'vin' => $vehicle->vin, 'notes' => filled($vehicle->notes),
+                'href' => $vehicle->deleted_at ? null : route('admin.vehicle.show', $vehicle->id),
             ])->render())
             ->addColumn('type_group', fn (Vehicle $vehicle) => view('admin.vehicle.partials.pair-cell', [
                 'rows' => ['Type' => $vehicle->vehicleType?->name, 'Group' => $vehicle->vehicleGroup?->name],
@@ -55,16 +56,20 @@ final class VehicleTable
             ->addColumn('fuel_odometer', fn (Vehicle $vehicle) => view('admin.vehicle.partials.pair-cell', [
                 'rows' => ['Fuel' => $vehicle->fuelType?->name, 'Odometer' => number_format((int) $vehicle->odometer).' mi'],
             ])->render())
+            ->addColumn('plate', fn (Vehicle $vehicle) => view('admin.vehicle.partials.plate-cell', [
+                'number' => $vehicle->plate_number, 'state' => $vehicle->plate_state_code,
+            ])->render())
             ->addColumn('status', fn (Vehicle $vehicle) => view('partials.ui.status-badge', ['status' => $vehicle->deleted_at ? 'deleted' : 'active'])->render())
             ->addColumn('created_at_formatted', fn (Vehicle $vehicle) => $vehicle->created_at?->format('M d, Y'))
             ->addColumn('action', fn (Vehicle $vehicle) => view('admin.vehicle.partials.row-actions', [
                 'id' => $vehicle->id, 'label' => $vehicle->unit_no, 'deleted' => $vehicle->deleted_at !== null,
-                'canEdit' => $canEdit, 'canDelete' => $canDelete,
+                'canEdit' => $canEdit, 'canDelete' => $canDelete, 'viewUrl' => route('admin.vehicle.show', $vehicle->id),
             ])->render())
             ->orderColumn('vehicle_info', 'unit_no $1')
+            ->orderColumn('plate', 'plate_number $1')
             ->orderColumn('created_at_formatted', 'vehicles.created_at $1')
             ->filter(fn () => null) // searched above
-            ->rawColumns(['vehicle_info', 'type_group', 'fuel_odometer', 'status', 'action'])
+            ->rawColumns(['vehicle_info', 'plate', 'type_group', 'fuel_odometer', 'status', 'action'])
             ->make(true);
     }
 }

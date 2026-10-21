@@ -26,6 +26,7 @@
 
             <th class="w-12">#</th>
             <th>Trailer</th>
+            <th>Plate</th>
             <th>Equipment and group</th>
             <th>GVW</th>
             <th>Owned by</th>
@@ -94,6 +95,8 @@
                     </div>
                 </div>
 
+                @include('admin.vehicle.partials.plate-photo-fields')
+
                 <div class="form-section">
                     <h3 class="form-section-title">{{ svg('lucide-sticky-note', '', ['aria-hidden' => 'true']) }} Notes</h3>
                     <x-ui.field label="Notes" name="notes" class="[&>label]:sr-only">
@@ -114,10 +117,11 @@
         const table = window.dqTable('#trailers', {
             ajax: @json(route('admin.trailer.index')),
             primary: 1,
-            order: [[6, 'desc']],
+            order: [[7, 'desc']],
             columns: [
                 { data: 'DT_RowIndex', orderable: false, searchable: false },
                 { data: 'trailer_info', name: 'trailer_info' },
+                { data: 'plate', name: 'plate', searchable: false },
                 { data: 'equipment_group', orderable: false, searchable: false },
                 { data: 'gvw', name: 'gvw', searchable: false },
                 { data: 'owned_by', name: 'owned_by', searchable: false },
@@ -138,10 +142,19 @@
                 destroy: @json(route('admin.trailer.destroy', ':id')),
                 restore: @json(route('admin.trailer.restore', ':id')),
             },
+            afterFill: (form, record) => {
+                // fill() leaves file inputs alone; show the saved photo with a Remove option
+                form.elements.photo.value = '';
+                const current = form.querySelector('[data-current-photo]');
+                current.hidden = !record.photo_url;
+                const image = current.querySelector('img');
+                if (record.photo_url) image.src = record.photo_url;
+                else image.removeAttribute('src');
+            },
         });
 
-        document.querySelector('#trailer-form [name="vin"]')?.addEventListener('input', (event) => {
+        document.querySelectorAll('#trailer-form [name="vin"], #trailer-form [name="plate_number"]').forEach((input) => input.addEventListener('input', (event) => {
             event.target.value = event.target.value.toUpperCase();
-        });
+        }));
     </script>
 @endpush

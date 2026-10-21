@@ -58,6 +58,7 @@ This document set describes how DriverFilesHub becomes a company-based, multi-te
 | Lookups (vehicle types, fuel types, equipment types, vehicle groups, maintenance categories, document types) are global, and only platform staff edit them. | LKP-01 |
 | Driver email is unique per company. | APP-07 |
 | VIN and unit number are unique per company. | PO-10, FLT-02 |
+| Licence plates are not unique; the plate state (US or Canada) is required with a plate number; the asset photo is jpg, png or webp up to 5 MB, served only through `admin.{vehicle,trailer}.photo`. | P1-1, 21 Oct 2026; [14](14-open-questions.md) §2 |
 | Companies and owners are deactivated, never cascade-deleted. | PO-13, PO-17 |
 | Policy PDFs are per company, with a platform default as fallback. | PO-14 |
 | One free trial per verified email. | PO-15 |

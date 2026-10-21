@@ -90,6 +90,14 @@ class Vehicle extends Model
     }
 
     /**
+     * @return BelongsTo<StoredFile, $this>
+     */
+    public function photoFile(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'photo_file_id');
+    }
+
+    /**
      * @return HasOne<AssetGroup, $this>
      */
     public function assetGroups(): HasOne
@@ -113,6 +121,7 @@ class Vehicle extends Model
                 ->orWhere('vin', 'like', "%{$search}%")
                 ->orWhere('make', 'like', "%{$search}%")
                 ->orWhere('model', 'like', "%{$search}%")
+                ->orWhere('plate_number', 'like', "%{$search}%")
                 ->orWhere('year', 'like', "%{$search}%");
         });
     }
