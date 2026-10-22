@@ -9,6 +9,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyInvitationController;
 use App\Http\Controllers\ComplianceDashboardController;
 use App\Http\Controllers\ComplianceReminderController;
+use App\Http\Controllers\ConnectedAccountController;
 use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoRequestController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPermissionController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Middleware\ResolvePublicCompany;
+use App\Services\Auth\SocialProviders;
 use Illuminate\Support\Facades\Route;
 
 Route::post('stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
@@ -241,6 +243,10 @@ Route::middleware(['auth', 'subscribed'])->prefix('admin')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/connected-accounts/{provider}', [ConnectedAccountController::class, 'store'])
+        ->whereIn('provider', array_keys(SocialProviders::PROVIDERS))->middleware('throttle:10,1')->name('profile.social.connect');
+    Route::delete('/profile/connected-accounts/{provider}', [ConnectedAccountController::class, 'destroy'])
+        ->whereIn('provider', array_keys(SocialProviders::PROVIDERS))->name('profile.social.disconnect');
 });
 
 Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(function () {

@@ -49,4 +49,17 @@ return [
         'app_label' => env('STRIPE_APP_LABEL', env('APP_NAME', 'DriverFilesHub')),
     ],
 
+    // Social login (P1-3). Shown only when both keys are set and Platform > Settings > Site enables it.
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+    ],
+
+    'facebook' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI', '/auth/facebook/callback'),
+    ],
+
 ];

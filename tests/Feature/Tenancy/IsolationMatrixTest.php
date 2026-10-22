@@ -39,6 +39,9 @@ const ISO_EXCLUDED = [
     'GET verify-email/{id}/{hash}' => 'signed own-user link',
     // A policy key, not an id: the action only serves the user's own company's file
     'GET admin/settings/policy-pdf/{policy}' => 'policy key; own company only (PolicyPdfTest)',
+    // A provider key, not an id: only the logged-in user's own sign-in accounts (SocialLoginTest)
+    'POST admin/profile/connected-accounts/{provider}' => 'provider key; own user only',
+    'DELETE admin/profile/connected-accounts/{provider}' => 'provider key; own user only',
     // Platform guard: a tenant user is unauthenticated there; requester-only (SupportSessionTest)
     'POST platform/support-sessions/{supportSession}/end' => 'platform route; requester only',
 ];

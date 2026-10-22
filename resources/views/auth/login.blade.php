@@ -5,6 +5,8 @@
         <a href="{{ route('register') }}" class="font-medium text-primary underline-offset-4 hover:underline">Create one free</a>
     </x-slot:intro>
 
+    @include('auth.partials.social-buttons')
+
     <form method="POST" action="{{ route('login') }}" class="grid gap-5">
         @csrf
 

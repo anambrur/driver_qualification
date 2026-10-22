@@ -53,6 +53,12 @@ const ACL_PUBLIC_ROUTES = [
     // Company invitations: only usable with the emailed token, throttled (10 §5).
     'GET invitations/{token}',
     'POST invitations/{token}',
+    // Google / Facebook sign-in (P1-3): throttled, provider allow-list, 404 unless enabled; the
+    // callback is state-checked by Socialite; finish needs the provider profile kept in the session.
+    'GET auth/{provider}/redirect',
+    'GET auth/{provider}/callback',
+    'GET auth/{provider}/finish',
+    'POST auth/{provider}/finish',
     // Platform staff login and password reset (04 §2), guest-only on the platform guard.
     'GET platform/login',
     'POST platform/login',
@@ -69,6 +75,7 @@ const ACL_GUEST_ROUTES = [
     'GET register', 'POST register', 'GET login', 'POST login',
     'GET forgot-password', 'POST forgot-password', 'GET reset-password/{token}', 'POST reset-password',
     'GET invitations/{token}', 'POST invitations/{token}',
+    'GET auth/{provider}/redirect', 'GET auth/{provider}/finish', 'POST auth/{provider}/finish',
     'GET platform/login', 'POST platform/login', 'GET platform/forgot-password', 'POST platform/forgot-password',
     'GET platform/reset-password/{token}', 'POST platform/reset-password',
 ];
@@ -80,6 +87,8 @@ const ACL_NO_PERMISSION_ROUTES = [
     'GET admin/profile',
     'PATCH admin/profile',
     'DELETE admin/profile',
+    'POST admin/profile/connected-accounts/{provider}',
+    'DELETE admin/profile/connected-accounts/{provider}',
     'GET verify-email',
     'GET verify-email/{id}/{hash}',
     'POST email/verification-notification',
@@ -176,7 +185,10 @@ describe('route guard matrix', function () {
             ->reject(fn (array $route) => aclHasMiddleware($route, 'verified'))
             ->pluck('key')->values()->all();
 
-        expect($unverified)->toBe(['GET admin/profile', 'PATCH admin/profile', 'DELETE admin/profile']);
+        expect($unverified)->toBe([
+            'GET admin/profile', 'PATCH admin/profile', 'DELETE admin/profile',
+            'POST admin/profile/connected-accounts/{provider}', 'DELETE admin/profile/connected-accounts/{provider}',
+        ]);
     });
 
     it('puts every /platform route behind auth:platform and the platform session (11 §5)', function () {

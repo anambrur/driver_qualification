@@ -152,6 +152,22 @@
             </div>
         </x-ui.card>
 
+        {{-- Social login is a platform capability (05 §2); the OAuth keys stay in the env --}}
+        @inject('socialProviders', 'App\Services\Auth\SocialProviders')
+        <x-ui.card title="Sign-in providers" description="Offer Google and Facebook sign-in on the login and register pages. A provider needs its OAuth keys in the server environment.">
+            <div class="grid gap-4">
+                @foreach ($socialProviders::PROVIDERS as $provider => $label)
+                    @php($configured = $socialProviders->isConfigured($provider))
+                    <div>
+                        <input type="hidden" name="{{ $provider }}_login_enabled" value="0">
+                        <x-ui.switch name="{{ $provider }}_login_enabled" :checked="(bool) $setting->{$provider.'_login_enabled'}"
+                            :label="'Sign in with '.$label"
+                            :description="$configured ? 'Keys are set.' : 'Not configured: set '.strtoupper($provider).'_CLIENT_ID and '.strtoupper($provider).'_CLIENT_SECRET.'" />
+                    </div>
+                @endforeach
+            </div>
+        </x-ui.card>
+
         <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <x-ui.button variant="outline" :href="route('platform.dashboard')">Cancel</x-ui.button>
             <x-ui.button type="submit" icon="check">Save settings</x-ui.button>

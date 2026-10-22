@@ -60,6 +60,9 @@ class SiteSettingController extends Controller
             'trial_days' => 'required|integer|min:1|max:90',
             'grace_days' => 'required|integer|min:0|max:60',
             'support_session_max_minutes' => 'required|integer|min:15|max:1440',
+            // Social login (P1-3); shown only when the provider's keys are in the env too
+            'google_login_enabled' => 'sometimes|boolean',
+            'facebook_login_enabled' => 'sometimes|boolean',
         ]);
 
         // Handle File Uploads
