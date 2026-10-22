@@ -12,6 +12,7 @@ use App\Models\FuelType;
 use App\Models\Vehicle;
 use App\Models\VehicleGroup;
 use App\Models\VehicleType;
+use App\Services\Documents\FolderBrowser;
 use App\Services\Entitlements\Limits;
 use App\Services\Files\StoredFileService;
 use App\Services\Fleet\FleetAssetService;
@@ -64,14 +65,24 @@ class VehicleController extends Controller
         }
     }
 
-    public function show($id)
+    public function show(Request $request, $id, FolderBrowser $browser)
     {
         $vehicle = Vehicle::with(['vehicleType', 'vehicleGroup', 'fuelType'])->findOrFail($id);
 
         // Check if user has access to this vehicle
         Gate::authorize('view', $vehicle);
 
-        return view('admin.vehicle.show', compact('vehicle'));
+        // The Documents tab; the typed compliance documents show read-only in the vehicle's folder.
+        $documentsBrowser = $browser->tab($vehicle, $request->integer('folder') ?: null);
+        $virtualDocuments = $documentsBrowser !== null && Gate::allows('fleets.dashboard')
+            ? $vehicle->documents()->with('documentType:id,name')->latest('updated_at')->get()->map(fn ($doc) => [
+                'label' => $doc->documentType->name ?? 'Document',
+                'detail' => $doc->expiry_date ? 'Expires '.$doc->expiry_date->format('M d, Y') : '—',
+                'url' => route('admin.compliance.documents.view', [$doc->id, 'vehicle']),
+            ])->all()
+            : [];
+
+        return view('admin.vehicle.show', compact('vehicle', 'documentsBrowser', 'virtualDocuments'));
     }
 
     /**

@@ -57,6 +57,7 @@ final class CompanyMenu
                         ['label' => 'Scheduled', 'route' => 'admin.maintenance-schedule.index', 'active' => ['admin.maintenance-schedule.*'], 'visible' => $user->can('scheduled.view')],
                     ],
                 ],
+                ['label' => 'Documents', 'icon' => 'folder', 'route' => 'documents.index', 'active' => ['documents.*'], 'visible' => $feature('document_folders') && $user->can('folders.view')],
             ],
             'Settings' => [
                 ['label' => 'Asset groups', 'icon' => 'layers', 'route' => 'admin.asset-group.index', 'active' => ['admin.asset-group.*'], 'visible' => $user->can('asset-groups.view')],

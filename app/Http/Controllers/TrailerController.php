@@ -10,6 +10,7 @@ use App\Models\AssetTransfer;
 use App\Models\EquipmentType;
 use App\Models\Trailer;
 use App\Models\VehicleGroup;
+use App\Services\Documents\FolderBrowser;
 use App\Services\Entitlements\Limits;
 use App\Services\Files\StoredFileService;
 use App\Services\Fleet\FleetAssetService;
@@ -61,14 +62,24 @@ class TrailerController extends Controller
         }
     }
 
-    public function show($id)
+    public function show(Request $request, $id, FolderBrowser $browser)
     {
         $trailer = Trailer::with(['equipmentType', 'vehicleGroup'])->findOrFail($id);
 
         // Check if user has access to this trailer
         Gate::authorize('view', $trailer);
 
-        return view('admin.trailer.show', compact('trailer'));
+        // The Documents tab; the typed compliance documents show read-only in the trailer's folder.
+        $documentsBrowser = $browser->tab($trailer, $request->integer('folder') ?: null);
+        $virtualDocuments = $documentsBrowser !== null && Gate::allows('fleets.dashboard')
+            ? $trailer->documents()->with('documentType:id,name')->latest('updated_at')->get()->map(fn ($doc) => [
+                'label' => $doc->documentType->name ?? 'Document',
+                'detail' => $doc->expiry_date ? 'Expires '.$doc->expiry_date->format('M d, Y') : '—',
+                'url' => route('admin.compliance.documents.view', [$doc->id, 'trailer']),
+            ])->all()
+            : [];
+
+        return view('admin.trailer.show', compact('trailer', 'documentsBrowser', 'virtualDocuments'));
     }
 
     /**

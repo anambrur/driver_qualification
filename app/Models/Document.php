@@ -40,13 +40,10 @@ class Document extends Model
         'uploaded_by_user_id',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'issued_on' => 'date',
-            'expires_on' => 'date',
-        ];
-    }
+    protected $casts = [
+        'issued_on' => 'date',
+        'expires_on' => 'date',
+    ];
 
     /**
      * @return BelongsTo<Folder, $this>

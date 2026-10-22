@@ -13,6 +13,9 @@
             'files' => 'Files',
             'logs' => 'Activity',
         ];
+        if ($documentsBrowser) {
+            $tabs = array_slice($tabs, 0, 4, true) + ['documents' => 'Documents'] + $tabs;
+        }
     @endphp
 
     <div class="p-4 sm:p-6 lg:p-8">
@@ -31,6 +34,14 @@
             <x-ui.tab-panel tabs="driver-tabs" name="files" class="mt-4">
                 @include('admin.driver.show.files')
             </x-ui.tab-panel>
+            @if ($documentsBrowser)
+                <x-ui.tab-panel tabs="driver-tabs" name="documents" class="mt-4">
+                    @include('documents.partials.browser', [
+                        'browser' => $documentsBrowser, 'tabs' => 'driver-tabs', 'virtual' => $virtualDocuments,
+                        'empty' => 'The DQ file is created when the driver is hired.',
+                    ])
+                </x-ui.tab-panel>
+            @endif
             <x-ui.tab-panel tabs="driver-tabs" name="logs" class="mt-4">
                 @include('admin.driver.show.logs')
             </x-ui.tab-panel>

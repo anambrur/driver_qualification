@@ -11,6 +11,7 @@ use App\Models\Driver;
 use App\Models\DriverDocument;
 use App\Models\PolicyPdf;
 use App\Services\Compliance\DriverComplianceService;
+use App\Services\Documents\FolderBrowser;
 use App\Services\Driver\DriverCrudService;
 use App\Services\Driver\DriverDocumentWizardService;
 use App\Services\Driver\DriverHireService;
@@ -92,7 +93,7 @@ class DriverController extends Controller
         }
     }
 
-    public function show($id, DriverComplianceService $complianceService)
+    public function show(Request $request, $id, DriverComplianceService $complianceService, FolderBrowser $browser)
     {
         $driver = Driver::with([
             'company',
@@ -160,7 +161,17 @@ class DriverController extends Controller
             ->sortByDesc('at')
             ->values();
 
-        return view('admin.driver.show', compact('driver', 'compliance', 'uploadedDocuments', 'activityLogs'));
+        // The Documents tab; the typed compliance documents show read-only in the DQ file.
+        $documentsBrowser = $browser->tab($driver, $request->integer('folder') ?: null);
+        $virtualDocuments = $documentsBrowser !== null && Gate::allows('drivers.dashboard')
+            ? $uploadedDocuments->map(fn ($doc) => [
+                'label' => $doc->documentType->name ?? 'Document',
+                'detail' => $doc->expiry_date ? 'Expires '.$doc->expiry_date->format('M d, Y') : ($doc->file_date ? 'Filed '.$doc->file_date->format('M d, Y') : '—'),
+                'url' => route('admin.compliance.driver.documents.view', $doc->id),
+            ])->all()
+            : [];
+
+        return view('admin.driver.show', compact('driver', 'compliance', 'uploadedDocuments', 'activityLogs', 'documentsBrowser', 'virtualDocuments'));
     }
 
     public function edit($id)
