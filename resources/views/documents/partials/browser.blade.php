@@ -1,7 +1,6 @@
 {{--
     Folder browser: tree, breadcrumb, the open folder's documents and the folder and upload dialogs.
-    Needs $browser (FolderBrowser), optional $tabs (the page's x-ui.tabs id, so a refused form reopens
-    the Documents tab), $empty (text when the entity has no folder yet) and $virtual (the entity's
+    Needs $browser (FolderBrowser), optional $empty (text when the entity has no folder yet) and $virtual (the entity's
     typed compliance documents: list of [label, detail, url], shown in its standard folder).
 --}}
 @php
@@ -207,7 +206,6 @@
 @push('scripts')
     <script type="module">
         const reopen = @json(old('_dialog'));
-        const tabs = @json($tabs ?? null);
 
         document.addEventListener('click', (event) => {
             const newFolder = event.target.closest('[data-folder-new]');
@@ -242,10 +240,7 @@
             });
         @endif
 
-        // A refused form comes back to this folder: show the Documents tab and the dialog again.
-        if (reopen) {
-            if (tabs) document.getElementById(`${tabs}-tab-documents`)?.click();
-            document.getElementById(`${reopen}-dialog`)?.showModal();
-        }
+        // A refused form comes back to this folder (its URL opens the Documents tab): show the dialog again.
+        if (reopen) document.getElementById(`${reopen}-dialog`)?.showModal();
     </script>
 @endpush

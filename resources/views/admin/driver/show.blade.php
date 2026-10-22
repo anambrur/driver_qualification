@@ -16,13 +16,15 @@
         if ($documentsBrowser) {
             $tabs = array_slice($tabs, 0, 4, true) + ['documents' => 'Documents'] + $tabs;
         }
+        // A folder link opens the Documents tab even before the page's script runs.
+        $openTab = $documentsBrowser && request()->filled('folder') ? 'documents' : 'overview';
     @endphp
 
     <div class="p-4 sm:p-6 lg:p-8">
         @include('admin.driver.show.header')
 
-        <x-ui.tabs id="driver-tabs" :tabs="$tabs" class="mt-6">
-            <x-ui.tab-panel tabs="driver-tabs" name="overview" selected class="mt-4">
+        <x-ui.tabs id="driver-tabs" :tabs="$tabs" :selected="$openTab" class="mt-6">
+            <x-ui.tab-panel tabs="driver-tabs" name="overview" :selected="$openTab === 'overview'" class="mt-4">
                 @include('admin.driver.show.overview')
             </x-ui.tab-panel>
             <x-ui.tab-panel tabs="driver-tabs" name="driver-info" class="mt-4">
@@ -35,9 +37,9 @@
                 @include('admin.driver.show.files')
             </x-ui.tab-panel>
             @if ($documentsBrowser)
-                <x-ui.tab-panel tabs="driver-tabs" name="documents" class="mt-4">
+                <x-ui.tab-panel tabs="driver-tabs" name="documents" :selected="$openTab === 'documents'" class="mt-4">
                     @include('documents.partials.browser', [
-                        'browser' => $documentsBrowser, 'tabs' => 'driver-tabs', 'virtual' => $virtualDocuments,
+                        'browser' => $documentsBrowser, 'virtual' => $virtualDocuments,
                         'empty' => 'The DQ file is created when the driver is hired.',
                     ])
                 </x-ui.tab-panel>

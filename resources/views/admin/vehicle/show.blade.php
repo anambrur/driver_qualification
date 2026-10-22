@@ -16,12 +16,14 @@
         @include('admin.vehicle.partials.asset-summary', ['asset' => $vehicle, 'icon' => 'truck', 'photoRoute' => 'admin.vehicle.photo'])
 
         @if ($documentsBrowser)
-            <x-ui.tabs id="asset-tabs" :tabs="['overview' => 'Overview', 'documents' => 'Documents']" class="mt-6">
-                <x-ui.tab-panel tabs="asset-tabs" name="overview" selected class="mt-4">
+            {{-- A folder link opens the Documents tab even before the page's script runs. --}}
+            @php($openTab = request()->filled('folder') ? 'documents' : 'overview')
+            <x-ui.tabs id="asset-tabs" :tabs="['overview' => 'Overview', 'documents' => 'Documents']" :selected="$openTab" class="mt-6">
+                <x-ui.tab-panel tabs="asset-tabs" name="overview" :selected="$openTab === 'overview'" class="mt-4">
                     @include('admin.vehicle.partials.specifications')
                 </x-ui.tab-panel>
-                <x-ui.tab-panel tabs="asset-tabs" name="documents" class="mt-4">
-                    @include('documents.partials.browser', ['browser' => $documentsBrowser, 'tabs' => 'asset-tabs', 'virtual' => $virtualDocuments])
+                <x-ui.tab-panel tabs="asset-tabs" name="documents" :selected="$openTab === 'documents'" class="mt-4">
+                    @include('documents.partials.browser', ['browser' => $documentsBrowser, 'virtual' => $virtualDocuments])
                 </x-ui.tab-panel>
             </x-ui.tabs>
         @else
