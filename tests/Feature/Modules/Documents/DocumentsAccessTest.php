@@ -249,3 +249,23 @@ it('needs the folder entity permission for a document about a service log', func
     $this->actingAs(Actors::memberWithPermissions($company, ['folders.view']))->get(route('documents.download', $document))->assertForbidden();
     $this->actingAs(Actors::memberWithPermissions($company, ['folders.view', 'vehicles.view']))->get(route('documents.download', $document))->assertOk();
 });
+
+it('opens the Documents tab when a folder link is followed, and Overview otherwise', function (string $kind) {
+    $owner = Actors::companyOwner();
+    $company = Actors::companyOf($owner);
+    [$entity, $tabs] = match ($kind) {
+        'driver' => [DriverFactory::new()->forCompany($company)->create(), 'driver-tabs'],
+        'vehicle' => [VehicleFactory::new()->forCompany($company)->create(), 'asset-tabs'],
+        'trailer' => [TrailerFactory::new()->forCompany($company)->create(), 'asset-tabs'],
+    };
+    $folder = Docs::childOf(Docs::systemFolder($entity), ['name' => 'Permits']);
+    $selected = fn (string $html, string $tab) => (bool) preg_match('/id="'.$tabs.'-tab-'.$tab.'"[^>]*aria-selected="true"/', $html);
+
+    $withFolder = $this->actingAs($owner)->get(route("admin.{$kind}.show", [$entity->id, 'folder' => $folder->id]))->assertOk()->getContent();
+    $plain = $this->get(route("admin.{$kind}.show", $entity->id))->assertOk()->getContent();
+
+    expect($selected($withFolder, 'documents'))->toBeTrue()
+        ->and($selected($withFolder, 'overview'))->toBeFalse()
+        ->and($withFolder)->not->toMatch('/id="'.$tabs.'-panel-documents"[^>]*hidden/')
+        ->and($selected($plain, 'overview'))->toBeTrue();
+})->with(['driver', 'vehicle', 'trailer']);
