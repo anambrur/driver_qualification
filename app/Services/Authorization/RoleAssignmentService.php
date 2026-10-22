@@ -11,6 +11,7 @@ use App\Models\Permission;
 use App\Models\PlatformUser;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Entitlements\Entitlements;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -93,6 +94,10 @@ class RoleAssignmentService
     {
         $this->authorizeTarget($actor, $target, $actor instanceof User ? 'permissions.grant' : 'platform.staff.manage');
         $this->requireHeld($actor, $permission);
+
+        if ($actor instanceof User && $actor->company && ! Entitlements::for($actor->company)->permits($permission)) {
+            throw new AuthorizationException('This permission is not part of your plan.');
+        }
 
         DB::transaction(fn () => TeamScope::run($this->resolver->teamOf($actor), function () use ($actor, $target, $permission) {
             $target->givePermissionTo($permission);

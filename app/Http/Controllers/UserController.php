@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Authorization\PermissionCatalogue;
+use App\Authorization\TenantPermissionResolver;
 use App\Http\Requests\Users\UpdateUserRequest;
 use App\Models\User;
 use App\Services\Authorization\RoleService;
@@ -40,30 +41,37 @@ class UserController extends Controller
         ]);
     }
 
-    public function edit(Request $request, int $user): View
+    public function edit(Request $request, TenantPermissionResolver $resolver, int $user): View
     {
         $actor = $this->actor($request);
         $target = $this->users->find($actor, $user)->load('roles:id,name,system_key');
         $ownerId = (int) $actor->company->owner_user_id;
 
-        // Extra permissions card (06 §8 rule 2): not on your own page or the Owner's.
+        // Extra permissions card (06 §8 rule 2); after a downgrade, existing grants stay revocable.
         $grantTarget = ! $target->is($actor) && (int) $target->id !== $ownerId;
         $canGrant = $grantTarget && $actor->can('permissions.grant');
+        $canRevoke = $grantTarget && $resolver->has($actor, 'permissions.grant');
+        $showGrants = $canGrant || ($canRevoke && $target->permissions()->exists());
         $grantable = [];
-        $held = [];
+        $grantGroups = [];
 
-        if ($canGrant) {
+        if ($showGrants) {
             $target->load('roles.permissions:id,name', 'permissions:id,name');
             $grantable = array_merge(...array_values($this->roles->grantable($actor)));
+        }
+
+        if ($canGrant) {
             $held = $target->getAllPermissions()->pluck('name')->all();
+            $grantGroups = PermissionCatalogue::tenantGroups($this->roles->entitled($actor, array_values(array_diff($grantable, $held))));
         }
 
         return view('admin.users.edit', [
             'user' => $target,
             'roles' => $this->roles->assignable($actor),
+            'showGrants' => $showGrants,
             'canGrant' => $canGrant,
             'grantable' => $grantable,
-            'grantGroups' => PermissionCatalogue::tenantGroups(array_diff($grantable, $held)),
+            'grantGroups' => $grantGroups,
             'showUpgradeHint' => $grantTarget && (int) $actor->id === $ownerId && ! $this->roles->customRolesAllowed($actor),
         ]);
     }

@@ -189,9 +189,9 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{user}', [UserController::class, 'update'])->name('update')->middleware('permission:users.edit');
         Route::post('/{user}/deactivate', [UserController::class, 'deactivate'])->name('deactivate')->middleware('permission:users.deactivate');
         Route::post('/{user}/reactivate', [UserController::class, 'reactivate'])->name('reactivate')->middleware('permission:users.deactivate');
-        // Direct grants (06 §8 rule 2), from the Extra permissions card on the edit page
+        // Direct grants (06 §8 rule 2); revoking works after a downgrade (the service checks permissions.grant)
         Route::post('/{user}/permissions', [UserPermissionController::class, 'store'])->name('permissions.store')->middleware('permission:permissions.grant');
-        Route::delete('/{user}/permissions/{permission}', [UserPermissionController::class, 'destroy'])->name('permissions.destroy')->middleware('permission:permissions.grant');
+        Route::delete('/{user}/permissions/{permission}', [UserPermissionController::class, 'destroy'])->name('permissions.destroy')->middleware('permission:users.edit');
     });
 
     // Company roles (10 §4): per team, so another company's role id is a 404. Viewing roles and

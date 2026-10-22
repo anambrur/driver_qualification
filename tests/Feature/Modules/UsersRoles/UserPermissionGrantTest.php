@@ -1,7 +1,9 @@
 <?php
 
 use App\Authorization\TeamScope;
+use App\Features\FeatureState;
 use App\Models\AuditLog;
+use App\Services\Entitlements\Entitlements;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Actors;
 
@@ -117,6 +119,7 @@ describe('extra permissions card', function () {
             ->get(route('users.edit', $target->id))
             ->assertOk()
             ->assertDontSee('action="'.route('users.permissions.store', $target->id).'"', false)
+            ->assertDontSee('Direct grants')
             ->assertSee('Custom roles feature')
             ->assertSee(route('billing.index'));
 
@@ -206,6 +209,74 @@ describe('extra permissions card', function () {
         $this->actingAs($owner)->delete(route('users.permissions.destroy', [$other->id, 'drivers.edit']))->assertNotFound();
 
         expect(DB::table('model_has_permissions')->where('model_id', $other->id)->exists())->toBeFalse();
+    });
+
+    it('offers only permissions whose feature is on the plan', function () {
+        $company = Actors::withPlan(Actors::company(), ['custom_roles']);
+        $target = Actors::dispatcher($company);
+
+        $this->actingAs($company->owner)
+            ->get(route('users.edit', $target->id))
+            ->assertOk()
+            ->assertSee('<option value="company.view"', false)
+            ->assertDontSee('<option value="maintenance.edit"', false);
+    });
+
+    it('refuses a grant whose feature is not on the plan', function () {
+        $company = Actors::withPlan(Actors::company(), ['custom_roles']);
+        $target = Actors::dispatcher($company);
+
+        $this->actingAs($company->owner)
+            ->post(route('users.permissions.store', $target->id), ['permission' => 'maintenance.edit'])
+            ->assertForbidden();
+
+        expect(DB::table('model_has_permissions')->where('model_id', $target->id)->exists())->toBeFalse();
+    });
+
+    it('treats a read-only feature as usable for reading only', function () {
+        $entitlements = new Entitlements(['maintenance' => FeatureState::ReadOnly], []);
+
+        expect($entitlements->permits('maintenance.view'))->toBeTrue()
+            ->and($entitlements->permits('maintenance.edit'))->toBeFalse()
+            ->and($entitlements->permits('company.view'))->toBeTrue()
+            ->and($entitlements->permits('trips.view'))->toBeFalse();
+    });
+
+    it('still lets the Owner revoke existing grants after Custom roles is gone', function () {
+        $company = Actors::company();
+        $target = Actors::dispatcher($company);
+        TeamScope::run($company->id, fn () => $target->givePermissionTo('drivers.edit'));
+        $company = Actors::withPlan($company, ['drivers']);
+
+        $this->actingAs($company->owner)
+            ->get(route('users.edit', $target->id))
+            ->assertOk()
+            ->assertSee('action="'.route('users.permissions.destroy', [$target->id, 'drivers.edit']).'"', false)
+            ->assertSee('you can revoke these extra permissions but not add new ones.')
+            ->assertDontSee('action="'.route('users.permissions.store', $target->id).'"', false);
+
+        $this->actingAs($company->owner)
+            ->post(route('users.permissions.store', $target->id), ['permission' => 'drivers.view'])
+            ->assertForbidden();
+
+        $this->actingAs($company->owner)
+            ->delete(route('users.permissions.destroy', [$target->id, 'drivers.edit']))
+            ->assertRedirect();
+
+        expect(DB::table('model_has_permissions')->where('model_id', $target->id)->exists())->toBeFalse()
+            ->and(AuditLog::where('action', 'permission.revoked')->where('subject_id', $target->id)->exists())->toBeTrue();
+    });
+
+    it('refuses a revoke from someone with users.edit but not permissions.grant', function () {
+        $company = Actors::company();
+        $target = Actors::dispatcher($company);
+        TeamScope::run($company->id, fn () => $target->givePermissionTo('trips.view'));
+
+        $this->actingAs(Actors::memberWithPermissions($company, ['users.edit', 'trips.view']))
+            ->delete(route('users.permissions.destroy', [$target->id, 'trips.view']))
+            ->assertForbidden();
+
+        expect(DB::table('model_has_permissions')->where('model_id', $target->id)->exists())->toBeTrue();
     });
 
     it('refuses grants and revokes in a read-only company', function () {

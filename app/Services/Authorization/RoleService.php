@@ -120,6 +120,23 @@ class RoleService
     }
 
     /**
+     * The names that can work under the company's plan, for the per-user grant list.
+     *
+     * @param  list<string>  $names
+     * @return list<string>
+     */
+    public function entitled(User $actor, array $names): array
+    {
+        if ($actor->company === null) {
+            return [];
+        }
+
+        $entitlements = Entitlements::for($actor->company);
+
+        return array_values(array_filter($names, fn (string $name) => $entitlements->permits($name)));
+    }
+
+    /**
      * @param  list<string>  $permissions
      */
     public function create(User $actor, string $name, array $permissions): Role

@@ -60,14 +60,14 @@
                 </div>
             </form>
 
-            @if ($showUpgradeHint)
+            @if ($showUpgradeHint && ! $showGrants)
                 <p class="text-sm text-muted-foreground">
                     Extra permissions per user come with the Custom roles feature.
                     <a href="{{ route('billing.index') }}" class="font-medium text-primary underline-offset-4 hover:underline">See plans</a>
                 </p>
             @endif
 
-            @if ($canGrant)
+            @if ($showGrants)
                 @php
                     $viaRoles = [];
                     foreach ($user->roles as $heldRole) {
@@ -127,7 +127,14 @@
                             @endif
                         </div>
 
-                        @if ($grantGroups === [])
+                        @if (! $canGrant)
+                            <p class="text-sm text-muted-foreground">
+                                Custom roles isn't active on your plan, so you can revoke these extra permissions but not add new ones.
+                                @if ($showUpgradeHint)
+                                    <a href="{{ route('billing.index') }}" class="font-medium text-primary underline-offset-4 hover:underline">See plans</a>
+                                @endif
+                            </p>
+                        @elseif ($grantGroups === [])
                             <p class="text-sm text-muted-foreground">There are no more permissions you can grant to this user.</p>
                         @else
                             <form method="POST" action="{{ route('users.permissions.store', $user->id) }}" class="flex flex-col gap-2 sm:flex-row sm:items-end">
