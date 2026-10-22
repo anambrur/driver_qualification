@@ -3,6 +3,11 @@
     <a href="{{ route('documents.download', $document) }}" class="btn" data-variant="ghost" data-size="icon-sm" title="Download" aria-label="Download {{ $document->title }}">
         {{ svg('lucide-download', '', ['aria-hidden' => 'true']) }}
     </a>
+    @if ($document->original_file_id !== null)
+        <a href="{{ route('documents.original', $document) }}" class="btn" data-variant="ghost" data-size="icon-sm" title="Original image" aria-label="Original image of {{ $document->title }}">
+            {{ svg('lucide-file-image', '', ['aria-hidden' => 'true']) }}
+        </a>
+    @endif
     @if ($canMove)
         <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" title="Move" aria-label="Move {{ $document->title }}"
             data-move-document="{{ route('documents.move', $document) }}" data-name="{{ $document->title }}">{{ svg('lucide-folder-input', '', ['aria-hidden' => 'true']) }}</button>

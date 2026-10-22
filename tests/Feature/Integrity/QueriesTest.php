@@ -35,7 +35,7 @@ it('returns no rows on seeded data', function () {
     [$exit, $output] = integrityOutput();
 
     expect($exit)->toBe(0)
-        ->and(substr_count($output, '| ok'))->toBe(11)
+        ->and(substr_count($output, '| ok'))->toBe(12)
         ->and(substr_count($output, 'skipped (table absent'))->toBe(1);
 });
 
@@ -109,6 +109,11 @@ it('reports the rows that break a rule', function (int $query, Closure $breakIt)
         $child = Docs::childOf(Docs::dqFile($c)[1]);
         DB::table('folders')->where('id', $child->id)->update(['driver_id' => null]);
     }],
+    // ConvertImageToPdf links both sides in one transaction; a raw update links only one
+    'converted document whose PDF came from another image' => [13, function ($c) {
+        $document = DocumentFactory::new()->inFolder(Docs::companyFolder($c))->create();
+        DB::table('documents')->where('id', $document->id)->update(['original_file_id' => StoredFileFactory::new()->forCompany($c)->create()->id]);
+    }],
 ]);
 
 it('accepts a vehicle-folder document about one of its service logs', function () {
@@ -125,5 +130,5 @@ it('accepts a vehicle-folder document about one of its service logs', function (
 });
 
 it('lists every query of 11 §6', function () {
-    expect(array_keys(IntegrityCheck::QUERIES))->toBe([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(array_keys(IntegrityCheck::QUERIES))->toBe([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
 });

@@ -14,7 +14,8 @@ use RuntimeException;
  * Copies a stored object into another company: a new object under the target's prefix
  * (companies/{id}/{area}/{yyyy}/{mm}/…), a new stored_files row there, and the target's
  * storage_bytes raised in the same transaction. The caller checks the storage limit first and
- * removes the written paths if its transaction rolls back.
+ * removes the written paths if its transaction rolls back. A converted PDF is linked to the copy
+ * of its source image, which the caller copies first.
  */
 class StoredFileCopier
 {
@@ -23,7 +24,7 @@ class StoredFileCopier
 
     public function __construct(private TenantContext $tenant) {}
 
-    public function copy(StoredFile $source, Company $target, string $area): StoredFile
+    public function copy(StoredFile $source, Company $target, string $area, ?int $convertedFromFileId = null): StoredFile
     {
         if (DB::transactionLevel() === 0) {
             throw new RuntimeException('StoredFileCopier::copy must run inside the transaction that records the file.');
@@ -52,6 +53,7 @@ class StoredFileCopier
             'mime_type' => $source->mime_type,
             'size_bytes' => $source->size_bytes,
             'checksum_sha256' => $source->checksum_sha256,
+            'converted_from_file_id' => $convertedFromFileId,
             'uploaded_by_user_id' => null,
         ]));
 

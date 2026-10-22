@@ -189,6 +189,8 @@ function isoFixtures(): array
         'POST admin/documents/folders/{folder}/documents' => $folder,
         'PATCH admin/documents/{document}/folder' => $document,
         'GET admin/documents/{document}/download' => $document,
+        'GET admin/documents/{document}/view' => $document,
+        'GET admin/documents/{document}/original' => $document,
         'DELETE admin/documents/{document}' => $document,
         // Company settings
         'GET admin/settings/company/{id}/edit' => fn (Company $a) => [$a->id],

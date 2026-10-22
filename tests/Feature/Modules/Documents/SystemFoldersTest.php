@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\IntegrityCheck;
 use App\Models\Document;
 use App\Models\Driver;
 use App\Models\Folder;
@@ -14,6 +15,7 @@ use Database\Factories\ServiceLogFactory;
 use Database\Factories\StoredFileFactory;
 use Database\Factories\TrailerFactory;
 use Database\Factories\VehicleFactory;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -21,6 +23,7 @@ use Tests\Feature\Modules\Documents\Docs;
 use Tests\Feature\Modules\Drivers\DriverAdmin;
 use Tests\Feature\Modules\FleetAssets\FleetAssets;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /*
 | Req 2.1 (decided Q8): one standard folder per driver (DQ file), vehicle and trailer, created in
@@ -118,6 +121,27 @@ it('copies the vehicle folder tree and its documents with an Asset Transfer', fu
         ->and(StoredFile::withoutTenancy()->where('company_id', $target->id)->count())->toBe(1)
         // The source keeps its folders and documents
         ->and(Folder::withoutTenancy()->where('vehicle_id', $vehicle->id)->count())->toBe(2);
+});
+
+it('keeps a converted document linked to the copy of its original image', function () {
+    Storage::fake('local');
+    Notification::fake();
+    $target = Actors::company();
+    $vehicle = VehicleFactory::new()->forCompany($this->company)->create();
+    $image = Files::stored($this->company->id, 'photo', 'jpeg');
+    $pdf = Files::stored($this->company->id, attributes: ['converted_from_file_id' => $image->id]);
+    DocumentFactory::new()->inFolder(Docs::systemFolder($vehicle))->withFile($pdf)->create(['original_file_id' => $image->id]);
+
+    $this->actingAs(Actors::platformOwner(), 'platform')->post(route('platform.asset-transfers.store'), [
+        'asset_type' => 'vehicle', 'asset_id' => $vehicle->id, 'source_company_id' => $this->company->id,
+        'target_company_id' => $target->id, 'reason' => 'Sold to the target carrier', 'confirm' => '1',
+    ])->assertSessionHasNoErrors();
+
+    $document = Document::withoutTenancy()->where('company_id', $target->id)->sole();
+    expect($document->original_file_id)->not->toBeNull()->not->toBe($image->id)
+        ->and(Files::find($document->file_id)->converted_from_file_id)->toBe($document->original_file_id)
+        ->and(Files::find($document->original_file_id)->company_id)->toBe($target->id)
+        ->and(DB::select(IntegrityCheck::QUERIES[13]['sql']))->toBe([]);
 });
 
 it('keeps a vehicle-folder document about a service log on the copied log', function () {

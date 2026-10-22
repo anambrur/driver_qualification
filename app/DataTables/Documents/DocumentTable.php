@@ -25,7 +25,7 @@ final class DocumentTable
 
         $query = Document::query()
             ->where('folder_id', $this->folder->id)
-            ->select(['id', 'company_id', 'folder_id', 'file_id', 'title', 'document_type_id', 'issued_on', 'expires_on', 'uploaded_by_user_id', 'created_at'])
+            ->select(['id', 'company_id', 'folder_id', 'file_id', 'original_file_id', 'title', 'document_type_id', 'issued_on', 'expires_on', 'uploaded_by_user_id', 'created_at'])
             ->with(['file:id,path,size_bytes', 'documentType:id,name', 'uploadedBy:id,name']);
 
         $term = trim((string) data_get($this->request->input('search'), 'value', ''));
