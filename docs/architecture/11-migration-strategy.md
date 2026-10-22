@@ -170,6 +170,10 @@ JOIN folders f1 ON f1.id = f2.parent_id;
 SELECT c.id FROM folders c JOIN folders p ON p.id = c.parent_id
 WHERE COALESCE(c.driver_id, 0) <> COALESCE(p.driver_id, 0) OR COALESCE(c.vehicle_id, 0) <> COALESCE(p.vehicle_id, 0)
 OR COALESCE(c.trailer_id, 0) <> COALESCE(p.trailer_id, 0) OR COALESCE(c.trip_id, 0) <> COALESCE(p.trip_id, 0);
+
+-- 13. A converted document's PDF was made from its original image (req 2.4)
+SELECT d.id FROM documents d JOIN stored_files f ON f.id = d.file_id
+WHERE COALESCE(f.converted_from_file_id, 0) <> COALESCE(d.original_file_id, 0);
 ```
 
 Queries 9 and 10 (one login per email across tenants and platform; support users active only during a session) are in `IntegrityCheck::QUERIES`.

@@ -19,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Documents filed in folders: the folder's list, upload, move, download and delete.
+ * Documents filed in folders: the folder's list, upload, move, view, download and delete.
  */
 class DocumentController extends Controller
 {
@@ -63,6 +63,20 @@ class DocumentController extends Controller
         Gate::authorize('view', $document);
 
         return $this->documents->download($document, $request->user());
+    }
+
+    public function view(Request $request, Document $document): StreamedResponse
+    {
+        Gate::authorize('view', $document);
+
+        return $this->documents->download($document, $request->user(), inline: true);
+    }
+
+    public function original(Request $request, Document $document): StreamedResponse
+    {
+        Gate::authorize('view', $document);
+
+        return $this->documents->downloadOriginal($document, $request->user());
     }
 
     public function destroy(Document $document): RedirectResponse

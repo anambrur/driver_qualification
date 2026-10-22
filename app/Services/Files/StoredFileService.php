@@ -7,10 +7,12 @@ use App\Services\Entitlements\Limits;
 use App\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\File;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
@@ -90,6 +92,44 @@ class StoredFileService
     }
 
     /**
+     * Content the app made (a PDF from an image, a ZIP) at $localPath, stored like store(): the
+     * same path convention, storage limit and counter. A conversion links its source file.
+     */
+    public function storeGenerated(string $localPath, string $area, string $name, string $mimeType, ?StoredFile $convertedFrom = null): StoredFile
+    {
+        if (DB::transactionLevel() === 0) {
+            throw new RuntimeException('StoredFileService::storeGenerated must run inside the transaction that records the file.');
+        }
+
+        $companyId = $this->tenant->requireCompanyId();
+        $bytes = (int) filesize($localPath);
+        Limits::assertCanStore($companyId, $bytes);
+
+        $extension = pathinfo($name, PATHINFO_EXTENSION);
+        $path = Storage::disk(self::DISK)->putFileAs(
+            sprintf('companies/%d/%s/%s', $companyId, $area, now()->format('Y/m')),
+            new File($localPath),
+            Str::random(40).($extension === '' ? '' : '.'.strtolower($extension)),
+        ) ?: throw new RuntimeException('Could not store the generated file.');
+        $this->written[] = ['disk' => self::DISK, 'path' => $path];
+
+        $file = StoredFile::query()->create([
+            'disk' => self::DISK,
+            'path' => $path,
+            'original_name' => mb_substr($name, 0, 255),
+            'mime_type' => $mimeType,
+            'size_bytes' => $bytes,
+            'checksum_sha256' => hash_file('sha256', $localPath),
+            'converted_from_file_id' => $convertedFrom?->id,
+            'uploaded_by_user_id' => $convertedFrom !== null ? $convertedFrom->uploaded_by_user_id : Auth::guard('web')->id(),
+        ]);
+
+        DB::table('companies')->where('id', $companyId)->increment('storage_bytes', $bytes);
+
+        return $file;
+    }
+
+    /**
      * Purge each file once the current transaction commits, unless something still points at it.
      * A failed purge is reported, not thrown: the save has committed and must keep its new file.
      */
@@ -137,14 +177,15 @@ class StoredFileService
     }
 
     /**
-     * The file inline, or as a download under $downloadName. The caller authorizes access.
+     * The file inline, or as a download under $downloadName; inline under that name when $inline.
+     * The caller authorizes access.
      */
-    public function response(?StoredFile $file, ?string $downloadName = null): StreamedResponse
+    public function response(?StoredFile $file, ?string $downloadName = null, bool $inline = false): StreamedResponse
     {
         abort_unless($file !== null && Storage::disk($file->disk)->exists($file->path), 404, 'File not found');
 
-        return $downloadName === null
-            ? Storage::disk($file->disk)->response($file->path, null, self::HEADERS)
+        return $downloadName === null || $inline
+            ? Storage::disk($file->disk)->response($file->path, $downloadName, self::HEADERS)
             : Storage::disk($file->disk)->download($file->path, $downloadName, self::HEADERS);
     }
 

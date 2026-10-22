@@ -62,6 +62,16 @@ class Document extends Model
     }
 
     /**
+     * The uploaded image when file_id is the PDF made from it (req 2.4).
+     *
+     * @return BelongsTo<StoredFile, $this>
+     */
+    public function originalFile(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'original_file_id');
+    }
+
+    /**
      * @return BelongsTo<DocumentType, $this>
      */
     public function documentType(): BelongsTo

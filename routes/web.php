@@ -356,6 +356,8 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::post('/folders/{folder}/documents', [DocumentController::class, 'store'])->name('store')->middleware('permission:documents.upload');
         Route::patch('/{document}/folder', [DocumentController::class, 'move'])->name('move')->middleware('permission:documents.upload');
         Route::get('/{document}/download', [DocumentController::class, 'download'])->name('download')->middleware('permission:folders.view');
+        Route::get('/{document}/view', [DocumentController::class, 'view'])->name('view')->middleware('permission:folders.view');
+        Route::get('/{document}/original', [DocumentController::class, 'original'])->name('original')->middleware('permission:folders.view');
         Route::delete('/{document}', [DocumentController::class, 'destroy'])->name('destroy')->middleware('permission:documents.delete');
     });
 

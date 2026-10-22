@@ -179,12 +179,12 @@ class AssetTransferService
     {
         $files = $history['files']->keyBy('id');
         $copiedFiles = [];
-        $file = function (?int $id, ?string $area = null) use ($files, $target, $copier, $type, &$copiedFiles): ?int {
+        $file = function (?int $id, ?string $area = null, ?int $convertedFromFileId = null) use ($files, $target, $copier, $type, &$copiedFiles): ?int {
             if ($id === null) {
                 return null;
             }
 
-            return $copiedFiles[$id] ??= $copier->copy($files[$id], $target, $area ?? "{$type}s")->id;
+            return $copiedFiles[$id] ??= $copier->copy($files[$id], $target, $area ?? "{$type}s", $convertedFromFileId)->id;
         };
 
         $asset = $history['asset']->replicate(['company_id', 'photo_file_id']);
@@ -244,14 +244,16 @@ class AssetTransferService
         foreach ($history['folderDocuments'] as $document) {
             // A document about one of the vehicle's service logs stays about that log's copy (F18).
             $logId = $document->service_log_id === null ? null : ($logIds[$document->service_log_id] ?? null);
+            // The PDF made from a photo links the copy of that photo (req 2.4, integrity query 13)
+            $originalId = $file($document->original_file_id, 'documents');
             $document->replicate(['company_id', 'folder_id', $column, 'service_log_id', 'file_id', 'original_file_id', 'uploaded_by_user_id'])
                 ->forceFill([
                     'company_id' => $target->id,
                     'folder_id' => $folderIds[$document->folder_id],
                     $column => $logId === null ? $asset->id : null,
                     'service_log_id' => $logId,
-                    'file_id' => $file($document->file_id, 'documents'),
-                    'original_file_id' => $file($document->original_file_id, 'documents'),
+                    'file_id' => $file($document->file_id, 'documents', $originalId),
+                    'original_file_id' => $originalId,
                 ])
                 ->save();
         }

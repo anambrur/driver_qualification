@@ -110,6 +110,12 @@ class IntegrityCheck extends Command
                 OR COALESCE(c.trailer_id, 0) <> COALESCE(p.trailer_id, 0)
                 OR COALESCE(c.trip_id, 0) <> COALESCE(p.trip_id, 0)',
         ],
+        13 => [
+            'rule' => "A converted document's PDF was made from its original image (req 2.4)",
+            'tables' => ['documents', 'stored_files'],
+            'sql' => 'SELECT d.id FROM documents d JOIN stored_files f ON f.id = d.file_id
+                WHERE COALESCE(f.converted_from_file_id, 0) <> COALESCE(d.original_file_id, 0)',
+        ],
     ];
 
     public function handle(): int
