@@ -24,6 +24,7 @@ class ResolveTenant
     private const SUPPORT_DENIED_ROUTES = [
         'profile.edit', 'profile.update', 'profile.destroy', 'password.update', 'password.confirm',
         'verification.notice', 'verification.send', 'verification.verify',
+        'profile.social.connect', 'profile.social.disconnect',
     ];
 
     /**

@@ -6,6 +6,8 @@ use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\User;
+use App\Services\Auth\SocialLoginService;
+use App\Services\Auth\SocialProviders;
 use App\Services\Platform\EmailIdentityService;
 use App\Support\Ui\Toast;
 use Illuminate\Http\RedirectResponse;
@@ -20,11 +22,19 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): View
+    public function edit(Request $request, SocialProviders $providers, SocialLoginService $social): View
     {
+        $user = $request->user();
+        $socialProviders = $providers->enabled();
+        $socialAccounts = $user->socialAccounts()->get(['id', 'provider', 'provider_email'])->keyBy('provider');
+
         return view('profile.edit', [
-            'user' => $request->user(),
-            'canCloseAccount' => $this->canCloseAccount($request->user()),
+            'user' => $user,
+            'canCloseAccount' => $this->canCloseAccount($user),
+            'socialProviders' => $socialProviders,
+            'socialAccounts' => $socialAccounts,
+            // Only the Connected accounts card uses it, and it is hidden without providers or links
+            'neverSetPassword' => ($socialProviders !== [] || $socialAccounts->isNotEmpty()) && $social->neverSetPassword($user),
         ]);
     }
 

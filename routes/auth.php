@@ -9,7 +9,9 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\SocialLoginController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Services\Auth\SocialProviders;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -46,7 +48,28 @@ Route::middleware('guest')->group(function () {
     Route::post('invitations/{token}', [AcceptInvitationController::class, 'store'])
         ->middleware('throttle:6,1')
         ->name('invitations.accept');
+
+    // Google / Facebook sign-in and sign-up (P1-3); 404 unless the provider is enabled
+    Route::get('auth/{provider}/redirect', [SocialLoginController::class, 'redirect'])
+        ->whereIn('provider', array_keys(SocialProviders::PROVIDERS))
+        ->middleware('throttle:10,1')
+        ->name('auth.social.redirect');
+
+    Route::get('auth/{provider}/finish', [SocialLoginController::class, 'create'])
+        ->whereIn('provider', array_keys(SocialProviders::PROVIDERS))
+        ->middleware('throttle:30,1')
+        ->name('auth.social.finish');
+
+    Route::post('auth/{provider}/finish', [SocialLoginController::class, 'store'])
+        ->whereIn('provider', array_keys(SocialProviders::PROVIDERS))
+        ->middleware('throttle:6,1');
 });
+
+// The provider's single redirect URI: guests sign in, a logged-in user finishes "connect"
+Route::get('auth/{provider}/callback', [SocialLoginController::class, 'callback'])
+    ->whereIn('provider', array_keys(SocialProviders::PROVIDERS))
+    ->middleware('throttle:10,1')
+    ->name('auth.social.callback');
 
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)

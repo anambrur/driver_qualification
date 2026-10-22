@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="mx-auto max-w-3xl p-4 sm:p-6 lg:p-8">
-        <x-ui.page-header :title="__('Profile')" description="Your name, email address and password." />
+        <x-ui.page-header :title="__('Profile')" description="Your name, email address, password and sign-in accounts." />
 
         <div class="space-y-6">
             <x-ui.card :title="__('Profile Information')" :description="__('Update your account\'s profile information and email address.')">
@@ -14,6 +14,12 @@
             <x-ui.card :title="__('Update Password')" :description="__('Ensure your account is using a long, random password to stay secure.')">
                 @include('profile.partials.update-password-form')
             </x-ui.card>
+
+            @if ($socialProviders !== [] || $socialAccounts->isNotEmpty())
+                <x-ui.card :title="__('Connected accounts')" :description="__('Sign in with Google or Facebook instead of your password.')">
+                    @include('profile.partials.connected-accounts')
+                </x-ui.card>
+            @endif
 
             {{-- Company owners only (PO-17); ProfileController::destroy() enforces the same rule --}}
             @if ($canCloseAccount ?? false)

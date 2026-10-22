@@ -16,7 +16,7 @@ return [
     'disallow' => [
         '/admin', '/platform', '/billing', '/checkout', '/checkout-success', '/dashboard', '/pricing',
         '/subscription', '/users', '/forgot-password', '/reset-password', '/confirm-password',
-        '/verify-email', '/*/application/',
+        '/verify-email', '/*/application/', '/auth/',
     ],
 
     // Absolute URL or asset path (1200x630 JPG/PNG) used when no logo is set. PENDING: supply one.

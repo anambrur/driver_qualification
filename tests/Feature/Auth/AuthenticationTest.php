@@ -18,6 +18,8 @@ test('users can authenticate using the login screen', function () {
 
     $this->assertAuthenticated();
     $response->assertRedirect(route('dashboard', absolute: false));
+    // Same as the social login (P1-3)
+    expect($user->fresh()->last_login_at)->not->toBeNull();
 });
 
 test('users can not authenticate with invalid password', function () {

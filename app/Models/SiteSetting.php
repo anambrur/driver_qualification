@@ -50,6 +50,8 @@ class SiteSetting extends Model
         'reply_to_email',
         'pending_reply_to_email',
         'landing',
+        'google_login_enabled',
+        'facebook_login_enabled',
     ];
 
     protected function casts(): array
@@ -62,6 +64,8 @@ class SiteSetting extends Model
             'support_session_max_minutes' => 'integer',
             'tawk_widget_code' => 'encrypted',
             'landing' => 'array',
+            'google_login_enabled' => 'boolean',
+            'facebook_login_enabled' => 'boolean',
         ];
     }
 

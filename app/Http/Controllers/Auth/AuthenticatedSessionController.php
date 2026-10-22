@@ -33,6 +33,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = $request->user();
+        $user->forceFill(['last_login_at' => now()])->save();
         AuditLog::record($user, $user->company_id, 'auth.login');
 
         return redirect()->intended(route('dashboard', absolute: false));
