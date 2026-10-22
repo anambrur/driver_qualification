@@ -9,9 +9,11 @@ use App\Models\VehicleDocument;
 use App\Services\Platform\SupportSessionService;
 use App\Tenancy\TenantContext;
 use Database\Factories\AssetGroupFactory;
+use Database\Factories\DocumentFactory;
 use Database\Factories\DocumentTypeFactory;
 use Database\Factories\DriverComplianceDocumentFactory;
 use Database\Factories\DriverFactory;
+use Database\Factories\FolderFactory;
 use Database\Factories\MaintenanceScheduleFactory;
 use Database\Factories\ServiceLogFactory;
 use Database\Factories\StoredFileFactory;
@@ -21,7 +23,9 @@ use Database\Factories\VehicleFactory;
 use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+use Tests\Feature\Modules\Documents\Docs;
 use Tests\Support\Actors;
+use Tests\Support\Files;
 
 /*
 | Isolation matrix (11 §5, 13 acceptance): for every tenant route with a parameter, the owner of
@@ -106,6 +110,9 @@ function isoFixtures(): array
 
         return [$trailer->id];
     };
+    // A custom folder in a DQ file, and a document in it
+    $folder = fn (Company $a) => [FolderFactory::new()->childOf(Docs::dqFile($a)[1])->create()->id];
+    $document = fn (Company $a) => [DocumentFactory::new()->inFolder(Docs::dqFile($a)[1])->withFile(Files::stored($a->id))->create()->id];
     $user = fn (Company $a) => [UserFactory::new()->create(['company_id' => $a->id])->id];
     $role = fn (Company $a) => [Role::query()->where('team_id', $a->id)->where('name', 'Dispatcher')->value('id')];
     $invitation = fn (Company $a) => [app(TenantContext::class)->run($a->id, fn () => CompanyInvitation::create([
@@ -175,6 +182,14 @@ function isoFixtures(): array
         'PUT admin/asset-group/{id}' => $group,
         'DELETE admin/asset-group/{id}' => $group,
         'POST admin/asset-group/{id}/restore' => $deletedGroup,
+        // Folders and documents (P1-4)
+        'PUT admin/documents/folders/{folder}' => $folder,
+        'DELETE admin/documents/folders/{folder}' => $folder,
+        'GET admin/documents/folders/{folder}/documents' => $folder,
+        'POST admin/documents/folders/{folder}/documents' => $folder,
+        'PATCH admin/documents/{document}/folder' => $document,
+        'GET admin/documents/{document}/download' => $document,
+        'DELETE admin/documents/{document}' => $document,
         // Company settings
         'GET admin/settings/company/{id}/edit' => fn (Company $a) => [$a->id],
         'PATCH admin/settings/company/{id}' => fn (Company $a) => [$a->id],

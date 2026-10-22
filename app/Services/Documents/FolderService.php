@@ -52,13 +52,12 @@ class FolderService
             }
 
             $this->assertNameFree($parent?->id, $name);
-            $binding = $parent?->binding();
 
             return $this->unique(fn () => Folder::query()->create([
                 'parent_id' => $parent?->id,
                 'name' => $name,
                 'created_by_user_id' => $actor->id,
-            ] + ($binding === null ? [] : [$binding[0] => $binding[1]])));
+            ] + ($parent?->bindingAttributes() ?? [])));
         });
     }
 

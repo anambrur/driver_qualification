@@ -71,13 +71,7 @@ class TrailerController extends Controller
 
         // The Documents tab; the typed compliance documents show read-only in the trailer's folder.
         $documentsBrowser = $browser->tab($trailer, $request->integer('folder') ?: null);
-        $virtualDocuments = $documentsBrowser !== null && Gate::allows('fleets.dashboard')
-            ? $trailer->documents()->with('documentType:id,name')->latest('updated_at')->get()->map(fn ($doc) => [
-                'label' => $doc->documentType->name ?? 'Document',
-                'detail' => $doc->expiry_date ? 'Expires '.$doc->expiry_date->format('M d, Y') : '—',
-                'url' => route('admin.compliance.documents.view', [$doc->id, 'trailer']),
-            ])->all()
-            : [];
+        $virtualDocuments = $documentsBrowser === null ? [] : $browser->virtualDocuments($trailer);
 
         return view('admin.trailer.show', compact('trailer', 'documentsBrowser', 'virtualDocuments'));
     }

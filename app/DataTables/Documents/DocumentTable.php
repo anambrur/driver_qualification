@@ -18,7 +18,9 @@ final class DocumentTable
     public function json(): JsonResponse
     {
         $user = $this->request->user();
-        $canMove = (bool) $user?->can('documents.upload');
+        // Moving needs another folder of the same binding.
+        $canMove = (bool) $user?->can('documents.upload')
+            && Folder::query()->boundTo($this->folder->binding())->whereKeyNot($this->folder->id)->exists();
         $canDelete = (bool) $user?->can('documents.delete');
 
         $query = Document::query()

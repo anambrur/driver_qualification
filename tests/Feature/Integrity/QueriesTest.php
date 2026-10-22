@@ -2,18 +2,23 @@
 
 use App\Console\Commands\IntegrityCheck;
 use App\Models\User;
+use Database\Factories\DocumentFactory;
+use Database\Factories\DriverFactory;
 use Database\Factories\PlatformUserFactory;
+use Database\Factories\ServiceLogFactory;
 use Database\Factories\StoredFileFactory;
 use Database\Factories\SubscriptionFactory;
+use Database\Factories\VehicleFactory;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Tests\Feature\Modules\Documents\Docs;
 use Tests\Support\Actors;
 
 /*
 | The integrity queries of 11 §6 return no rows on seeded data, and each one does report the
-| kind of row it exists to catch. Queries 5 and 8 are skipped until their tables exist.
+| kind of row it exists to catch. Query 8 is skipped until its table exists.
 */
 
 function integrityOutput(): array
@@ -30,8 +35,8 @@ it('returns no rows on seeded data', function () {
     [$exit, $output] = integrityOutput();
 
     expect($exit)->toBe(0)
-        ->and(substr_count($output, '| ok'))->toBe(8)
-        ->and(substr_count($output, 'skipped (table absent'))->toBe(2);
+        ->and(substr_count($output, '| ok'))->toBe(11)
+        ->and(substr_count($output, 'skipped (table absent'))->toBe(1);
 });
 
 it('reports the rows that break a rule', function (int $query, Closure $breakIt) {
@@ -63,6 +68,15 @@ it('reports the rows that break a rule', function (int $query, Closure $breakIt)
         ]);
     }],
     'company without settings' => [4, fn ($c) => DB::table('company_settings')->where('company_id', $c->id)->delete()],
+    // The service files a document with its folder's binding; a raw update breaks it
+    'DQ-file document about another driver' => [5, function ($c) {
+        $document = DocumentFactory::new()->inFolder(Docs::dqFile($c)[1])->create();
+        DB::table('documents')->where('id', $document->id)->update(['driver_id' => DriverFactory::new()->forCompany($c)->create()->id]);
+    }],
+    'vehicle-folder document about nothing' => [5, function ($c) {
+        $document = DocumentFactory::new()->inFolder(Docs::systemFolder(VehicleFactory::new()->forCompany($c)->create()))->create();
+        DB::table('documents')->where('id', $document->id)->update(['vehicle_id' => null]);
+    }],
     'storage counter out of step' => [6, function ($c) {
         StoredFileFactory::new()->forCompany($c)->create();
         DB::table('companies')->where('id', $c->id)->update(['storage_bytes' => 1]);
@@ -84,8 +98,32 @@ it('reports the rows that break a rule', function (int $query, Closure $breakIt)
     // Activated outside SupportSessionService::start()
     'support user active without a session' => [10, fn ($c) => DB::table('users')
         ->where('company_id', $c->id)->where('user_type', 'support')->update(['status' => 'active'])],
+    // FolderService stops at 5 levels; the factory doesn't
+    'folder six levels deep' => [11, function ($c) {
+        $folder = Docs::companyFolder($c);
+        foreach (range(2, 6) as $level) {
+            $folder = Docs::childOf($folder);
+        }
+    }],
+    'child folder without its parent binding' => [12, function ($c) {
+        $child = Docs::childOf(Docs::dqFile($c)[1]);
+        DB::table('folders')->where('id', $child->id)->update(['driver_id' => null]);
+    }],
 ]);
 
+it('accepts a vehicle-folder document about one of its service logs', function () {
+    $company = Actors::company();
+    $vehicle = VehicleFactory::new()->forCompany($company)->create();
+    $document = DocumentFactory::new()->inFolder(Docs::systemFolder($vehicle))->create();
+    DB::table('documents')->where('id', $document->id)->update([
+        'vehicle_id' => null, 'service_log_id' => ServiceLogFactory::new()->forVehicle($vehicle)->create()->id,
+    ]);
+
+    [$exit] = integrityOutput();
+
+    expect($exit)->toBe(0);
+});
+
 it('lists every query of 11 §6', function () {
-    expect(array_keys(IntegrityCheck::QUERIES))->toBe([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(array_keys(IntegrityCheck::QUERIES))->toBe([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 });

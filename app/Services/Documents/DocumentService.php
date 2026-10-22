@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Files\StoredFileService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -30,7 +31,6 @@ class DocumentService
     {
         return $this->files->transaction(function () use ($folder, $uploads, $meta, $actor) {
             $folder = Folder::query()->lockForUpdate()->findOrFail($folder->id);
-            $binding = $folder->binding();
 
             $documents = collect($uploads)->map(fn (UploadedFile $upload) => Document::query()->create([
                 'folder_id' => $folder->id,
@@ -40,7 +40,7 @@ class DocumentService
                 'issued_on' => $meta['issued_on'] ?? null,
                 'expires_on' => $meta['expires_on'] ?? null,
                 'uploaded_by_user_id' => $actor->id,
-            ] + ($binding === null ? [] : [$binding[0] => $binding[1]])));
+            ] + $folder->bindingAttributes()));
 
             AuditLog::record($actor, $folder->company_id, 'document.uploaded', $folder, ['documents' => $documents->pluck('id')->all()]);
 
@@ -49,17 +49,23 @@ class DocumentService
     }
 
     /**
-     * Refiling keeps the subject, so the target must have the same binding.
+     * Refiling keeps the subject, so the target must have the same binding. The target is locked
+     * like FolderService::delete locks it, so a document can't land in a folder being deleted.
      */
     public function move(Document $document, Folder $target): Document
     {
-        if ($document->folder?->binding() !== $target->binding()) {
-            throw ValidationException::withMessages(['folder_id' => 'A document can only move to a folder of the same driver, vehicle or trailer.']);
-        }
+        return DB::transaction(function () use ($document, $target) {
+            $target = Folder::query()->lockForUpdate()->findOrFail($target->id);
+            $current = $document->folder;
 
-        $document->update(['folder_id' => $target->id]);
+            if ($current === null || $current->binding() !== $target->binding()) {
+                throw ValidationException::withMessages(['folder_id' => 'A document can only move to a folder of the same driver, vehicle or trailer.']);
+            }
 
-        return $document;
+            $document->update(['folder_id' => $target->id]);
+
+            return $document;
+        });
     }
 
     public function delete(Document $document): void

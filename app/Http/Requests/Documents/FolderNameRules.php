@@ -15,8 +15,9 @@ trait FolderNameRules
      */
     protected function nameRules(): array
     {
-        // Folder names become ZIP paths (P1-6), so no slashes.
-        return ['required', 'string', 'max:120', 'not_regex:/[\/\\\\]/'];
+        // Folder names become ZIP paths (P1-6), so no slashes. Standard folder names are reserved:
+        // a root folder named "Vehicle #812" would block the next vehicle's own folder.
+        return ['required', 'string', 'max:120', 'not_regex:/[\/\\\\]/', 'not_regex:/^\s*(dq file|vehicle|trailer) #\d+\s*$/i'];
     }
 
     /**
@@ -24,7 +25,7 @@ trait FolderNameRules
      */
     public function messages(): array
     {
-        return ['name.not_regex' => 'A folder name can\'t contain / or \\.'];
+        return ['name.not_regex' => 'A folder name can\'t contain / or \\, or look like a standard folder name ("DQ file #12").'];
     }
 
     protected function prepareForValidation(): void
@@ -34,6 +35,6 @@ trait FolderNameRules
 
     protected function folderRedirect(?Folder $folder): string
     {
-        return $folder === null ? route('documents.index') : FolderBrowser::url($folder);
+        return FolderBrowser::url($folder);
     }
 }

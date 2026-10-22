@@ -36,6 +36,6 @@ class MoveDocumentRequest extends FormRequest
 
     protected function getRedirectUrl(): string
     {
-        return $this->document()->folder === null ? route('documents.index') : FolderBrowser::url($this->document()->folder);
+        return FolderBrowser::url($this->document()->folder);
     }
 }

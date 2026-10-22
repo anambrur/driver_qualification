@@ -72,6 +72,6 @@ class DocumentController extends Controller
         $this->documents->delete($document);
         Toast::success('Document deleted.');
 
-        return $document->folder === null ? redirect()->route('documents.index') : redirect()->to(FolderBrowser::url($document->folder));
+        return redirect()->to(FolderBrowser::url($document->folder));
     }
 }

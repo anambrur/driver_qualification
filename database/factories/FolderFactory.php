@@ -52,8 +52,10 @@ class FolderFactory extends Factory
 
     public function childOf(Folder $parent): static
     {
-        return $this->state(fn () => ['company_id' => $parent->company_id, 'parent_id' => $parent->id]
-            + array_fill_keys(array_keys(Folder::BINDINGS), null)
-            + ($parent->binding() === null ? [] : [$parent->binding()[0] => $parent->binding()[1]]));
+        return $this->state(fn () => array_merge(
+            ['company_id' => $parent->company_id, 'parent_id' => $parent->id],
+            array_fill_keys(array_keys(Folder::BINDINGS), null),
+            $parent->bindingAttributes(),
+        ));
     }
 }

@@ -197,6 +197,7 @@ class AssetTransferService
         }
 
         $scheduleIds = [];
+        $logIds = [];
         foreach ($history['schedules'] as $schedule) {
             $scheduleCopy = $schedule->replicate(['company_id', 'vehicle_id'])
                 ->forceFill(['company_id' => $target->id, 'vehicle_id' => $asset->id]);
@@ -212,6 +213,7 @@ class AssetTransferService
                 'maintenance_schedule_id' => $scheduleIds[$log->maintenance_schedule_id] ?? null,
             ]);
             $logCopy->save();
+            $logIds[$log->id] = $logCopy->id;
             $logCopy->maintenanceCategories()->attach($log->maintenanceCategories->modelKeys());
 
             foreach ($log->documents as $document) {
@@ -240,11 +242,14 @@ class AssetTransferService
         }
 
         foreach ($history['folderDocuments'] as $document) {
-            $document->replicate(['company_id', 'folder_id', $column, 'file_id', 'original_file_id', 'uploaded_by_user_id'])
+            // A document about one of the vehicle's service logs stays about that log's copy (F18).
+            $logId = $document->service_log_id === null ? null : ($logIds[$document->service_log_id] ?? null);
+            $document->replicate(['company_id', 'folder_id', $column, 'service_log_id', 'file_id', 'original_file_id', 'uploaded_by_user_id'])
                 ->forceFill([
                     'company_id' => $target->id,
                     'folder_id' => $folderIds[$document->folder_id],
-                    $column => $asset->id,
+                    $column => $logId === null ? $asset->id : null,
+                    'service_log_id' => $logId,
                     'file_id' => $file($document->file_id, 'documents'),
                     'original_file_id' => $file($document->original_file_id, 'documents'),
                 ])

@@ -41,15 +41,45 @@ class FolderBrowser
     }
 
     /**
-     * Where a folder is shown: its entity's Documents tab, or the company Documents page.
+     * The entity's typed compliance documents, shown read-only in its standard folder and linking
+     * to the existing view routes; none without the compliance dashboard permission.
+     *
+     * @return list<array{label: string, detail: string, url: string}>
      */
-    public static function url(Folder $folder): string
+    public function virtualDocuments(Driver|Vehicle|Trailer $entity): array
     {
-        return match ($folder->binding()[0] ?? null) {
+        $isDriver = $entity instanceof Driver;
+
+        if (! Gate::allows($isDriver ? 'drivers.dashboard' : 'fleets.dashboard')) {
+            return [];
+        }
+
+        $documents = $entity->relationLoaded('documents') ? $entity->documents : $entity->documents()->with('documentType:id,name')->get();
+
+        return $documents->sortByDesc('updated_at')->map(fn ($document) => [
+            'label' => $document->documentType->name ?? 'Document',
+            'detail' => match (true) {
+                $document->expiry_date !== null => 'Expires '.$document->expiry_date->format('M d, Y'),
+                $document->file_date !== null => 'Filed '.$document->file_date->format('M d, Y'),
+                default => '—',
+            },
+            'url' => $isDriver
+                ? route('admin.compliance.driver.documents.view', $document->id)
+                : route('admin.compliance.documents.view', [$document->id, $entity instanceof Vehicle ? 'vehicle' : 'trailer']),
+        ])->values()->all();
+    }
+
+    /**
+     * Where a folder is shown: its entity's Documents tab, or the company Documents page (also
+     * for no folder).
+     */
+    public static function url(?Folder $folder): string
+    {
+        return match ($folder?->binding()[0] ?? null) {
             'driver_id' => route('admin.driver.show', [$folder->driver_id, 'folder' => $folder->id]).'#documents',
             'vehicle_id' => route('admin.vehicle.show', [$folder->vehicle_id, 'folder' => $folder->id]).'#documents',
             'trailer_id' => route('admin.trailer.show', [$folder->trailer_id, 'folder' => $folder->id]).'#documents',
-            default => route('documents.index', ['folder' => $folder->id]),
+            default => route('documents.index', $folder === null ? [] : ['folder' => $folder->id]),
         };
     }
 

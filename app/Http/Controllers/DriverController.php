@@ -163,13 +163,7 @@ class DriverController extends Controller
 
         // The Documents tab; the typed compliance documents show read-only in the DQ file.
         $documentsBrowser = $browser->tab($driver, $request->integer('folder') ?: null);
-        $virtualDocuments = $documentsBrowser !== null && Gate::allows('drivers.dashboard')
-            ? $uploadedDocuments->map(fn ($doc) => [
-                'label' => $doc->documentType->name ?? 'Document',
-                'detail' => $doc->expiry_date ? 'Expires '.$doc->expiry_date->format('M d, Y') : ($doc->file_date ? 'Filed '.$doc->file_date->format('M d, Y') : '—'),
-                'url' => route('admin.compliance.driver.documents.view', $doc->id),
-            ])->all()
-            : [];
+        $virtualDocuments = $documentsBrowser === null ? [] : $browser->virtualDocuments($driver);
 
         return view('admin.driver.show', compact('driver', 'compliance', 'uploadedDocuments', 'activityLogs', 'documentsBrowser', 'virtualDocuments'));
     }

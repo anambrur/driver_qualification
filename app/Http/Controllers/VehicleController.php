@@ -74,13 +74,7 @@ class VehicleController extends Controller
 
         // The Documents tab; the typed compliance documents show read-only in the vehicle's folder.
         $documentsBrowser = $browser->tab($vehicle, $request->integer('folder') ?: null);
-        $virtualDocuments = $documentsBrowser !== null && Gate::allows('fleets.dashboard')
-            ? $vehicle->documents()->with('documentType:id,name')->latest('updated_at')->get()->map(fn ($doc) => [
-                'label' => $doc->documentType->name ?? 'Document',
-                'detail' => $doc->expiry_date ? 'Expires '.$doc->expiry_date->format('M d, Y') : '—',
-                'url' => route('admin.compliance.documents.view', [$doc->id, 'vehicle']),
-            ])->all()
-            : [];
+        $virtualDocuments = $documentsBrowser === null ? [] : $browser->virtualDocuments($vehicle);
 
         return view('admin.vehicle.show', compact('vehicle', 'documentsBrowser', 'virtualDocuments'));
     }

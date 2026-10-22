@@ -35,7 +35,7 @@ class DocumentFactory extends Factory
     public function inFolder(Folder $folder): static
     {
         return $this->state(fn () => ['company_id' => $folder->company_id, 'folder_id' => $folder->id]
-            + ($folder->binding() === null ? [] : [$folder->binding()[0] => $folder->binding()[1]]));
+            + $folder->bindingAttributes());
     }
 
     public function withFile(StoredFile $file): static

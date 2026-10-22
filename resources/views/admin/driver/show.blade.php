@@ -57,19 +57,10 @@
     @include('admin.compliance.partials.driver-upload-document-modal')
 @endsection
 
+@include('documents.partials.hash-tabs', ['tabs' => 'driver-tabs'])
+
 @push('scripts')
     <script>
-        // Tabs: keep the open tab in the URL hash so links and reloads land on it.
-        document.addEventListener('DOMContentLoaded', () => {
-            const tabs = document.getElementById('driver-tabs');
-            const open = (name) => tabs.querySelector(`#driver-tabs-tab-${CSS.escape(name)}`)?.click();
-            if (location.hash) open(location.hash.slice(1));
-            tabs.addEventListener('click', (event) => {
-                const tab = event.target.closest('[role="tab"]');
-                if (tab) history.replaceState(null, '', '#' + tab.id.replace('driver-tabs-tab-', ''));
-            });
-        });
-
         const escapeHtml = (value) => {
             const div = document.createElement('div');
             div.textContent = value ?? '';

@@ -86,10 +86,9 @@ class UploadDocumentsRequest extends FormRequest
      */
     private function enabledType(string $attribute, mixed $value, Closure $fail): void
     {
-        $binding = $this->folder()->binding();
         $exists = DocumentType::query()
             ->enabledForCompany(app(TenantContext::class)->requireCompanyId())
-            ->byModule($binding === null ? null : substr($binding[0], 0, -3))
+            ->byModule($this->folder()->module())
             ->whereKey($value)
             ->exists();
 

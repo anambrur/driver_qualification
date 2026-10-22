@@ -35,7 +35,7 @@ class FolderController extends Controller
         try {
             $folder = $this->folders->create($parent, $request->validated('name'), $request->user());
         } catch (ValidationException $e) {
-            return redirect()->to($parent === null ? route('documents.index') : FolderBrowser::url($parent))->withErrors($e->errors())->withInput();
+            return redirect()->to(FolderBrowser::url($parent))->withErrors($e->errors())->withInput();
         }
 
         Toast::success("Folder “{$folder->name}” created.");
@@ -70,6 +70,6 @@ class FolderController extends Controller
 
         Toast::success("Folder “{$folder->name}” deleted.");
 
-        return redirect()->to($folder->parent === null ? route('documents.index') : FolderBrowser::url($folder->parent));
+        return redirect()->to(FolderBrowser::url($folder->parent));
     }
 }

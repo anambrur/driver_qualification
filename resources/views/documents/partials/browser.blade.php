@@ -218,8 +218,8 @@
             }
 
             const move = event.target.closest('[data-move-document]');
-            if (move) {
-                const form = document.getElementById('document-move-form');
+            const form = document.getElementById('document-move-form');
+            if (move && form) {
                 form.action = move.dataset.moveDocument;
                 form.querySelector('[data-move-name]').textContent = move.dataset.name;
                 document.getElementById('document-move-dialog').showModal();

@@ -132,6 +132,28 @@ class Folder extends Model
     }
 
     /**
+     * The binding as attributes for a child folder or a filed document (F18).
+     *
+     * @return array<string, int>
+     */
+    public function bindingAttributes(): array
+    {
+        $binding = $this->binding();
+
+        return $binding === null ? [] : [$binding[0] => $binding[1]];
+    }
+
+    /**
+     * The document_types module of the binding (driver, vehicle, trailer), null at company level.
+     */
+    public function module(): ?string
+    {
+        $binding = $this->binding();
+
+        return $binding === null ? null : substr($binding[0], 0, -3);
+    }
+
+    /**
      * The folders of one binding, or the company-level folders when $binding is null.
      *
      * @param  Builder<Folder>  $query

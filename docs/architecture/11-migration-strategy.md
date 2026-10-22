@@ -141,9 +141,12 @@ SELECT c.id FROM companies c
 LEFT JOIN company_settings s ON s.company_id = c.id
 WHERE s.company_id IS NULL;
 
--- 5. Documents filed in an entity folder have a consistent subject (example for driver folders)
+-- 5. A document filed in an entity folder is about that entity or one of its children (F18)
 SELECT d.id FROM documents d JOIN folders f ON f.id = d.folder_id
-WHERE f.driver_id IS NOT NULL AND (d.driver_id IS NULL OR d.driver_id <> f.driver_id);
+WHERE (f.driver_id IS NOT NULL AND (d.driver_id IS NULL OR d.driver_id <> f.driver_id))
+OR (f.trailer_id IS NOT NULL AND (d.trailer_id IS NULL OR d.trailer_id <> f.trailer_id))
+OR (f.vehicle_id IS NOT NULL AND (d.vehicle_id IS NULL OR d.vehicle_id <> f.vehicle_id)
+    AND NOT EXISTS (SELECT 1 FROM service_logs l WHERE l.id = d.service_log_id AND l.vehicle_id = f.vehicle_id));
 
 -- 6. Storage counter matches stored files
 SELECT c.id FROM companies c
@@ -156,7 +159,20 @@ SELECT company_id FROM subscriptions WHERE ended_at IS NULL GROUP BY company_id 
 -- 8. External references point at existing rows (per local_type)
 SELECT e.id FROM external_references e LEFT JOIN drivers d ON e.local_type = 'driver' AND d.id = e.local_id AND d.company_id = e.company_id
 WHERE e.local_type = 'driver' AND d.id IS NULL;
+
+-- 11. No folder is nested deeper than 5 levels (a sixth level has five ancestors)
+SELECT f6.id FROM folders f6
+JOIN folders f5 ON f5.id = f6.parent_id JOIN folders f4 ON f4.id = f5.parent_id
+JOIN folders f3 ON f3.id = f4.parent_id JOIN folders f2 ON f2.id = f3.parent_id
+JOIN folders f1 ON f1.id = f2.parent_id;
+
+-- 12. A child folder has its parent's binding
+SELECT c.id FROM folders c JOIN folders p ON p.id = c.parent_id
+WHERE COALESCE(c.driver_id, 0) <> COALESCE(p.driver_id, 0) OR COALESCE(c.vehicle_id, 0) <> COALESCE(p.vehicle_id, 0)
+OR COALESCE(c.trailer_id, 0) <> COALESCE(p.trailer_id, 0) OR COALESCE(c.trip_id, 0) <> COALESCE(p.trip_id, 0);
 ```
+
+Queries 9 and 10 (one login per email across tenants and platform; support users active only during a session) are in `IntegrityCheck::QUERIES`.
 
 The seed smoke check also asserts that:
 - each demo company has its 7 system roles, a support user, settings, a sequence and an open subscription;
