@@ -8,6 +8,7 @@ use App\Mail\DriverRejectedMail;
 use App\Models\AuditLog;
 use App\Models\Driver;
 use App\Models\User;
+use App\Services\Documents\FolderService;
 use App\Services\Entitlements\Limits;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +18,8 @@ use Throwable;
 
 class DriverHireService
 {
+    public function __construct(private FolderService $folders) {}
+
     public function hire(Driver $driver, array $data, int $actorId): Driver
     {
         $driver = DB::transaction(function () use ($driver, $data, $actorId) {
@@ -38,6 +41,8 @@ class DriverHireService
                 'rejected_at' => null,
             ]);
             AuditLog::record(User::query()->findOrFail($actorId), $driver->company_id, 'driver.hired', $driver, ['hire_date' => $data['hire_date']]);
+            // A public applicant gets the DQ file folder now; a staff-created driver already has it.
+            $this->folders->ensureSystemFolder($driver);
 
             return $driver->fresh(['company']);
         });

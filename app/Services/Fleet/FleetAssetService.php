@@ -5,6 +5,7 @@ namespace App\Services\Fleet;
 use App\Features\Feature;
 use App\Models\Trailer;
 use App\Models\Vehicle;
+use App\Services\Documents\FolderService;
 use App\Services\Entitlements\Limits;
 use App\Services\Files\StoredFileService;
 use App\Tenancy\TenantContext;
@@ -17,7 +18,7 @@ use Illuminate\Http\UploadedFile;
  */
 class FleetAssetService
 {
-    public function __construct(private StoredFileService $files, private TenantContext $tenant) {}
+    public function __construct(private StoredFileService $files, private TenantContext $tenant, private FolderService $folders) {}
 
     /**
      * @template T of Vehicle|Trailer
@@ -34,6 +35,7 @@ class FleetAssetService
 
             $asset->fill($data + ['photo_file_id' => $photo ? $this->files->store($photo, $asset->getTable())->id : null]);
             $asset->save();
+            $this->folders->ensureSystemFolder($asset);
 
             return $asset;
         });
