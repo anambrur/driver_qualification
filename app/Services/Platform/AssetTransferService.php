@@ -7,6 +7,8 @@ use App\Models\AssetGroup;
 use App\Models\AssetTransfer;
 use App\Models\AuditLog;
 use App\Models\Company;
+use App\Models\Document;
+use App\Models\Folder;
 use App\Models\MaintenanceSchedule;
 use App\Models\PlatformUser;
 use App\Models\ServiceDocument;
@@ -17,6 +19,7 @@ use App\Models\TrailerDocument;
 use App\Models\Vehicle;
 use App\Models\VehicleDocument;
 use App\Notifications\AssetTransferredNotification;
+use App\Services\Documents\FolderService;
 use App\Services\Entitlements\Limits;
 use App\Services\Files\StoredFileCopier;
 use App\Tenancy\TenantContext;
@@ -33,7 +36,7 @@ use Throwable;
  */
 class AssetTransferService
 {
-    public function __construct(private TenantContext $tenant) {}
+    public function __construct(private TenantContext $tenant, private FolderService $folders) {}
 
     public function transfer(PlatformUser $actor, string $type, int $assetId, Company $source, Company $target, string $reason): AssetTransfer
     {
@@ -107,7 +110,7 @@ class AssetTransferService
     /**
      * The live asset and everything that moves with it, read in the source company.
      *
-     * @return array{asset: Vehicle|Trailer, documents: Collection<int, VehicleDocument>|Collection<int, TrailerDocument>, schedules: Collection<int, MaintenanceSchedule>, logs: Collection<int, ServiceLog>, files: Collection<int, StoredFile>}
+     * @return array{asset: Vehicle|Trailer, documents: Collection<int, VehicleDocument>|Collection<int, TrailerDocument>, schedules: Collection<int, MaintenanceSchedule>, logs: Collection<int, ServiceLog>, folders: Collection<int, Folder>, folderDocuments: Collection<int, Document>, files: Collection<int, StoredFile>}
      */
     private function history(string $type, int $assetId): array
     {
@@ -125,8 +128,14 @@ class AssetTransferService
             ? ServiceLog::query()->where('vehicle_id', $asset->id)->with(['maintenanceCategories', 'documents'])->orderBy('id')->get()
             : new Collection;
 
+        // Parents before children: a folder is always created after its parent.
+        $folders = Folder::query()->where("{$type}_id", $asset->id)->orderBy('id')->get();
+        $folderDocuments = Document::query()->whereIn('folder_id', $folders->modelKeys())->orderBy('id')->get();
+
         $fileIds = collect([$asset->photo_file_id])
             ->merge($documents->pluck('file_id'))
+            ->merge($folderDocuments->pluck('file_id'))
+            ->merge($folderDocuments->pluck('original_file_id'))
             ->merge($logs->flatMap(fn (ServiceLog $log) => $log->documents->pluck('file_id')))
             ->filter()->unique()->values();
 
@@ -135,6 +144,8 @@ class AssetTransferService
             'documents' => $documents,
             'schedules' => $schedules,
             'logs' => $logs,
+            'folders' => $folders,
+            'folderDocuments' => $folderDocuments,
             'files' => StoredFile::query()->whereKey($fileIds)->get(),
         ];
     }
@@ -161,19 +172,19 @@ class AssetTransferService
     /**
      * Writes the copies in the target company.
      *
-     * @param  array{asset: Vehicle|Trailer, documents: Collection<int, VehicleDocument>|Collection<int, TrailerDocument>, schedules: Collection<int, MaintenanceSchedule>, logs: Collection<int, ServiceLog>, files: Collection<int, StoredFile>}  $history
-     * @return array{0: Vehicle|Trailer, 1: array{documents: int, service_logs: int, schedules: int, files: int}}
+     * @param  array{asset: Vehicle|Trailer, documents: Collection<int, VehicleDocument>|Collection<int, TrailerDocument>, schedules: Collection<int, MaintenanceSchedule>, logs: Collection<int, ServiceLog>, folders: Collection<int, Folder>, folderDocuments: Collection<int, Document>, files: Collection<int, StoredFile>}  $history
+     * @return array{0: Vehicle|Trailer, 1: array{documents: int, service_logs: int, schedules: int, folders: int, folder_documents: int, files: int}}
      */
     private function copy(string $type, array $history, Company $target, StoredFileCopier $copier): array
     {
         $files = $history['files']->keyBy('id');
         $copiedFiles = [];
-        $file = function (?int $id) use ($files, $target, $copier, $type, &$copiedFiles): ?int {
+        $file = function (?int $id, ?string $area = null) use ($files, $target, $copier, $type, &$copiedFiles): ?int {
             if ($id === null) {
                 return null;
             }
 
-            return $copiedFiles[$id] ??= $copier->copy($files[$id], $target, "{$type}s")->id;
+            return $copiedFiles[$id] ??= $copier->copy($files[$id], $target, $area ?? "{$type}s")->id;
         };
 
         $asset = $history['asset']->replicate(['company_id', 'photo_file_id']);
@@ -186,6 +197,7 @@ class AssetTransferService
         }
 
         $scheduleIds = [];
+        $logIds = [];
         foreach ($history['schedules'] as $schedule) {
             $scheduleCopy = $schedule->replicate(['company_id', 'vehicle_id'])
                 ->forceFill(['company_id' => $target->id, 'vehicle_id' => $asset->id]);
@@ -201,6 +213,7 @@ class AssetTransferService
                 'maintenance_schedule_id' => $scheduleIds[$log->maintenance_schedule_id] ?? null,
             ]);
             $logCopy->save();
+            $logIds[$log->id] = $logCopy->id;
             $logCopy->maintenanceCategories()->attach($log->maintenanceCategories->modelKeys());
 
             foreach ($log->documents as $document) {
@@ -211,10 +224,44 @@ class AssetTransferService
             }
         }
 
+        // The folder tree: the source's system folder maps to the copy's own (PO-08 full history).
+        $column = "{$type}_id";
+        $systemFolder = $this->folders->ensureSystemFolder($asset);
+        $folderIds = [];
+        foreach ($history['folders'] as $folder) {
+            if ($folder->isSystem()) {
+                $folderIds[$folder->id] = $systemFolder->id;
+
+                continue;
+            }
+
+            $folderCopy = $folder->replicate(['company_id', $column, 'parent_id', 'parent_key', 'created_by_user_id'])
+                ->forceFill(['company_id' => $target->id, $column => $asset->id, 'parent_id' => $folderIds[$folder->parent_id]]);
+            $folderCopy->save();
+            $folderIds[$folder->id] = $folderCopy->id;
+        }
+
+        foreach ($history['folderDocuments'] as $document) {
+            // A document about one of the vehicle's service logs stays about that log's copy (F18).
+            $logId = $document->service_log_id === null ? null : ($logIds[$document->service_log_id] ?? null);
+            $document->replicate(['company_id', 'folder_id', $column, 'service_log_id', 'file_id', 'original_file_id', 'uploaded_by_user_id'])
+                ->forceFill([
+                    'company_id' => $target->id,
+                    'folder_id' => $folderIds[$document->folder_id],
+                    $column => $logId === null ? $asset->id : null,
+                    'service_log_id' => $logId,
+                    'file_id' => $file($document->file_id, 'documents'),
+                    'original_file_id' => $file($document->original_file_id, 'documents'),
+                ])
+                ->save();
+        }
+
         return [$asset, [
             'documents' => $history['documents']->count(),
             'service_logs' => $history['logs']->count(),
             'schedules' => $history['schedules']->count(),
+            'folders' => $history['folders']->reject->isSystem()->count(),
+            'folder_documents' => $history['folderDocuments']->count(),
             'files' => count($copiedFiles),
         ]];
     }

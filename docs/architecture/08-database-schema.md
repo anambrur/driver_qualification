@@ -468,7 +468,7 @@ One row per stored object.
 - `id`, `company_id`, `parent_id` (null), `name`;
 - `system_key` (null; set on the standard folders);
 - the entity binding: `driver_id`, `vehicle_id`, `trailer_id`, `trip_id` (all null);
-- `parent_key` (generated: `CASE WHEN parent_id IS NULL THEN 0 ELSE parent_id END`);
+- `parent_key` (generated: `CASE WHEN deleted_at IS NOT NULL THEN NULL WHEN parent_id IS NULL THEN 0 ELSE parent_id END`; a deleted folder leaves the key, so its name can be used again, decided P1-4);
 - `created_by_user_id`, timestamps, `deleted_at`.
 
 **FKs:**
@@ -482,8 +482,10 @@ One row per stored object.
 
 **Rules in the service:**
 - A child folder must have the same binding as its parent, or none.
-- Maximum depth 5 [R].
+- Maximum depth 5 (decided P1-4).
 - System folders can't be renamed or deleted.
+- Only an empty folder (no live child folders, no live documents) can be deleted; it is soft-deleted and its trashed documents keep their `folder_id` (P1-4).
+- The trip FK on `folders.trip_id` and on `documents.trip_id`, `trip_event_id`, `fuel_purchase_id`, `expense_id`, `inspection_id` is added by MySQL-only migrations in the phase that creates those tables; the columns and the CHECKs exist from Phase 1 (P1-4).
 
 ### `documents` (Tenant root)
 

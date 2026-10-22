@@ -6,13 +6,14 @@ use App\Models\Country;
 use App\Models\Driver;
 use App\Models\DriverDocument;
 use App\Models\State;
+use App\Services\Documents\FolderService;
 use App\Services\Files\StoredFileService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 class DriverCrudService
 {
-    public function __construct(private StoredFileService $files) {}
+    public function __construct(private StoredFileService $files, private FolderService $folders) {}
 
     /**
      * A driver created by staff: no application, an applicant until hired (F15).
@@ -35,6 +36,7 @@ class DriverCrudService
             $this->syncViolations($driver, $data);
             $this->syncForfeitures($driver, $data);
             $this->syncEmploymentRecords($driver, $data);
+            $this->folders->ensureSystemFolder($driver);
 
             return $driver;
         });

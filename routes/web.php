@@ -13,11 +13,13 @@ use App\Http\Controllers\ConnectedAccountController;
 use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoRequestController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\DocumentUploadController;
 use App\Http\Controllers\DriverComplianceDashboardController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\DriverDocumentUploadController;
+use App\Http\Controllers\FolderController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MaintenanceScheduleController;
 use App\Http\Controllers\PageController;
@@ -342,6 +344,19 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::delete('/{id}', [AssetGroupController::class, 'destroy'])->name('admin.asset-group.destroy')->middleware('permission:asset-groups.delete');
         Route::post('/{id}/restore', [AssetGroupController::class, 'restore'])->name('admin.asset-group.restore')->middleware('permission:asset-groups.edit');
         Route::get('/dropdown-data', [AssetGroupController::class, 'getDropdownData'])->name('admin.asset-group.dropdown.data')->middleware('permission:asset-groups.view');
+    });
+
+    // Folders and documents (req 2.1–2.3); entity folders open on the driver, vehicle and trailer pages
+    Route::prefix('documents')->name('documents.')->middleware('feature:document_folders')->whereNumber(['folder', 'document'])->group(function () {
+        Route::get('/', [FolderController::class, 'index'])->name('index')->middleware('permission:folders.view');
+        Route::post('/folders', [FolderController::class, 'store'])->name('folders.store')->middleware('permission:folders.manage');
+        Route::put('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update')->middleware('permission:folders.manage');
+        Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy')->middleware('permission:folders.manage');
+        Route::get('/folders/{folder}/documents', [DocumentController::class, 'index'])->name('folders.documents')->middleware('permission:folders.view');
+        Route::post('/folders/{folder}/documents', [DocumentController::class, 'store'])->name('store')->middleware('permission:documents.upload');
+        Route::patch('/{document}/folder', [DocumentController::class, 'move'])->name('move')->middleware('permission:documents.upload');
+        Route::get('/{document}/download', [DocumentController::class, 'download'])->name('download')->middleware('permission:folders.view');
+        Route::delete('/{document}', [DocumentController::class, 'destroy'])->name('destroy')->middleware('permission:documents.delete');
     });
 
     Route::prefix('compliance')->group(function () {

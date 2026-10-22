@@ -265,3 +265,65 @@ describe('drivers, fleet, billing, files and audit', function () {
         $transfer([]);
     });
 });
+
+describe('folders and documents', function () {
+    beforeEach(function () {
+        $this->company = CompanyFactory::new()->create();
+        $this->folder = fn (array $values) => DB::table('folders')->insertGetId($values + [
+            'company_id' => $this->company->id, 'name' => 'Folder '.fake()->unique()->numberBetween(1, 99999),
+        ]);
+    });
+
+    it('allows at most one binding per folder', function () {
+        $driver = DriverFactory::new()->forCompany($this->company)->create();
+        $vehicle = VehicleFactory::new()->forCompany($this->company)->create();
+
+        ($this->folder)(['driver_id' => $driver->id]);
+
+        expect(fn () => ($this->folder)(['driver_id' => $driver->id, 'vehicle_id' => $vehicle->id]))->toThrow(QueryException::class);
+    });
+
+    it('keeps sibling names unique, root folders included, until a folder is deleted', function () {
+        $root = ($this->folder)(['name' => 'Insurance']);
+        ($this->folder)(['name' => 'Claims', 'parent_id' => $root]);
+        ($this->folder)(['name' => 'Claims']);
+
+        expect(fn () => ($this->folder)(['name' => 'Insurance']))->toThrow(QueryException::class)
+            ->and(fn () => ($this->folder)(['name' => 'Claims', 'parent_id' => $root]))->toThrow(QueryException::class);
+
+        DB::table('folders')->where('id', $root)->update(['deleted_at' => now()]);
+        ($this->folder)(['name' => 'Insurance']);
+    });
+
+    it('rejects a parent folder of another company', function () {
+        $foreign = DB::table('folders')->insertGetId(['company_id' => CompanyFactory::new()->create()->id, 'name' => 'Theirs']);
+
+        expect(fn () => ($this->folder)(['parent_id' => $foreign]))->toThrow(QueryException::class);
+    });
+
+    it('allows at most one subject per document and only files of its company', function () {
+        $driver = DriverFactory::new()->forCompany($this->company)->create();
+        $vehicle = VehicleFactory::new()->forCompany($this->company)->create();
+        $file = StoredFileFactory::new()->forCompany($this->company)->create();
+        $document = fn (array $values) => DB::table('documents')->insert($values + [
+            'company_id' => $this->company->id, 'file_id' => $file->id, 'title' => 'Doc',
+        ]);
+
+        $document(['driver_id' => $driver->id]);
+        $document(['trip_id' => 1]); // no FK until Phase 2, still counted by the CHECK
+
+        expect(fn () => $document(['driver_id' => $driver->id, 'vehicle_id' => $vehicle->id]))->toThrow(QueryException::class)
+            ->and(fn () => $document(['vehicle_id' => $vehicle->id, 'expense_id' => 1]))->toThrow(QueryException::class)
+            ->and(fn () => $document(['file_id' => StoredFileFactory::new()->create()->id]))->toThrow(QueryException::class);
+    });
+
+    it('restricts deleting a folder that still has documents', function () {
+        $folder = ($this->folder)([]);
+        DB::table('documents')->insert([
+            'company_id' => $this->company->id, 'folder_id' => $folder, 'title' => 'Doc',
+            'file_id' => StoredFileFactory::new()->forCompany($this->company)->create()->id,
+        ]);
+
+        expect(fn () => DB::table('folders')->where('id', $folder)->delete())->toThrow(QueryException::class);
+    });
+});

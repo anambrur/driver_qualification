@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Schema;
 /**
  * The integrity queries of docs/architecture/11-migration-strategy.md §6. Each returns the ids
  * that break a rule the database can't express on its own, so every query must return no rows.
- * A query whose tables don't exist yet (documents arrive in Phase 1, external_references in
- * Phase 4) is reported as skipped.
+ * A query whose tables don't exist yet (external_references arrive in Phase 4) is reported as
+ * skipped.
  */
 class IntegrityCheck extends Command
 {
@@ -53,10 +53,13 @@ class IntegrityCheck extends Command
                 WHERE s.company_id IS NULL',
         ],
         5 => [
-            'rule' => 'Documents filed in a driver folder have that driver as subject',
-            'tables' => ['documents', 'folders'],
+            'rule' => 'A document filed in an entity folder is about that entity or one of its children (F18)',
+            'tables' => ['documents', 'folders', 'service_logs'],
             'sql' => 'SELECT d.id FROM documents d JOIN folders f ON f.id = d.folder_id
-                WHERE f.driver_id IS NOT NULL AND (d.driver_id IS NULL OR d.driver_id <> f.driver_id)',
+                WHERE (f.driver_id IS NOT NULL AND (d.driver_id IS NULL OR d.driver_id <> f.driver_id))
+                OR (f.trailer_id IS NOT NULL AND (d.trailer_id IS NULL OR d.trailer_id <> f.trailer_id))
+                OR (f.vehicle_id IS NOT NULL AND (d.vehicle_id IS NULL OR d.vehicle_id <> f.vehicle_id)
+                    AND NOT EXISTS (SELECT 1 FROM service_logs l WHERE l.id = d.service_log_id AND l.vehicle_id = f.vehicle_id))',
         ],
         6 => [
             'rule' => 'Storage counter matches stored files',
@@ -87,6 +90,25 @@ class IntegrityCheck extends Command
             'tables' => ['users', 'platform_support_sessions'],
             'sql' => "SELECT u.id FROM users u WHERE u.user_type = 'support' AND u.status = 'active'
                 AND NOT EXISTS (SELECT 1 FROM platform_support_sessions s WHERE s.company_id = u.company_id AND s.status = 'active')",
+        ],
+        11 => [
+            'rule' => 'No folder is nested deeper than 5 levels (08 §8)',
+            'tables' => ['folders'],
+            'sql' => 'SELECT f6.id FROM folders f6
+                JOIN folders f5 ON f5.id = f6.parent_id
+                JOIN folders f4 ON f4.id = f5.parent_id
+                JOIN folders f3 ON f3.id = f4.parent_id
+                JOIN folders f2 ON f2.id = f3.parent_id
+                JOIN folders f1 ON f1.id = f2.parent_id',
+        ],
+        12 => [
+            'rule' => "A child folder has its parent's binding (08 §8)",
+            'tables' => ['folders'],
+            'sql' => 'SELECT c.id FROM folders c JOIN folders p ON p.id = c.parent_id
+                WHERE COALESCE(c.driver_id, 0) <> COALESCE(p.driver_id, 0)
+                OR COALESCE(c.vehicle_id, 0) <> COALESCE(p.vehicle_id, 0)
+                OR COALESCE(c.trailer_id, 0) <> COALESCE(p.trailer_id, 0)
+                OR COALESCE(c.trip_id, 0) <> COALESCE(p.trip_id, 0)',
         ],
     ];
 

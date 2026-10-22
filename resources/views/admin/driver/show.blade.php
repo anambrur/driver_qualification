@@ -13,6 +13,9 @@
             'files' => 'Files',
             'logs' => 'Activity',
         ];
+        if ($documentsBrowser) {
+            $tabs = array_slice($tabs, 0, 4, true) + ['documents' => 'Documents'] + $tabs;
+        }
     @endphp
 
     <div class="p-4 sm:p-6 lg:p-8">
@@ -31,6 +34,14 @@
             <x-ui.tab-panel tabs="driver-tabs" name="files" class="mt-4">
                 @include('admin.driver.show.files')
             </x-ui.tab-panel>
+            @if ($documentsBrowser)
+                <x-ui.tab-panel tabs="driver-tabs" name="documents" class="mt-4">
+                    @include('documents.partials.browser', [
+                        'browser' => $documentsBrowser, 'tabs' => 'driver-tabs', 'virtual' => $virtualDocuments,
+                        'empty' => 'The DQ file is created when the driver is hired.',
+                    ])
+                </x-ui.tab-panel>
+            @endif
             <x-ui.tab-panel tabs="driver-tabs" name="logs" class="mt-4">
                 @include('admin.driver.show.logs')
             </x-ui.tab-panel>
@@ -46,19 +57,10 @@
     @include('admin.compliance.partials.driver-upload-document-modal')
 @endsection
 
+@include('documents.partials.hash-tabs', ['tabs' => 'driver-tabs'])
+
 @push('scripts')
     <script>
-        // Tabs: keep the open tab in the URL hash so links and reloads land on it.
-        document.addEventListener('DOMContentLoaded', () => {
-            const tabs = document.getElementById('driver-tabs');
-            const open = (name) => tabs.querySelector(`#driver-tabs-tab-${CSS.escape(name)}`)?.click();
-            if (location.hash) open(location.hash.slice(1));
-            tabs.addEventListener('click', (event) => {
-                const tab = event.target.closest('[role="tab"]');
-                if (tab) history.replaceState(null, '', '#' + tab.id.replace('driver-tabs-tab-', ''));
-            });
-        });
-
         const escapeHtml = (value) => {
             const div = document.createElement('div');
             div.textContent = value ?? '';

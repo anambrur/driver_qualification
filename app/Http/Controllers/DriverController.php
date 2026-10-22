@@ -11,6 +11,7 @@ use App\Models\Driver;
 use App\Models\DriverDocument;
 use App\Models\PolicyPdf;
 use App\Services\Compliance\DriverComplianceService;
+use App\Services\Documents\FolderBrowser;
 use App\Services\Driver\DriverCrudService;
 use App\Services\Driver\DriverDocumentWizardService;
 use App\Services\Driver\DriverHireService;
@@ -92,7 +93,7 @@ class DriverController extends Controller
         }
     }
 
-    public function show($id, DriverComplianceService $complianceService)
+    public function show(Request $request, $id, DriverComplianceService $complianceService, FolderBrowser $browser)
     {
         $driver = Driver::with([
             'company',
@@ -160,7 +161,11 @@ class DriverController extends Controller
             ->sortByDesc('at')
             ->values();
 
-        return view('admin.driver.show', compact('driver', 'compliance', 'uploadedDocuments', 'activityLogs'));
+        // The Documents tab; the typed compliance documents show read-only in the DQ file.
+        $documentsBrowser = $browser->tab($driver, $request->integer('folder') ?: null);
+        $virtualDocuments = $documentsBrowser === null ? [] : $browser->virtualDocuments($driver);
+
+        return view('admin.driver.show', compact('driver', 'compliance', 'uploadedDocuments', 'activityLogs', 'documentsBrowser', 'virtualDocuments'));
     }
 
     public function edit($id)
