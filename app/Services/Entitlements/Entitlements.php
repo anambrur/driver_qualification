@@ -2,6 +2,7 @@
 
 namespace App\Services\Entitlements;
 
+use App\Authorization\PermissionCatalogue;
 use App\Features\Feature;
 use App\Features\FeatureState;
 use App\Models\Company;
@@ -36,6 +37,21 @@ final class Entitlements
     public function allows(Feature|string $feature): bool
     {
         return $this->state($feature)->allowsRead();
+    }
+
+    /**
+     * Whether a tenant permission can work under this plan, as PermissionGate step 4 decides:
+     * a write permission needs its feature on, a read permission on or read-only.
+     */
+    public function permits(string $permission): bool
+    {
+        [$feature, $isWrite] = PermissionCatalogue::TENANT[$permission] ?? [null, false];
+
+        if ($feature === null) {
+            return true;
+        }
+
+        return $isWrite ? $this->state($feature)->allowsWrite() : $this->state($feature)->allowsRead();
     }
 
     /**
