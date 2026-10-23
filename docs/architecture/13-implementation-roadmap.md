@@ -87,7 +87,7 @@ flowchart LR
 
 **Depends on:** Phase 0; Phase 1 (folders and documents for trip folders and attachments).
 
-**Before it starts:** the open questions and the hooks into P1-4 and P1-6 are listed in [14](14-open-questions.md) §3 ("Before Phase 2").
+**Before it starts:** the hooks into P1-4 and P1-6 are listed in [14](14-open-questions.md) §3 ("Before Phase 2"). The packages are P2-1 to P2-7 in [agent-prompts/](agent-prompts/README.md).
 
 **Acceptance criteria**
 - The trip lifecycle ([10](10-workflows.md) §13) works end-to-end on the web.
@@ -97,7 +97,7 @@ flowchart LR
 
 **Risks**
 - Trip vs load resolved: one load per trip (decided Q6).
-- Maps API cost and terms [L].
+- Map cost: the client wants it free, so the web uses Leaflet + OpenStreetMap tiles and a server-side geocoder, with planned miles entered by hand (decided 23 Oct 2026). [L] The public OSM tile and Nominatim policies limit heavy use; a tile provider is needed once traffic grows.
 
 ## Phase 3: Mobile app, tracking, messaging
 

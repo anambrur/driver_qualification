@@ -2,7 +2,7 @@
 
 This document set describes how DriverFilesHub becomes a company-based, multi-tenant SaaS application. That is the foundation the client's DOT Doc Hub use cases (trips, mobile app, tracking, pay, QuickBooks, messaging) will be built on.
 
-- Status: **Phase 0 done** (main `67bb97c`, 21 October 2026). **Phase 1 done** (23 October 2026, [13](13-implementation-roadmap.md#phase-1-quick-wins)). Phase 2 next; what it needs first is in [14](14-open-questions.md) §3.
+- Status: **Phase 0 done** (main `67bb97c`, 21 October 2026). **Phase 1 done** (23 October 2026, [13](13-implementation-roadmap.md#phase-1-quick-wins)). **Phase 2** (trips and loads, web) runs as packages P2-1 to P2-7 in [agent-prompts/](agent-prompts/README.md).
 - Written: 11 October 2026, against commit `d1d4d8d`; decisions applied 13 October 2026.
 - Implementation follows [13-implementation-roadmap.md](13-implementation-roadmap.md).
 
@@ -65,6 +65,7 @@ This document set describes how DriverFilesHub becomes a company-based, multi-te
 | A photo uploaded into a folder becomes a one-page PDF in a queued job (EXIF fixed, longest side 3000 px); the image stays as the document's original and both count toward storage. On failure the image stays. Platform switch `DOCUMENTS_CONVERT_IMAGES`. | P1-5, 23 Oct 2026; [14](14-open-questions.md) §2, [08](08-database-schema.md) §8 |
 | ZIP export of a driver or the whole company: queued per company on its own `exports` connection, everything attached to the entity, ready 7 days, outside the storage quota, audited requests and downloads, also for a read-only company. Cap 2 GB. Requesting or downloading a ZIP also needs `drivers.view`, and `folders.view` when the company has folders. | P1-6, 23 Oct 2026; [14](14-open-questions.md) §2, [08](08-database-schema.md) §12 |
 | Phase 1 accepted: the four acceptance criteria pass with named tests, the "perf group" is the `scale` group, and smoke checks cover social sign-up and per-user grants. Only Phase 1 statuses were changed in the docs. | P1-7, 23 Oct 2026; [14](14-open-questions.md) §2 |
+| The map is free: Leaflet + OpenStreetMap tiles and a server-side geocoder; `place_source` + `place_ref` replace `google_place_id`; planned miles are entered by hand. Phase 2 is web and office staff only, with a new `inspections.manage` permission; per-company integer trip numbers; the pre-trip gate applies only with `pre_trip_inspections`. | Phase 2 plan, 23 Oct 2026; [14](14-open-questions.md) §2 |
 | Companies and owners are deactivated, never cascade-deleted. | PO-13, PO-17 |
 | Policy PDFs are per company, with a platform default as fallback. | PO-14 |
 | One free trial per verified email. | PO-15 |
@@ -84,7 +85,6 @@ This document set describes how DriverFilesHub becomes a company-based, multi-te
 
 [14-open-questions.md](14-open-questions.md) §3:
 - Retention periods [L]: the 08 §15 defaults apply until counsel changes them (23 Oct 2026).
-- Google Maps Platform terms and cost for the map picker [L].
 - The MySQL 8.0.16 run before go-live.
 
 The other questions were answered on 23 Oct 2026 (14 §2).

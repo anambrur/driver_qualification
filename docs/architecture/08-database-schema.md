@@ -522,7 +522,7 @@ Free-form documents in folders, plus attachments to trip events, fuel purchases,
 
 Saved shippers, reusable on later trips.
 
-- **Columns:** `id`, `company_id`, `name`, `contact_name`, `phone`, `email`, `address_line1`, `address_line2`, `city`, `state_code`, `zip`, `country_code`, `latitude`, `longitude`, `google_place_id`, `notes`, `is_active`, timestamps, `deleted_at`.
+- **Columns:** `id`, `company_id`, `name`, `contact_name`, `phone`, `email`, `address_line1`, `address_line2`, `city`, `state_code`, `zip`, `country_code`, `latitude`, `longitude`, `place_source`, `place_ref`, `notes`, `is_active`, timestamps, `deleted_at`.
 - **FK:** `company_id`, RESTRICT.
 - **Unique:** `(company_id, id)`.
 - **Index:** `(company_id, name)`.
@@ -577,10 +577,11 @@ The planned route.
   - `stop_type` enum(start, pickup, drop_off);
   - `also_pickup` bool (the start is also the pickup, client X1);
   - `shipper_id` (null);
-  - `address_line`, `city`, `state_code`, `zip`, `latitude`, `longitude`, `google_place_id`;
+  - `address_line`, `city`, `state_code`, `zip`, `latitude`, `longitude`, `place_source`, `place_ref`;
   - `planned_at`, `arrived_at`, `departed_at`, timestamps.
 - **FKs:** cFK `trip_id`, CASCADE; cFK `shipper_id`, RESTRICT.
 - **Unique:** `(trip_id, sequence)`.
+- **Place reference:** `place_source` (e.g. `photon`, `nominatim`, `manual`) and `place_ref` (the geocoder's id) are nullable and provider-neutral, the same on `shippers`. The map is free: Leaflet with OpenStreetMap tiles and a server-side geocoder (decided 23 Oct 2026, [14](14-open-questions.md) §2).
 - **Index:** `(company_id, trip_id)`.
 - **"Pending pickup"** = an assigned or in-progress trip whose pickup stop (or start stop with `also_pickup`) has no `departed_at`.
 - **Unplanned stops** are `trip_events` of type `stop`.

@@ -92,7 +92,7 @@ The differences come from the corrections in section 12. Eight further client it
 
 | # | Requirement | Gap | Verified | Code today | DB changes | Feature | Depends on | Phase | Risks / notes |
 |---|---|---|---|---|---|---|---|---|---|
-| 6.1 | Choose start and drop-off from a map (Google or Apple Maps) | Not avail. | **Missing** | — | `trip_stops` with lat/lng and `google_place_id` | `trips` | 4.1 | 2 (web), 3 (app) | Maps API cost and terms of use [L] |
+| 6.1 | Choose start and drop-off from a map (Google or Apple Maps) | Not avail. | **Missing** | — | `trip_stops` with lat/lng, `place_source`, `place_ref` | `trips` | 4.1 | 2 (web), 3 (app) | Free map stack (decided 23 Oct 2026): Leaflet + OpenStreetMap tiles, server-side geocoder. [L] A tile provider once traffic outgrows the public OSM tile policy |
 | 6.2 | Use current location as the start | Not avail. | **Missing** | — | `trip_stops` (`stop_type = start`) | `mobile_app` | 1.2 | 3 | — |
 | 6.3 | Optional pickup between start and drop-off; not required when it equals the start | Not avail. | **Missing** | — | `trip_stops.also_pickup` on the start stop | `trips` | 4.1 | 2 | — |
 | 6.4 | "Start driving!" button, "Trip Started" screen, opens the trip folder | Not avail. | **Missing** | — | `trips.status`, `started_at`; trip system folder | `mobile_app` | 4.1, 2.1 | 3 | — |

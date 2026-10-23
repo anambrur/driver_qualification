@@ -53,6 +53,8 @@ The product owner answered the questions from the 11 October draft on **13 Octob
 | X1 | Expense categories are a per-company CRUD list; the defaults (toll, lumper, scale, parking, repair, other) are seeded and stay. Deleting a category in use is refused or archived. Design **PENDING** (Phase 4). | [08](08-database-schema.md) §11 |
 | Z1 | Registration asks for the company time zone; `America/Chicago` is preselected. Done: the password and social sign-up forms require one of the North American zones in `App\Support\TimeZones`; the company settings page (`company.edit`) and the platform company form edit it. | `RegisteredUserController`, `FinishSocialSignupRequest`, `CompanyController`, `CompanyProfileRequest`, `TimeZones` |
 | Q17 | QuickBooks Payroll API is deferred; v1 keeps the payroll summary export. | Section 5 |
+| Maps (Phase 2 plan) | The client wants the map free (23 Oct 2026). The web map is Leaflet with OpenStreetMap tiles (attribution shown, no key); addresses are found through a server-side `Geocoder` (Photon or Nominatim, cached, rate-limited, searched on a button rather than as-you-type, as the Nominatim policy requires); a Google adapter can be added later. `shippers` and `trip_stops` store `place_source` + `place_ref` instead of `google_place_id`. Planned miles are entered by hand: there is no free production routing server. | [08](08-database-schema.md) §9, P2-1 |
+| Phase 2 plan | Approved 23 Oct 2026 with the recommended defaults: Phase 2 is web and office staff only (dispatchers confirm equipment, record inspections and events for the driver; the driver's own `.own` flows come with the app in Phase 3); a new `inspections.manage` (write) permission in the Dispatcher template; trip numbers are a per-company integer from 1, overridable with a unique number while the trip is a draft, locked on confirmation, and the sequence never goes back; a completed pre-trip inspection is required to start a trip only when the company has `pre_trip_inspections`; `trip_date` and the dashboard "today" use the company time zone (Z1); terminated drivers and transferred-out assets cannot be assigned. | [agent-prompts/](agent-prompts/README.md) |
 
 ## 3. Still open
 
@@ -66,13 +68,12 @@ The product owner answered the questions from the 11 October draft on **13 Octob
 | Docs follow-ups (P1-7) | Phase 0 statuses were never updated in 02, `DriverFilesHub-Features.md` and `Technical-Features-and-Workflow.md`. The technical file's ZIP row and schedule table still say `ShouldBeUnique`, a signed download and `exports:expire`; the code uses `WithoutOverlapping`, an authorized streaming route and `exports:prune`. `docs/erd.md` still draws the 15 Oct `site_settings`, `companies`, `plans` and `roles` columns and not the public-site tables. | Done 23 Oct 2026 (docs pass): 02, 04, 13, README, both feature documents and `docs/erd.md` (re-read from the MySQL schema). |
 | Phase 0 gaps (docs pass, 23 Oct 2026) | Two Phase 0 items were never built: a driver Terminate action that ends employment and switches off the driver's login (the `terminated` status exists), and closing the public application link when the plan lacks `driver_applications` (the feature key is not checked anywhere). | Done 23 Oct 2026. Terminate: action `terminate` on `admin.driver.hire-status` (`drivers.hire`), only for an active driver; records `termination_date` (not before the hire, not in the future) and an optional `termination_reason`, sets the driver's login inactive, ends its active asset groups, revokes open invitations, audits `driver.terminated`; the DQ file is kept. No undo. Applications closed: `EnsureApplicationsOpen` shows a closed page (403) on the apply link, start, OTP, steps and resume unless `driver_applications` is on for writing (so read-only and unsubscribed companies are closed too); status, files, withdraw and the completion page stay open. |
 | MySQL 8.0.16 run | WP1 was verified on SQLite 3.45 and MySQL 9.3 only (no 8.0 server available locally). | Run `migrate:fresh --seed`, `integrity:check` and the Schema/Integrity tests on 8.0.16 before go-live. **PENDING** |
-| Google Maps Platform | Terms and cost for the map picker [L]. | Client wants free use. **PENDING**: see section 4. |
 
 ### Before Phase 2
 
 | Item | What it needs |
 |---|---|
-| Open questions | Co-driver and C7 are closed (section 2). Open: Google Maps Platform terms and cost for the map picker [L] (§4). |
+| Open questions | Co-driver and C7 are closed, and the map is decided (free stack, section 2). |
 | Site-settings UI | Done 23 Oct 2026. |
 | Docs pass | Done 23 Oct 2026. |
 | Registration time zone | Z1, section 2. |
@@ -92,7 +93,7 @@ The product owner answered the questions from the 11 October draft on **13 Octob
 | Timesheets are not hours-of-service records (Part 395 / ELD) | The product must not suggest HOS compliance |
 | Employee location-tracking notice and consent, which vary by state | Phase 3 |
 | SSN and other personal data: encryption at rest exists [V]; access is audited | — |
-| App Store rule 4.8 (Sign in with Apple), Facebook Login app review, Google Maps Platform terms | Phase 1 and Phase 3. Web sign-in (P1-3) needs, before the switches are turned on: Google OAuth consent-screen verification, Facebook Login app review, and a Facebook data-deletion instructions URL (a "Delete your data" section on the privacy-policy page, edited in Platform > Content; no callback endpoint). |
+| App Store rule 4.8 (Sign in with Apple), Facebook Login app review, OpenStreetMap tile and Nominatim usage policies (attribution; light use only, so a tile or geocoding provider once traffic grows) | Phase 1, 2 and 3. Web sign-in (P1-3) needs, before the switches are turned on: Google OAuth consent-screen verification, Facebook Login app review, and a Facebook data-deletion instructions URL (a "Delete your data" section on the privacy-policy page, edited in Platform > Content; no callback endpoint). |
 
 ## 5. Investigation notes behind C3 and C4
 
