@@ -6,7 +6,7 @@
     <div class="p-4 sm:p-6 lg:p-8">
         <x-ui.page-header title="Documents" description="Company documents in your own folders. Driver, vehicle and trailer folders are on their pages.">
             @feature('zip_export')
-                @can('exports.create')
+                @if (app(\App\Services\Exports\ExportService::class)->canRequest(auth()->user(), 'zip_company'))
                     <x-slot:actions>
                         <form action="{{ route('exports.store') }}" method="POST">
                             @csrf
@@ -14,7 +14,7 @@
                             <x-ui.button type="submit" variant="outline" icon="archive">Download company ZIP</x-ui.button>
                         </form>
                     </x-slot:actions>
-                @endcan
+                @endif
             @endfeature
         </x-ui.page-header>
 

@@ -4,6 +4,8 @@ namespace App\DataTables\Exports;
 
 use App\Models\Driver;
 use App\Models\Export;
+use App\Services\Exports\ExportService;
+use App\Support\Ui\FileSize;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
@@ -17,7 +19,8 @@ final class ExportTable
 
     public function json(): JsonResponse
     {
-        $canDownload = (bool) $this->request->user()?->can('exports.download');
+        $user = $this->request->user();
+        $exports = app(ExportService::class);
         $driverName = fn (string $column) => Driver::withTrashed()->select($column)
             ->whereRaw('drivers.id = json_extract(exports.parameters, ?)', ['$.driver_id']);
 
@@ -34,25 +37,14 @@ final class ExportTable
             ->addColumn('requested', fn (Export $export) => e(trim($export->created_at?->format('M d, Y g:i A').($export->requestedBy ? ' · '.$export->requestedBy->name : ''))))
             ->addColumn('status_badge', fn (Export $export) => view('partials.ui.status-badge', ['status' => $export->status])->render()
                 .($export->status === 'failed' && $export->error ? '<p class="mt-1 text-xs text-muted-foreground">'.e($export->error).'</p>' : ''))
-            ->addColumn('size', fn (Export $export) => $export->file ? self::size($export->file->size_bytes) : '—')
+            ->addColumn('size', fn (Export $export) => $export->file ? FileSize::format($export->file->size_bytes) : '—')
             ->addColumn('expires', fn (Export $export) => $export->status === 'ready' ? e($export->expires_at?->format('M d, Y')) : '—')
-            ->addColumn('action', fn (Export $export) => $canDownload && $export->isDownloadable()
+            ->addColumn('action', fn (Export $export) => $user !== null && $exports->canDownload($user, $export)
                 ? '<a href="'.e(route('exports.download', $export)).'" class="btn" data-variant="outline" data-size="sm">'.svg('lucide-download', 'size-4', ['aria-hidden' => 'true'])->toHtml().' Download</a>'
                 : '')
             ->orderColumn('requested', 'created_at $1')
             ->filter(fn () => null)
             ->rawColumns(['status_badge', 'action'])
             ->make(true);
-    }
-
-    /**
-     * 1.2 MB, as in DocumentTable (Number::fileSize needs intl, PO-20).
-     */
-    private static function size(int $bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $power = $bytes > 0 ? min((int) floor(log($bytes, 1024)), count($units) - 1) : 0;
-
-        return number_format($bytes / 1024 ** $power, $power === 0 ? 0 : 1).' '.$units[$power];
     }
 }

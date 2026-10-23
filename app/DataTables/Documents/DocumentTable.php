@@ -4,6 +4,7 @@ namespace App\DataTables\Documents;
 
 use App\Models\Document;
 use App\Models\Folder;
+use App\Support\Ui\FileSize;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
@@ -40,7 +41,7 @@ final class DocumentTable
                 $document->issued_on ? 'Issued '.$document->issued_on->format('M d, Y') : null,
                 $document->expires_on ? 'Expires '.$document->expires_on->format('M d, Y') : null,
             ])->filter()->implode(' · ') ?: '—'))
-            ->addColumn('size', fn (Document $document) => $document->file ? self::size($document->file->size_bytes) : '—')
+            ->addColumn('size', fn (Document $document) => $document->file ? FileSize::format($document->file->size_bytes) : '—')
             ->addColumn('uploaded', fn (Document $document) => e(trim($document->created_at?->format('M d, Y').($document->uploadedBy ? ' · '.$document->uploadedBy->name : ''))))
             ->addColumn('action', fn (Document $document) => view('documents.partials.document-actions', [
                 'document' => $document, 'canMove' => $canMove, 'canDelete' => $canDelete,
@@ -50,16 +51,5 @@ final class DocumentTable
             ->filter(fn () => null) // searched above
             ->rawColumns(['document', 'type', 'dates', 'uploaded', 'action'])
             ->make(true);
-    }
-
-    /**
-     * 1.2 MB. Number::fileSize needs intl, which production may not have (PO-20).
-     */
-    private static function size(int $bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $power = $bytes > 0 ? min((int) floor(log($bytes, 1024)), count($units) - 1) : 0;
-
-        return number_format($bytes / 1024 ** $power, $power === 0 ? 0 : 1).' '.$units[$power];
     }
 }

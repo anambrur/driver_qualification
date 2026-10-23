@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Services\Files\StoredFileService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -64,9 +65,9 @@ class IntegrityCheck extends Command
         6 => [
             'rule' => 'Storage counter matches stored files (exports are not counted)',
             'tables' => ['companies', 'stored_files'],
-            'sql' => "SELECT c.id FROM companies c
-                LEFT JOIN (SELECT company_id, SUM(size_bytes) s FROM stored_files WHERE path NOT LIKE 'companies/%/exports/%' GROUP BY company_id) f ON f.company_id = c.id
-                WHERE c.storage_bytes <> COALESCE(f.s, 0)",
+            'sql' => 'SELECT c.id FROM companies c
+                LEFT JOIN (SELECT company_id, SUM(size_bytes) s FROM stored_files WHERE '.StoredFileService::COUNTED_SQL.' GROUP BY company_id) f ON f.company_id = c.id
+                WHERE c.storage_bytes <> COALESCE(f.s, 0)',
         ],
         7 => [
             'rule' => 'One open subscription per company',

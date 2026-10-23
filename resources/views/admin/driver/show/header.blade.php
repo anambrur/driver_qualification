@@ -5,14 +5,14 @@
     <x-slot:actions>
         <x-ui.button :href="route('admin.driver.index')" variant="outline" icon="arrow-left">Back</x-ui.button>
         @feature('zip_export')
-            @can('exports.create')
+            @if (app(\App\Services\Exports\ExportService::class)->canRequest(auth()->user(), 'zip_driver'))
                 <form action="{{ route('exports.store') }}" method="POST">
                     @csrf
                     <input type="hidden" name="type" value="zip_driver">
                     <input type="hidden" name="driver_id" value="{{ $driver->id }}">
                     <x-ui.button type="submit" variant="outline" icon="archive">Download ZIP</x-ui.button>
                 </form>
-            @endcan
+            @endif
         @endfeature
         @if ($driver->status !== 'draft')
             <x-ui.button :href="route('admin.driver.edit', $driver->id)" icon="pencil">Edit driver</x-ui.button>

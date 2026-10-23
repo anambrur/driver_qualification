@@ -27,8 +27,11 @@ class StoredFileService
 {
     public const DISK = 'local';
 
-    /** Areas outside the storage limit and counter: temporary exports (req 2.5, 05 §5). */
-    public const UNCOUNTED_AREAS = ['exports'];
+    /** The area outside the storage limit and counter: temporary exports (req 2.5, 05 §5). */
+    public const UNCOUNTED_AREA = 'exports';
+
+    /** isCounted() as an SQL condition on stored_files.path, for integrity query 6. */
+    public const COUNTED_SQL = "path NOT LIKE 'companies/%/".self::UNCOUNTED_AREA."/%'";
 
     private const HEADERS = [
         'X-Content-Type-Options' => 'nosniff',
@@ -96,7 +99,7 @@ class StoredFileService
 
     /**
      * Content the app made (a PDF from an image, a ZIP) at $localPath, stored like store(): the
-     * same path convention, storage limit and counter (not for UNCOUNTED_AREAS). A conversion
+     * same path convention, storage limit and counter (not for UNCOUNTED_AREA). A conversion
      * links its source file.
      */
     public function storeGenerated(string $localPath, string $area, string $name, string $mimeType, ?StoredFile $convertedFrom = null): StoredFile
@@ -107,7 +110,7 @@ class StoredFileService
 
         $companyId = $this->tenant->requireCompanyId();
         $bytes = (int) filesize($localPath);
-        $counted = ! in_array($area, self::UNCOUNTED_AREAS, true);
+        $counted = self::isCounted(sprintf('companies/%d/%s/', $companyId, $area));
 
         if ($counted) {
             Limits::assertCanStore($companyId, $bytes);
@@ -203,13 +206,12 @@ class StoredFileService
     }
 
     /**
-     * Whether a stored path counts toward storage_bytes: not in UNCOUNTED_AREAS.
+     * Whether a stored path counts toward storage_bytes: not in UNCOUNTED_AREA. The one rule for
+     * storing, purging and integrity query 6 (COUNTED_SQL).
      */
     public static function isCounted(string $path): bool
     {
-        $area = explode('/', $path)[2] ?? null;
-
-        return ! in_array($area, self::UNCOUNTED_AREAS, true);
+        return (explode('/', $path)[2] ?? null) !== self::UNCOUNTED_AREA;
     }
 
     private function discardWritten(): void
