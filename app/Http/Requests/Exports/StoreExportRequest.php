@@ -4,6 +4,7 @@ namespace App\Http\Requests\Exports;
 
 use App\Models\Driver;
 use App\Models\Export;
+use App\Services\Exports\ExportService;
 use App\Tenancy\TenantRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -11,14 +12,20 @@ use Illuminate\Validation\Rule;
 class StoreExportRequest extends FormRequest
 {
     /**
-     * A driver ZIP also needs drivers.view and the driver itself.
+     * What the ZIP holds must be visible to the user (ExportService::canAccess); a driver ZIP
+     * also needs the driver itself.
      */
     public function authorize(): bool
     {
-        $driver = $this->driver();
         $user = $this->user();
+        $type = (string) $this->input('type');
+        $driver = $this->driver();
 
-        return $driver === null || ($user?->can('drivers.view') === true && $user->can('view', $driver));
+        if ($user === null || ! in_array($type, Export::ZIP_TYPES, true)) {
+            return true; // validation answers
+        }
+
+        return app(ExportService::class)->canAccess($user, $type) && ($driver === null || $user->can('view', $driver));
     }
 
     /**

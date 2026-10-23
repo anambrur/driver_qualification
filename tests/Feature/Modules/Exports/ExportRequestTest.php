@@ -78,14 +78,39 @@ it('needs exports.create', function () {
     Queue::assertNothingPushed();
 });
 
-it('needs the driver to be visible for a driver export', function () {
+it('needs drivers.view and folders.view for what the ZIP holds', function (array $permissions, int $status) {
     Queue::fake();
     $company = Actors::company();
     $driver = DriverFactory::new()->forCompany($company)->create();
-    $user = Actors::memberWithPermissions($company, ['exports.create']);
+    $user = Actors::memberWithPermissions($company, ['exports.create', ...$permissions]);
 
-    $this->actingAs($user)->post(route('exports.store'), ['type' => 'zip_driver', 'driver_id' => $driver->id])->assertForbidden();
-    $this->post(route('exports.store'), ['type' => 'zip_company'])->assertRedirect(route('exports.index'));
+    expect($this->actingAs($user)->post(route('exports.store'), ['type' => 'zip_company'])->status())->toBe($status)
+        ->and($this->post(route('exports.store'), ['type' => 'zip_driver', 'driver_id' => $driver->id])->status())->toBe($status);
+})->with([
+    'exports.create only' => [[], 403],
+    'without folders.view' => [['drivers.view'], 403],
+    'without drivers.view' => [['folders.view'], 403],
+    'both' => [['drivers.view', 'folders.view'], 302],
+]);
+
+it('does not need folders.view when the plan has no folders', function () {
+    Queue::fake();
+    $company = Actors::company();
+    Actors::withPlan($company, collect(Feature::cases())->reject(fn (Feature $f) => $f === Feature::DocumentFolders || $f->isLimit())->map->value->all());
+    $user = Actors::memberWithPermissions($company, ['exports.create', 'drivers.view']);
+
+    $this->actingAs($user)->post(route('exports.store'), ['type' => 'zip_company'])->assertRedirect(route('exports.index'));
+});
+
+it('hides the ZIP buttons from a user who could not open what the ZIP holds', function () {
+    $company = Actors::company();
+    $driver = DriverFactory::new()->forCompany($company)->create();
+    $user = Actors::memberWithPermissions($company, ['exports.create', 'drivers.view', 'folders.view']);
+    $partial = Actors::memberWithPermissions($company, ['exports.create', 'drivers.view']);
+
+    $this->actingAs($user)->get(route('documents.index'))->assertSee('Download company ZIP');
+    $this->get(route('admin.driver.show', $driver->id))->assertSee('Download ZIP');
+    $this->actingAs($partial)->get(route('admin.driver.show', $driver->id))->assertOk()->assertDontSee('Download ZIP');
 });
 
 it('refuses another company\'s driver and invalid input', function () {

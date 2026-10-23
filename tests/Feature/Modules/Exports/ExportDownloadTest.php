@@ -18,7 +18,7 @@ beforeEach(function () {
 it('downloads a ready export for anyone with exports.download and audits it', function () {
     $company = Actors::company();
     $export = ExportFactory::new()->ready(Exports::zipFile($company))->create(['requested_by_user_id' => $company->owner_user_id]);
-    $user = Actors::memberWithPermissions($company, ['exports.download']);
+    $user = Actors::memberWithPermissions($company, ['exports.download', 'drivers.view', 'folders.view']);
 
     $this->actingAs($user)->get(route('exports.download', $export))
         ->assertOk()
@@ -35,6 +35,16 @@ it('needs exports.download', function () {
     $user = Actors::memberWithPermissions($company, ['exports.create']);
 
     $this->actingAs($user)->get(route('exports.download', $export))->assertForbidden();
+});
+
+it('needs drivers.view and folders.view, like the request', function () {
+    $company = Actors::company();
+    $export = ExportFactory::new()->ready(Exports::zipFile($company))->create();
+    $user = Actors::memberWithPermissions($company, ['exports.download', 'drivers.view']);
+
+    $this->actingAs($user)->get(route('exports.download', $export))->assertForbidden();
+    expect($this->getJson(route('exports.data'))->assertOk()->json('data.0.action'))->toBe('')
+        ->and(AuditLog::query()->where('action', 'export.downloaded')->exists())->toBeFalse();
 });
 
 it('404s another company\'s export', function () {

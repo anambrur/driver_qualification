@@ -2,12 +2,14 @@
 
 namespace App\Services\Exports;
 
+use App\Features\Feature;
 use App\Jobs\BuildExport;
 use App\Models\AuditLog;
 use App\Models\Export;
 use App\Models\StoredFile;
 use App\Models\User;
 use App\Notifications\ExportFinishedNotification;
+use App\Services\Entitlements\Entitlements;
 use App\Services\Files\StoredFileService;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +23,31 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ExportService
 {
     public function __construct(private StoredFileService $files, private TenantContext $tenant) {}
+
+    /**
+     * A ZIP holds what the user could open one by one: DQ files (drivers.view) and folder
+     * documents (folders.view, when the company has folders; the Starter plan has none).
+     */
+    public function canAccess(User $user, string $type): bool
+    {
+        $needs = ['drivers.view'];
+
+        if (in_array($type, Export::ZIP_TYPES, true) && $user->company && Entitlements::for($user->company)->allows(Feature::DocumentFolders)) {
+            $needs[] = 'folders.view';
+        }
+
+        return collect($needs)->every(fn (string $permission) => $user->can($permission));
+    }
+
+    public function canRequest(User $user, string $type): bool
+    {
+        return $user->can('exports.create') && $this->canAccess($user, $type);
+    }
+
+    public function canDownload(User $user, Export $export): bool
+    {
+        return $user->can('exports.download') && $this->canAccess($user, $export->type) && $export->isDownloadable();
+    }
 
     /**
      * A queued export, or the one already queued or running for the same scope.
@@ -56,6 +83,7 @@ class ExportService
     public function download(Export $export, User $actor): StreamedResponse
     {
         abort_unless($export->isDownloadable(), 404, 'Export not found');
+        abort_unless($this->canAccess($actor, $export->type), 403);
 
         $response = $this->files->response($export->file, $export->file?->original_name);
         AuditLog::record($actor, $export->company_id, 'export.downloaded', $export, ['type' => $export->type] + $export->parameters);
