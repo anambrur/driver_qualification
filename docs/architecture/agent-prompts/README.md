@@ -83,6 +83,6 @@ Collected from the package reports; the full list is confirmed in P1-7.
 - `composer install` (Socialite), `php artisan migrate`.
 - `php artisan folders:ensure-system` once, for drivers, vehicles and trailers that already exist (P1-4).
 - `PermissionSeeder` + `php artisan roles:sync-company` if any package added a permission.
-- A queue worker that serves the `default` queue (P1-5, photo to PDF; `memory_limit` at least 512M) and the `exports` queue (P1-6), and the scheduler every minute for `exports:prune` (P1-6).
-- Env: `GOOGLE_*`, `FACEBOOK_*` (P1-3); optional `DOCUMENTS_CONVERT_IMAGES` (default on, P1-5). PHP: gd with WebP support, exif (P1-5), zip.
+- A queue worker that serves the `default` queue (P1-5, photo to PDF; `memory_limit` at least 512M), a worker on the `exports` connection (`php artisan queue:work exports --queue=exports --timeout=900 --memory=512`, P1-6), and the scheduler every minute for `exports:prune` (P1-6).
+- Env: `GOOGLE_*`, `FACEBOOK_*` (P1-3); optional `DOCUMENTS_CONVERT_IMAGES` (default on, P1-5); optional `EXPORTS_QUEUE_DRIVER` (default `database`, P1-6). PHP: gd with WebP support, exif (P1-5), zip.
 - [L] Google OAuth consent screen and Facebook app review, with a data-deletion instructions page (P1-3).

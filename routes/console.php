@@ -32,3 +32,8 @@ Schedule::command('support-sessions:expire')
 Schedule::command('model:prune', ['--model' => [OtpVerification::class]])
     ->daily()
     ->withoutOverlapping();
+
+// Ready ZIPs are kept 7 days; unfinished exports are failed (req 2.5, 10 §9)
+Schedule::command('exports:prune')
+    ->daily()
+    ->withoutOverlapping();

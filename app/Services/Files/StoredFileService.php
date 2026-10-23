@@ -27,6 +27,9 @@ class StoredFileService
 {
     public const DISK = 'local';
 
+    /** Areas outside the storage limit and counter: temporary exports (req 2.5, 05 §5). */
+    public const UNCOUNTED_AREAS = ['exports'];
+
     private const HEADERS = [
         'X-Content-Type-Options' => 'nosniff',
         'Cache-Control' => 'private, no-store',
@@ -93,7 +96,8 @@ class StoredFileService
 
     /**
      * Content the app made (a PDF from an image, a ZIP) at $localPath, stored like store(): the
-     * same path convention, storage limit and counter. A conversion links its source file.
+     * same path convention, storage limit and counter (not for UNCOUNTED_AREAS). A conversion
+     * links its source file.
      */
     public function storeGenerated(string $localPath, string $area, string $name, string $mimeType, ?StoredFile $convertedFrom = null): StoredFile
     {
@@ -103,7 +107,11 @@ class StoredFileService
 
         $companyId = $this->tenant->requireCompanyId();
         $bytes = (int) filesize($localPath);
-        Limits::assertCanStore($companyId, $bytes);
+        $counted = ! in_array($area, self::UNCOUNTED_AREAS, true);
+
+        if ($counted) {
+            Limits::assertCanStore($companyId, $bytes);
+        }
 
         $extension = pathinfo($name, PATHINFO_EXTENSION);
         $path = Storage::disk(self::DISK)->putFileAs(
@@ -124,7 +132,9 @@ class StoredFileService
             'uploaded_by_user_id' => $convertedFrom !== null ? $convertedFrom->uploaded_by_user_id : Auth::guard('web')->id(),
         ]);
 
-        DB::table('companies')->where('id', $companyId)->increment('storage_bytes', $bytes);
+        if ($counted) {
+            DB::table('companies')->where('id', $companyId)->increment('storage_bytes', $bytes);
+        }
 
         return $file;
     }
@@ -162,7 +172,10 @@ class StoredFileService
             DB::transaction(function () use ($file) {
                 DB::table('companies')->where('id', $file->company_id)->lockForUpdate()->first();
                 $file->delete();
-                DB::table('companies')->where('id', $file->company_id)->decrement('storage_bytes', $file->size_bytes);
+
+                if (self::isCounted($file->path)) {
+                    DB::table('companies')->where('id', $file->company_id)->decrement('storage_bytes', $file->size_bytes);
+                }
             });
         } catch (QueryException $e) {
             // A RESTRICT FK refused the delete: another row still uses the file
@@ -187,6 +200,16 @@ class StoredFileService
         return $downloadName === null || $inline
             ? Storage::disk($file->disk)->response($file->path, $downloadName, self::HEADERS)
             : Storage::disk($file->disk)->download($file->path, $downloadName, self::HEADERS);
+    }
+
+    /**
+     * Whether a stored path counts toward storage_bytes: not in UNCOUNTED_AREAS.
+     */
+    public static function isCounted(string $path): bool
+    {
+        $area = explode('/', $path)[2] ?? null;
+
+        return ! in_array($area, self::UNCOUNTED_AREAS, true);
     }
 
     private function discardWritten(): void

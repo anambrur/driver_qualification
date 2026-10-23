@@ -149,7 +149,7 @@ When the limit is reached, the user gets a 422 with an upgrade link. Platform st
   2. An `exports` row is inserted (`queued`) and a `BuildExport` tenant job is dispatched.
   3. The job streams the files into a ZIP under `companies/{id}/exports/`, creates `stored_files`, and marks the export `ready` with `expires_at` (for example 7 days).
   4. The user is notified.
-  5. Download goes through an authorized route plus a signed URL, and is audited.
+  5. Download goes through an authorized route, and is audited. On the local disk the route streams the file (P1-6); a short-lived temporary URL comes with S3 ([12](12-performance-plan.md) §3).
   6. A nightly job expires and deletes old exports.
 - **Profit and loss** is a report query for one company, using the company's time zone ([08](08-database-schema.md) §11).
 

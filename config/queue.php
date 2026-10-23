@@ -43,6 +43,17 @@ return [
             'after_commit' => false,
         ],
 
+        // Exports run for minutes (req 2.5, 12 §5), longer than the 90 s retry_after above; this
+        // connection waits past BuildExport's timeout before a job counts as lost
+        'exports' => [
+            'driver' => env('EXPORTS_QUEUE_DRIVER', 'database'),
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'exports',
+            'retry_after' => 960,
+            'after_commit' => false,
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => env('BEANSTALKD_QUEUE_HOST', 'localhost'),
