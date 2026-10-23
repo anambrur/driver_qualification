@@ -55,8 +55,8 @@ This document pulls the 14 architecture documents together into one technical vi
 | Queue | `database` driver, queued mail | Named queues: `billing`, `notifications`, `exports`, `tracking`, `integrations`, `default` |
 | SMS | Vonage (OTP, expiry SMS) | Same |
 | Files | Private `local` disk for DQ, compliance and service files; public disk for logos, policy PDFs, branding | `stored_files` registry, `companies/{id}/…` paths, **S3 recommended** in production [R]. Policy PDFs move to private, served by a slug-scoped route. |
-| PDF | `dompdf` installed, unused | Image-to-PDF conversion (P1) |
-| Social login | Placeholder buttons only | Socialite: Google, Facebook (P1); Apple (P3) |
+| PDF | Image-to-PDF built P1 (23 Oct 2026) | Image-to-PDF conversion (P1) |
+| Social login | Google, Facebook built P1, web (23 Oct 2026) | Socialite: Google, Facebook (P1); Apple (P3) |
 | Push | None | FCM / APNs via `device_tokens` (P3) |
 | Maps | None | Google Maps Platform (P2 web, P3 app) [L] terms and cost |
 | Accounting | None | QuickBooks Online Accounting API (P4) |
@@ -368,13 +368,13 @@ Each module lists its status, plan feature key, main tables, permissions (R = re
 | Module | Status | Feature | Tables | Permissions | Phase | Technical notes |
 |---|---|---|---|---|---|---|
 | Registration | Today (company named after the person, `RegisteredUserController.php:66` [V]) | core | `companies`, `users`, `company_settings`, `trip_number_sequences`, roles | — | P0 | Single path: `CompanyProvisioner`. Asks for company name. Email verification required (PO-15). |
-| Social login | Placeholder | platform capability | `social_accounts (provider, provider_user_id)` | — | P1 (web), P3 (Apple) | Verified provider email counts as verified. Never joins an existing company. [L] App Store 4.8, Facebook app review. |
+| Social login | Built P1 (23 Oct 2026), web | platform capability | `social_accounts (provider, provider_user_id)` | — | P1 (web), P3 (Apple) | Verified provider email counts as verified. Never joins an existing company. [L] App Store 4.8, Facebook app review. |
 | Login | Today (`LoginRequest.php:53-82`, `EnsureUserIsActive`) | core | `users.last_login_at` | — | P0 | Company status checked on **every** request by `ResolveTenant`. **No 2FA** for tenant users. |
 | Company profile | Today (`CompanyController`) | core | `companies` (+ `dot_number`, `mc_number`, `billing_email`, `timezone`, `status`) | `company.view` R, `company.edit` W | P0 | `companies.email` no longer synced from the owner login (D3b). Policy PDFs per company. |
 | Invitations | Missing | core | `company_invitations (token_hash, role_id, driver_id, expires_at)` | `users.create` W | P0 | Inviter only sees "invitation sent" (no account disclosure). `max_users` checked on send and accept. |
 | Users | Super-admin only, global (R3) | core | `users (company_id, user_type, status)` | `users.view/create/edit/deactivate` | P0 | Deactivate, never hard-delete while owning records. |
 | Roles | Super-admin only, global (R2) | `custom_roles` | Spatie teams tables | `roles.view/create/edit/delete` | P0 | Without `custom_roles`: system roles only. |
-| Per-user grants | Missing | `custom_roles` | `model_has_permissions` with `team_id` | `permissions.grant` W | P0 backend, P1 UI | Same escalation rules |
+| Per-user grants | Built P1 (23 Oct 2026) | `custom_roles` | `model_has_permissions` with `team_id` | `permissions.grant` W | P0 backend, P1 UI | Same escalation rules |
 | Ownership transfer | Missing | core | `companies.owner_user_id` | Owner only / platform on verified request | P0 | `OwnershipService::transfer()` moves the locked Owner role |
 | Close account | Today (PO-17: deactivate, owners only) | core | `companies.status` | Owner | P0 | Deactivates company and users; data kept (PO-13) |
 
@@ -404,7 +404,7 @@ Each module lists its status, plan feature key, main tables, permissions (R = re
 
 | Module | Status | Feature | Tables | Permissions | Phase | Technical notes |
 |---|---|---|---|---|---|---|
-| Vehicles, trailers | Today | `fleet` | `vehicles`, `trailers` (+ `plate_number`, `plate_state_code`, `photo_file_id`; `equipment_type_id` rename) | `vehicles.*`, `trailers.*` | P0, plates P1 | UK `(company_id, unit_no)`, `(company_id, vin)` (PO-10). `company_id` CASCADE → RESTRICT. `engine_hours` on vehicles (PO-05). |
+| Vehicles, trailers | Today; plates Built P1 (23 Oct 2026) | `fleet` | `vehicles`, `trailers` (+ `plate_number`, `plate_state_code`, `photo_file_id`; `equipment_type_id` rename) | `vehicles.*`, `trailers.*` | P0, plates P1 | UK `(company_id, unit_no)`, `(company_id, vin)` (PO-10). `company_id` CASCADE → RESTRICT. `engine_hours` on vehicles (PO-05). |
 | Asset groups | Today | `fleet` | `asset_groups` (`driver_id`, `co_driver_id`, generated `active_vehicle_id` / `active_trailer_id` unique) | `asset-groups.*` | P0 | Free-text driver columns dropped (F1–F3). One active group per asset (F7). UK `(company_id, group_name)`. Co-driver **PENDING**. |
 | Maintenance | Today (PO-04–PO-07) | `maintenance` | `maintenance_schedules` (drop `is_active`, `last_service_*`), `service_logs` (+ `maintenance_schedule_id`), `service_log_category`, `service_documents` (`file_id`) | `maintenance.*`, `scheduled.*` | P0 | Mileage / engine-hour schedules require a vehicle (PO-06); completing rolls due dates forward (PO-04); `.doc/.docx` accepted (PO-03). N+1 fix on categories. |
 | Lookups | Today (platform-only writes, LKP-01) | — | `vehicle_types`, `fuel_types`, `equipment_types`, `vehicle_groups`, `maintenance_categories` (+ `is_active`, unique `name`) | platform `settings.manage` | P0 | FKs RESTRICT [V] |
@@ -414,10 +414,10 @@ Each module lists its status, plan feature key, main tables, permissions (R = re
 
 | Module | Status | Feature | Tables | Permissions | Phase | Technical notes |
 |---|---|---|---|---|---|---|
-| Folders | Missing (typed slots only) | `document_folders` | `folders` (`parent_id`, generated `parent_key`, `system_key`, one entity binding via CHECK) | `folders.view` R, `folders.manage` W | P1 | System folders per driver, vehicle, trailer, trip (Q8); not renamable/deletable. Depth ≤ 5 [R]. UK `(company_id, parent_key, name)`. |
-| Documents | Missing | `document_folders` | `documents` (`folder_id` + at most one **subject**: driver, vehicle, trailer, trip, trip event, fuel purchase, expense, service log, inspection) | `documents.upload/delete` W | P1 | Subject (what it is about) and folder (where it is filed) are independent (F18); consistency checked in the service and by an integrity query. Compliance documents appear as virtual entries in standard folders. |
-| Image to PDF | Missing | platform capability | `stored_files.converted_from_file_id` | — | P1 | Queued; original kept |
-| ZIP export | Missing | `zip_export` | `exports (type, parameters, status, file_id, expires_at)` | `exports.create`, `exports.download` (R, allowed when read-only) | P1 driver/company, P2 trip | Queued `BuildExport`, streamed, size and time cap, `ShouldBeUnique` per company, signed expiring download, audited |
+| Folders | Built P1 (23 Oct 2026); trip folders P2 | `document_folders` | `folders` (`parent_id`, generated `parent_key`, `system_key`, one entity binding via CHECK) | `folders.view` R, `folders.manage` W | P1 | System folders per driver, vehicle, trailer, trip (Q8); not renamable/deletable. Depth ≤ 5 [R]. UK `(company_id, parent_key, name)`. |
+| Documents | Built P1 (23 Oct 2026) | `document_folders` | `documents` (`folder_id` + at most one **subject**: driver, vehicle, trailer, trip, trip event, fuel purchase, expense, service log, inspection) | `documents.upload/delete` W | P1 | Subject (what it is about) and folder (where it is filed) are independent (F18); consistency checked in the service and by an integrity query. Compliance documents appear as virtual entries in standard folders. |
+| Image to PDF | Built P1 (23 Oct 2026) | platform capability | `stored_files.converted_from_file_id` | — | P1 | Queued; original kept |
+| ZIP export | Built P1 (23 Oct 2026), driver and company | `zip_export` | `exports (type, parameters, status, file_id, expires_at)` | `exports.create`, `exports.download` (R, allowed when read-only) | P1 driver/company, P2 trip | Queued `BuildExport`, streamed, size and time cap, `ShouldBeUnique` per company, signed expiring download, audited |
 
 ### 3.6 Operations (trips)
 
@@ -989,7 +989,7 @@ flowchart LR
 | Phase | Scope | Acceptance criteria |
 |---|---|---|
 | **P0 Foundation** | Remaining spike (CHECK and generated columns on MySQL 8.0.16+ and SQLite; owner FK on SQLite); schema rebuild with F1–F29; provisioner; tenancy layers; Spatie teams database-first; company users and roles; platform area, `EmailIdentityService`, asset transfer; company billing; entitlements and limits; support sessions; audit; bug fixes and P1 performance; medical certificate and CDL in compliance; test suites and MySQL CI | Isolation matrix 404 everywhere; platform staff blocked without session and every session request audited; Owner can invite, create and assign roles with escalation tests passing; two users share one subscription and a second trial is refused; disabling `maintenance` in a plan blocks routes, menus and jobs within one request; parallel creates at limit − 1 → one success; integrity queries empty; suite green on SQLite and MySQL; `PermissionScaleTest` p95 < 5 ms |
-| **P1 Quick wins** | Google/Facebook (web), folders and documents, image to PDF, ZIP per driver/company, plates and photos, per-user grants UI | Nested folders; JPG → PDF with original kept; 200-driver company ZIP within target; plates on lists and details |
+| **P1 Quick wins** (done 23 Oct 2026) | Google/Facebook (web), folders and documents, image to PDF, ZIP per driver/company, plates and photos, per-user grants UI | Nested folders; JPG → PDF with original kept; 200-driver company ZIP within target; plates on lists and details |
 | **P2 Trips (web)** | Shippers, trips with numbering and map, assignment and confirmation, inspections, events and fuel, dashboard counts, trip ZIP | Lifecycle works end to end; no driver with two in-progress trips; event CHECKs enforced; counts match states |
 | **P3 Mobile** | API v1 and driver login, app flows, pings and live map, events and fuel with camera, messaging and push, Sign in with Apple | Driver sees only own trips via API; ping ingestion meets target; push arrives for new messages |
 | **P4 Money** | Load pay and rates, time entries and timesheets, expenses and P&L, reports and year-end, payroll and QuickBooks, time off | P&L equals a hand calculation; rate changes don't alter past lines; `OvertimeTest` passes; QuickBooks sync idempotent |

@@ -4,7 +4,7 @@ These diagrams show the **target** schema for the multi-tenant redesign. The bui
 
 - Full column, constraint and index specifications are in [architecture/08-database-schema.md](architecture/08-database-schema.md).
 - The reason for each change to an existing table is in [architecture/09-erd-audit.md](architecture/09-erd-audit.md).
-- Status: decisions applied 13 October 2026. The Phase 0 tables are built (15 October 2026, see [erd.md](erd.md)); the tables of later phases are not.
+- Status: decisions applied 13 October 2026. The Phase 0 tables are built (15 October 2026) and the Phase 1 tables (`social_accounts`, `folders`, `documents`, `exports`, 23 October 2026), see [erd.md](erd.md); the tables of later phases are not.
 
 ## How it fits together
 

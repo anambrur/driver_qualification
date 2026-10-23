@@ -1,7 +1,7 @@
 # Agent prompts: Phase 1 (Quick wins)
 
 Phase 0 (foundation) is done: WP1–WP9 merged, UI phase 2 and follow-ups merged, main at `67bb97c` (21 Oct 2026), full MySQL suite green.
-Phase 1 delivers roadmap tasks 1.1–1.6 ([13](../13-implementation-roadmap.md#phase-1-quick-wins)).
+Phase 1 delivers roadmap tasks 1.1–1.6 ([13](../13-implementation-roadmap.md#phase-1-quick-wins)). **Phase 1 done** 23 Oct 2026: P1-1 to P1-7 merged, acceptance passed.
 
 One package = one branch = one fresh Claude session. Run them one at a time, in this order.
 
@@ -78,11 +78,15 @@ Never use --no-verify, skip tests, or weaken assertions to get green.
 
 ## Deploy checklist for the whole phase
 
-Collected from the package reports; the full list is confirmed in P1-7.
+Confirmed against the code in P1-7 (23 Oct 2026). [V] unless marked.
 
-- `composer install` (Socialite), `php artisan migrate`.
-- `php artisan folders:ensure-system` once, for drivers, vehicles and trailers that already exist (P1-4).
-- `PermissionSeeder` + `php artisan roles:sync-company` if any package added a permission.
-- A queue worker that serves the `default` queue (P1-5, photo to PDF; `memory_limit` at least 512M), a worker on the `exports` connection (`php artisan queue:work exports --queue=exports --timeout=900 --memory=512`, P1-6), and the scheduler every minute for `exports:prune` (P1-6).
-- Env: `GOOGLE_*`, `FACEBOOK_*` (P1-3); optional `DOCUMENTS_CONVERT_IMAGES` (default on, P1-5); optional `EXPORTS_QUEUE_DRIVER` (default `database`, P1-6). PHP: gd with WebP support, exif (P1-5), zip.
-- [L] Google OAuth consent screen and Facebook app review, with a data-deletion instructions page (P1-3).
+- `composer install` (adds `laravel/socialite`), `php artisan migrate` (`social_accounts`, `site_settings` provider switches, `folders`, `documents`, `exports`).
+- `php artisan folders:ensure-system` once, for drivers, vehicles and trailers that already exist (P1-4). It is idempotent; on a fresh `migrate:fresh --seed` it created 17 folders, then 0 on a second run.
+- No `PermissionSeeder` or `roles:sync-company`: Phase 1 added no permission and changed no role template.
+- Queue workers: one for the `default` queue (P1-5 `ConvertImageToPdf`, job timeout 60 s under the 90 s `retry_after`; PHP `memory_limit` at least 512M), and one on the `exports` connection: `php artisan queue:work exports --queue=exports --timeout=900 --memory=512` (P1-6, `retry_after` 960 s).
+- Scheduler every minute; it runs `exports:prune` daily (`routes/console.php`).
+- Env: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`, `FACEBOOK_REDIRECT_URI` (register `{APP_URL}/auth/{google|facebook}/callback` with the providers, P1-3); optional `DOCUMENTS_CONVERT_IMAGES` (default on, P1-5), `EXPORTS_QUEUE_DRIVER` (default `database`) and `EXPORTS_MAX_BYTES` (default 2 GB, P1-6).
+- Platform > Settings > Site: turn on Google and Facebook sign-in once the keys are set (both off by default).
+- PHP: gd with WebP support, exif (P1-5), zip (P1-6). Mail must work for the export ready/failed notices. [A] The local disk needs free space for a ZIP of up to 2 GB of source files while it is built.
+- `/auth/` is disallowed in robots (`config/seo.php`); nothing to do.
+- [L] Google OAuth consent screen and Facebook app review, with a data-deletion instructions page (P1-3), before the switches are turned on.
