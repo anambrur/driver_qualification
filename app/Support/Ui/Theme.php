@@ -44,7 +44,7 @@ final class Theme
      */
     public static function emailLogo(): ?string
     {
-        $logo = settings('logo');
+        $logo = settings('email_logo') ?: settings('logo');
 
         if (! is_string($logo) || ! in_array(strtolower(pathinfo($logo, PATHINFO_EXTENSION)), ['png', 'jpg', 'jpeg', 'gif'], true)) {
             return null;

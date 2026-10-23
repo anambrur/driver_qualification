@@ -53,7 +53,7 @@
         </x-ui.field>
 
         <x-ui.field label="Company time zone" name="timezone">
-            <x-ui.select name="timezone" required :options="\App\Support\TimeZones::OPTIONS" :value="\App\Support\TimeZones::DEFAULT" />
+            <x-ui.select name="timezone" required :options="\App\Support\TimeZones::OPTIONS" :value="\App\Support\TimeZones::preselected()" />
         </x-ui.field>
 
         <x-ui.field label="Email address" name="email">

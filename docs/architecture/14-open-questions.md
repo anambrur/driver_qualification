@@ -60,7 +60,7 @@ The product owner answered the questions from the 11 October draft on **13 Octob
 |---|---|---|
 | Retention periods [L] | See section 4 | 23 Oct 2026: keep the defaults in [08](08-database-schema.md) §15; the purge job below uses them. Counsel can change them later. |
 | WP9 hand-off | The `stored_files` write path, the wizard's medical-card upload creating the `medical_examiner_certificate` document (F17), and `PolicyPdf::resolveFor()` falling back to the `site_settings` platform defaults. | Approved 23 Oct 2026: WP9 owns them. |
-| Site-settings fields | 04 §8 identity, theme, SEO and mail-sender columns have no UI. | Decided 23 Oct 2026: build before Phase 2. |
+| Site-settings fields | 04 §8 identity, theme, SEO and mail-sender columns have no UI. | Done 23 Oct 2026: Platform > Site settings edits the share image, card type, canonical base URL, site-wide noindex switch, Search Console value, default time zone (preselected at sign-up), sender name and email logo, and each is read where it takes effect (`Seo`, `SeoController`, `x-seo`, `TimeZones::preselected`, `MailIdentity`, `Theme::emailLogo`). The sender address stays in `.env` (SPF/DKIM). Footer text and legal links moved to the footer editor earlier. |
 | Transfer back to the source | A transferred asset stays soft-deleted at the source, and `(company_id, unit_no)` / `(company_id, vin)` include trashed rows, so moving it back is refused. | Decided 23 Oct 2026: build a way to move it back. Design **PENDING**. |
 | Company purge | `platform.companies.purge` exists but the purge job is not built. | Decided 23 Oct 2026: finish the job with the default retention periods. Design **PENDING**. |
 | Docs follow-ups (P1-7) | Phase 0 statuses were never updated in 02, `DriverFilesHub-Features.md` and `Technical-Features-and-Workflow.md`. The technical file's ZIP row and schedule table still say `ShouldBeUnique`, a signed download and `exports:expire`; the code uses `WithoutOverlapping`, an authorized streaming route and `exports:prune`. `docs/erd.md` still draws the 15 Oct `site_settings`, `companies`, `plans` and `roles` columns and not the public-site tables. | Done 23 Oct 2026 (docs pass): 02, 04, 13, README, both feature documents and `docs/erd.md` (re-read from the MySQL schema). |
@@ -73,7 +73,7 @@ The product owner answered the questions from the 11 October draft on **13 Octob
 | Item | What it needs |
 |---|---|
 | Open questions | Co-driver and C7 are closed (section 2). Open: Google Maps Platform terms and cost for the map picker [L] (§4). |
-| Site-settings UI | Identity, theme, SEO and mail-sender fields (23 Oct 2026: before Phase 2). |
+| Site-settings UI | Done 23 Oct 2026. |
 | Docs pass | Done 23 Oct 2026. |
 | Registration time zone | Z1, section 2. |
 | Transfer back and company purge | Built before Phase 2 (section 3). |

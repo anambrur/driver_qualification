@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Page;
 use App\Models\Plan;
 use App\Models\Post;
+use App\Support\Seo;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 
@@ -14,12 +15,12 @@ class SeoController extends Controller
     {
         $lines = ['User-agent: *'];
 
-        if (app()->environment(config('seo.index_environments'))) {
+        if (Seo::siteIndexable()) {
             foreach (config('seo.disallow') as $path) {
                 $lines[] = 'Disallow: '.$path;
             }
             $lines[] = '';
-            $lines[] = 'Sitemap: '.url('/sitemap.xml');
+            $lines[] = 'Sitemap: '.Seo::baseUrl().'/sitemap.xml';
         } else {
             $lines[] = 'Disallow: /';
         }
@@ -32,7 +33,7 @@ class SeoController extends Controller
 
     public function sitemap(): Response
     {
-        $base = rtrim(config('app.url'), '/');
+        $base = Seo::baseUrl();
         $lastmod = Plan::active()->max('updated_at');
         $urls = collect(config('seo.sitemap_routes'))->map(fn (string $name) => [
             'loc' => $base.route($name, [], false),

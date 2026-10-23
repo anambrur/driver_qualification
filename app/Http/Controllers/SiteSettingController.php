@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Plan;
 use App\Models\PlatformUser;
 use App\Models\SiteSetting;
+use App\Support\TimeZones;
 use App\Support\Ui\Color;
 use App\Support\Ui\Theme;
 use App\Support\Ui\Toast;
@@ -55,6 +56,17 @@ class SiteSettingController extends Controller
             'meta_description' => 'nullable|string|max:1000',
             'meta_keywords' => 'nullable|string|max:500',
             'google_analytics_id' => ['nullable', 'string', 'max:50', 'regex:/^G-[A-Z0-9]+$/D'],
+            // SEO defaults (04 §8): share image, card type, public host, the site-wide noindex switch
+            'og_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'twitter_card' => ['sometimes', 'required', Rule::in(['summary', 'summary_large_image'])],
+            'canonical_base_url' => 'nullable|url:https|max:255',
+            'robots_noindex_default' => 'sometimes|boolean',
+            'search_console_verification' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9_-]+$/D'],
+            // Identity and mail (04 §8). The from address stays in the env: it must pass the mail domain's SPF/DKIM.
+            'timezone' => ['sometimes', 'required', 'string', TimeZones::rule()],
+            'mail_from_name' => 'nullable|string|max:100',
+            // Mail clients show PNG, JPG and GIF; WebP is unreliable there (Theme::emailLogo)
+            'email_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:1024',
             // Billing and support (07 §5, 04 §4.2)
             'trial_plan_id' => 'nullable|integer|exists:plans,id',
             'trial_days' => 'required|integer|min:1|max:90',
@@ -74,11 +86,17 @@ class SiteSettingController extends Controller
             $validated['logo'] = $request->file('logo')->store('settings', 'public');
         }
 
-        if ($request->hasFile('logo_dark')) {
-            if ($setting->logo_dark) {
-                Storage::disk('public')->delete($setting->logo_dark);
+        foreach (['logo_dark', 'og_image', 'email_logo'] as $image) {
+            if ($request->hasFile($image)) {
+                if ($setting->{$image}) {
+                    Storage::disk('public')->delete($setting->{$image});
+                }
+                $validated[$image] = $request->file($image)->store('settings', 'public');
             }
-            $validated['logo_dark'] = $request->file('logo_dark')->store('settings', 'public');
+        }
+
+        if (isset($validated['canonical_base_url'])) {
+            $validated['canonical_base_url'] = rtrim($validated['canonical_base_url'], '/');
         }
 
         foreach (['primary_color', 'accent_color'] as $color) {

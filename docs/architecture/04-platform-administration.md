@@ -231,6 +231,6 @@ Tests that flip: `AccessControl/SuperAdminCompanyAttributionTest`, `FleetComplia
   - identity: `legal_name`, `support_email`, `support_phone`, `footer_text`, `terms_url`, `privacy_url`, `timezone`;
   - theme: `primary_color`, `accent_color`, `default_color_mode`, `logo_dark`, `email_logo`;
   - SEO defaults: `og_image`, `twitter_card`, `canonical_base_url`, `robots_noindex_default`, `search_console_verification`;
-  - mail sender: `mail_from_name`, `mail_from_address` (PENDING: replaces `.env` or not).
+  - mail sender: `mail_from_name`. `mail_from_address` stays in `.env` (`MAIL_FROM_ADDRESS`; decided 23 Oct 2026): it must be on the domain that passes SPF and DKIM, so the screen shows it read-only. The column is unused.
 - Together with the existing site name, logo, favicon, contact, social, meta and analytics fields, the full column list is in [08](08-database-schema.md) §`site_settings`.
 - The PO-14 fallback is unchanged: the company's own file first, then the platform default.
