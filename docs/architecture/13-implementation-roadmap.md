@@ -48,6 +48,8 @@ flowchart LR
 
 ## Phase 1: Quick wins
 
+**Status: done 23 Oct 2026** (P1-1 to P1-6 merged by `2331008`, accepted in P1-7; MySQL 9.3: full suite 2,425 passed, `--group=mysql` and `--group=scale` green). Tasks 1.1–1.6 are built; trip folders and the trip ZIP stay in Phase 2 (2.7).
+
 | # | Task | Requirement |
 |---|---|---|
 | 1.1 | Google and Facebook login and registration, web (Socialite) | 1.4 |
@@ -60,10 +62,10 @@ flowchart LR
 **Depends on:** Phase 0.
 
 **Acceptance criteria**
-- A user can create nested custom folders.
-- A JPG uploaded to a folder becomes a PDF, and the original is kept.
-- A company ZIP of 200 drivers builds within the target time ([12](12-performance-plan.md) §5).
-- Plates appear on the asset lists and details.
+- ✅ A user can create nested custom folders. (`FolderTest`: "nests custom folders inside a DQ file … (acceptance)", "refuses a sixth level")
+- ✅ A JPG uploaded to a folder becomes a PDF, and the original is kept. (`ImageToPdfTest`: "converts the photo when the job runs, keeping the image and counting both files")
+- ✅ A company ZIP of 200 drivers builds within the target time ([12](12-performance-plan.md) §5). (`ExportScaleTest`, group `scale`, MySQL 9.3: 2,500 entries in 0.8 s, 4.9 MB peak memory growth, 82 queries)
+- ✅ Plates appear on the asset lists and details. (`FleetAssetsPlateTest` › "lists and details", vehicles and trailers)
 
 **Risks**
 - Facebook app review lead time [L].
@@ -82,6 +84,8 @@ flowchart LR
 | 2.7 | ZIP per trip | 2.5 |
 
 **Depends on:** Phase 0; Phase 1 (folders and documents for trip folders and attachments).
+
+**Before it starts:** the open questions and the hooks into P1-4 and P1-6 are listed in [14](14-open-questions.md) §3 ("Before Phase 2").
 
 **Acceptance criteria**
 - The trip lifecycle ([10](10-workflows.md) §13) works end-to-end on the web.

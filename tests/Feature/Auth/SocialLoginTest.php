@@ -6,7 +6,9 @@ use App\Models\SiteSetting;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\Auth\SocialLoginService;
+use App\Services\Billing\AccessStateResolver;
 use App\Support\Ui\Toast;
+use Database\Factories\SubscriptionFactory;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Socialite\Facades\Socialite;
@@ -381,4 +383,26 @@ describe('platform settings', function () {
             ->and($setting->facebook_login_enabled)->toBeFalse()
             ->and(AuditLog::query()->where('action', 'site_settings.updated')->latest('id')->value('changes'))->toHaveKey('google_login_enabled');
     });
+});
+
+it('signs up with Google, reaches the dashboard, and signs in again with the same account (smoke)', function () {
+    fakeProvider('google', ['id' => 'g-smoke', 'email' => 'smoke.owner@example.com', 'name' => 'Smoke Owner', 'email_verified' => true]);
+
+    $this->get(route('auth.social.callback', 'google'))->assertRedirect(route('auth.social.finish', 'google'));
+    $this->post(route('auth.social.finish', 'google'), ['name' => 'Smoke Owner', 'company_name' => 'Smoke Trucking'])
+        ->assertRedirect(route('dashboard', absolute: false));
+    // A new company picks a plan first, as after an email sign-up
+    $this->get(route('dashboard'))->assertRedirect(route('pricing.plans'));
+    $this->get(route('pricing.plans'))->assertOk();
+
+    $user = User::query()->where('email', 'smoke.owner@example.com')->sole();
+    SubscriptionFactory::new()->forCompany($user->company)->create();
+    app(AccessStateResolver::class)->forget($user->company_id);
+    $this->post(route('logout'));
+    $this->assertGuest();
+
+    fakeProvider('google', ['id' => 'g-smoke', 'email' => 'smoke.owner@example.com']);
+    $this->get(route('auth.social.callback', 'google'))->assertRedirect(route('dashboard', absolute: false));
+    $this->assertAuthenticatedAs($user);
+    $this->get(route('dashboard'))->assertOk();
 });

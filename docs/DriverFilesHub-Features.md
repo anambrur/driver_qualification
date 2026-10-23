@@ -28,6 +28,8 @@
 
 **Where we are today:** of the client's 52 requirements, **9 work today**, **4 work in part**, and **39 are planned** across Phases 0 to 4.
 
+**After Phase 1 (23 October 2026):** counting the Phase 1 changes, **14 work**, **5 work in part** and **33 are planned**. The Phase 0 labels below are not updated yet.
+
 ---
 
 ## 1. Who uses DriverFilesHub
@@ -124,7 +126,7 @@ mindmap
 |---|---|---|
 | Sign up with email | Create your company account. Email verification is required. | ✅ Ready |
 | Company name at sign-up | Sign-up asks for your company name, not just your own name | 🧱 Phase 0 |
-| Sign up / log in with Google or Facebook | One-click sign-in on the website | 🟦 Phase 1 |
+| Sign up / log in with Google or Facebook | One-click sign-in on the website | ✅ Ready (Phase 1); switched on once Google and Facebook approve the app |
 | Sign in with Apple | Needed in the iPhone app if Google or Facebook sign-in is offered there | 🟧 Phase 3 |
 | Log in | Secure login. Inactive users are logged out automatically. | ✅ Ready |
 | Company profile | Name, address, phone, logo, time zone, DOT and MC numbers, billing email | ✅ Ready (DOT, MC, time zone and billing email: 🧱 Phase 0) |
@@ -132,7 +134,7 @@ mindmap
 | Invite staff | Send an email invitation; the person sets a password and joins your company | 🧱 Phase 0 |
 | Ready-made roles | Owner, Administrator, Dispatcher, Office / Compliance, Driver | 🧱 Phase 0 |
 | Your own roles | Create, edit and delete roles, and pick their permissions | 🧱 Phase 0 (depends on your plan) |
-| Permissions for one person | Give one user an extra permission without a new role | 🧱 Phase 0 (screen in 🟦 Phase 1) |
+| Permissions for one person | Give one user an extra permission without a new role | 🧱 Phase 0 (screen ✅ Ready (Phase 1)) |
 | Safe role rules | Nobody can give more rights than they hold, or change their own roles | 🧱 Phase 0 |
 | Close account | The Owner can close the account. Nothing is deleted; the company is deactivated and the data kept. | ✅ Ready |
 
@@ -192,7 +194,7 @@ flowchart LR
 |---|---|---|
 | Trucks and trailers | Add, edit, delete and restore. Type, year, make, model, VIN, unit number. | ✅ Ready |
 | No duplicates | VIN and unit number are unique within your company | ✅ Ready |
-| Licence plate and photo | Plate number, plate state and a picture for each truck and trailer | 🟦 Phase 1 |
+| Licence plate and photo | Plate number, plate state and a picture for each truck and trailer | ✅ Ready (Phase 1) |
 | Asset groups | Pair a driver with a truck and trailer | ✅ Ready |
 | One group per truck | A truck or trailer can be in only one active group | 🧱 Phase 0 |
 | Co-driver on a group | For team driving | ⏳ PENDING |
@@ -205,13 +207,13 @@ flowchart LR
 
 | Feature | What it means for you | Status |
 |---|---|---|
-| Standard folders | Ready-made folders for each driver (DQ file), truck, trailer and trip | 🟦 Phase 1 |
-| Your own folders | Create, rename and delete folders, inside each other (up to 5 levels) | 🟦 Phase 1 |
-| Upload into a folder | Put any document in the folder you choose | 🟦 Phase 1 |
-| Photo becomes PDF | A photo you upload is turned into a PDF automatically. The original is kept. | 🟦 Phase 1 |
-| ZIP download: driver or company | Everything for one driver, or the whole company, in one file | 🟦 Phase 1 |
+| Standard folders | Ready-made folders for each driver (DQ file), truck, trailer and trip | ✅ Ready (Phase 1); trip folder 🟩 Phase 2 |
+| Your own folders | Create, rename and delete folders, inside each other (up to 5 levels) | ✅ Ready (Phase 1) |
+| Upload into a folder | Put any document in the folder you choose | ✅ Ready (Phase 1) |
+| Photo becomes PDF | A photo you upload is turned into a PDF automatically. The original is kept. | ✅ Ready (Phase 1) |
+| ZIP download: driver or company | Everything for one driver, or the whole company, in one file | ✅ Ready (Phase 1) |
 | ZIP download: trip | Everything for one trip | 🟩 Phase 2 |
-| Safe downloads | Large ZIPs are built in the background; you get a notice and a link that expires | 🟦 Phase 1 |
+| Safe downloads | Large ZIPs are built in the background; you get a notice and a link that expires | ✅ Ready (Phase 1) |
 
 ### 3.6 Trips and loads
 
@@ -410,7 +412,7 @@ flowchart LR
 | Phase | You get |
 |---|---|
 | 🧱 0 Foundation | Staff accounts, company roles, company billing, plan limits, read-only after non-payment, support sessions, activity log, medical card and CDL expiry tracking |
-| 🟦 1 Quick wins | Google and Facebook login, folders, photo-to-PDF, ZIP per driver and company, licence plates and photos, per-user permissions screen |
+| 🟦 1 Quick wins (✅ done 23 Oct 2026) | Google and Facebook login, folders, photo-to-PDF, ZIP per driver and company, licence plates and photos, per-user permissions screen |
 | 🟩 2 Trips and loads | Trips, shippers, map, assignment, pre-trip checklist, events, fuel stops, dashboard counts, ZIP per trip |
 | 🟧 3 Driver app | Driver login and app, Start driving, live tracking, miles, messages and push notifications |
 | 🟪 4 Money | Load pay, pay rates, timesheets and overtime, expenses, daily profit and loss, year-end report, QuickBooks, time off |

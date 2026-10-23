@@ -4,6 +4,7 @@ use App\Authorization\TeamScope;
 use App\Features\FeatureState;
 use App\Models\AuditLog;
 use App\Services\Entitlements\Entitlements;
+use Database\Factories\DriverFactory;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Actors;
 
@@ -295,4 +296,21 @@ describe('extra permissions card', function () {
 
         expect(DB::table('model_has_permissions')->where('model_id', $target->id)->pluck('permission_id')->count())->toBe(1);
     });
+});
+
+it('opens a route for the user once granted on the card, and closes it on revoke (smoke)', function () {
+    $company = Actors::company();
+    $target = Actors::dispatcher($company);
+    $driver = DriverFactory::new()->forCompany($company)->create();
+
+    $this->actingAs($company->owner)->get(route('users.edit', $target->id))
+        ->assertOk()
+        ->assertSee('<option value="drivers.edit"', false);
+    $this->actingAs($target)->get(route('admin.driver.edit', $driver->id))->assertForbidden();
+
+    $this->actingAs($company->owner)->post(route('users.permissions.store', $target->id), ['permission' => 'drivers.edit'])->assertRedirect();
+    $this->actingAs($target->fresh())->get(route('admin.driver.edit', $driver->id))->assertOk();
+
+    $this->actingAs($company->owner)->delete(route('users.permissions.destroy', [$target->id, 'drivers.edit']))->assertRedirect();
+    $this->actingAs($target->fresh())->get(route('admin.driver.edit', $driver->id))->assertForbidden();
 });

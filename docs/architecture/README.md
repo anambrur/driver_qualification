@@ -2,7 +2,7 @@
 
 This document set describes how DriverFilesHub becomes a company-based, multi-tenant SaaS application. That is the foundation the client's DOT Doc Hub use cases (trips, mobile app, tracking, pay, QuickBooks, messaging) will be built on.
 
-- Status: **Phase 0 done** (main `67bb97c`, 21 October 2026). Phase 1 next: [agent-prompts/README.md](agent-prompts/README.md).
+- Status: **Phase 0 done** (main `67bb97c`, 21 October 2026). **Phase 1 done** (23 October 2026, [13](13-implementation-roadmap.md#phase-1-quick-wins)). Phase 2 next; what it needs first is in [14](14-open-questions.md) §3.
 - Written: 11 October 2026, against commit `d1d4d8d`; decisions applied 13 October 2026.
 - Implementation follows [13-implementation-roadmap.md](13-implementation-roadmap.md).
 
@@ -60,10 +60,11 @@ This document set describes how DriverFilesHub becomes a company-based, multi-te
 | VIN and unit number are unique per company. | PO-10, FLT-02 |
 | Licence plates are not unique; the plate state (US or Canada) is required with a plate number; the asset photo is jpg, png or webp up to 5 MB, served only through `admin.{vehicle,trailer}.photo`. | P1-1, 21 Oct 2026; [14](14-open-questions.md) §2 |
 | Direct per-user grants are managed one at a time on the user edit page, never on your own account or the Owner's, and only for permissions the actor holds and the plan includes. Revoking stays possible after a downgrade. | P1-2, 21–22 Oct 2026; [14](14-open-questions.md) §2 |
-| Google and Facebook sign-in never links an account by email; users connect a provider from the profile. Providers are off until their env keys are set and Platform > Settings > Site switches them on. Social sign-up uses the registration path with a random password; only Google's verified flag marks the email verified. | P1-3, 22 Oct 2026; [14](14-open-questions.md) §2 |
+| Google and Facebook sign-in never links an account by email; users connect a provider from the profile. Providers are off until their env keys are set and Platform > Settings > Site switches them on. Social sign-up uses the registration path with a random password; only Google's verified flag marks the email verified. The provider switches were added to `site_settings` by an alter migration, accepted because that table has no CHECK. | P1-3, 22 Oct 2026; [14](14-open-questions.md) §2 |
 | Each driver (DQ file), vehicle and trailer has one standard folder; custom folders nest up to 5 levels inside it or at company level and take their parent's binding. A document's subject is its folder's binding. Only empty folders are deleted (soft, the name is freed); documents move only within one binding. | P1-4, 22 Oct 2026; [14](14-open-questions.md) §2, [08](08-database-schema.md) §8 |
 | A photo uploaded into a folder becomes a one-page PDF in a queued job (EXIF fixed, longest side 3000 px); the image stays as the document's original and both count toward storage. On failure the image stays. Platform switch `DOCUMENTS_CONVERT_IMAGES`. | P1-5, 23 Oct 2026; [14](14-open-questions.md) §2, [08](08-database-schema.md) §8 |
-| ZIP export of a driver or the whole company: queued per company on its own `exports` connection, everything attached to the entity, ready 7 days, outside the storage quota, audited requests and downloads, also for a read-only company. Cap 2 GB. | P1-6, 23 Oct 2026; [14](14-open-questions.md) §2, [08](08-database-schema.md) §12 |
+| ZIP export of a driver or the whole company: queued per company on its own `exports` connection, everything attached to the entity, ready 7 days, outside the storage quota, audited requests and downloads, also for a read-only company. Cap 2 GB. Requesting or downloading a ZIP also needs `drivers.view`, and `folders.view` when the company has folders. | P1-6, 23 Oct 2026; [14](14-open-questions.md) §2, [08](08-database-schema.md) §12 |
+| Phase 1 accepted: the four acceptance criteria pass with named tests, the "perf group" is the `scale` group, and smoke checks cover social sign-up and per-user grants. Only Phase 1 statuses were changed in the docs. | P1-7, 23 Oct 2026; [14](14-open-questions.md) §2 |
 | Companies and owners are deactivated, never cascade-deleted. | PO-13, PO-17 |
 | Policy PDFs are per company, with a platform default as fallback. | PO-14 |
 | One free trial per verified email. | PO-15 |

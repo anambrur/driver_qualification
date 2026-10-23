@@ -1,8 +1,8 @@
 # DriverFilesHub data model
 
-Entity-relationship diagrams for every table the migrations build, read from a migrated MySQL schema (`information_schema`, commit 82b0468, 15 October 2026) and laid out like [erd-proposed.md](erd-proposed.md), the target design. Update this file when you add or change a migration.
+Entity-relationship diagrams for every table the migrations build, read from a migrated MySQL schema (`information_schema`, commit 82b0468, 15 October 2026; Phase 1 tables added from commit 2331008, 23 October 2026) and laid out like [erd-proposed.md](erd-proposed.md), the target design. Update this file when you add or change a migration.
 
-65 tables · 111 foreign keys · 10 soft-delete tables. The Phase 0 tables of the redesign are built; the tables of later phases are listed under [Not built yet](#not-built-yet).
+76 tables (66 without the framework tables) · 133 foreign keys (131 listed below; the two of the public-site tables are not) · 12 soft-delete tables. The Phase 0 and Phase 1 tables of the redesign are built; the tables of later phases are listed under [Not built yet](#not-built-yet). The public-site tables (`pages`, `posts`, `faqs`, `testimonials`, `footer_settings`, `demo_requests`, 20–21 October 2026) are built but not drawn yet.
 
 - Full column, constraint and index specifications are in [architecture/08-database-schema.md](architecture/08-database-schema.md).
 - The reason for each change to an earlier table is in [architecture/09-erd-audit.md](architecture/09-erd-audit.md).
@@ -264,6 +264,8 @@ erDiagram
     string search_console_verification
     string mail_from_name
     string mail_from_address
+    boolean google_login_enabled "P1-3, default off"
+    boolean facebook_login_enabled "P1-3, default off"
   }
   companies {
     bigint id PK
@@ -389,6 +391,13 @@ erDiagram
     bigint permission_id PK, FK "cascade"
     bigint role_id PK, FK "cascade"
   }
+  social_accounts {
+    bigint id PK
+    bigint user_id FK "cascade, UK with provider"
+    enum provider "google / facebook / apple"
+    string provider_user_id "UK with provider"
+    string provider_email
+  }
   platform_users {
     bigint id PK
   }
@@ -404,6 +413,7 @@ erDiagram
   roles ||--o{ role_has_permissions : "bundles"
   permissions ||--o{ role_has_permissions : "in"
   roles ||--o{ company_invitations : "offered"
+  users ||--o{ social_accounts : "logins"
 ```
 
 ## Drivers and the DQ file
@@ -827,12 +837,70 @@ erDiagram
     bigint converted_from_file_id FK "cFK self, restrict"
     bigint uploaded_by_user_id FK "set null"
   }
+  folders {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint parent_id FK "cFK self, restrict, nullable"
+    string name "UK with company and parent_key"
+    string system_key "dq_file / vehicle / trailer / trip; null for custom"
+    bigint driver_id FK "cFK, restrict; CHECK at most one binding"
+    bigint vehicle_id FK "cFK, restrict"
+    bigint trailer_id FK "cFK, restrict"
+    bigint trip_id "no FK until Phase 2"
+    bigint created_by_user_id FK "set null"
+    timestamp deleted_at
+    bigint parent_key "generated: 0 for root, null when deleted"
+  }
+  documents {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint folder_id FK "cFK, restrict, nullable, where filed"
+    bigint file_id FK "cFK stored_files, restrict"
+    bigint original_file_id FK "cFK stored_files, restrict, nullable, source image"
+    string title
+    bigint document_type_id FK "restrict, nullable"
+    date issued_on
+    date expires_on
+    bigint driver_id FK "subject, cFK, restrict; CHECK at most one subject"
+    bigint vehicle_id FK "subject, cFK, restrict"
+    bigint trailer_id FK "subject, cFK, restrict"
+    bigint trip_id "subject, no FK until Phase 2"
+    bigint trip_event_id "subject, no FK until Phase 2"
+    bigint fuel_purchase_id "subject, no FK until Phase 2"
+    bigint expense_id "subject, no FK until Phase 4"
+    bigint service_log_id FK "subject, cFK, restrict"
+    bigint inspection_id "subject, no FK until Phase 2"
+    bigint uploaded_by_user_id FK "set null"
+    timestamp deleted_at
+  }
+  exports {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint requested_by_user_id FK "set null"
+    enum type "zip_driver / zip_trip / zip_company / year_end_report ..."
+    json parameters
+    enum status "queued / running / ready / failed / expired"
+    bigint file_id FK "cFK stored_files, restrict, nullable until ready"
+    text error
+    timestamp started_at
+    timestamp finished_at
+    timestamp expires_at
+  }
   companies {
     bigint id PK
   }
   companies ||--o{ stored_files : "stores"
   stored_files |o--o{ stored_files : "converted from"
+  companies ||--o{ folders : ""
+  folders |o--o{ folders : "parent"
+  folders |o--o{ documents : "filed in"
+  stored_files ||--o{ documents : "content"
+  stored_files |o--o{ documents : "original image"
+  companies ||--o{ exports : ""
+  stored_files |o--o| exports : "result"
 ```
+
+`folders` and `documents` also reference `drivers`, `vehicles`, `trailers` (and `documents` `service_logs` and `document_types`) through the keys above; those links are in the delete-rule table below.
 
 ## Trips, inspections, events and tracking
 
@@ -949,6 +1017,7 @@ What the database does when a parent row is hard-deleted, as built. In normal us
 | Accounts | `role_has_permissions.permission_id` | `permissions.id` | required | cascade |
 | Accounts | `role_has_permissions.role_id` | `roles.id` | required | cascade |
 | Accounts | `users.company_id` | `companies.id` | required | restrict |
+| Accounts | `social_accounts.user_id` | `users.id` | required | cascade |
 | Communication | `platform_support_sessions.company_id` | `companies.id` | required | restrict |
 | Communication | `platform_support_sessions.platform_approved_by_platform_user_id` | `platform_users.id` | nullable | restrict |
 | Communication | `platform_support_sessions.platform_user_id` | `platform_users.id` | required | restrict |
@@ -984,6 +1053,25 @@ What the database does when a parent row is hard-deleted, as built. In normal us
 | Files | `stored_files.company_id` | `companies.id` | required | restrict |
 | Files | `stored_files` cFK `converted_from_file_id` | `stored_files` | nullable | restrict |
 | Files | `stored_files.uploaded_by_user_id` | `users.id` | nullable | set null |
+| Files | `folders.company_id` | `companies.id` | required | restrict |
+| Files | `folders` cFK `parent_id` | `folders` | nullable | restrict |
+| Files | `folders` cFK `driver_id` | `drivers` | nullable | restrict |
+| Files | `folders` cFK `vehicle_id` | `vehicles` | nullable | restrict |
+| Files | `folders` cFK `trailer_id` | `trailers` | nullable | restrict |
+| Files | `folders.created_by_user_id` | `users.id` | nullable | set null |
+| Files | `documents.company_id` | `companies.id` | required | restrict |
+| Files | `documents` cFK `folder_id` | `folders` | nullable | restrict |
+| Files | `documents` cFK `file_id` | `stored_files` | required | restrict |
+| Files | `documents` cFK `original_file_id` | `stored_files` | nullable | restrict |
+| Files | `documents` cFK `driver_id` | `drivers` | nullable | restrict |
+| Files | `documents` cFK `vehicle_id` | `vehicles` | nullable | restrict |
+| Files | `documents` cFK `trailer_id` | `trailers` | nullable | restrict |
+| Files | `documents` cFK `service_log_id` | `service_logs` | nullable | restrict |
+| Files | `documents.document_type_id` | `document_types.id` | nullable | restrict |
+| Files | `documents.uploaded_by_user_id` | `users.id` | nullable | set null |
+| Files | `exports.company_id` | `companies.id` | required | restrict |
+| Files | `exports` cFK `file_id` | `stored_files` | nullable | restrict |
+| Files | `exports.requested_by_user_id` | `users.id` | nullable | set null |
 | Fleet | `asset_groups.company_id` | `companies.id` | required | restrict |
 | Fleet | `asset_groups` cFK `co_driver_id` | `drivers` | nullable | restrict |
 | Fleet | `asset_groups` cFK `driver_id` | `drivers` | required | restrict |
@@ -1055,8 +1143,7 @@ The tables with deliberately **no FK** are `audit_logs` (it outlives what it rec
 
 Tables of the design in [erd-proposed.md](erd-proposed.md) that later phases build ([architecture/13-implementation-roadmap.md](architecture/13-implementation-roadmap.md)):
 
-- **Accounts, tenancy and authorization:** `social_accounts`, `device_tokens`
-- **Files, folders and documents:** `folders`, `documents`, `exports`
+- **Accounts, tenancy and authorization:** `device_tokens`
 - **Trips, inspections, events and tracking:** `shippers`, `trips`, `trip_stops`, `inspection_templates`, `inspection_template_items`, `inspections`, `inspection_results`, `trip_events`, `fuel_purchases`, `location_pings`, `vehicle_last_locations`
 - **Money:** `driver_pay_rates`, `expenses`, `time_entries`, `timesheets`, `payroll_runs`, `payroll_run_lines`
 - **Communication, integrations and audit:** `conversations`, `conversation_participants`, `messages`, `time_off_requests`, `integration_connections`, `external_references`, `integration_sync_logs`
