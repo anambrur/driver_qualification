@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | 13 October 2026 |
+| Version | 13 October 2026, statuses updated 23 October 2026 |
 | Based on | Client use cases (DOT Doc Hub, 7 March 2023), the gap report (26 September 2026), the architecture set in [architecture/](architecture/README.md), and the code at commit `d1d4d8d` |
 | PDF version | [DriverFilesHub-Features.pdf](DriverFilesHub-Features.pdf) |
 | For developers | [Technical-Features-and-Workflow.md](Technical-Features-and-Workflow.md) |
@@ -18,8 +18,7 @@
 | Label | Meaning |
 |---|---|
 | ✅ **Ready** | Works in the product today |
-| 🔄 **Upgrading** | Works today, and is being rebuilt in Phase 0 so every company gets its own users, roles and billing |
-| 🧱 **Phase 0** | New in the foundation release |
+| 🧱 **Phase 0** | Planned for the foundation release but not built yet |
 | 🟦 **Phase 1** | Quick wins: social login, folders, photo-to-PDF, ZIP downloads, licence plates |
 | 🟩 **Phase 2** | Trips and loads, on the website |
 | 🟧 **Phase 3** | Driver mobile app, live tracking, messaging |
@@ -28,7 +27,7 @@
 
 **Where we are today:** of the client's 52 requirements, **9 work today**, **4 work in part**, and **39 are planned** across Phases 0 to 4.
 
-**After Phase 1 (23 October 2026):** counting the Phase 1 changes, **14 work**, **5 work in part** and **33 are planned**. The Phase 0 labels below are not updated yet.
+**After Phase 1 (23 October 2026):** counting the Phase 1 changes, **14 work**, **5 work in part** and **33 are planned**. The Phase 0 labels below were updated on 23 October 2026: Phase 0 is done, except the two items still marked 🧱.
 
 ---
 
@@ -59,13 +58,13 @@ flowchart TB
 |---|---|---|
 | **Platform Owner and staff** | Run the service: companies, plans, prices, subscriptions, settings. They **cannot** see a company's drivers or documents unless the company Owner approves a support session. | 🔄 Upgrading (today a single "super-admin") |
 | **Company Owner** | Holds the account and pays the subscription. Has full control of the company. | ✅ Ready |
-| **Administrator** | Runs the company day to day. Everything except billing. | 🧱 Phase 0 |
-| **Dispatcher** | Creates trips, assigns drivers and trucks, follows trips. | 🧱 Phase 0 (trips in Phase 2) |
-| **Office / Compliance** | Drivers, documents, fleet, maintenance. | 🧱 Phase 0 |
+| **Administrator** | Runs the company day to day. Everything except billing. | ✅ Ready (Phase 0) |
+| **Dispatcher** | Creates trips, assigns drivers and trucks, follows trips. | ✅ Ready (Phase 0; trips in Phase 2) |
+| **Office / Compliance** | Drivers, documents, fleet, maintenance. | ✅ Ready (Phase 0) |
 | **Driver** | Uses the mobile app: trips, inspections, fuel stops, events, time, messages. | 🟧 Phase 3 |
 | **Driver applicant** | Applies online from the company's own link. Verified by an SMS code. | ✅ Ready |
 
-A company can also **create its own roles** and choose exactly what each role may do. 🧱 Phase 0
+A company can also **create its own roles** and choose exactly what each role may do. ✅ Ready (Phase 0)
 
 An **owner-operator** is simply an Owner who is also a driver. One person can hold several roles, for example Dispatcher and Driver.
 
@@ -125,17 +124,17 @@ mindmap
 | Feature | What it means for you | Status |
 |---|---|---|
 | Sign up with email | Create your company account. Email verification is required. | ✅ Ready |
-| Company name at sign-up | Sign-up asks for your company name, not just your own name | 🧱 Phase 0 |
+| Company name at sign-up | Sign-up asks for your company name and time zone, not just your own name | ✅ Ready (Phase 0; time zone since 23 Oct 2026) |
 | Sign up / log in with Google or Facebook | One-click sign-in on the website | ✅ Ready (Phase 1); switched on once Google and Facebook approve the app |
 | Sign in with Apple | Needed in the iPhone app if Google or Facebook sign-in is offered there | 🟧 Phase 3 |
 | Log in | Secure login. Inactive users are logged out automatically. | ✅ Ready |
 | Company profile | Name, address, phone, logo, time zone, DOT and MC numbers, billing email | ✅ Ready (DOT, MC, time zone and billing email: 🧱 Phase 0) |
 | Company policy PDFs | Your own drug and alcohol policy and work policy, shown to applicants. A platform default is used if you have none. | ✅ Ready |
-| Invite staff | Send an email invitation; the person sets a password and joins your company | 🧱 Phase 0 |
-| Ready-made roles | Owner, Administrator, Dispatcher, Office / Compliance, Driver | 🧱 Phase 0 |
-| Your own roles | Create, edit and delete roles, and pick their permissions | 🧱 Phase 0 (depends on your plan) |
-| Permissions for one person | Give one user an extra permission without a new role | 🧱 Phase 0 (screen ✅ Ready (Phase 1)) |
-| Safe role rules | Nobody can give more rights than they hold, or change their own roles | 🧱 Phase 0 |
+| Invite staff | Send an email invitation; the person sets a password and joins your company | ✅ Ready (Phase 0) |
+| Ready-made roles | Owner, Administrator, Dispatcher, Office / Compliance, Driver | ✅ Ready (Phase 0) |
+| Your own roles | Create, edit and delete roles, and pick their permissions | ✅ Ready (Phase 0; depends on your plan) |
+| Permissions for one person | Give one user an extra permission without a new role | ✅ Ready (Phase 0 and Phase 1) |
+| Safe role rules | Nobody can give more rights than they hold, or change their own roles | ✅ Ready (Phase 0) |
 | Close account | The Owner can close the account. Nothing is deleted; the company is deactivated and the data kept. | ✅ Ready |
 
 ### 3.2 Driver hiring
@@ -160,8 +159,8 @@ The 10 steps: **1** basic info · **2** driving licence · **3** medical card ·
 | Hire or reject in one click | The applicant gets an email automatically | ✅ Ready |
 | Add a driver yourself | Staff can enter a driver with the same step-by-step wizard | ✅ Ready |
 | Driver Qualification (DQ) file | Licences, addresses, experience, accidents, violations, employers, signed consents, all in one place | ✅ Ready |
-| Terminate a driver | Ends employment, switches off the driver's login, keeps the DQ file for the legal period | 🧱 Phase 0 |
-| Applications closed | If your plan doesn't include online applications, the link says so | 🧱 Phase 0 |
+| Terminate a driver | Ends employment, switches off the driver's login, keeps the DQ file for the legal period | 🧱 Not built yet: the status exists, but there is no terminate action that switches off the login |
+| Applications closed | If your plan doesn't include online applications, the link says so | 🧱 Not built yet: the `driver_applications` feature is not checked on the public link |
 | Invite a driver to the app | The driver gets a login linked to their driver record | 🟧 Phase 3 |
 
 ### 3.3 Compliance (always audit-ready)
@@ -186,7 +185,7 @@ flowchart LR
 | Choose your document types | Switch off document types that don't apply to your company | ✅ Ready |
 | Daily reminder email | One email per driver per day listing their problem documents | ✅ Ready |
 | One-click reminder | Remind a driver or vehicle owner straight from the dashboard | ✅ Ready |
-| Medical certificate and CDL expiry | Both now count in the compliance status (they were not tracked before) | 🧱 Phase 0 |
+| Medical certificate and CDL expiry | Both now count in the compliance status (they were not tracked before) | ✅ Ready (Phase 0) |
 
 ### 3.4 Fleet and maintenance
 
@@ -196,11 +195,11 @@ flowchart LR
 | No duplicates | VIN and unit number are unique within your company | ✅ Ready |
 | Licence plate and photo | Plate number, plate state and a picture for each truck and trailer | ✅ Ready (Phase 1) |
 | Asset groups | Pair a driver with a truck and trailer | ✅ Ready |
-| One group per truck | A truck or trailer can be in only one active group | 🧱 Phase 0 |
+| One group per truck | A truck or trailer can be in only one active group | ✅ Ready (Phase 0) |
 | Engine hours | Kept on the truck and raised by service logs, like the odometer | ✅ Ready |
 | Maintenance schedules | By date, mileage or engine hours. "Mark as completed" moves the next due date forward. | ✅ Ready |
 | Service logs | Repairs with categories, costs and receipts (PDF, images, Word files) | ✅ Ready |
-| Move a truck to another company | Done by the platform team, with full history copied and both Owners told | 🧱 Phase 0 |
+| Move a truck to another company | Done by the platform team, with full history copied and both Owners told | ✅ Ready (Phase 0) |
 
 ### 3.5 Documents and folders
 
@@ -287,7 +286,7 @@ flowchart LR
 | How the two rates work together | Miles are paid per mile. Waiting and loading time (on duty, not driving) is paid per hour. A driver with only an hourly rate is paid hourly for all work. | 🟪 Phase 4 |
 | Timesheets | Hours, overtime and double overtime | 🟪 Phase 4 |
 | Overtime rules you control | Default: overtime after 8 hours a day, double overtime after 12. Optional weekly limit. Mark drivers who are exempt. | 🟪 Phase 4 |
-| Expenses | Tolls, lumper, scale, parking, repairs and other costs | 🟪 Phase 4 (categories ⏳ to confirm) |
+| Expenses | Tolls, lumper, scale, parking, repairs and other costs. These are the starting categories; you can add, rename or remove your own. | 🟪 Phase 4 |
 | Daily profit or loss | Load pay minus fuel, repairs, expenses and driver pay, day by day | 🟪 Phase 4 |
 | Year-end report | Each driver's trips, load type, trip numbers, trucks, trailers, hours and miles | 🟪 Phase 4 |
 | QuickBooks Online | Drivers sent as employees, approved hours sent as time records, plus a payroll summary file | 🟪 Phase 4 |
@@ -323,10 +322,10 @@ These are the default prices in the system today. The Platform Owner can change 
 | Free trial | One per company and per verified email | ✅ Ready |
 | Pay by card | Secure Stripe checkout, monthly or yearly | ✅ Ready |
 | Billing portal, cancel, resume | Manage your card and invoices yourself | ✅ Ready |
-| Subscription owned by the company | All your users and drivers share one subscription | 🔄 Upgrading (today it belongs to one user) |
-| Plan limits | Each plan sets how many drivers, trucks, trailers, office users and how much storage you get. Nothing is deleted if you go over; you just can't add more until you upgrade. | 🧱 Phase 0 |
-| Upgrade and downgrade | Upgrades apply at once. Downgrades apply at the end of the billing period. | 🧱 Phase 0 |
-| Grace and read-only | 7 days of grace after a failed payment, then read-only. You can still view and export your DQ files for an audit. | 🧱 Phase 0 |
+| Subscription owned by the company | All your users and drivers share one subscription | ✅ Ready (Phase 0) |
+| Plan limits | Each plan sets how many drivers, trucks, trailers, office users and how much storage you get. Nothing is deleted if you go over; you just can't add more until you upgrade. | ✅ Ready (Phase 0) |
+| Upgrade and downgrade | Upgrades apply at once. Downgrades apply at the end of the billing period. | ⏳ PENDING: plan changes go through the Stripe billing portal; its downgrade timing has to be checked in the Stripe settings |
+| Grace and read-only | 7 days of grace after a failed payment, then read-only. You can still view and export your DQ files for an audit. | ✅ Ready (Phase 0) |
 | Expiry reminders | Email (and SMS) 7, 3 and 1 days before your plan ends | ✅ Ready |
 
 **What counts toward the limits:** active hired drivers only (not applicants), office users only (not driver logins), and trucks and trailers that aren't deleted.
@@ -337,14 +336,13 @@ These are the default prices in the system today. The Platform Owner can change 
 
 | Protection | What it means for you | Status |
 |---|---|---|
-| Your data is yours | Every company's data is kept apart. Another company can't open your records, even by guessing a link. | 🔄 Upgrading (stronger, database-enforced) |
+| Your data is yours | Every company's data is kept apart. Another company can't open your records, even by guessing a link. | ✅ Ready (Phase 0, database-enforced) |
 | Private files | Documents are never public. Every download is checked. | ✅ Ready |
 | SSN encrypted | Social Security numbers are stored encrypted | ✅ Ready |
 | Email verification | Required before using the system | ✅ Ready |
 | SMS limits | Limits on code requests stop abuse and cost | ✅ Ready |
 | Platform staff can't look in | The platform team sees a company's data only in a **support session**. Your Owner and a second Platform Owner must both approve it. It is time-limited, shown on screen, can be stopped by you at any time, and every action is logged. | 🧱 Phase 0 |
-| Activity log | Logins, role changes, exports, deletions and support-session actions are recorded | 🧱 Phase 0 |
-| Two-step login for platform staff | Recommended for every platform account | 🧱 Phase 0 (recommended) |
+| Activity log | Logins, role changes, exports, deletions and support-session actions are recorded | ✅ Ready (Phase 0) |
 | Nothing lost by accident | Companies and users are deactivated, never wiped. Data is removed only after the legal keeping period. | ✅ Ready |
 
 > There is **no** two-factor login for company users today. (The older feature sheet said there was; that was wrong.)
@@ -410,7 +408,7 @@ flowchart LR
 
 | Phase | You get |
 |---|---|
-| 🧱 0 Foundation | Staff accounts, company roles, company billing, plan limits, read-only after non-payment, support sessions, activity log, medical card and CDL expiry tracking |
+| 🧱 0 Foundation (✅ done 21 Oct 2026) | Staff accounts, company roles, company billing, plan limits, read-only after non-payment, support sessions, activity log, medical card and CDL expiry tracking |
 | 🟦 1 Quick wins (✅ done 23 Oct 2026) | Google and Facebook login, folders, photo-to-PDF, ZIP per driver and company, licence plates and photos, per-user permissions screen |
 | 🟩 2 Trips and loads | Trips, shippers, map, assignment, pre-trip checklist, events, fuel stops, dashboard counts, ZIP per trip |
 | 🟧 3 Driver app | Driver login and app, Start driving, live tracking, miles, messages and push notifications |
@@ -422,8 +420,5 @@ flowchart LR
 
 | Item | Today's default |
 |---|---|
-| ⏳ **An empty bullet** in the use-case list, after "miles traveled and the distance to the destination" | Nothing added until you tell us what was meant |
-| ⏳ **How long to keep records** (DQ files, maintenance, accidents, payroll, locations, activity log) | Legal minimums proposed; your counsel should confirm |
-| ⏳ **Expense categories** | Toll, lumper, scale, parking, repair, other |
-| ⏳ **Scheduler running every minute in production** | Must be confirmed before go-live (reminders depend on it) |
-| ⏳ **Driver overtime exemption** | The company decides which drivers are exempt; the software only applies it |
+| ⏳ **How long to keep records** (DQ files, maintenance, accidents, payroll, locations, activity log) | The legal minimums are used for now (23 Oct 2026); your counsel can change them |
+| **Driver overtime exemption** (confirmed 23 Oct 2026) | The company decides which drivers are exempt; the software only applies it |

@@ -63,7 +63,8 @@ The product owner answered the questions from the 11 October draft on **13 Octob
 | Site-settings fields | 04 §8 identity, theme, SEO and mail-sender columns have no UI. | Decided 23 Oct 2026: build before Phase 2. |
 | Transfer back to the source | A transferred asset stays soft-deleted at the source, and `(company_id, unit_no)` / `(company_id, vin)` include trashed rows, so moving it back is refused. | Decided 23 Oct 2026: build a way to move it back. Design **PENDING**. |
 | Company purge | `platform.companies.purge` exists but the purge job is not built. | Decided 23 Oct 2026: finish the job with the default retention periods. Design **PENDING**. |
-| Docs follow-ups (P1-7) | Phase 0 statuses were never updated in 02, `DriverFilesHub-Features.md` and `Technical-Features-and-Workflow.md`. The technical file's ZIP row and schedule table still say `ShouldBeUnique`, a signed download and `exports:expire`; the code uses `WithoutOverlapping`, an authorized streaming route and `exports:prune`. `docs/erd.md` still draws the 15 Oct `site_settings`, `companies`, `plans` and `roles` columns and not the public-site tables. | Decided 23 Oct 2026: do the docs pass before Phase 2. |
+| Docs follow-ups (P1-7) | Phase 0 statuses were never updated in 02, `DriverFilesHub-Features.md` and `Technical-Features-and-Workflow.md`. The technical file's ZIP row and schedule table still say `ShouldBeUnique`, a signed download and `exports:expire`; the code uses `WithoutOverlapping`, an authorized streaming route and `exports:prune`. `docs/erd.md` still draws the 15 Oct `site_settings`, `companies`, `plans` and `roles` columns and not the public-site tables. | Done 23 Oct 2026 (docs pass): 02, 04, 13, README, both feature documents and `docs/erd.md` (re-read from the MySQL schema). |
+| Phase 0 gaps (docs pass, 23 Oct 2026) | Two Phase 0 items were never built: a driver Terminate action that ends employment and switches off the driver's login (the `terminated` status exists), and closing the public application link when the plan lacks `driver_applications` (the feature key is not checked anywhere). | **PENDING**: proposed for Phase 2 (P2-1). |
 | MySQL 8.0.16 run | WP1 was verified on SQLite 3.45 and MySQL 9.3 only (no 8.0 server available locally). | Run `migrate:fresh --seed`, `integrity:check` and the Schema/Integrity tests on 8.0.16 before go-live. **PENDING** |
 | Google Maps Platform | Terms and cost for the map picker [L]. | Client wants free use. **PENDING**: see section 4. |
 
@@ -73,7 +74,7 @@ The product owner answered the questions from the 11 October draft on **13 Octob
 |---|---|
 | Open questions | Co-driver and C7 are closed (section 2). Open: Google Maps Platform terms and cost for the map picker [L] (§4). |
 | Site-settings UI | Identity, theme, SEO and mail-sender fields (23 Oct 2026: before Phase 2). |
-| Docs pass | Phase 0 statuses, `Technical-Features-and-Workflow.md`, `docs/erd.md` (23 Oct 2026: before Phase 2). |
+| Docs pass | Done 23 Oct 2026. |
 | Registration time zone | Z1, section 2. |
 | Transfer back and company purge | Built before Phase 2 (section 3). |
 | Trip folders on P1-4 | `folders.trip_id` and the `documents` subject columns `trip_id`, `trip_event_id`, `fuel_purchase_id`, `inspection_id` exist and are in the CHECKs, without FKs: add them in a MySQL-only migration. `Folder::BINDINGS` already maps `trip_id` to `trip`; let `FolderService::ensureSystemFolder` take a Trip, create the trip folder when a trip is created, extend `folders:ensure-system`, and cover trips in integrity query 5 (subject vs folder). |

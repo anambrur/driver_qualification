@@ -83,10 +83,12 @@ This document set describes how DriverFilesHub becomes a company-based, multi-te
 ### Decisions still open
 
 [14-open-questions.md](14-open-questions.md) §3:
-- The client's empty requirement bullet (C7). Investigated: there is no hidden text, so ask the client.
-- Retention periods [L].
-- Scheduler and Octane confirmation (PO-20).
-- Platform 2FA, Stripe Price creation, and the other WP8a items in §3.
+- Retention periods [L]: the 08 §15 defaults apply until counsel changes them (23 Oct 2026).
+- Google Maps Platform terms and cost for the map picker [L].
+- Transfer back to the source and the company purge job: decided 23 Oct 2026, design PENDING.
+- The MySQL 8.0.16 run before go-live.
+
+The other questions were answered on 23 Oct 2026 (14 §2).
 
 ## Glossary
 

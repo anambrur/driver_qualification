@@ -4,7 +4,7 @@
 |---|---|
 | Audience | Developers, reviewers and the product owner's technical advisers |
 | Version | 13 October 2026, against commit `d1d4d8d` |
-| Status | Consolidated reference for the target design. Decisions applied 13 October 2026. Code and migrations not yet changed. |
+| Status | Consolidated reference for the target design. Decisions applied 13 and 23 October 2026. Phase 0 done 21 Oct 2026, Phase 1 done 23 Oct 2026. The "Status" column in §3 still describes commit `d1d4d8d`; the notes below each table say what Phase 0 and Phase 1 changed. |
 | Plain-language version | [DriverFilesHub-Features.md](DriverFilesHub-Features.md) / [.pdf](DriverFilesHub-Features.pdf) |
 | Source of truth | [architecture/](architecture/README.md) 01–14, [erd-proposed.md](erd-proposed.md), [testing/PRODUCT_DECISIONS.md](testing/PRODUCT_DECISIONS.md). Where this file and those documents disagree, **those documents win**. |
 
@@ -252,7 +252,7 @@ Detail: [architecture/05](architecture/05-plans-features-entitlements.md).
 | Integrations | `quickbooks` |
 | Limits | `max_users`, `max_drivers`, `max_vehicles`, `max_trailers`, `storage_gb` |
 
-Social login, 2FA and image-to-PDF are platform capabilities, not plan features. Which plan includes what is a commercial decision; seeded tiers are placeholders [A].
+Social login and image-to-PDF are platform capabilities, not plan features. Which plan includes what is a commercial decision; seeded tiers are placeholders [A].
 
 **Precedence** (`Entitlements::for($company)`, first match wins): feature `disabled` → off; access `blocked` → off; effective override → its non-null values; `override_only` with no override → off; no current subscription → off; `plan_features` row → applies; no row → off. Then request-time: feature on, read-only denies `is_write`, Spatie permission, limit check.
 
@@ -309,7 +309,7 @@ Detail: [architecture/04](architecture/04-platform-administration.md).
 |---|---|
 | Identity | `platform_users` table, `PlatformUser` model. Never a `users` row (D1b). |
 | Guard and area | `platform` session guard, own password broker, `/platform/*` |
-| Auth | Own login and reset, **2FA required** [R], shorter session |
+| Auth | Own login and reset, no 2FA (decided 23 Oct 2026), shorter session |
 | Email identity (D3a) | `EmailIdentityService::assertAvailable()` checks `users` and `platform_users` case-insensitively under a `GET_LOCK` before every email write; nightly overlap query |
 | Roles | Platform Owner (≥ 2 active), Platform Administrator, Billing Manager, Support Agent, Auditor; guard `platform`, team `0` |
 | Without a session | Company metadata only (name, status, owner name/email, plan, usage counts), lifecycle, plans, prices, features, overrides, subscriptions, payments, lookups, settings, audit log, asset transfer, purge |
@@ -348,7 +348,7 @@ Always audited: auth events; user lifecycle and email changes; role/permission/a
 | `access-state:refresh` | Hourly | grace → read-only; revoke expired overrides; bump versions | P0 |
 | `integrity:check` | Nightly | All integrity queries; alerts on any row | P0 |
 | `usage:recount` | Nightly | Recompute counters and storage; log drift | P0 |
-| `exports:expire` | Daily | Per company | P1 |
+| `exports:prune` | Daily | Expires ZIPs past `expires_at`; fails exports queued or running for more than 2 h | Built P1 |
 | `location-pings:prune` | Daily | Chunks of 10k; 13 months [A][L] | P3 |
 | `ProcessStripeEvent` | On webhook | `billing` queue, platform mode then the resolved company | P0 |
 | `BuildExport`, ping ingestion, QuickBooks sync, push, `BuildTimesheets` | On demand / weekly | `TenantAware` middleware; skips write jobs when read-only | P1–P4 |
@@ -367,10 +367,10 @@ Each module lists its status, plan feature key, main tables, permissions (R = re
 
 | Module | Status | Feature | Tables | Permissions | Phase | Technical notes |
 |---|---|---|---|---|---|---|
-| Registration | Today (company named after the person, `RegisteredUserController.php:66` [V]) | core | `companies`, `users`, `company_settings`, `trip_number_sequences`, roles | — | P0 | Single path: `CompanyProvisioner`. Asks for company name. Email verification required (PO-15). |
+| Registration | Built P0; time zone added 23 Oct 2026 (Z1) | core | `companies`, `users`, `company_settings`, `trip_number_sequences`, roles | — | P0 | Single path: `CompanyProvisioner`. Asks for company name and time zone (`App\Support\TimeZones`). Email verification required (PO-15). |
 | Social login | Built P1 (23 Oct 2026), web | platform capability | `social_accounts (provider, provider_user_id)` | — | P1 (web), P3 (Apple) | Verified provider email counts as verified. Never joins an existing company. [L] App Store 4.8, Facebook app review. |
 | Login | Today (`LoginRequest.php:53-82`, `EnsureUserIsActive`) | core | `users.last_login_at` | — | P0 | Company status checked on **every** request by `ResolveTenant`. **No 2FA** for tenant users. |
-| Company profile | Today (`CompanyController`) | core | `companies` (+ `dot_number`, `mc_number`, `billing_email`, `timezone`, `status`) | `company.view` R, `company.edit` W | P0 | `companies.email` no longer synced from the owner login (D3b). Policy PDFs per company. |
+| Company profile | Built P0 (`CompanyController`); the owner edits the time zone, the platform edits DOT, MC and billing email | core | `companies` (+ `dot_number`, `mc_number`, `billing_email`, `timezone`, `status`) | `company.view` R, `company.edit` W | P0 | `companies.email` no longer synced from the owner login (D3b). Policy PDFs per company. |
 | Invitations | Missing | core | `company_invitations (token_hash, role_id, driver_id, expires_at)` | `users.create` W | P0 | Inviter only sees "invitation sent" (no account disclosure). `max_users` checked on send and accept. |
 | Users | Super-admin only, global (R3) | core | `users (company_id, user_type, status)` | `users.view/create/edit/deactivate` | P0 | Deactivate, never hard-delete while owning records. |
 | Roles | Super-admin only, global (R2) | `custom_roles` | Spatie teams tables | `roles.view/create/edit/delete` | P0 | Without `custom_roles`: system roles only. |
@@ -382,11 +382,11 @@ Each module lists its status, plan feature key, main tables, permissions (R = re
 
 | Module | Status | Feature | Tables | Permissions | Phase | Technical notes |
 |---|---|---|---|---|---|---|
-| Public application | Today (`ApplicationFormController.php`) | `driver_applications` | `drivers`, detail tables, `driver_documents`, `otp_verifications` | public | P0 | Slug + session + `source` + status checks on every step (`:1172-1197`) [V]. `verifyOtp` should read the company from `otp_company_slug` in the session [R]. Closed when the feature or access state disallows it. |
+| Public application | Today (`ApplicationFormController.php`) | `driver_applications` | `drivers`, detail tables, `driver_documents`, `otp_verifications` | public | P0 | Slug + session + `source` + status checks on every step (`:1172-1197`) [V]. `verifyOtp` should read the company from `otp_company_slug` in the session [R]. Closed when the feature or access state disallows it: **not built** (the `driver_applications` feature is not checked on the public routes). |
 | OTP / SMS | Today | `driver_applications` | `otp_verifications` | public | — | US and Canada only; Caribbean NANP blocked (PO-11); 200 sends/hour global cap (PO-12); rate-limited routes |
 | Drivers (staff) | Today (`DriverController`, wizard) | `drivers` | `drivers` (+ `created_by_user_id`, `user_id` login, split status, `worker_type`, overtime fields) | `drivers.view/create/edit/delete` | P0 | Status split into `application_status` and `employment_status` (F15). Child rows: switch delete-and-reinsert to upserts [R] (`DriverCrudService.php:96-118`). Unique `(company_id, email)` (APP-07). |
 | Hire / reject | Today (`DriverHireService`) | `drivers` | `drivers.hired_at`, `decided_by_user_id` | `drivers.hire` W | P0 | Hire runs `max_drivers` under the company lock; emails sent |
-| Terminate | Missing | `drivers` | `terminated_at`, `termination_date` | `drivers.edit` W | P0 | Deactivates the linked login; DQ file kept [L] 391.51 |
+| Terminate | Missing (not built in P0) | `drivers` | `terminated_at`, `termination_date` | `drivers.edit` W | P0 | Deactivates the linked login; DQ file kept [L] 391.51 |
 | DQ detail | Today | `drivers` | `licenses` (`is_current` + generated unique `current_driver_id`), `accidents`, `violations`, `experiences`, `forfeitures`, `residence_addresses`, `employment_records`, `driver_documents` (unique per driver, `*_file_id`, `has_accidents`, `has_violations`) | via driver | P0 | Booleans instead of `enum('yes','no')`; `state_code` / `country_code`; "no accident/violation" rows replaced by flags |
 | Driver login | Missing | `mobile_app` | `company_invitations.driver_id`, `drivers.user_id` (unique) | system Driver role | P0 model, P3 app | One login maps to at most one driver |
 
@@ -417,7 +417,7 @@ Each module lists its status, plan feature key, main tables, permissions (R = re
 | Folders | Built P1 (23 Oct 2026); trip folders P2 | `document_folders` | `folders` (`parent_id`, generated `parent_key`, `system_key`, one entity binding via CHECK) | `folders.view` R, `folders.manage` W | P1 | System folders per driver, vehicle, trailer, trip (Q8); not renamable/deletable. Depth ≤ 5 [R]. UK `(company_id, parent_key, name)`. |
 | Documents | Built P1 (23 Oct 2026) | `document_folders` | `documents` (`folder_id` + at most one **subject**: driver, vehicle, trailer, trip, trip event, fuel purchase, expense, service log, inspection) | `documents.upload/delete` W | P1 | Subject (what it is about) and folder (where it is filed) are independent (F18); consistency checked in the service and by an integrity query. Compliance documents appear as virtual entries in standard folders. |
 | Image to PDF | Built P1 (23 Oct 2026) | platform capability | `stored_files.converted_from_file_id` | — | P1 | Queued; original kept |
-| ZIP export | Built P1 (23 Oct 2026), driver and company | `zip_export` | `exports (type, parameters, status, file_id, expires_at)` | `exports.create`, `exports.download` (R, allowed when read-only) | P1 driver/company, P2 trip | Queued `BuildExport`, streamed, size and time cap, `ShouldBeUnique` per company, signed expiring download, audited |
+| ZIP export | Built P1 (23 Oct 2026), driver and company | `zip_export` | `exports (type, parameters, status, file_id, expires_at)` | `exports.create`, `exports.download` (R, allowed when read-only) | P1 driver/company, P2 trip | Queued `BuildExport`, streamed, size and time cap, one build at a time per company (`WithoutOverlapping`), authorized streaming download route (local disk; S3 temporary URLs come with the S3 move), audited |
 
 ### 3.6 Operations (trips)
 
@@ -657,10 +657,10 @@ sequenceDiagram
   J->>FS: stream files into ZIP under companies/{id}/exports/
   J->>DB: stored_files, exports ready, expires_at
   J-->>U: Notification
-  U->>W: Download (authorized + signed, expiring URL), audited
+  U->>W: Download (authorized streaming route), audited
 ```
 
-`exports:expire` deletes old exports daily. Exports stay allowed in `read_only`.
+`exports:prune` expires old exports daily. Exports stay allowed in `read_only`.
 
 ### 4.11 Trip lifecycle (P2)
 
@@ -879,11 +879,11 @@ Licence name as printed, previous employers, applicant-declared violations, sign
 | Relationships | Scope on every tenant model; no polymorphic links (exclusive-arc FKs with CHECK) |
 | Roles and grants | Role ids validated against `roles.team_id`; composite FK on `model_has_roles`; resolver reads only the user's team; nightly integrity query |
 | Feature and billing | `Gate::before` + `feature:` + `subscribed` + job middleware |
-| Exports | Tenant job with fixed company id; signed, expiring URLs; audited |
+| Exports | Tenant job with fixed company id; authorized streaming download; audited |
 | Files | Private disk under `companies/{id}/`; controller-authorized downloads |
 | Cache | Keys prefixed `tenant:{id}:`, versioned |
 | Jobs | `TenantAware` sets and resets context and Spatie team in `finally` |
-| Platform | Separate guard, table and area; 2FA [R]; tenant data only via support sessions |
+| Platform | Separate guard, table and area; tenant data only via support sessions |
 | Email identity | Exclusive between `users` and `platform_users` (lock + unique + nightly check) |
 | Personal data | SSN `encrypted` cast [V]; secrets redacted from audit `changes`; QuickBooks tokens encrypted |
 | Public application | Slug + session + `source` + status checks; OTP rate limits and global cap |
@@ -1004,10 +1004,9 @@ flowchart LR
 
 | Item | Default in the design |
 |---|---|
-| C7: empty bullet after "miles traveled and the distance to the destination" | Nothing added; the PDF contains only a zero-width space there; ask the client |
-| Scheduler every minute in production; Octane (PO-20) | Must be confirmed before go-live; design is Octane-safe |
-| Emergency support access without the Owner | Not built; a new decision if ever needed |
-| Expense categories | toll, lumper, scale, parking, repair, other [A] |
+| Google Maps Platform terms and cost (map picker) | The client wants free use; see [14](architecture/14-open-questions.md) §3 |
+
+Decided 23 Oct 2026 ([14](architecture/14-open-questions.md) §2): no co-driver; C7 closed (nothing missing); scheduler runs every minute and Octane is not planned; no emergency support access; no platform 2FA; Stripe Price ids entered by hand; expense categories are a per-company CRUD list seeded with toll, lumper, scale, parking, repair, other (X1).
 
 ### Legal and compliance [L]
 
@@ -1022,8 +1021,6 @@ Retention periods (391.51, 396.3, 390.15, financial, pings, audit); read-only ac
 | Breeze password-reset response reveals account existence | Phase 0 |
 | `submitted`, `under_review`, `approved` driver statuses have no transition | Before the status split |
 | `driver_documents.document_path`, `permission.*`, `asset-histories.*` unused | Phase 0 grep |
-| Default company time zone `America/Chicago` (ask at registration instead) | Phase 0 |
-| Intuit Payroll API terms | Start of Phase 4 |
 | Plan contents and limits per tier | Platform Owner decision |
 
 ---

@@ -1,8 +1,8 @@
 # DriverFilesHub data model
 
-Entity-relationship diagrams for every table the migrations build, read from a migrated MySQL schema (`information_schema`, commit 82b0468, 15 October 2026; Phase 1 tables added from commit 2331008, 23 October 2026) and laid out like [erd-proposed.md](erd-proposed.md), the target design. Update this file when you add or change a migration.
+Entity-relationship diagrams for every table the migrations build, read from a migrated MySQL schema (`information_schema`, commit 82b0468, 15 October 2026; Phase 1 tables added from commit 2331008, 23 October 2026; `site_settings`, `companies`, `plans`, `roles`, the public-site tables and the co-driver drop re-read on 23 October 2026) and laid out like [erd-proposed.md](erd-proposed.md), the target design. Update this file when you add or change a migration.
 
-76 tables (66 without the framework tables) · 133 foreign keys (131 listed below; the two of the public-site tables are not) · 12 soft-delete tables. The Phase 0 and Phase 1 tables of the redesign are built; the tables of later phases are listed under [Not built yet](#not-built-yet). The public-site tables (`pages`, `posts`, `faqs`, `testimonials`, `footer_settings`, `demo_requests`, 20–21 October 2026) are built but not drawn yet.
+76 tables (66 without the framework tables) · 132 foreign keys (all listed below) · 12 soft-delete tables. The Phase 0 and Phase 1 tables of the redesign are built; the tables of later phases are listed under [Not built yet](#not-built-yet). The public-site tables are drawn under [Public site](#public-site).
 
 - Full column, constraint and index specifications are in [architecture/08-database-schema.md](architecture/08-database-schema.md).
 - The reason for each change to an earlier table is in [architecture/09-erd-audit.md](architecture/09-erd-audit.md).
@@ -98,6 +98,7 @@ erDiagram
     text description
     boolean is_public
     boolean is_active
+    boolean is_featured "most popular badge"
     int sort_order
     json marketing_bullets "display only"
   }
@@ -228,9 +229,6 @@ erDiagram
     string email
     string phone
     text address
-    string facebook_url
-    string twitter_url
-    string linkedin_url
     string meta_title
     text meta_description
     text meta_keywords
@@ -248,9 +246,6 @@ erDiagram
     string legal_name
     string support_email
     string support_phone
-    text footer_text
-    string terms_url
-    string privacy_url
     string timezone
     string primary_color
     string accent_color
@@ -264,6 +259,9 @@ erDiagram
     string search_console_verification
     string mail_from_name
     string mail_from_address
+    string reply_to_email "verified"
+    string pending_reply_to_email
+    json landing "home page sections"
     boolean google_login_enabled "P1-3, default off"
     boolean facebook_login_enabled "P1-3, default off"
   }
@@ -317,6 +315,8 @@ erDiagram
     string trial_email UK
     int entitlements_version
     bigint storage_bytes
+    string reply_to_email "verified"
+    string pending_reply_to_email
   }
   company_settings {
     bigint company_id PK, FK "cascade"
@@ -365,6 +365,7 @@ erDiagram
     string system_key "owner / driver / support_read ..."
     boolean is_system
     string description
+    timestamp customized_at "a system role edited by the company"
   }
   permissions {
     bigint id PK
@@ -956,6 +957,71 @@ erDiagram
   platform_support_sessions |o..o{ audit_logs : "actions"
 ```
 
+## Public site
+
+The marketing site's content, edited in Platform > Content (20–21 October 2026). Platform data, no tenant.
+
+```mermaid
+erDiagram
+  platform_users {
+    bigint id PK
+  }
+  platform_users |o--o{ posts : "author_id"
+  platform_users |o--o{ demo_requests : "handled_by"
+  pages {
+    bigint id PK
+    string slug UK
+    string title
+    string summary
+    longtext body
+    boolean is_published
+  }
+  posts {
+    bigint id PK
+    string title
+    string slug UK
+    string excerpt
+    string meta_description
+    string cover_image
+    longtext body
+    timestamp published_at
+    bigint author_id FK "set null, nullable"
+  }
+  faqs {
+    bigint id PK
+    string question
+    text answer
+    boolean is_active
+    int sort_order
+  }
+  testimonials {
+    bigint id PK
+    string name
+    string role
+    string company
+    text quote
+    tinyint rating
+    string avatar
+    boolean is_active
+    int sort_order
+  }
+  footer_settings {
+    bigint id PK
+    json content "columns, links, social URLs, legal links"
+  }
+  demo_requests {
+    bigint id PK
+    string source
+    string name
+    string email
+    string company
+    string phone
+    text message
+    timestamp handled_at
+    bigint handled_by FK "set null, nullable"
+  }
+```
+
 ## Built tables not in the proposal
 
 Lookups and support tables that the build added beside the design.
@@ -1129,6 +1195,8 @@ What the database does when a parent row is hard-deleted, as built. In normal us
 | Platform | `subscriptions.actor_user_id` | `users.id` | nullable | set null |
 | Platform | `subscriptions.company_id` | `companies.id` | required | restrict |
 | Platform | `subscriptions.plan_price_id` | `plan_prices.id` | required | restrict |
+| Public site | `demo_requests.handled_by` | `platform_users.id` | nullable | set null |
+| Public site | `posts.author_id` | `platform_users.id` | nullable | set null |
 | Reference | `company_retained_features.company_id` | `companies.id` | required | cascade |
 | Reference | `company_retained_features.feature_key` | `features.key` | required | restrict |
 | Reference | `states.country_id` | `countries.id` | required | cascade |
@@ -1147,5 +1215,5 @@ Tables of the design in [erd-proposed.md](erd-proposed.md) that later phases bui
 
 ## Open items that affect this diagram
 
-| Item | Effect if decided differently |
-|---|---|
+None: the co-driver question was closed on 23 Oct 2026 and `asset_groups.co_driver_id` was dropped.
+
