@@ -14,6 +14,11 @@
                 </form>
             @endif
         @endfeature
+        @if ($driver->employment_status === 'active')
+            @can('drivers.hire')
+                <x-ui.button variant="outline" icon="user-round-minus" data-dialog-open="terminate-dialog">Terminate</x-ui.button>
+            @endcan
+        @endif
         @if ($driver->status !== 'draft')
             <x-ui.button :href="route('admin.driver.edit', $driver->id)" icon="pencil">Edit driver</x-ui.button>
         @endif
@@ -33,6 +38,9 @@
                 <span class="inline-flex min-w-0 items-center gap-1.5">{{ svg('lucide-mail', 'size-4 shrink-0', ['aria-hidden' => 'true']) }}<span class="sr-only">Email:</span> <span class="truncate">{{ $driver->email ?: 'No email' }}</span></span>
                 @if ($driver->hired_at)
                     <span class="inline-flex items-center gap-1.5">{{ svg('lucide-calendar-check', 'size-4', ['aria-hidden' => 'true']) }} Hired {{ \Carbon\Carbon::parse($driver->hired_at)->format('M d, Y') }}</span>
+                @endif
+                @if ($driver->termination_date)
+                    <span class="inline-flex items-center gap-1.5">{{ svg('lucide-calendar-x', 'size-4', ['aria-hidden' => 'true']) }} Terminated {{ $driver->termination_date->format('M d, Y') }}@if ($driver->termination_reason) · {{ $driver->termination_reason }}@endif</span>
                 @endif
             </div>
         </div>

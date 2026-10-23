@@ -4,6 +4,7 @@
         const forms = {
             hire: document.getElementById('hireForm'),
             reject: document.getElementById('notHireForm'),
+            terminate: document.getElementById('terminateForm'),
         };
 
         // Plain text: the confirm dialog keeps the line breaks.
@@ -35,6 +36,15 @@
                 summary([['Reason', forms.reject.querySelector('[name="rejection_reason"] option:checked').textContent], ['Additional info', data.get('additional_info')]]),
                 { title: 'Confirm not hiring?', icon: 'warning', confirmButtonText: 'Do not hire', variant: 'destructive' },
             ], () => updateDriverStatus('reject', data, 'not-hire-dialog'));
+        });
+
+        forms.terminate?.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const data = new FormData(forms.terminate);
+            confirmFrom('terminate-dialog', [
+                summary([['Termination date', data.get('termination_date')], ['Reason', data.get('termination_reason')]]),
+                { title: 'Terminate this driver?', icon: 'warning', confirmButtonText: 'Terminate', variant: 'destructive' },
+            ], () => updateDriverStatus('terminate', data, 'terminate-dialog'));
         });
 
         function updateDriverStatus(action, formData, dialogId) {

@@ -76,6 +76,7 @@ return new class extends Migration
             $table->date('hire_date')->nullable(); // employment start
             $table->timestamp('terminated_at')->nullable();
             $table->date('termination_date')->nullable();
+            $table->string('termination_reason', 500)->nullable();
             $table->foreignId('decided_by_user_id')->nullable()->constrained('users')->nullOnDelete();
 
             $table->timestamps();

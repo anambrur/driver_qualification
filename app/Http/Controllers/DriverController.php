@@ -51,7 +51,7 @@ class DriverController extends Controller
             ->pluck('aggregate', 'status');
 
         $statusCounts = ['all' => (int) $byStatus->sum()];
-        foreach (['draft', 'pending', 'active', 'inactive', 'rejected'] as $status) {
+        foreach (['draft', 'pending', 'active', 'inactive', 'terminated', 'rejected'] as $status) {
             $statusCounts[$status] = (int) ($byStatus[$status] ?? 0);
         }
 
@@ -745,7 +745,7 @@ class DriverController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'action' => 'required|in:hire,reject',
+            'action' => 'required|in:hire,reject,terminate',
         ]);
 
         if ($validator->fails()) {
@@ -762,6 +762,11 @@ class DriverController extends Controller
                 'hire_date' => 'required|date',
                 'hazmat' => 'required|in:yes,no',
                 'lcv_certificate' => 'required|in:yes,no',
+            ]);
+        } elseif ($action === 'terminate') {
+            $validator = Validator::make($request->all(), [
+                'termination_date' => ['required', 'date', 'before_or_equal:today', 'after_or_equal:'.($driver->hire_date ?? '1900-01-01')],
+                'termination_reason' => 'nullable|string|max:500',
             ]);
         } else {
             $validator = Validator::make($request->all(), [
@@ -782,6 +787,9 @@ class DriverController extends Controller
             if ($action === 'hire') {
                 $driver = $hireService->hire($driver, $request->all(), Auth::id());
                 $message = 'Driver has been hired successfully!';
+            } elseif ($action === 'terminate') {
+                $driver = $hireService->terminate($driver, $request->only(['termination_date', 'termination_reason']), Auth::id());
+                $message = 'Driver has been terminated. Their login is switched off; the DQ file is kept.';
             } else {
                 $driver = $hireService->reject($driver, $request->all(), Auth::id());
                 $message = 'Driver has been marked as not hired.';
