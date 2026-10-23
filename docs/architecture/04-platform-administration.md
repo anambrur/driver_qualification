@@ -26,7 +26,7 @@ It is separate from every tenant. Being platform staff never grants access to a 
 | Identity | A `platform_users` table (`App\Models\PlatformUser`). Platform staff are never `users` rows. |
 | Guard | `platform` (session), with its own password broker (`platform_password_reset_tokens`) |
 | Area | `/platform/*` routes, protected by `auth:platform` plus the permission middleware on the `platform` guard |
-| Authentication | Login, reset and verification of its own. **2FA required** for every platform user [R]. Shorter session lifetime. |
+| Authentication | Login, reset and verification of its own. 2FA was recommended [R]; the product owner decided against it (23 Oct 2026, [14](14-open-questions.md) §2). Shorter session lifetime. |
 | Authorization | Spatie with guard `platform`, roles in reserved team `0`. Checks are database-first ([06](06-roles-permissions.md) §4). |
 | Tenant data | Not reachable from `/platform`, except company metadata (name, status, owner name and email, plan, usage counts). Anything more needs a support session (section 4). |
 

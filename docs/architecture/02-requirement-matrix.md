@@ -30,7 +30,7 @@ This matrix checks every requirement against the code, not against whether a tab
 | Missing / Not available | 34 | 39 |
 | **Total** | **52** | **52** |
 
-After Phase 1 (23 Oct 2026): 1.8, 2.2, 2.3, 2.4 and 3.5 are Complete; 1.4, 2.1 and 2.5 are Partial until their Phase 2–3 parts land. The table above still shows the state at `d1d4d8d`.
+After Phase 0 (21 Oct 2026): 1.7 is Complete (roles per company). After Phase 1 (23 Oct 2026): 1.8, 2.2, 2.3, 2.4 and 3.5 are Complete; 1.4, 2.1 and 2.5 are Partial until their Phase 2–3 parts land. The table above still shows the state at `d1d4d8d`.
 
 The differences come from the corrections in section 12. Eight further client items that the gap report merged or left out are listed in section 11.
 
@@ -40,13 +40,13 @@ The differences come from the corrections in section 12. Eight further client it
 
 | # | Requirement | Gap | Verified | Code today | DB changes | Feature | Depends on | Phase | Risks / notes |
 |---|---|---|---|---|---|---|---|---|---|
-| 1.1 | Web / admin application | Available | **Complete** | Blade admin under `/admin` (`routes/web.php:214-462`) | Split into a platform area and a tenant area | core | — | 0 | The super-admin has to move to `/platform` (doc 04) |
+| 1.1 | Web / admin application | Available | **Complete** | Blade admin under `/admin` (`routes/web.php:214-462`) | Split into a platform area and a tenant area | core | — | 0 | Done in Phase 0: the super-admin moved to `/platform` (doc 04) |
 | 1.2 | Mobile application | Not avail. | **Missing** | No `routes/api.php`, no Sanctum | `personal_access_tokens`, `device_tokens` | `mobile_app` | 0, 2 | 3 | Mobile app development is a separate workstream |
-| 1.3 | Register with email | Available | **Complete** | `RegisteredUserController.php:36-87`. Verification is required (PO-15). | Registration provisions a company: roles, owner, settings | core | — | 0 | Company name defaults to the person's name (`:66`); ask for the company name instead [R] |
+| 1.3 | Register with email | Available | **Complete** | `RegisteredUserController.php:36-87`. Verification is required (PO-15). | Registration provisions a company: roles, owner, settings | core | — | 0 | Done in Phase 0: registration asks for the company name. Since 23 Oct 2026 it also asks for the time zone (14 Z1). |
 | 1.4 | Register / login with Google and Facebook (web and mobile) | Not avail. | **Partial** (P1, 23 Oct 2026: web done; mobile and Apple in Phase 3) | Login and register buttons are commented-out placeholders | `social_accounts` | platform capability | 0 | 1 | [L] Apple sign-in is needed on iOS if other social logins are offered (App Store rule 4.8). Facebook Login needs app review. |
-| 1.5 | Log in | Available (says 2FA) | **Complete** | `LoginRequest.php:53-82`, `EnsureUserIsActive` | `users.company_id`; check company status at login | core | 0 | 0 | **There is no 2FA**; the gap report is wrong. 2FA for platform staff is recommended [R]. |
-| 1.6 | Edit company info | Available | **Complete** | `CompanyController.php` edit/update with `ensureCanManageCompany` (`:550-563`) | `companies.owner_user_id`; contact email separated from login email | core | 0 | 0 | Contact email no longer synced from the owner's login (decided D3b) |
-| 1.7 | Set permissions per role | Available | **Partial** | `RoleController.php`, super-admin only; roles are global | Spatie teams, roles per company | `custom_roles` | 0 | 0 | Editing a role today affects every tenant |
+| 1.5 | Log in | Available (says 2FA) | **Complete** | `LoginRequest.php:53-82`, `EnsureUserIsActive` | `users.company_id`; check company status at login | core | 0 | 0 | **There is no 2FA**; the gap report is wrong. 2FA for platform staff was recommended [R]; the product owner decided against it (23 Oct 2026, 14 §2). |
+| 1.6 | Edit company info | Available | **Complete** | `CompanyController.php` edit/update with `ensureCanManageCompany` (`:550-563`) | `companies.owner_user_id`; contact email separated from login email | core | 0 | 0 | Done in Phase 0: contact email no longer synced from the owner's login (decided D3b) |
+| 1.7 | Set permissions per role | Available | **Complete** (P0, 21 Oct 2026) | `RoleController.php`, super-admin only; roles are global | Spatie teams, roles per company | `custom_roles` | 0 | 0 | Done in Phase 0: roles are per company (Spatie teams), so editing one affects only that company |
 | 1.8 | Set permissions per individual user | Partial | **Complete** (P1, 23 Oct 2026) | Only Spatie's direct-permission table exists; companies can't manage users at all | `model_has_permissions` with `team_id` | `custom_roles` | 1.7 | 0 | Escalation rules (doc 06) |
 
 ## 2. Folders and documents
@@ -64,9 +64,9 @@ The differences come from the corrections in section 12. Eight further client it
 | # | Requirement | Gap | Verified | Code today | DB changes | Feature | Depends on | Phase | Risks / notes |
 |---|---|---|---|---|---|---|---|---|---|
 | 3.1 | Add a new driver | Available | **Complete** | `DriverController` store and wizard; public application | `drivers.created_by_user_id` (no cascade), `drivers.user_id` (login), split status | `drivers`, `driver_applications` | 0 | 0 | `max_drivers` limit; only active hired drivers count (decided Q4) |
-| 3.2 | Update any driver's data | Available | **Complete** | `DriverController::update`, `DriverCrudService` | Same as 3.1. Drop `licenses.repeat_license_number`; add a current-licence flag. | `drivers` | 0 | 0 | The update deletes and re-inserts child rows (`DriverCrudService.php:96-118`), which loses row ids [R]: switch to upserts |
+| 3.2 | Update any driver's data | Available | **Complete** | `DriverController::update`, `DriverCrudService` | Same as 3.1. Drop `licenses.repeat_license_number`; add a current-licence flag. | `drivers` | 0 | 0 | Phase 0: licences are upserted with `is_current`; the other child rows are still deleted and re-inserted (`DriverCrudService.php:65-80`), which loses row ids [R] |
 | 3.3 | Add and delete tractors by type | Available | **Complete** | `VehicleController`; `vehicle_type_id` | Plate fields (3.5) | `fleet` | — | 0 | `max_vehicles` |
-| 3.4 | Add and delete trailers (year, make, model) | Available | **Complete** | `TrailerController` | Rename `equipment_types_id` to `equipment_type_id` | `fleet` | — | 0 | `max_trailers` |
+| 3.4 | Add and delete trailers (year, make, model) | Available | **Complete** | `TrailerController` | Rename `equipment_types_id` to `equipment_type_id` (done in Phase 0) | `fleet` | — | 0 | `max_trailers` |
 | 3.5 | Licence plate number and picture for tractors and trailers | Not avail. | **Complete** (P1, 23 Oct 2026) | Not stored. `license_plate` appears only in unused JS (`asset-group/index.blade.php:952,998`). | `plate_number`, `plate_state_code`, `photo_file_id` on vehicles and trailers | `fleet` | `stored_files` | 1 | — |
 
 ## 4. Trip and load management

@@ -15,6 +15,8 @@ flowchart LR
 
 **Goal:** a company becomes a full tenant, with users, roles, billing and entitlements, while every existing feature keeps working.
 
+**Status: done 21 Oct 2026** (`67bb97c`). Not built and carried over: the driver Terminate action and closing the public application link when `driver_applications` is off (Technical-Features §3). The MySQL 8.0.16 run is still open (14 §3).
+
 | # | Task | Depends on | Docs |
 |---|---|---|---|
 | 0.1 | Spike. **Permission scale: done** 13 Oct 2026 (06 §2; database-first chosen; composite FK isolation confirmed on MySQL 9.3). **SQLite and MySQL 9.3: done** in WP1 (08 §1: CHECK helper, SQLite alter rule, owner FK placement). Remaining: one run on MySQL 8.0.16 (CI or staging). | — | 06 §2, 08 §1 |
@@ -44,7 +46,7 @@ flowchart LR
 **Risks**
 - **Large refactor of a heavily tested codebase.** Mitigation: the step order in [11](11-migration-strategy.md) §5, with a green suite after each step.
 - **Permission scale.** Resolved by measurement: database-first checks ([06](06-roles-permissions.md) §2). The remaining risk is a future change reintroducing global-cache reads; an architecture test and `PermissionScaleTest` guard against it.
-- **Open items.** Only the co-driver question and C7 remain open ([14](14-open-questions.md) §3); neither blocks Phase 0.
+- **Open items.** The co-driver question and C7 were closed on 23 Oct 2026 ([14](14-open-questions.md) §2).
 
 ## Phase 1: Quick wins
 
