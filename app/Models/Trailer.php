@@ -38,6 +38,7 @@ class Trailer extends Model
     ];
 
     protected $casts = [
+        'transferred_out_at' => 'datetime',
         'year' => 'integer',
         'gvw' => 'integer',
     ];

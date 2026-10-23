@@ -48,6 +48,7 @@ class Vehicle extends Model
     ];
 
     protected $casts = [
+        'transferred_out_at' => 'datetime',
         'year' => 'integer',
         'odometer' => 'integer',
         'engine_hours' => 'integer',

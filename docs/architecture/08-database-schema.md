@@ -372,7 +372,7 @@ The opt-out list (LKP-01) [V]. Unchanged.
 
 - **Added:** `plate_number`, `plate_state_code`, `photo_file_id` (cFK → `stored_files`, RESTRICT).
 - **FKs:** `company_id` RESTRICT (was CASCADE); lookups RESTRICT [V].
-- **Unique:** `(company_id, unit_no)`, `(company_id, vin)` [V], `(company_id, id)`.
+- **Unique:** `(company_id, held_unit_no)`, `(company_id, held_vin)`, `(company_id, id)`. `held_unit_no` / `held_vin` are generated: the unit no and VIN while `transferred_out_at` is NULL. So a deleted asset keeps its identifiers reserved (PO-10), but an asset transferred out (04 §7) releases them and can be transferred back or added again (decided 23 Oct 2026).
 - **Dropped indexes:** the single-column `unit_no` and `vin` indexes. Search is tenant-scoped with leading wildcards, so they are never used.
 
 ### `trailers` (Tenant root, existing, modified)

@@ -6,7 +6,6 @@ use App\DataTables\Fleet\TrailerTable;
 use App\Exceptions\LimitReached;
 use App\Features\Feature;
 use App\Http\Requests\Fleet\TrailerRequest;
-use App\Models\AssetTransfer;
 use App\Models\EquipmentType;
 use App\Models\Trailer;
 use App\Models\VehicleGroup;
@@ -162,7 +161,7 @@ class TrailerController extends Controller
         Gate::authorize('restore', $trailer);
 
         // Transferred to another company: its history here stays read-only (04 §7)
-        if (AssetTransfer::retired('trailer', $trailer->id)) {
+        if ($trailer->transferred_out_at !== null) {
             return response()->json([
                 'success' => false,
                 'message' => 'This trailer was transferred to another company and can\'t be restored.',
