@@ -9,12 +9,24 @@ use Illuminate\Support\Collection;
 
 class Seo
 {
+    /** An indexing environment, and the platform has not hidden the whole site (robots_noindex_default). */
+    public static function siteIndexable(): bool
+    {
+        return app()->environment(config('seo.index_environments')) && ! settings('robots_noindex_default');
+    }
+
     public static function indexable(?Request $request = null): bool
     {
         $request ??= request();
 
-        return app()->environment(config('seo.index_environments'))
+        return self::siteIndexable()
             && in_array($request->route()?->getName(), config('seo.indexable_routes'), true);
+    }
+
+    /** The public host: the platform's canonical base URL, else APP_URL. No trailing slash. */
+    public static function baseUrl(): string
+    {
+        return rtrim((string) (settings('canonical_base_url') ?: config('app.url')), '/');
     }
 
     public static function robots(?Request $request = null): string
@@ -27,11 +39,15 @@ class Seo
     {
         $request ??= request();
 
-        return rtrim(config('app.url'), '/').'/'.ltrim($request->path() === '/' ? '' : $request->path(), '/');
+        return self::baseUrl().'/'.ltrim($request->path() === '/' ? '' : $request->path(), '/');
     }
 
     public static function image(): ?string
     {
+        if ($ogImage = settings('og_image')) {
+            return asset('storage/'.$ogImage);
+        }
+
         if ($logo = settings('logo')) {
             return asset('storage/'.$logo);
         }
@@ -48,7 +64,7 @@ class Seo
     public static function homeSchema(Collection $plans, ?Collection $faqs = null): array
     {
         $name = settings('site_name', config('app.name'));
-        $url = rtrim(config('app.url'), '/').'/';
+        $url = self::baseUrl().'/';
         $sameAs = array_values(array_filter(array_column(Footer::content()['social'], 'url')));
 
         $organization = array_filter([

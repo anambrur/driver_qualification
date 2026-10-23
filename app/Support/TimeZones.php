@@ -27,6 +27,14 @@ final class TimeZones
         'America/Regina' => 'Central Time, Saskatchewan (no DST)',
     ];
 
+    /** The platform's default zone for new companies, preselected on the sign-up forms. */
+    public static function preselected(): string
+    {
+        $zone = settings('timezone');
+
+        return is_string($zone) && isset(self::OPTIONS[$zone]) ? $zone : self::DEFAULT;
+    }
+
     public static function rule(): In
     {
         return Rule::in(array_keys(self::OPTIONS));

@@ -49,6 +49,14 @@
                     @endif
                     <x-ui.input type="file" name="favicon" accept=".ico,image/png,image/jpeg,image/gif,image/webp" />
                 </x-ui.field>
+                <x-ui.field label="Email logo" name="email_logo" hint="PNG, JPG or GIF, up to 1 MB. Shown at the top of every email; falls back to the main logo.">
+                    @if ($setting->email_logo)
+                        <div class="flex h-20 items-center justify-center rounded-lg border border-border bg-muted/40 p-3">
+                            <img src="{{ asset('storage/'.$setting->email_logo) }}" alt="Current email logo" class="h-8 w-auto object-contain">
+                        </div>
+                    @endif
+                    <x-ui.input type="file" name="email_logo" accept="image/png,image/jpeg,image/gif" />
+                </x-ui.field>
             </div>
         </x-ui.card>
 
@@ -101,7 +109,7 @@
             </x-ui.card>
         </div>
 
-        <x-ui.card title="Search and analytics" description="Default page metadata and the Google Analytics id.">
+        <x-ui.card title="Search and analytics" description="Default page metadata, how shared links look, and the Google Analytics id.">
             <div class="grid gap-4 sm:grid-cols-2">
                 <x-ui.field label="Meta title" name="meta_title">
                     <x-ui.input name="meta_title" :value="$setting->meta_title" maxlength="255" />
@@ -114,6 +122,42 @@
                 </x-ui.field>
                 <x-ui.field label="Google Analytics id" name="google_analytics_id" hint="Starts with G-.">
                     <x-ui.input name="google_analytics_id" :value="$setting->google_analytics_id" maxlength="50" placeholder="G-XXXXXXXXXX" class="font-mono" />
+                </x-ui.field>
+                <x-ui.field label="Search Console verification" name="search_console_verification" hint="Only the content value of the google-site-verification tag.">
+                    <x-ui.input name="search_console_verification" :value="$setting->search_console_verification" maxlength="100" class="font-mono" />
+                </x-ui.field>
+                <x-ui.field label="Canonical base URL" name="canonical_base_url" hint="The public https address used in canonical links and the sitemap. Empty uses the server's APP_URL.">
+                    <x-ui.input type="url" name="canonical_base_url" :value="$setting->canonical_base_url" maxlength="255" placeholder="https://www.example.com" />
+                </x-ui.field>
+                <x-ui.field label="Link preview card" name="twitter_card">
+                    <x-ui.select name="twitter_card" :value="$setting->twitter_card ?: 'summary_large_image'"
+                        :options="['summary_large_image' => 'Large image', 'summary' => 'Small image']" />
+                </x-ui.field>
+                <x-ui.field label="Share image" name="og_image" hint="JPG or PNG, 1200 × 630 px, up to 2 MB. Shown when a public page is shared; falls back to the logo.">
+                    @if ($setting->og_image)
+                        <img src="{{ asset('storage/'.$setting->og_image) }}" alt="Current share image" class="aspect-[1200/630] w-48 rounded-md border border-border object-cover">
+                    @endif
+                    <x-ui.input type="file" name="og_image" accept="image/png,image/jpeg" />
+                </x-ui.field>
+                <div class="sm:col-span-2">
+                    <input type="hidden" name="robots_noindex_default" value="0">
+                    <x-ui.switch name="robots_noindex_default" :checked="(bool) $setting->robots_noindex_default"
+                        label="Hide the whole site from search engines"
+                        description="Every page gets noindex and robots.txt blocks crawling, even in production. Use it before launch." />
+                </div>
+            </div>
+        </x-ui.card>
+
+        <x-ui.card title="Time zone and email sender">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <x-ui.field label="Default time zone" name="timezone" hint="Preselected when a new company signs up or is created here. Each company can change its own.">
+                    <x-ui.select name="timezone" :options="\App\Support\TimeZones::OPTIONS" :value="\App\Support\TimeZones::preselected()" />
+                </x-ui.field>
+                <x-ui.field label="Sender name" name="mail_from_name" hint="The name on platform emails. Company emails read “Company via this name”. Empty uses the server's MAIL_FROM_NAME.">
+                    <x-ui.input name="mail_from_name" :value="$setting->mail_from_name" maxlength="100" />
+                </x-ui.field>
+                <x-ui.field label="Sender address" name="mail_from_address_display" hint="Set in the server environment (MAIL_FROM_ADDRESS): it must belong to the mail domain that passes SPF and DKIM.">
+                    <x-ui.input name="mail_from_address_display" :value="config('mail.from.address')" readonly disabled />
                 </x-ui.field>
             </div>
         </x-ui.card>
