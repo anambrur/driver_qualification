@@ -2,7 +2,6 @@
 
 namespace App\Services\Platform;
 
-use App\Authorization\RoleTemplates;
 use App\Authorization\TeamScope;
 use App\Authorization\TenantPermissionResolver;
 use App\Models\AuditLog;
@@ -319,14 +318,7 @@ class SupportSessionService
 
     private function activePlatformOwners(): int
     {
-        return PlatformUser::query()->where('status', 'active')
-            ->whereIn('id', DB::table('model_has_roles')
-                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                ->where('model_has_roles.team_id', 0)
-                ->where('roles.system_key', RoleTemplates::PLATFORM_OWNER)
-                ->where('model_has_roles.model_type', (new PlatformUser)->getMorphClass())
-                ->select('model_has_roles.model_id'))
-            ->count();
+        return PlatformUser::query()->activeOwners()->count();
     }
 
     /**

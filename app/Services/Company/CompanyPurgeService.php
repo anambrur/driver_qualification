@@ -4,6 +4,7 @@ namespace App\Services\Company;
 
 use App\Models\AuditLog;
 use App\Models\Company;
+use App\Models\PlatformUser;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -115,12 +116,12 @@ class CompanyPurgeService
     /**
      * @return array<string, int> deleted rows per table
      */
-    public function purge(Company $company): array
+    public function purge(Company $company, ?PlatformUser $actor = null, ?string $reason = null): array
     {
         $files = [];
         $logo = $company->logo_path;
 
-        $deleted = DB::transaction(function () use ($company, &$files) {
+        $deleted = DB::transaction(function () use ($company, $actor, $reason, &$files) {
             $locked = Company::query()->lockForUpdate()->findOrFail($company->id);
             if ($blockers = $this->blockers($locked)) {
                 throw new RuntimeException('The company cannot be purged: '.implode(' ', $blockers));
@@ -184,7 +185,9 @@ class CompanyPurgeService
             DB::table('companies')->where('id', $id)->delete();
 
             $deleted = array_filter($deleted);
-            AuditLog::recordSystem($id, 'company.purged', null, $deleted);
+            $actor === null
+                ? AuditLog::recordSystem($id, 'company.purged', null, $deleted)
+                : AuditLog::record($actor, $id, 'company.purged', null, $deleted + ['reason' => $reason]);
 
             return $deleted;
         });

@@ -206,5 +206,51 @@
                 </div>
             </x-ui.card>
         @endcan
+
+        {{-- Hard delete after the retention periods (08 §15); the same rules as companies:purge --}}
+        @can('platform.companies.purge')
+            <x-ui.card id="purge" title="Danger zone" description="Permanently delete this company, its users, drivers, fleet, documents and files. The audit log is kept. This cannot be undone." class="border-destructive/40 lg:col-span-2">
+                @error('purge')
+                    <x-ui.alert tone="danger" class="mb-4">{{ $message }}</x-ui.alert>
+                @enderror
+                @if ($purgeBlockers)
+                    <x-ui.alert tone="warning" title="This company can't be purged yet">
+                        <ul class="list-disc space-y-1 pl-5">
+                            @foreach ($purgeBlockers as $blocker)
+                                <li>{{ $blocker }}</li>
+                            @endforeach
+                        </ul>
+                    </x-ui.alert>
+                @else
+                    <div class="grid gap-6 lg:grid-cols-2">
+                        <div>
+                            <h3 class="form-section-title">{{ svg('lucide-database', '', ['aria-hidden' => 'true']) }} What will be deleted</h3>
+                            @if ($purgeCounts)
+                                <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                    @foreach ($purgeCounts as $table => $rows)
+                                        <dt class="text-muted-foreground">{{ str_replace('_', ' ', $table) }}</dt>
+                                        <dd class="text-right font-mono">{{ number_format($rows) }}</dd>
+                                    @endforeach
+                                </dl>
+                            @else
+                                <p class="mt-3 text-sm text-muted-foreground">Only the company record.</p>
+                            @endif
+                        </div>
+                        <form method="POST" action="{{ route('platform.companies.purge', $company) }}" class="grid gap-3"
+                            data-confirm="Permanently delete {{ $company->company_name }}?" data-confirm-button="Purge company"
+                            data-confirm-text="Every record and file of this company is deleted. This cannot be undone.">
+                            @csrf
+                            <x-ui.field label="Type the company name to confirm" name="confirm_name" required :hint="$company->company_name">
+                                <x-ui.input name="confirm_name" required autocomplete="off" />
+                            </x-ui.field>
+                            <x-ui.field label="Reason" name="reason" required>
+                                <x-ui.input name="reason" required maxlength="255" />
+                            </x-ui.field>
+                            <div><x-ui.button type="submit" variant="destructive" icon="trash-2">Purge company</x-ui.button></div>
+                        </form>
+                    </div>
+                @endif
+            </x-ui.card>
+        @endcan
     </div>
 @endsection

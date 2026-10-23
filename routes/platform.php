@@ -63,6 +63,7 @@ Route::prefix('platform')->name('platform.')->group(function () use ($can) {
             Route::get('/{company}/edit', [CompanyController::class, 'edit'])->name('edit')->middleware($can('companies.manage'));
             Route::put('/{company}', [CompanyController::class, 'update'])->name('update')->middleware($can('companies.manage'));
             Route::post('/{company}/status', [CompanyController::class, 'status'])->name('status')->middleware($can('companies.lifecycle'));
+            Route::post('/{company}/purge', [CompanyController::class, 'purge'])->name('purge')->middleware($can('companies.purge'));
             Route::post('/{company}/owner', [CompanyController::class, 'transferOwnership'])->name('owner')->middleware($can('companies.manage'));
 
             Route::post('/{company}/overrides', [CompanyOverrideController::class, 'store'])->name('overrides.store')->middleware($can('overrides.manage'));

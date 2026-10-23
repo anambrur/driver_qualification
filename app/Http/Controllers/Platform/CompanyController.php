@@ -6,12 +6,16 @@ use App\DataTables\Platform\CompanyTable;
 use App\Features\Feature;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Platform\CompanyProfileRequest;
+use App\Http\Requests\Platform\CompanyPurgeRequest;
 use App\Http\Requests\Platform\CompanyStatusRequest;
+use App\Jobs\RunCompanyPurge;
+use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\PlanPrice;
 use App\Models\PlatformUser;
 use App\Models\User;
 use App\Services\Authorization\OwnershipService;
+use App\Services\Company\CompanyPurgeService;
 use App\Services\Entitlements\Entitlements;
 use App\Services\Entitlements\Limits;
 use App\Services\Platform\PlatformCompanyService;
@@ -39,8 +43,10 @@ class CompanyController extends Controller
         return view('platform.companies.index');
     }
 
-    public function show(Company $company): View
+    public function show(Company $company, CompanyPurgeService $purge): View
     {
+        $canPurge = (bool) auth('platform')->user()?->can('platform.companies.purge');
+
         $company->load('owner:id,name,email');
         $limits = Entitlements::for($company);
         $usage = collect([Feature::MaxUsers, Feature::MaxDrivers, Feature::MaxVehicles, Feature::MaxTrailers])
@@ -54,6 +60,8 @@ class CompanyController extends Controller
             'overrides' => DB::table('company_feature_overrides')->where('company_id', $company->id)->orderByDesc('id')->limit(50)->get(),
             'prices' => PlanPrice::query()->current()->with('plan:id,name')->get(),
             'features' => Feature::cases(),
+            'purgeBlockers' => $canPurge ? $purge->blockers($company) : [],
+            'purgeCounts' => $canPurge ? $purge->counts($company) : [],
         ]);
     }
 
@@ -86,6 +94,23 @@ class CompanyController extends Controller
         $this->companies->setStatus($this->actor($request), $company, $request->validated('status'), $request->validated('reason'));
 
         return back()->with('success', 'Company status updated.');
+    }
+
+    /**
+     * Starts the purge (08 §15) as a queued job; the job re-checks the rules under a lock.
+     */
+    public function purge(CompanyPurgeRequest $request, Company $company, CompanyPurgeService $purge): RedirectResponse
+    {
+        if ($blockers = $purge->blockers($company)) {
+            return back()->withErrors(['purge' => implode(' ', $blockers)]);
+        }
+
+        $actor = $this->actor($request);
+        AuditLog::record($actor, $company->id, 'company.purge_started', $company, ['reason' => $request->validated('reason')]);
+        RunCompanyPurge::dispatch($company->id, $company->company_name, $actor->id, $request->validated('reason'));
+
+        return redirect()->route('platform.companies.index')
+            ->with('success', "Purging {$company->company_name}. Platform Owners get an email when it is done.");
     }
 
     /**
