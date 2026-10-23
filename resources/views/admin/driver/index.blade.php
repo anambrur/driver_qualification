@@ -15,7 +15,7 @@
         <x-ui.datatable id="drivers" title="All drivers">
             <x-slot:toolbar>
                 <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by status">
-                    @foreach (['all' => 'All', 'pending' => 'Pending', 'active' => 'Active', 'inactive' => 'Inactive', 'rejected' => 'Rejected'] as $status => $label)
+                    @foreach (['all' => 'All', 'pending' => 'Pending', 'active' => 'Active', 'inactive' => 'Inactive', 'terminated' => 'Terminated', 'rejected' => 'Rejected'] as $status => $label)
                         <button type="button" class="btn" data-variant="outline" data-size="sm" data-dt-filter="status" data-value="{{ $status }}"
                             aria-pressed="{{ $status === 'all' ? 'true' : 'false' }}">
                             {{ $label }}

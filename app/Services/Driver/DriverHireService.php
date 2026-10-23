@@ -5,7 +5,9 @@ namespace App\Services\Driver;
 use App\Features\Feature;
 use App\Mail\DriverHiredMail;
 use App\Mail\DriverRejectedMail;
+use App\Models\AssetGroup;
 use App\Models\AuditLog;
+use App\Models\CompanyInvitation;
 use App\Models\Driver;
 use App\Models\User;
 use App\Services\Documents\FolderService;
@@ -78,6 +80,43 @@ class DriverHireService
         return $driver;
     }
 
+    /**
+     * Ends employment (Technical-Features §3.2): the driver's login is switched off and its
+     * active asset groups end; the DQ file is kept for the legal period (49 CFR 391.51).
+     */
+    public function terminate(Driver $driver, array $data, int $actorId): Driver
+    {
+        return DB::transaction(function () use ($driver, $data, $actorId) {
+            $locked = Driver::query()->whereKey($driver->getKey())->lockForUpdate()->first();
+            if ($locked === null || $locked->employment_status !== 'active') {
+                throw new InvalidArgumentException('Only an active driver can be terminated.');
+            }
+
+            $locked->update([
+                'employment_status' => 'terminated',
+                'terminated_at' => now(),
+                'termination_date' => $data['termination_date'],
+                'termination_reason' => $data['termination_reason'] ?? null,
+            ]);
+
+            if ($locked->user_id !== null) {
+                User::query()->whereKey($locked->user_id)->update(['status' => 'inactive']);
+            }
+
+            $groups = AssetGroup::query()->where('driver_id', $locked->id)->where('status', 'active')->update(['status' => 'inactive']);
+            CompanyInvitation::query()->where('driver_id', $locked->id)->whereNull('accepted_at')->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+
+            AuditLog::record(User::query()->findOrFail($actorId), $locked->company_id, 'driver.terminated', $locked, [
+                'termination_date' => $data['termination_date'],
+                'login_disabled' => $locked->user_id !== null,
+                'asset_groups_ended' => $groups,
+            ]);
+
+            return $locked->fresh();
+        });
+    }
+
     public function getRejectionReasonLabel(?string $reason): ?string
     {
         if ($reason === null) {
@@ -104,6 +143,7 @@ class DriverHireService
             'pending' => 'Pending',
             'active' => 'Active (Hired)',
             'inactive' => 'Inactive',
+            'terminated' => 'Terminated',
             'submitted' => 'Submitted',
             'under_review' => 'Under Review',
             'approved' => 'Approved',

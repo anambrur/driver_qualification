@@ -1,4 +1,4 @@
-{{-- Hire / Do-not-hire for a pending applicant. Posts to admin.driver.hire-status (hire-script). --}}
+{{-- Hire / Do-not-hire for a pending applicant, Terminate for a hired driver. Posts to admin.driver.hire-status (hire-script). --}}
 <x-ui.dialog id="hire-dialog" title="Hire applicant" icon="user-round-check" size="md"
     :description="'You are hiring '.$driverFullName.'. This cannot be undone. Set the hire date and confirm to make the driver active.'">
     <form id="hireForm" class="grid gap-4">
@@ -42,5 +42,21 @@
     <x-slot:footer>
         <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
         <button type="submit" form="notHireForm" class="btn bg-destructive! text-white! hover:bg-destructive/90!">Confirm not hiring</button>
+    </x-slot:footer>
+</x-ui.dialog>
+
+<x-ui.dialog id="terminate-dialog" title="Terminate driver" icon="user-round-minus" size="md"
+    :description="'You are ending '.$driverFullName.'’s employment. Their login is switched off and their asset groups end. The DQ file is kept for 3 years (49 CFR 391.51). This cannot be undone.'">
+    <form id="terminateForm" class="grid gap-4">
+        <x-ui.field label="Termination date" name="termination_date" required>
+            <x-ui.input type="date" name="termination_date" :value="date('Y-m-d')" :min="$driver->hire_date?->toDateString()" :max="date('Y-m-d')" required />
+        </x-ui.field>
+        <x-ui.field label="Reason" name="termination_reason" hint="Optional. Kept with the driver record.">
+            <x-ui.textarea name="termination_reason" rows="3" maxlength="500" />
+        </x-ui.field>
+    </form>
+    <x-slot:footer>
+        <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
+        <button type="submit" form="terminateForm" class="btn bg-destructive! text-white! hover:bg-destructive/90!">Terminate driver</button>
     </x-slot:footer>
 </x-ui.dialog>
