@@ -139,7 +139,7 @@ How a limit is enforced:
    - imports.
 2. The method runs `SELECT … FOR UPDATE` on the `companies` row, counts, compares with the effective limit, and throws `LimitReached` (HTTP 422 with an upgrade hint) when the limit is reached.
 3. Because every path locks the same company row first, two parallel creates cannot both pass at limit − 1.
-4. Storage: `companies.storage_bytes` is increased in the same transaction that inserts a `stored_files` row, and decreased when a file is purged. The upload is rejected **before** the file is written if `storage_bytes + size` would exceed the limit.
+4. Storage: `companies.storage_bytes` is increased in the same transaction that inserts a `stored_files` row, and decreased when a file is purged. The upload is rejected **before** the file is written if `storage_bytes + size` would exceed the limit. Export ZIPs (`companies/{id}/exports/`) are temporary and not counted, so a nearly full company can still export its DQ files (P1-6).
 5. A nightly job recomputes the counters and storage and logs any drift.
 
 ## 6. Overrides

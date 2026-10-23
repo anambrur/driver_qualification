@@ -62,11 +62,11 @@ class IntegrityCheck extends Command
                     AND NOT EXISTS (SELECT 1 FROM service_logs l WHERE l.id = d.service_log_id AND l.vehicle_id = f.vehicle_id))',
         ],
         6 => [
-            'rule' => 'Storage counter matches stored files',
+            'rule' => 'Storage counter matches stored files (exports are not counted)',
             'tables' => ['companies', 'stored_files'],
-            'sql' => 'SELECT c.id FROM companies c
-                LEFT JOIN (SELECT company_id, SUM(size_bytes) s FROM stored_files GROUP BY company_id) f ON f.company_id = c.id
-                WHERE c.storage_bytes <> COALESCE(f.s, 0)',
+            'sql' => "SELECT c.id FROM companies c
+                LEFT JOIN (SELECT company_id, SUM(size_bytes) s FROM stored_files WHERE path NOT LIKE 'companies/%/exports/%' GROUP BY company_id) f ON f.company_id = c.id
+                WHERE c.storage_bytes <> COALESCE(f.s, 0)",
         ],
         7 => [
             'rule' => 'One open subscription per company',

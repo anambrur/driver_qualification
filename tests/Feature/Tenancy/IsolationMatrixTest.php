@@ -13,6 +13,7 @@ use Database\Factories\DocumentFactory;
 use Database\Factories\DocumentTypeFactory;
 use Database\Factories\DriverComplianceDocumentFactory;
 use Database\Factories\DriverFactory;
+use Database\Factories\ExportFactory;
 use Database\Factories\FolderFactory;
 use Database\Factories\MaintenanceScheduleFactory;
 use Database\Factories\ServiceLogFactory;
@@ -192,6 +193,8 @@ function isoFixtures(): array
         'GET admin/documents/{document}/view' => $document,
         'GET admin/documents/{document}/original' => $document,
         'DELETE admin/documents/{document}' => $document,
+        // Exports (P1-6)
+        'GET admin/exports/{export}/download' => fn (Company $a) => [ExportFactory::new()->ready(Files::stored($a->id, 'PK', 'zip'))->create()->id],
         // Company settings
         'GET admin/settings/company/{id}/edit' => fn (Company $a) => [$a->id],
         'PATCH admin/settings/company/{id}' => fn (Company $a) => [$a->id],

@@ -58,6 +58,7 @@ final class CompanyMenu
                     ],
                 ],
                 ['label' => 'Documents', 'icon' => 'folder', 'route' => 'documents.index', 'active' => ['documents.*'], 'visible' => $feature('document_folders') && $user->can('folders.view')],
+                ['label' => 'Exports', 'icon' => 'archive', 'route' => 'exports.index', 'active' => ['exports.*'], 'visible' => $feature('zip_export') && ($user->can('exports.create') || $user->can('exports.download'))],
             ],
             'Settings' => [
                 ['label' => 'Asset groups', 'icon' => 'layers', 'route' => 'admin.asset-group.index', 'active' => ['admin.asset-group.*'], 'visible' => $user->can('asset-groups.view')],

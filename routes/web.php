@@ -19,6 +19,7 @@ use App\Http\Controllers\DocumentUploadController;
 use App\Http\Controllers\DriverComplianceDashboardController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\DriverDocumentUploadController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MaintenanceScheduleController;
@@ -359,6 +360,14 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::get('/{document}/view', [DocumentController::class, 'view'])->name('view')->middleware('permission:folders.view');
         Route::get('/{document}/original', [DocumentController::class, 'original'])->name('original')->middleware('permission:folders.view');
         Route::delete('/{document}', [DocumentController::class, 'destroy'])->name('destroy')->middleware('permission:documents.delete');
+    });
+
+    // ZIP exports of a driver or the whole company (req 2.5); exporting is not a write (Q2)
+    Route::prefix('exports')->name('exports.')->middleware('feature:zip_export')->whereNumber('export')->group(function () {
+        Route::get('/', [ExportController::class, 'index'])->name('index')->middleware('permission:exports.create|exports.download');
+        Route::get('/data', [ExportController::class, 'data'])->name('data')->middleware('permission:exports.create|exports.download');
+        Route::post('/', [ExportController::class, 'store'])->name('store')->middleware(['permission:exports.create', 'throttle:10,1']);
+        Route::get('/{export}/download', [ExportController::class, 'download'])->name('download')->middleware('permission:exports.download');
     });
 
     Route::prefix('compliance')->group(function () {
