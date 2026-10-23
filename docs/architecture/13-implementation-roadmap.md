@@ -15,7 +15,7 @@ flowchart LR
 
 **Goal:** a company becomes a full tenant, with users, roles, billing and entitlements, while every existing feature keeps working.
 
-**Status: done 21 Oct 2026** (`67bb97c`). Not built and carried over: the driver Terminate action and closing the public application link when `driver_applications` is off (Technical-Features §3). The MySQL 8.0.16 run is still open (14 §3).
+**Status: done 21 Oct 2026** (`67bb97c`). The two items found missing in the 23 Oct docs pass (driver Terminate, closing the public application link when `driver_applications` is off) were built the same day (14 §3). The MySQL 8.0.16 run is still open (14 §3).
 
 | # | Task | Depends on | Docs |
 |---|---|---|---|

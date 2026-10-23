@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Company;
 use App\Models\PlatformUser;
 use App\Models\SiteSetting;
 use App\Models\User;
@@ -224,14 +223,8 @@ test('welcome page does not render tawk widget when ids are incomplete', functio
 test('application form page renders tawk widget when enabled', function () {
     enableTawkSettings();
 
-    $admin = createTawkAdminUser();
-    $company = Company::create([
-        'user_id' => $admin->id,
-        'company_name' => 'Public Apply Co',
-        'slug' => 'public-apply-co',
-        'email' => 'apply@test.com',
-        'status' => 'active',
-    ]);
+    // Subscribed, so the plan includes online applications
+    $company = Actors::company(['company_name' => 'Public Apply Co', 'slug' => 'public-apply-co', 'email' => 'apply@test.com']);
 
     $this->get(route('application.form', $company->slug))
         ->assertOk()
