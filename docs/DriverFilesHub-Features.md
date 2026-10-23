@@ -27,7 +27,7 @@
 
 **Where we are today:** of the client's 52 requirements, **9 work today**, **4 work in part**, and **39 are planned** across Phases 0 to 4.
 
-**After Phase 1 (23 October 2026):** counting the Phase 1 changes, **14 work**, **5 work in part** and **33 are planned**. The Phase 0 labels below were updated on 23 October 2026: Phase 0 is done, except the two items still marked 🧱.
+**After Phase 1 (23 October 2026):** counting the Phase 1 changes, **14 work**, **5 work in part** and **33 are planned**. The Phase 0 labels below were updated on 23 October 2026: Phase 0 is done; the two items found missing were built the same day.
 
 ---
 
@@ -159,8 +159,8 @@ The 10 steps: **1** basic info · **2** driving licence · **3** medical card ·
 | Hire or reject in one click | The applicant gets an email automatically | ✅ Ready |
 | Add a driver yourself | Staff can enter a driver with the same step-by-step wizard | ✅ Ready |
 | Driver Qualification (DQ) file | Licences, addresses, experience, accidents, violations, employers, signed consents, all in one place | ✅ Ready |
-| Terminate a driver | Ends employment, switches off the driver's login, keeps the DQ file for the legal period | 🧱 Not built yet: the status exists, but there is no terminate action that switches off the login |
-| Applications closed | If your plan doesn't include online applications, the link says so | 🧱 Not built yet: the `driver_applications` feature is not checked on the public link |
+| Terminate a driver | Ends employment, switches off the driver's login, keeps the DQ file for the legal period | ✅ Ready (23 Oct 2026) |
+| Applications closed | If your plan doesn't include online applications, the link says so | ✅ Ready (23 Oct 2026) |
 | Invite a driver to the app | The driver gets a login linked to their driver record | 🟧 Phase 3 |
 
 ### 3.3 Compliance (always audit-ready)

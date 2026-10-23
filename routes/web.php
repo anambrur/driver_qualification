@@ -36,6 +36,7 @@ use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPermissionController;
 use App\Http\Controllers\VehicleController;
+use App\Http\Middleware\EnsureApplicationsOpen;
 use App\Http\Middleware\ResolvePublicCompany;
 use App\Services\Auth\SocialProviders;
 use Illuminate\Support\Facades\Route;
@@ -58,10 +59,11 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // =====================================================================
 
 // Dynamic route for application form landing page
-Route::get('/{slug}/apply', [ApplicationFormController::class, 'show'])->name('application.form')->middleware(ResolvePublicCompany::class);
+Route::get('/{slug}/apply', [ApplicationFormController::class, 'show'])->name('application.form')->middleware([ResolvePublicCompany::class, EnsureApplicationsOpen::class]);
 
 // Public application routes with multi-step process
-Route::prefix('{slug}/application')->name('public.application.')->middleware(ResolvePublicCompany::class)->group(function () {
+// Closed without driver_applications; past applicants keep status, files and withdraw (withoutMiddleware below)
+Route::prefix('{slug}/application')->name('public.application.')->middleware([ResolvePublicCompany::class, EnsureApplicationsOpen::class])->group(function () {
     // Step 0: Start & OTP Verification
     Route::get('/start', [ApplicationFormController::class, 'start'])->name('start');
     Route::post('/send-otp', [ApplicationFormController::class, 'sendOtp'])->name('send.otp')
@@ -133,7 +135,7 @@ Route::prefix('{slug}/application')->name('public.application.')->middleware(Res
         ->name('store.step10');
 
     // Application Complete/Thank You Page
-    Route::get('/complete', [ApplicationFormController::class, 'complete'])->name('complete');
+    Route::get('/complete', [ApplicationFormController::class, 'complete'])->name('complete')->withoutMiddleware(EnsureApplicationsOpen::class);
 
     // Resume Application (if user leaves and comes back)
     Route::get('/resume', [ApplicationFormController::class, 'resume'])->name('resume');
@@ -145,20 +147,22 @@ Route::prefix('{slug}/application')->name('public.application.')->middleware(Res
         ->middleware('throttle:10,1,application-verify');
 
     // Application Status Check
-    Route::get('/status', [ApplicationFormController::class, 'status'])->name('status');
-    Route::post('/check-status', [ApplicationFormController::class, 'checkStatus'])->name('check.status')
-        ->middleware('throttle:5,10,application-sms');
-    Route::get('/status/verify', [ApplicationFormController::class, 'showStatusVerify'])->name('status.verify');
-    Route::post('/status/verify', [ApplicationFormController::class, 'verifyStatus'])->name('status.verify.submit')
-        ->middleware('throttle:10,1,application-verify');
+    Route::withoutMiddleware(EnsureApplicationsOpen::class)->group(function () {
+        Route::get('/status', [ApplicationFormController::class, 'status'])->name('status');
+        Route::post('/check-status', [ApplicationFormController::class, 'checkStatus'])->name('check.status')
+            ->middleware('throttle:5,10,application-sms');
+        Route::get('/status/verify', [ApplicationFormController::class, 'showStatusVerify'])->name('status.verify');
+        Route::post('/status/verify', [ApplicationFormController::class, 'verifyStatus'])->name('status.verify.submit')
+            ->middleware('throttle:10,1,application-verify');
 
-    // The applicant's own uploaded files (stored on the private disk)
-    Route::get('/file/{driver_id}/{field}', [ApplicationFormController::class, 'file'])->name('file');
-    Route::get('/policy/{policy}', [ApplicationFormController::class, 'policy'])->name('policy');
+        // The applicant's own uploaded files (stored on the private disk)
+        Route::get('/file/{driver_id}/{field}', [ApplicationFormController::class, 'file'])->name('file');
+        Route::get('/policy/{policy}', [ApplicationFormController::class, 'policy'])->name('policy');
 
-    // Delete/Withdraw Application
-    Route::post('/withdraw/{driver_id}', [ApplicationFormController::class, 'withdraw'])
-        ->name('withdraw');
+        // Delete/Withdraw Application
+        Route::post('/withdraw/{driver_id}', [ApplicationFormController::class, 'withdraw'])
+            ->name('withdraw');
+    });
 });
 
 // Signed links that confirm an email for replies; the signature is the authorization (opened from any device)
