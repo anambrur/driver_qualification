@@ -101,10 +101,10 @@ class SocialLoginService
      *
      * @throws ValidationException
      */
-    public function completeSignup(array $pending, string $name, string $companyName): User
+    public function completeSignup(array $pending, string $name, string $companyName, string $timezone): User
     {
         try {
-            $company = $this->claimCompany($pending, $name, $companyName);
+            $company = $this->claimCompany($pending, $name, $companyName, $timezone);
         } catch (UniqueConstraintViolationException) {
             // The provider account was linked meanwhile, e.g. the same sign-up finished in another tab
             throw $this->refuse('This '.SocialProviders::label($pending['provider']).' account is already connected. Sign in with it instead.');
@@ -116,11 +116,11 @@ class SocialLoginService
     /**
      * @param  array{provider: string, provider_user_id: string, email: string, name: string, email_verified: bool, expires_at: int}  $pending
      */
-    private function claimCompany(array $pending, string $name, string $companyName): Company
+    private function claimCompany(array $pending, string $name, string $companyName, string $timezone): Company
     {
-        return $this->emails->claim($pending['email'], function (string $email) use ($pending, $name, $companyName) {
+        return $this->emails->claim($pending['email'], function (string $email) use ($pending, $name, $companyName, $timezone) {
             $company = $this->provisioner->provision(
-                ['company_name' => $companyName, 'email' => $email],
+                ['company_name' => $companyName, 'email' => $email, 'timezone' => $timezone],
                 // A random password: the owner sets a real one through the password reset
                 ['name' => $name, 'email' => $email, 'password' => Hash::make(Str::random(40))]
                     + ($pending['email_verified'] ? ['email_verified_at' => now()] : []),

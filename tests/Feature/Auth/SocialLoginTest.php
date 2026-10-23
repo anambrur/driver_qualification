@@ -221,7 +221,7 @@ describe('d: new email', function () {
 
     it('creates the company through the registration path with a verified Google email', function () {
         $this->withSession(pendingSignup())
-            ->post(route('auth.social.finish', 'google'), ['name' => 'New Owner', 'company_name' => 'Acme Trucking'])
+            ->post(route('auth.social.finish', 'google'), ['name' => 'New Owner', 'company_name' => 'Acme Trucking', 'timezone' => 'America/Los_Angeles'])
             ->assertRedirect(route('dashboard', absolute: false));
 
         $user = User::query()->where('email', 'new.owner@example.com')->firstOrFail();
@@ -230,6 +230,7 @@ describe('d: new email', function () {
             ->and($user->password)->not->toBeEmpty()
             ->and(Company::query()->whereKey($user->company_id)->value('owner_user_id'))->toBe($user->id)
             ->and(Company::query()->whereKey($user->company_id)->value('company_name'))->toBe('Acme Trucking')
+            ->and(Company::query()->whereKey($user->company_id)->value('timezone'))->toBe('America/Los_Angeles')
             ->and($user->socialAccounts()->sole()->only('provider', 'provider_user_id'))->toBe(['provider' => 'google', 'provider_user_id' => 'g-new'])
             ->and(AuditLog::query()->where('action', 'company.created')->where('company_id', $user->company_id)->value('changes'))->toBe(['source' => 'social:google'])
             ->and(AuditLog::query()->where('action', 'auth.social_signup')->where('actor_id', $user->id)->exists())->toBeTrue()
@@ -240,7 +241,7 @@ describe('d: new email', function () {
         Notification::fake();
 
         $this->withSession(pendingSignup(['provider' => 'facebook', 'provider_user_id' => 'f-new', 'email_verified' => false]))
-            ->post(route('auth.social.finish', 'facebook'), ['name' => 'New Owner', 'company_name' => 'Acme Trucking']);
+            ->post(route('auth.social.finish', 'facebook'), ['name' => 'New Owner', 'company_name' => 'Acme Trucking', 'timezone' => 'America/Chicago']);
 
         $user = User::query()->where('email', 'new.owner@example.com')->firstOrFail();
         expect($user->email_verified_at)->toBeNull();
@@ -259,7 +260,7 @@ describe('d: new email', function () {
         $this->get(route('auth.social.finish', 'google'))->assertRedirect(route('register'));
 
         $this->withSession(pendingSignup(['expires_at' => now()->subMinute()->getTimestamp()]))
-            ->post(route('auth.social.finish', 'google'), ['name' => 'New Owner', 'company_name' => 'Acme'])
+            ->post(route('auth.social.finish', 'google'), ['name' => 'New Owner', 'company_name' => 'Acme', 'timezone' => 'America/Chicago'])
             ->assertRedirect(route('register'));
 
         $this->withSession(pendingSignup(['provider' => 'facebook']))
@@ -273,7 +274,7 @@ describe('d: new email', function () {
         SocialAccount::factory()->create(['provider' => 'google', 'provider_user_id' => 'g-new']);
 
         $this->withSession(pendingSignup())
-            ->post(route('auth.social.finish', 'google'), ['name' => 'New Owner', 'company_name' => 'Acme'])
+            ->post(route('auth.social.finish', 'google'), ['name' => 'New Owner', 'company_name' => 'Acme', 'timezone' => 'America/Chicago'])
             ->assertSessionHasErrors(['email' => 'This Google account is already connected. Sign in with it instead.']);
 
         $this->assertGuest();
@@ -284,7 +285,7 @@ describe('d: new email', function () {
         Actors::platformOwner(['email' => 'new.owner@example.com']);
 
         $this->withSession(pendingSignup())
-            ->post(route('auth.social.finish', 'google'), ['name' => 'New Owner', 'company_name' => 'Acme'])
+            ->post(route('auth.social.finish', 'google'), ['name' => 'New Owner', 'company_name' => 'Acme', 'timezone' => 'America/Chicago'])
             ->assertSessionHasErrors('email');
 
         $this->assertGuest();
@@ -389,7 +390,7 @@ it('signs up with Google, reaches the dashboard, and signs in again with the sam
     fakeProvider('google', ['id' => 'g-smoke', 'email' => 'smoke.owner@example.com', 'name' => 'Smoke Owner', 'email_verified' => true]);
 
     $this->get(route('auth.social.callback', 'google'))->assertRedirect(route('auth.social.finish', 'google'));
-    $this->post(route('auth.social.finish', 'google'), ['name' => 'Smoke Owner', 'company_name' => 'Smoke Trucking'])
+    $this->post(route('auth.social.finish', 'google'), ['name' => 'Smoke Owner', 'company_name' => 'Smoke Trucking', 'timezone' => 'America/Chicago'])
         ->assertRedirect(route('dashboard', absolute: false));
     // A new company picks a plan first, as after an email sign-up
     $this->get(route('dashboard'))->assertRedirect(route('pricing.plans'));

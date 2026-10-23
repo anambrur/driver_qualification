@@ -133,6 +133,7 @@ it('sends a verification email on registration, and the new account verifies bef
     $this->post('/register', [
         'name' => 'New Carrier',
         'company_name' => 'New Carrier LLC',
+        'timezone' => 'America/Chicago',
         'email' => 'new-carrier@example.test',
         'password' => 'password',
         'password_confirmation' => 'password',

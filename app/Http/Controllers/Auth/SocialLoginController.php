@@ -118,7 +118,7 @@ class SocialLoginController extends Controller
         }
 
         try {
-            $user = $this->social->completeSignup($pending, $request->validated('name'), $request->validated('company_name'));
+            $user = $this->social->completeSignup($pending, $request->validated('name'), $request->validated('company_name'), $request->validated('timezone'));
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {

@@ -77,6 +77,7 @@ describe('AUTH-03 registration failure handling', function () {
         $this->from('/register')->post('/register', [
             'name' => 'Acme Hauling',
             'company_name' => 'Acme Hauling LLC',
+            'timezone' => 'America/Chicago',
             'email' => 'acme@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -107,6 +108,7 @@ describe('AUTH-03 registration failure handling', function () {
         $this->post('/register', [
             'name' => 'Acme Hauling',
             'company_name' => 'Acme Hauling',
+            'timezone' => 'America/Chicago',
             'email' => 'acme@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -140,6 +142,7 @@ describe('AUTH-05 company slug', function () {
         $this->post('/register', [
             'name' => 'Acme Hauling',
             'company_name' => 'Acme Hauling',
+            'timezone' => 'America/Chicago',
             'email' => 'acme@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -154,6 +157,7 @@ describe('AUTH-05 company slug', function () {
         $this->post('/register', [
             'name' => '株式会社',
             'company_name' => '株式会社',
+            'timezone' => 'America/Chicago',
             'email' => 'kk@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',

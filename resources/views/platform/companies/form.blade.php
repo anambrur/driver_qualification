@@ -33,6 +33,9 @@
                 <x-ui.field label="MC number" name="mc_number">
                     <x-ui.input name="mc_number" :value="$company?->mc_number" maxlength="20" />
                 </x-ui.field>
+                <x-ui.field label="Time zone" name="timezone" class="sm:col-span-2">
+                    <x-ui.select name="timezone" required :options="\App\Support\TimeZones::OPTIONS" :value="$company?->timezone ?? \App\Support\TimeZones::DEFAULT" />
+                </x-ui.field>
             </div>
         </x-ui.card>
 

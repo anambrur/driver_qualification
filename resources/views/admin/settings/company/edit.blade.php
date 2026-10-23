@@ -35,6 +35,9 @@
                                 <x-ui.select name="status" id="status" required disabled placeholder="Select Status"
                                     :options="['active' => 'Active', 'inactive' => 'Inactive']" :value="$company->status" />
                             </x-ui.field>
+                            <x-ui.field label="Time zone" for="timezone" name="timezone" required>
+                                <x-ui.select name="timezone" id="timezone" required :options="\App\Support\TimeZones::OPTIONS" :value="$company->timezone" />
+                            </x-ui.field>
                         </div>
                     </x-ui.card>
 

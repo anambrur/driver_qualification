@@ -6,6 +6,7 @@ use App\Exceptions\LimitReached;
 use App\Models\Company;
 use App\Models\PolicyPdf;
 use App\Services\Files\StoredFileService;
+use App\Support\TimeZones;
 use App\Support\Ui\Toast;
 use App\Tenancy\TenantContext;
 use Exception;
@@ -39,6 +40,7 @@ class CompanyController extends Controller
             'city' => 'required|string|max:255',
             'state' => 'required|string|size:2',
             'zip' => 'required|string|max:20',
+            'timezone' => ['required', 'string', TimeZones::rule()],
             'description' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
             'fax' => 'nullable|string|max:20',
@@ -89,6 +91,7 @@ class CompanyController extends Controller
                 'city' => $request->city,
                 'state_code' => strtoupper((string) $request->state),
                 'zip' => $request->zip,
+                'timezone' => $request->timezone,
                 'description' => $request->description,
                 'phone' => $request->phone,
                 'fax' => $request->fax,

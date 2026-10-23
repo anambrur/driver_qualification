@@ -122,7 +122,7 @@ it('keeps every form field, action and csrf token', function (string $route, arr
     }
 })->with([
     'login' => ['login', ['email', 'password', 'remember']],
-    'register' => ['register', ['name', 'company_name', 'email', 'password', 'password_confirmation']],
+    'register' => ['register', ['name', 'company_name', 'timezone', 'email', 'password', 'password_confirmation']],
     'platform login' => ['platform.login', ['email', 'password']],
 ]);
 

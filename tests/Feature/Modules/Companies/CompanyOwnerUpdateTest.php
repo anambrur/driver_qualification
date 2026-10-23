@@ -45,12 +45,24 @@ it('still lets a company owner update the other profile fields', function () {
     $company = Actors::companyOf($owner);
 
     $this->actingAs($owner)
-        ->patch(route('admin.settings.company.update', $company->id), Companies::updatePayload($company, ['city' => 'Dallas', 'company_name' => 'Renamed Co']))
+        ->patch(route('admin.settings.company.update', $company->id), Companies::updatePayload($company, ['city' => 'Dallas', 'company_name' => 'Renamed Co', 'timezone' => 'America/New_York']))
         ->assertRedirect(route('admin.settings.company.edit', $company->id));
 
     expect($company->fresh())
         ->city->toBe('Dallas')
-        ->company_name->toBe('Renamed Co');
+        ->company_name->toBe('Renamed Co')
+        ->timezone->toBe('America/New_York');
+});
+
+it('refuses a time zone outside the list', function () {
+    $owner = Actors::companyOwner();
+    $company = Actors::companyOf($owner);
+
+    $this->actingAs($owner)
+        ->patch(route('admin.settings.company.update', $company->id), Companies::updatePayload($company, ['timezone' => 'Europe/London']))
+        ->assertSessionHasErrors('timezone');
+
+    expect($company->fresh()->timezone)->toBe('America/Chicago');
 });
 
 it('does not let a company owner edit another company', function () {

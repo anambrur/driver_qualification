@@ -205,12 +205,13 @@ describe('companies', function () {
         $this->seed(CountryStateSeeder::class);
 
         $this->actingAs(Actors::platformOwner(), 'platform')
-            ->post(route('platform.companies.store'), ['company_name' => 'Acme Freight', 'state_code' => 'tx', 'owner_name' => 'Ann Owner', 'owner_email' => 'Ann@Acme.test'])
+            ->post(route('platform.companies.store'), ['company_name' => 'Acme Freight', 'state_code' => 'tx', 'timezone' => 'America/New_York', 'owner_name' => 'Ann Owner', 'owner_email' => 'Ann@Acme.test'])
             ->assertSessionHasNoErrors();
 
         $company = Company::query()->where('company_name', 'Acme Freight')->sole();
         expect($company->owner->email)->toBe('ann@acme.test')
             ->and($company->state_code)->toBe('TX')
+            ->and($company->timezone)->toBe('America/New_York')
             ->and(User::query()->where('company_id', $company->id)->where('user_type', 'support')->exists())->toBeTrue()
             ->and(AuditLog::where('action', 'company.created')->where('company_id', $company->id)->exists())->toBeTrue();
 

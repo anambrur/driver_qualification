@@ -51,7 +51,7 @@ The product owner answered the questions from the 11 October draft on **13 Octob
 | Scheduler | Runs every minute in production (23 Oct 2026). Octane is not planned; the design stays Octane-safe. | — |
 | Standard sub-folders | None (23 Oct 2026). | P1-4 |
 | X1 | Expense categories are a per-company CRUD list; the defaults (toll, lumper, scale, parking, repair, other) are seeded and stay. Deleting a category in use is refused or archived. Design **PENDING** (Phase 4). | [08](08-database-schema.md) §11 |
-| Z1 | Registration asks for the company time zone; `America/Chicago` is preselected. | Registration form, `CompanyProvisioner` |
+| Z1 | Registration asks for the company time zone; `America/Chicago` is preselected. Done: the password and social sign-up forms require one of the North American zones in `App\Support\TimeZones`; the company settings page (`company.edit`) and the platform company form edit it. | `RegisteredUserController`, `FinishSocialSignupRequest`, `CompanyController`, `CompanyProfileRequest`, `TimeZones` |
 | Q17 | QuickBooks Payroll API is deferred; v1 keeps the payroll summary export. | Section 5 |
 
 ## 3. Still open

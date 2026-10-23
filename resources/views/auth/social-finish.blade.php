@@ -1,5 +1,5 @@
 <x-layout.auth title="Finish sign-up" heading="Finish creating your account"
-    description="Add your company name to finish creating your account.">
+    description="Add your company name and time zone to finish creating your account.">
     <x-slot:intro>
         Signing up with {{ $label }} as <span class="font-medium text-foreground">{{ $pending['email'] }}</span>.
         <a href="{{ route('register') }}" class="font-medium text-primary underline-offset-4 hover:underline">Use another way</a>
@@ -18,6 +18,10 @@
 
         <x-ui.field label="Company name" name="company_name">
             <x-ui.input name="company_name" required autofocus autocomplete="organization" placeholder="Acme Trucking LLC" />
+        </x-ui.field>
+
+        <x-ui.field label="Company time zone" name="timezone">
+            <x-ui.select name="timezone" required :options="\App\Support\TimeZones::OPTIONS" :value="\App\Support\TimeZones::DEFAULT" />
         </x-ui.field>
 
         <x-ui.button type="submit" variant="primary" class="w-full">Create account</x-ui.button>

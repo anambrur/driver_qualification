@@ -22,6 +22,7 @@ final class Companies
             'city' => $company->city ?? 'Austin',
             'state' => $company->state_code ?? 'TX',
             'zip' => $company->zip ?? '73301',
+            'timezone' => $company->timezone,
             'phone' => $company->phone,
             'status' => $company->status,
         ], $overrides);

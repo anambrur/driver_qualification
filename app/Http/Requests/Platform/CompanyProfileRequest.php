@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Platform;
 
+use App\Support\TimeZones;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -35,6 +36,7 @@ class CompanyProfileRequest extends FormRequest
             'city' => ['nullable', 'string', 'max:255'],
             'state_code' => ['nullable', 'string', 'size:2', 'exists:states,code'],
             'zip' => ['nullable', 'string', 'max:20'],
+            'timezone' => ['sometimes', 'required', 'string', TimeZones::rule()],
             'owner_name' => [$creating ? 'required' : 'prohibited', 'string', 'max:255'],
             'owner_email' => [$creating ? 'required' : 'prohibited', 'email', 'max:255'],
         ];

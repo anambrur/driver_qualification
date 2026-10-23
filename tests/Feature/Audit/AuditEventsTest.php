@@ -84,6 +84,7 @@ describe('users and company', function () {
         $this->post('/register', [
             'name' => 'Test User',
             'company_name' => 'Test Company',
+            'timezone' => 'America/Chicago',
             'email' => 'signup@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
