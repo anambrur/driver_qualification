@@ -208,9 +208,10 @@ Tests that flip: `AccessControl/SuperAdminCompanyAttributionTest`, `FleetComplia
    - copy its maintenance schedules;
    - record the mapping in `asset_transfers`.
 2. At the source:
-   - the asset is soft-deleted. Its `asset_transfers` row records where it went, so `vehicles` and `trailers` need no extra column;
+   - the asset is soft-deleted and stamped `transferred_out_at`, which releases its unit no and VIN in S (08, `held_unit_no` / `held_vin`). Its `asset_transfers` row records where it went;
    - its active asset groups are ended, as PO-08 option A required;
    - its history stays with S, **read-only**.
+   - The asset can later be transferred back to S (decided 23 Oct 2026): that is a normal transfer, which creates a new live asset in S; the retired row keeps the old history.
 3. T's `max_vehicles` / `max_trailers` limit is checked under T's company lock.
 
 **Why copy rather than move:**

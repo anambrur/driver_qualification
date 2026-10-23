@@ -89,3 +89,21 @@ describe('PO-22: fleet-assets follow-ups', function () {
         expect(AssetGroup::withoutTenancy()->findOrFail($group->id)->status)->toBe('inactive');
     });
 });
+
+describe('04 §7: an asset transferred out frees its unit number and VIN', function () {
+    it('accepts the identifiers of a transferred-out asset but not of a deleted one', function (string $kind) {
+        $owner = Actors::companyOwner();
+        $asset = FleetAssets::assetOf($owner, $kind);
+        $identifiers = $asset->only(['unit_no', 'vin']);
+
+        $asset->delete();
+        $this->actingAs($owner)
+            ->postJson(route("admin.$kind.store"), FleetAssets::payload($kind, $identifiers))
+            ->assertStatus(422)->assertJsonValidationErrors(['unit_no', 'vin'], 'errors');
+
+        $asset->forceFill(['transferred_out_at' => now()])->save();
+        $this->actingAs($owner)
+            ->postJson(route("admin.$kind.store"), FleetAssets::payload($kind, $identifiers))
+            ->assertOk();
+    })->with(['vehicle', 'trailer']);
+});

@@ -641,8 +641,8 @@ erDiagram
   vehicles {
     bigint id PK
     bigint company_id FK "restrict"
-    string unit_no "UK with company_id"
-    string vin "UK with company_id"
+    string unit_no
+    string vin
     year year
     string make
     string model
@@ -668,12 +668,15 @@ erDiagram
     string size_dimension
     text notes
     timestamp deleted_at
+    timestamp transferred_out_at "04 §7"
+    string held_unit_no "generated, UK with company_id"
+    string held_vin "generated, UK with company_id"
   }
   trailers {
     bigint id PK
     bigint company_id FK "restrict"
-    string unit_no "UK with company_id"
-    string vin "UK with company_id"
+    string unit_no
+    string vin
     year year
     string make
     string model
@@ -689,6 +692,9 @@ erDiagram
     bigint vehicle_group_id FK "restrict"
     text notes
     timestamp deleted_at
+    timestamp transferred_out_at "04 §7"
+    string held_unit_no "generated, UK with company_id"
+    string held_vin "generated, UK with company_id"
   }
   asset_groups {
     bigint id PK

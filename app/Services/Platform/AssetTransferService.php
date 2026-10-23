@@ -151,13 +151,15 @@ class AssetTransferService
     }
 
     /**
-     * Unit no and VIN are unique per company including retired (soft-deleted) assets.
+     * Unit no and VIN are unique per company including retired (soft-deleted) assets, except
+     * assets transferred out: so an asset can come back to a company it once left.
      */
     private function assertIdentifiersFree(string $type, Vehicle|Trailer $asset, Company $target): void
     {
         $taken = fn (string $column) => DB::table($type === 'vehicle' ? 'vehicles' : 'trailers')
             ->where('company_id', $target->id)
             ->where($column, $asset->{$column})
+            ->whereNull('transferred_out_at')
             ->exists();
 
         foreach (['unit_no' => 'unit number', 'vin' => 'VIN'] as $column => $label) {
@@ -187,7 +189,8 @@ class AssetTransferService
             return $copiedFiles[$id] ??= $copier->copy($files[$id], $target, $area ?? "{$type}s", $convertedFromFileId)->id;
         };
 
-        $asset = $history['asset']->replicate(['company_id', 'photo_file_id']);
+        // Generated columns are left for the database to compute.
+        $asset = $history['asset']->replicate(['company_id', 'photo_file_id', 'held_unit_no', 'held_vin']);
         $asset->forceFill(['company_id' => $target->id, 'photo_file_id' => $file($history['asset']->photo_file_id)])->save();
 
         foreach ($history['documents'] as $document) {
@@ -269,7 +272,8 @@ class AssetTransferService
     }
 
     /**
-     * The source keeps its records (49 CFR 396.3(c)); the asset leaves its groups (PO-08 option A).
+     * The source keeps its records (49 CFR 396.3(c)); the asset leaves its groups (PO-08 option A)
+     * and releases its unit no and VIN in the source company.
      */
     private function retire(Vehicle|Trailer $asset): void
     {
@@ -281,6 +285,7 @@ class AssetTransferService
                 $group->delete();
             });
 
+        $asset->forceFill(['transferred_out_at' => now()])->save();
         $asset->delete();
     }
 

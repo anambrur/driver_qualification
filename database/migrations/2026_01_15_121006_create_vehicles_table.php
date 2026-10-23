@@ -53,9 +53,16 @@ return new class extends Migration
 
             $table->softDeletes();
 
+            // Unit no and VIN stay reserved by retired assets (PO-10), except one transferred out
+            // (04 §7): it keeps its real identifiers as history but no longer holds them, so the
+            // asset can be transferred back or added again.
+            $table->timestamp('transferred_out_at')->nullable();
+            $table->string('held_unit_no')->nullable()->storedAs('CASE WHEN transferred_out_at IS NULL THEN unit_no END');
+            $table->string('held_vin', 17)->nullable()->storedAs('CASE WHEN transferred_out_at IS NULL THEN vin END');
+
             $table->unique(['company_id', 'id']);
-            $table->unique(['company_id', 'unit_no']);
-            $table->unique(['company_id', 'vin']);
+            $table->unique(['company_id', 'held_unit_no']);
+            $table->unique(['company_id', 'held_vin']);
             $table->foreign(['company_id', 'photo_file_id'])->references(['company_id', 'id'])->on('stored_files')->restrictOnDelete();
         });
     }

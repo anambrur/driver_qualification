@@ -212,6 +212,54 @@ describe('refusals', function () {
         expect($vehicle->fresh()->trashed())->toBeFalse();
     });
 
+    it('transfers a vehicle back to the company it came from, which keeps the old history retired', function () {
+        $vehicle = vehicleWithHistory($this->sourceCompany);
+        postTransfer(['asset_id' => $vehicle->id])->assertSessionHasNoErrors();
+        $copy = vehiclesOf($this->targetCompany)->sole();
+
+        postTransfer([
+            'asset_id' => $copy->id,
+            'source_company_id' => $this->targetCompany->id,
+            'target_company_id' => $this->sourceCompany->id,
+        ])->assertSessionHasNoErrors();
+
+        $back = vehiclesOf($this->sourceCompany)->whereKeyNot($vehicle->id)->sole();
+        $retired = $vehicle->fresh();
+        expect($back->only(['unit_no', 'vin']))->toBe($vehicle->only(['unit_no', 'vin']))
+            ->and($back->trashed())->toBeFalse()
+            ->and($back->transferred_out_at)->toBeNull()
+            ->and($retired->trashed())->toBeTrue()
+            ->and($retired->transferred_out_at)->not->toBeNull()
+            ->and($copy->fresh()->transferred_out_at)->not->toBeNull()
+            ->and(AssetTransfer::query()->where('status', 'completed')->count())->toBe(2);
+    });
+
+    it('transfers a trailer back too', function () {
+        $trailer = TrailerFactory::new()->forCompany($this->sourceCompany)->create();
+        postTransfer(['asset_type' => 'trailer', 'asset_id' => $trailer->id])->assertSessionHasNoErrors();
+        $copy = Trailer::withoutTenancy()->where('company_id', $this->targetCompany->id)->sole();
+
+        postTransfer([
+            'asset_type' => 'trailer', 'asset_id' => $copy->id,
+            'source_company_id' => $this->targetCompany->id, 'target_company_id' => $this->sourceCompany->id,
+        ])->assertSessionHasNoErrors();
+
+        expect(Trailer::withoutTenancy()->withTrashed()->where('company_id', $this->sourceCompany->id)->where('vin', $trailer->vin)->count())->toBe(2);
+    });
+
+    it('still refuses a VIN held by a deleted asset that was not transferred out', function () {
+        $vehicle = vehicleWithHistory($this->sourceCompany);
+        postTransfer(['asset_id' => $vehicle->id])->assertSessionHasNoErrors();
+        $copy = vehiclesOf($this->targetCompany)->sole();
+        app(TenantContext::class)->run($this->sourceCompany->id, fn () => VehicleFactory::new()->forCompany($this->sourceCompany)->create(['vin' => $vehicle->vin, 'unit_no' => 'NEW-1'])->delete());
+
+        postTransfer([
+            'asset_id' => $copy->id,
+            'source_company_id' => $this->targetCompany->id,
+            'target_company_id' => $this->sourceCompany->id,
+        ])->assertSessionHasErrors('asset_id');
+    });
+
     it('refuses the same company, an asset of another company, and a missing confirmation', function () {
         $vehicle = vehicleWithHistory($this->sourceCompany);
         $other = VehicleFactory::new()->forCompany($this->targetCompany)->create();

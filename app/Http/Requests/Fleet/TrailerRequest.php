@@ -48,8 +48,8 @@ class TrailerRequest extends FormRequest
         $ignore = $this->route('id');
 
         return [
-            'unit_no' => ['required', 'string', 'max:50', TenantRule::unique('trailers', 'unit_no')->ignore($ignore)],
-            'vin' => ['required', 'string', 'size:17', 'not_regex:/[IOQ]/i', TenantRule::unique('trailers', 'vin')->ignore($ignore)],
+            'unit_no' => ['required', 'string', 'max:50', TenantRule::unique('trailers', 'unit_no')->whereNull('transferred_out_at')->ignore($ignore)],
+            'vin' => ['required', 'string', 'size:17', 'not_regex:/[IOQ]/i', TenantRule::unique('trailers', 'vin')->whereNull('transferred_out_at')->ignore($ignore)],
             'year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
