@@ -23,9 +23,9 @@ final class AssetGroupTable
         $canDelete = (bool) $user?->can('asset-groups.delete');
 
         $query = AssetGroup::query()
-            ->select(['asset_groups.id', 'asset_groups.company_id', 'group_name', 'status', 'driver_id', 'co_driver_id', 'vehicle_id', 'trailer_id',
+            ->select(['asset_groups.id', 'asset_groups.company_id', 'group_name', 'status', 'driver_id', 'vehicle_id', 'trailer_id',
                 'asset_groups.created_at', 'asset_groups.deleted_at'])
-            ->with(['vehicle:id,unit_no,vin', 'trailer:id,unit_no,vin', 'driver:id,first_name,last_name,main_phone', 'coDriver:id,first_name,last_name,main_phone']);
+            ->with(['vehicle:id,unit_no,vin', 'trailer:id,unit_no,vin', 'driver:id,first_name,last_name,main_phone']);
 
         $status = (string) $this->request->input('status', '');
         if ($status === 'deleted') {
@@ -47,10 +47,9 @@ final class AssetGroupTable
             ->addColumn('group_info', fn (AssetGroup $group) => view('admin.asset-group.partials.group-cell', [
                 'name' => $group->group_name, 'driver' => $name($group->driver),
             ])->render())
-            ->addColumn('drivers_info', fn (AssetGroup $group) => view('admin.vehicle.partials.pair-cell', ['rows' => array_filter([
-                'Primary' => trim(($name($group->driver) ?? '—').($group->driver?->main_phone ? ' · '.$group->driver->main_phone : '')),
-                'Secondary' => $group->coDriver ? trim($name($group->coDriver).($group->coDriver->main_phone ? ' · '.$group->coDriver->main_phone : '')) : null,
-            ], fn ($value) => $value !== null)])->render())
+            ->addColumn('drivers_info', fn (AssetGroup $group) => view('admin.vehicle.partials.pair-cell', ['rows' => [
+                'Driver' => trim(($name($group->driver) ?? '—').($group->driver?->main_phone ? ' · '.$group->driver->main_phone : '')),
+            ]])->render())
             ->addColumn('assets_info', fn (AssetGroup $group) => view('admin.vehicle.partials.pair-cell', ['rows' => [
                 'Vehicle' => $group->vehicle ? $group->vehicle->unit_no.' · VIN '.$group->vehicle->vin : null,
                 'Trailer' => $group->trailer ? $group->trailer->unit_no.' · VIN '.$group->trailer->vin : null,

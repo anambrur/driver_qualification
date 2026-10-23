@@ -694,7 +694,6 @@ erDiagram
     bigint company_id FK "restrict"
     string group_name "UK with company_id"
     bigint driver_id FK "cFK, restrict"
-    bigint co_driver_id FK "cFK, restrict, pending"
     bigint vehicle_id FK "cFK, restrict"
     bigint trailer_id FK "cFK, restrict, nullable"
     enum status "active / inactive"
@@ -807,7 +806,6 @@ erDiagram
   vehicle_groups |o--o{ trailers : ""
   equipment_types ||--o{ trailers : ""
   drivers ||--o{ asset_groups : "primary"
-  drivers |o--o{ asset_groups : "co-driver"
   vehicles ||--o{ asset_groups : ""
   trailers |o--o{ asset_groups : ""
   vehicles ||--o{ vehicle_documents : ""
@@ -1073,7 +1071,6 @@ What the database does when a parent row is hard-deleted, as built. In normal us
 | Files | `exports` cFK `file_id` | `stored_files` | nullable | restrict |
 | Files | `exports.requested_by_user_id` | `users.id` | nullable | set null |
 | Fleet | `asset_groups.company_id` | `companies.id` | required | restrict |
-| Fleet | `asset_groups` cFK `co_driver_id` | `drivers` | nullable | restrict |
 | Fleet | `asset_groups` cFK `driver_id` | `drivers` | required | restrict |
 | Fleet | `asset_groups` cFK `trailer_id` | `trailers` | nullable | restrict |
 | Fleet | `asset_groups` cFK `vehicle_id` | `vehicles` | required | restrict |
@@ -1152,4 +1149,3 @@ Tables of the design in [erd-proposed.md](erd-proposed.md) that later phases bui
 
 | Item | Effect if decided differently |
 |---|---|
-| Co-driver (still PENDING) | `asset_groups.co_driver_id` removed |
