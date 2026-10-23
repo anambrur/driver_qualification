@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\Company\CompanyProvisioner;
 use App\Services\Platform\EmailIdentityService;
+use App\Support\TimeZones;
 use App\Support\Ui\Toast;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -52,13 +53,14 @@ class RegisteredUserController extends Controller
                 'unique:'.User::class,
                 'unique:companies,email',
             ],
+            'timezone' => ['required', 'string', TimeZones::rule()],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
         try {
             // Never also a platform login (D3a)
             $company = $emails->claim($request->email, function (string $email) use ($provisioner, $request) {
                 $company = $provisioner->provision(
-                    ['company_name' => $request->company_name, 'email' => $email],
+                    ['company_name' => $request->company_name, 'email' => $email, 'timezone' => $request->timezone],
                     ['name' => $request->name, 'email' => $email, 'password' => Hash::make($request->password)],
                 );
                 AuditLog::record($company->owner, $company->id, 'company.created', $company, ['source' => 'signup']);

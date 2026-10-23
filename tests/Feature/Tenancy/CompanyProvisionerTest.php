@@ -92,6 +92,7 @@ it('provisions a company on registration with the given company name', function 
     $this->post('/register', [
         'name' => 'Jane Owner',
         'company_name' => 'Jane Freight LLC',
+        'timezone' => 'America/Denver',
         'email' => 'Jane@Freight.test',
         'password' => 'password',
         'password_confirmation' => 'password',
@@ -102,18 +103,20 @@ it('provisions a company on registration with the given company name', function 
     $this->assertAuthenticatedAs($company->owner);
     expect($company->owner->name)->toBe('Jane Owner')
         ->and($company->owner->email)->toBe('jane@freight.test')
+        ->and($company->timezone)->toBe('America/Denver')
         ->and(DB::table('roles')->where('team_id', $company->id)->count())->toBe(7);
 });
 
-it('requires a company name and a free email on registration', function () {
+it('requires a company name, a listed time zone and a free email on registration', function () {
     provisionCompany('Taken', 'taken@test.test');
 
     $this->post('/register', [
         'name' => 'Someone',
+        'timezone' => 'Europe/London',
         'email' => 'taken@test.test',
         'password' => 'password',
         'password_confirmation' => 'password',
-    ])->assertSessionHasErrors(['company_name', 'email']);
+    ])->assertSessionHasErrors(['company_name', 'timezone', 'email']);
 
     $this->assertGuest();
 });

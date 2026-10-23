@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\TimeZones;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -24,6 +25,7 @@ class FinishSocialSignupRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'company_name' => ['required', 'string', 'max:255'],
+            'timezone' => ['required', 'string', TimeZones::rule()],
         ];
     }
 }

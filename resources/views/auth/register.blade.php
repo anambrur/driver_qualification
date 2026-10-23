@@ -52,6 +52,10 @@
             <x-ui.input name="company_name" required autocomplete="organization" placeholder="Acme Trucking LLC" />
         </x-ui.field>
 
+        <x-ui.field label="Company time zone" name="timezone">
+            <x-ui.select name="timezone" required :options="\App\Support\TimeZones::OPTIONS" :value="\App\Support\TimeZones::DEFAULT" />
+        </x-ui.field>
+
         <x-ui.field label="Email address" name="email">
             <x-ui.input type="email" name="email" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="you@company.com" />
         </x-ui.field>

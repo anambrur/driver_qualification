@@ -33,7 +33,7 @@ describe('a platform email can not become a tenant login', function () {
 
     it('refuses it at registration', function () {
         $this->post('/register', [
-            'name' => 'Someone', 'company_name' => 'Acme', 'email' => 'Staff@Example.com',
+            'name' => 'Someone', 'company_name' => 'Acme', 'timezone' => 'America/Chicago', 'email' => 'Staff@Example.com',
             'password' => 'Password123!', 'password_confirmation' => 'Password123!',
         ])->assertSessionHasErrors(['email' => EmailIdentityService::TAKEN]);
 
