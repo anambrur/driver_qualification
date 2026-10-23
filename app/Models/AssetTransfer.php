@@ -62,16 +62,4 @@ class AssetTransfer extends Model
     {
         return $this->belongsTo(PlatformUser::class, 'performed_by_platform_user_id');
     }
-
-    /**
-     * Whether this vehicle or trailer left its company through a transfer. Its history stays
-     * read-only there, so it can't be restored.
-     */
-    public static function retired(string $assetType, int $assetId): bool
-    {
-        return self::query()
-            ->where('status', 'completed')
-            ->where("source_{$assetType}_id", $assetId)
-            ->exists();
-    }
 }

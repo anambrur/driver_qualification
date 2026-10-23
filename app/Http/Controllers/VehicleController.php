@@ -7,7 +7,6 @@ use App\Exceptions\LimitReached;
 use App\Features\Feature;
 use App\Http\Requests\Fleet\VehicleRequest;
 use App\Models\AssetGroup;
-use App\Models\AssetTransfer;
 use App\Models\FuelType;
 use App\Models\Vehicle;
 use App\Models\VehicleGroup;
@@ -169,7 +168,7 @@ class VehicleController extends Controller
         Gate::authorize('restore', $vehicle);
 
         // Transferred to another company: its history here stays read-only (04 §7)
-        if (AssetTransfer::retired('vehicle', $vehicle->id)) {
+        if ($vehicle->transferred_out_at !== null) {
             return response()->json([
                 'success' => false,
                 'message' => 'This vehicle was transferred to another company and can\'t be restored.',
