@@ -50,7 +50,7 @@ describe('DRV-10: the driver list has a query budget', function () {
     it('counts drivers by status in one query', function () {
         $owner = Actors::companyOwner();
         $company = DriverAdmin::companyOf($owner);
-        foreach (['pending', 'pending', 'active', 'inactive', 'rejected', 'draft'] as $status) {
+        foreach (['pending', 'pending', 'active', 'inactive', 'terminated', 'rejected', 'draft'] as $status) {
             DriverFactory::new()->forCompany($company)->status($status)->create();
         }
         DriverFactory::new()->status('active')->create(); // another tenant
@@ -67,7 +67,7 @@ describe('DRV-10: the driver list has a query budget', function () {
 
         expect($countQueries)->toBe(1)
             ->and($response->viewData('statusCounts'))->toBe([
-                'all' => 5, 'draft' => 0, 'pending' => 2, 'active' => 1, 'inactive' => 1, 'rejected' => 1,
+                'all' => 6, 'draft' => 0, 'pending' => 2, 'active' => 1, 'inactive' => 1, 'terminated' => 1, 'rejected' => 1,
             ]);
     });
 
