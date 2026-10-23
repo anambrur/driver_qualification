@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use App\Authorization\RoleTemplates;
 use App\Authorization\TenantPermissionResolver;
 use App\Notifications\PlatformResetPasswordNotification;
 use BackedEnum;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Contracts\Permission as PermissionContract;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -28,6 +31,22 @@ class PlatformUser extends Authenticatable
         'status',
         'last_login_at',
     ];
+
+    /**
+     * Active staff holding the Platform Owner role (team 0).
+     *
+     * @param  Builder<PlatformUser>  $query
+     */
+    public function scopeActiveOwners(Builder $query): void
+    {
+        $query->where('status', 'active')
+            ->whereIn('id', DB::table('model_has_roles')
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->where('model_has_roles.team_id', 0)
+                ->where('roles.system_key', RoleTemplates::PLATFORM_OWNER)
+                ->where('model_has_roles.model_type', $this->getMorphClass())
+                ->select('model_has_roles.model_id'));
+    }
 
     protected $hidden = [
         'password',
