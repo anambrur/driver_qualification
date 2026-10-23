@@ -386,7 +386,7 @@ The default pairing of a driver with equipment.
 
 **Columns:**
 - `id`, `company_id`, `group_name`.
-- `driver_id`, `co_driver_id` (null; still PENDING, see [14](14-open-questions.md) §3).
+- `driver_id`. No co-driver: team driving is not needed (14 §2, 23 Oct 2026).
 - `vehicle_id`, `trailer_id` (null).
 - `status` enum(active, inactive).
 - `active_vehicle_id` (generated: `CASE WHEN status='active' AND deleted_at IS NULL THEN vehicle_id END`).
@@ -395,15 +395,13 @@ The default pairing of a driver with equipment.
 
 **Removed:** `primary_driver_name`, `primary_driver_phone`, `primary_driver_email`, `second_driver_name`, `second_driver_phone`, `second_driver_email` (F1–F3).
 
-**FKs:** cFK on driver, co-driver, vehicle and trailer, all RESTRICT. They were CASCADE [V]; RESTRICT is needed here because these are the base columns of generated columns.
+**FKs:** cFK on driver, vehicle and trailer, all RESTRICT. They were CASCADE [V]; RESTRICT is needed here because these are the base columns of generated columns.
 
 **Unique:**
 - `(company_id, group_name)` (enforced only in the app today [V]);
 - `active_vehicle_id`;
 - `active_trailer_id`;
 - `(company_id, id)`.
-
-**CHECK:** `co_driver_id IS NULL OR co_driver_id <> driver_id`.
 
 ### Lookups (Reference, existing)
 

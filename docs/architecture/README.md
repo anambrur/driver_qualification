@@ -83,7 +83,6 @@ This document set describes how DriverFilesHub becomes a company-based, multi-te
 ### Decisions still open
 
 [14-open-questions.md](14-open-questions.md) §3:
-- Co-driver on asset groups (the default `co_driver_id` is kept).
 - The client's empty requirement bullet (C7). Investigated: there is no hidden text, so ask the client.
 - Retention periods [L].
 - Scheduler and Octane confirmation (PO-20).

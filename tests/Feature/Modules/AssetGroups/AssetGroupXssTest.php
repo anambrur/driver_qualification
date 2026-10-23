@@ -30,7 +30,6 @@ describe('AGR-04', function () {
             'trailer_id' => $trailer->id,
             'group_name' => 'G'.$payload,
             'driver_id' => DriverFactory::new()->forCompany($company)->create(['first_name' => 'P'.$payload, 'main_phone' => 'PP'.$payload])->id,
-            'co_driver_id' => DriverFactory::new()->forCompany($company)->create(['first_name' => 'S'.$payload, 'main_phone' => 'SP'.$payload])->id,
         ]);
 
         $row = $this->actingAs($tenant)
@@ -43,7 +42,7 @@ describe('AGR-04', function () {
         }
 
         expect($row['group_info'])->toContain(e('G'.$payload))
-            ->and($row['drivers_info'])->toContain(e('P'.$payload))->toContain(e('SP'.$payload))
+            ->and($row['drivers_info'])->toContain(e('P'.$payload))->toContain(e('PP'.$payload))
             ->and($row['assets_info'])->toContain(e('V'.$payload))->toContain(e('TVIN'.$vin));
     })->with('agr xss payloads');
 

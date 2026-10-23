@@ -197,7 +197,6 @@ flowchart LR
 | Licence plate and photo | Plate number, plate state and a picture for each truck and trailer | ✅ Ready (Phase 1) |
 | Asset groups | Pair a driver with a truck and trailer | ✅ Ready |
 | One group per truck | A truck or trailer can be in only one active group | 🧱 Phase 0 |
-| Co-driver on a group | For team driving | ⏳ PENDING |
 | Engine hours | Kept on the truck and raised by service logs, like the odometer | ✅ Ready |
 | Maintenance schedules | By date, mileage or engine hours. "Mark as completed" moves the next due date forward. | ✅ Ready |
 | Service logs | Repairs with categories, costs and receipts (PDF, images, Word files) | ✅ Ready |
@@ -423,7 +422,6 @@ flowchart LR
 
 | Item | Today's default |
 |---|---|
-| ⏳ **Co-driver for team driving** on asset groups: needed or not? | A co-driver field is kept until you decide |
 | ⏳ **An empty bullet** in the use-case list, after "miles traveled and the distance to the destination" | Nothing added until you tell us what was meant |
 | ⏳ **How long to keep records** (DQ files, maintenance, accidents, payroll, locations, activity log) | Legal minimums proposed; your counsel should confirm |
 | ⏳ **Expense categories** | Toll, lumper, scale, parking, repair, other |

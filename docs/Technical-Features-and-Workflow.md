@@ -405,7 +405,7 @@ Each module lists its status, plan feature key, main tables, permissions (R = re
 | Module | Status | Feature | Tables | Permissions | Phase | Technical notes |
 |---|---|---|---|---|---|---|
 | Vehicles, trailers | Today; plates Built P1 (23 Oct 2026) | `fleet` | `vehicles`, `trailers` (+ `plate_number`, `plate_state_code`, `photo_file_id`; `equipment_type_id` rename) | `vehicles.*`, `trailers.*` | P0, plates P1 | UK `(company_id, unit_no)`, `(company_id, vin)` (PO-10). `company_id` CASCADE → RESTRICT. `engine_hours` on vehicles (PO-05). |
-| Asset groups | Today | `fleet` | `asset_groups` (`driver_id`, `co_driver_id`, generated `active_vehicle_id` / `active_trailer_id` unique) | `asset-groups.*` | P0 | Free-text driver columns dropped (F1–F3). One active group per asset (F7). UK `(company_id, group_name)`. Co-driver **PENDING**. |
+| Asset groups | Today | `fleet` | `asset_groups` (`driver_id`, generated `active_vehicle_id` / `active_trailer_id` unique) | `asset-groups.*` | P0 | Free-text driver columns dropped (F1–F3). One active group per asset (F7). UK `(company_id, group_name)`. No co-driver (decided 23 Oct 2026). |
 | Maintenance | Today (PO-04–PO-07) | `maintenance` | `maintenance_schedules` (drop `is_active`, `last_service_*`), `service_logs` (+ `maintenance_schedule_id`), `service_log_category`, `service_documents` (`file_id`) | `maintenance.*`, `scheduled.*` | P0 | Mileage / engine-hour schedules require a vehicle (PO-06); completing rolls due dates forward (PO-04); `.doc/.docx` accepted (PO-03). N+1 fix on categories. |
 | Lookups | Today (platform-only writes, LKP-01) | — | `vehicle_types`, `fuel_types`, `equipment_types`, `vehicle_groups`, `maintenance_categories` (+ `is_active`, unique `name`) | platform `settings.manage` | P0 | FKs RESTRICT [V] |
 | Asset transfer | Super-admin edit of `company_id` (FLT-03) | platform | `asset_transfers` | `platform.assets.transfer` | P0 | Copy to target, retire at source ([§4.17](#417-asset-transfer)) |
@@ -1004,7 +1004,6 @@ flowchart LR
 
 | Item | Default in the design |
 |---|---|
-| Co-driver on asset groups (team driving) | `asset_groups.co_driver_id` kept, CHECK `≠ driver_id`; dropped if not needed |
 | C7: empty bullet after "miles traveled and the distance to the destination" | Nothing added; the PDF contains only a zero-width space there; ask the client |
 | Scheduler every minute in production; Octane (PO-20) | Must be confirmed before go-live; design is Octane-safe |
 | Emergency support access without the Owner | Not built; a new decision if ever needed |

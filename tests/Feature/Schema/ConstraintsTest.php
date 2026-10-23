@@ -191,13 +191,6 @@ describe('drivers, fleet, billing, files and audit', function () {
         AssetGroupFactory::new()->create(['vehicle_id' => $group->vehicle_id]);
     });
 
-    it('rejects a co-driver who is the primary driver', function () {
-        $group = AssetGroupFactory::new()->create();
-
-        expect(fn () => DB::table('asset_groups')->where('id', $group->id)->update(['co_driver_id' => $group->driver_id]))
-            ->toThrow(QueryException::class);
-    });
-
     it('restricts deleting a company that still has drivers', function () {
         // A bare row with no owner, users or settings, so only the driver can block the delete.
         $companyId = DB::table('companies')->insertGetId(['company_name' => 'Bare Co', 'slug' => 'bare-co', 'status' => 'active']);

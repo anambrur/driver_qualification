@@ -24,7 +24,7 @@
 
             <th class="w-12">#</th>
             <th>Group</th>
-            <th>Drivers</th>
+            <th>Driver</th>
             <th>Assets</th>
             <th>Status</th>
             <th>Added</th>
