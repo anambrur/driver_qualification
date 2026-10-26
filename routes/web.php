@@ -21,6 +21,7 @@ use App\Http\Controllers\DriverController;
 use App\Http\Controllers\DriverDocumentUploadController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FolderController;
+use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MaintenanceScheduleController;
 use App\Http\Controllers\PageController;
@@ -30,6 +31,7 @@ use App\Http\Controllers\ReplyEmailController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\ServiceLogController;
+use App\Http\Controllers\ShipperController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\SupportAccessController;
 use App\Http\Controllers\TrailerController;
@@ -372,6 +374,25 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::get('/data', [ExportController::class, 'data'])->name('data')->middleware('permission:exports.create|exports.download');
         Route::post('/', [ExportController::class, 'store'])->name('store')->middleware(['permission:exports.create', 'throttle:10,1']);
         Route::get('/{export}/download', [ExportController::class, 'download'])->name('download')->middleware('permission:exports.download');
+    });
+
+    // Saved shippers (req 4.4)
+    Route::prefix('shippers')->name('shippers.')->middleware('feature:trips')->whereNumber('shipper')->group(function () {
+        Route::get('/', [ShipperController::class, 'index'])->name('index')->middleware('permission:shippers.view');
+        Route::get('/data', [ShipperController::class, 'data'])->name('data')->middleware('permission:shippers.view');
+        Route::get('/create', [ShipperController::class, 'create'])->name('create')->middleware('permission:shippers.manage');
+        Route::post('/', [ShipperController::class, 'store'])->name('store')->middleware('permission:shippers.manage');
+        Route::get('/{shipper}/edit', [ShipperController::class, 'edit'])->name('edit')->middleware('permission:shippers.manage');
+        Route::put('/{shipper}', [ShipperController::class, 'update'])->name('update')->middleware('permission:shippers.manage');
+        Route::post('/{shipper}/activate', [ShipperController::class, 'activate'])->name('activate')->middleware('permission:shippers.manage');
+        Route::post('/{shipper}/deactivate', [ShipperController::class, 'deactivate'])->name('deactivate')->middleware('permission:shippers.manage');
+        Route::delete('/{shipper}', [ShipperController::class, 'destroy'])->name('destroy')->middleware('permission:shippers.manage');
+    });
+
+    // Address search for the map picker (req 6.1): staff who enter shipper or trip addresses
+    Route::prefix('maps')->name('maps.')->middleware(['feature:trips', 'permission:shippers.manage|trips.create|trips.edit', 'throttle:30,1,geocoder'])->group(function () {
+        Route::get('/search', [GeocodeController::class, 'search'])->name('search');
+        Route::get('/reverse', [GeocodeController::class, 'reverse'])->name('reverse');
     });
 
     Route::prefix('compliance')->group(function () {

@@ -57,6 +57,7 @@ final class CompanyMenu
                         ['label' => 'Scheduled', 'route' => 'admin.maintenance-schedule.index', 'active' => ['admin.maintenance-schedule.*'], 'visible' => $user->can('scheduled.view')],
                     ],
                 ],
+                ['label' => 'Shippers', 'icon' => 'warehouse', 'route' => 'shippers.index', 'active' => ['shippers.*'], 'visible' => $feature('trips') && $user->can('shippers.view')],
                 ['label' => 'Documents', 'icon' => 'folder', 'route' => 'documents.index', 'active' => ['documents.*'], 'visible' => $feature('document_folders') && $user->can('folders.view')],
                 ['label' => 'Exports', 'icon' => 'archive', 'route' => 'exports.index', 'active' => ['exports.*'], 'visible' => $feature('zip_export') && ($user->can('exports.create') || $user->can('exports.download'))],
             ],

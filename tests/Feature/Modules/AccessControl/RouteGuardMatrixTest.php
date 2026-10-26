@@ -300,6 +300,30 @@ describe('ACL-01 → maintenance routes need maintenance/scheduled permissions',
     })->with(['admin.service-log.index', 'admin.maintenance-schedule.index']);
 });
 
+describe('P2-1 → shippers and address search need the trips feature and their permissions', function () {
+    it('guards each route with its permission and the trips feature', function (string $name, string $permission) {
+        $middleware = Route::getRoutes()->getByName($name)?->gatherMiddleware();
+
+        expect($middleware)->toContain("permission:$permission")->toContain('feature:trips');
+    })->with([
+        ['shippers.index', 'shippers.view'],
+        ['shippers.data', 'shippers.view'],
+        ['shippers.create', 'shippers.manage'],
+        ['shippers.store', 'shippers.manage'],
+        ['shippers.edit', 'shippers.manage'],
+        ['shippers.update', 'shippers.manage'],
+        ['shippers.activate', 'shippers.manage'],
+        ['shippers.deactivate', 'shippers.manage'],
+        ['shippers.destroy', 'shippers.manage'],
+        ['maps.search', 'shippers.manage|trips.create|trips.edit'],
+        ['maps.reverse', 'shippers.manage|trips.create|trips.edit'],
+    ]);
+
+    it('throttles the address search per user', function (string $name) {
+        expect(Route::getRoutes()->getByName($name)->gatherMiddleware())->toContain('throttle:30,1,geocoder');
+    })->with(['maps.search', 'maps.reverse']);
+});
+
 // The page was an unrelated investment calculator; the product owner had it removed (2026-10-09).
 describe('ACL-04 → /profit is removed', function () {
     it('returns 404 for everyone', function (?Closure $login) {
