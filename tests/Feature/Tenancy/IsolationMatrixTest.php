@@ -17,6 +17,7 @@ use Database\Factories\ExportFactory;
 use Database\Factories\FolderFactory;
 use Database\Factories\MaintenanceScheduleFactory;
 use Database\Factories\ServiceLogFactory;
+use Database\Factories\ShipperFactory;
 use Database\Factories\StoredFileFactory;
 use Database\Factories\TrailerFactory;
 use Database\Factories\UserFactory;
@@ -114,6 +115,7 @@ function isoFixtures(): array
     // A custom folder in a DQ file, and a document in it
     $folder = fn (Company $a) => [FolderFactory::new()->childOf(Docs::dqFile($a)[1])->create()->id];
     $document = fn (Company $a) => [DocumentFactory::new()->inFolder(Docs::dqFile($a)[1])->withFile(Files::stored($a->id))->create()->id];
+    $shipper = fn (Company $a) => [ShipperFactory::new()->forCompany($a)->create()->id];
     $user = fn (Company $a) => [UserFactory::new()->create(['company_id' => $a->id])->id];
     $role = fn (Company $a) => [Role::query()->where('team_id', $a->id)->where('name', 'Dispatcher')->value('id')];
     $invitation = fn (Company $a) => [app(TenantContext::class)->run($a->id, fn () => CompanyInvitation::create([
@@ -195,6 +197,12 @@ function isoFixtures(): array
         'DELETE admin/documents/{document}' => $document,
         // Exports (P1-6)
         'GET admin/exports/{export}/download' => fn (Company $a) => [ExportFactory::new()->ready(Files::stored($a->id, 'PK', 'zip'))->create()->id],
+        // Shippers (P2-1)
+        'GET admin/shippers/{shipper}/edit' => $shipper,
+        'PUT admin/shippers/{shipper}' => $shipper,
+        'POST admin/shippers/{shipper}/activate' => $shipper,
+        'POST admin/shippers/{shipper}/deactivate' => $shipper,
+        'DELETE admin/shippers/{shipper}' => $shipper,
         // Company settings
         'GET admin/settings/company/{id}/edit' => fn (Company $a) => [$a->id],
         'PATCH admin/settings/company/{id}' => fn (Company $a) => [$a->id],

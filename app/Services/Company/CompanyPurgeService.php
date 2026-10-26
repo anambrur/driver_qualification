@@ -29,7 +29,7 @@ class CompanyPurgeService
         'asset_groups', 'audit_logs', 'company_document_type', 'company_feature_overrides', 'company_invitations',
         'company_retained_features', 'company_settings', 'documents', 'driver_compliance_documents', 'drivers',
         'exports', 'folders', 'maintenance_schedules', 'payments', 'platform_support_sessions', 'policy_pdfs',
-        'service_documents', 'service_logs', 'stored_files', 'subscription_notification_logs', 'subscriptions',
+        'service_documents', 'service_logs', 'shippers', 'stored_files', 'subscription_notification_logs', 'subscriptions',
         'trailer_documents', 'trailers', 'trip_number_sequences', 'users', 'vehicle_documents', 'vehicles',
     ];
 
@@ -150,6 +150,9 @@ class CompanyPurgeService
             }
             $deleted['exports'] = $of('exports')->delete();
             $deleted['policy_pdfs'] = $of('policy_pdfs')->delete();
+
+            // Operations
+            $deleted['shippers'] = $of('shippers')->delete();
 
             // Fleet and maintenance (service documents and categories cascade from the logs)
             $deleted['asset_groups'] = $of('asset_groups')->delete();

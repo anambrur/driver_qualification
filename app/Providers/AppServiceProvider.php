@@ -10,6 +10,10 @@ use App\Services\Billing\AccessStateResolver;
 use App\Services\Entitlements\EntitlementResolver;
 use App\Services\Entitlements\Entitlements;
 use App\Services\Mail\MailIdentity;
+use App\Services\Maps\Geocoder;
+use App\Services\Maps\NominatimGeocoder;
+use App\Services\Maps\NullGeocoder;
+use App\Services\Maps\PhotonGeocoder;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Events\MessageSending;
@@ -34,6 +38,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(TenantPermissionResolver::class);
         $this->app->scoped(AccessStateResolver::class);
         $this->app->scoped(EntitlementResolver::class);
+
+        // Address search (config/maps.php); anything else than a known driver turns search off
+        $this->app->bind(Geocoder::class, fn () => match (config('maps.geocoder.driver')) {
+            'photon' => new PhotonGeocoder,
+            'nominatim' => new NominatimGeocoder,
+            default => new NullGeocoder,
+        });
 
         $this->app->singleton(Client::class, function () {
             return new Client(new Basic(

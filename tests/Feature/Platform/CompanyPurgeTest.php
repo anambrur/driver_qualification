@@ -14,6 +14,7 @@ use Database\Factories\LicenseFactory;
 use Database\Factories\MaintenanceScheduleFactory;
 use Database\Factories\PaymentFactory;
 use Database\Factories\ServiceLogFactory;
+use Database\Factories\ShipperFactory;
 use Database\Factories\StoredFileFactory;
 use Database\Factories\VehicleFactory;
 use Illuminate\Support\Facades\DB;
@@ -51,6 +52,7 @@ function companyWithEverything(): Company
         $schedule = MaintenanceScheduleFactory::new()->forVehicle($vehicle)->create();
         ServiceLogFactory::new()->forVehicle($vehicle)->create(['maintenance_schedule_id' => $schedule->id, 'service_date' => now()->subYears(9)]);
         AssetGroupFactory::new()->forCompany($company)->create();
+        ShipperFactory::new()->forCompany($company)->create()->delete();
     });
 
     PaymentFactory::new()->forCompany($company)->create(['created_at' => now()->subYears(9)]);

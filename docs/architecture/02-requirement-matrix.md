@@ -76,7 +76,7 @@ The differences come from the corrections in section 12. Eight further client it
 | 4.1 | Create a trip / edit trip details | Not avail. | **Missing** | — | `trips`, `trip_stops` | `trips` | 0 | 2 | One load per trip (decided Q6) |
 | 4.2 | Automatic trip number and date, confirmed by the owner | Not avail. | **Missing** | — | `trip_number_sequences`; `trips.number_confirmed_at` / `_by` | `trips` | 4.1 | 2 | The number is unique per company and assigned under a row lock |
 | 4.3 | Trip details (product, weight) | Not avail. | **Missing** | — | `trips.product`, `weight`, `weight_unit` | `trips` | 4.1 | 2 | "Load type" in 8.6 = product (decided C8) |
-| 4.4 | Add shipper information and save shippers for reuse | Not avail. | **Missing** | — | `shippers` | `trips` | 0 | 2 | — |
+| 4.4 | Add shipper information and save shippers for reuse | Not avail. | **Complete** (P2-1, 26 Oct 2026; used on trips from P2-2) | — | `shippers` | `trips` | 0 | 2 | — |
 | 4.5 | Assign a driver to a trip / assign a load to a driver | Not avail. | **Missing** | Asset groups pair a driver with equipment, but nothing links them to a trip | `trips.driver_id`, `vehicle_id`, `trailer_id` | `trips` | 4.1 | 2 | These are two client bullets for one action (section 13) |
 | 4.6 | Confirm the assigned tractor and trailer are correct | Not avail. | **Missing** | — | `trips.equipment_confirmed_at` / `_by_user_id` | `trips` | 4.5 | 2 | Done by the driver in the app |
 
