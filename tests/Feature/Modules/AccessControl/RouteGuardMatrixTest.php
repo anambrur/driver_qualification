@@ -324,6 +324,25 @@ describe('P2-1 → shippers and address search need the trips feature and their 
     })->with(['maps.search', 'maps.reverse']);
 });
 
+describe('P2-2 → trips need the trips feature and their permissions', function () {
+    it('guards each route with its permission and the trips feature', function (string $name, string $permission) {
+        $middleware = Route::getRoutes()->getByName($name)?->gatherMiddleware();
+
+        expect($middleware)->toContain("permission:$permission")->toContain('feature:trips');
+    })->with([
+        ['trips.index', 'trips.view'],
+        ['trips.data', 'trips.view'],
+        ['trips.show', 'trips.view'],
+        ['trips.create', 'trips.create'],
+        ['trips.store', 'trips.create'],
+        ['trips.update', 'trips.edit'],
+        ['trips.stops.update', 'trips.edit'],
+        ['trips.cancel', 'trips.edit'],
+        ['trips.confirm-number', 'trips.confirm-number'],
+        ['trips.destroy', 'trips.delete'],
+    ]);
+});
+
 // The page was an unrelated investment calculator; the product owner had it removed (2026-10-09).
 describe('ACL-04 → /profit is removed', function () {
     it('returns 404 for everyone', function (?Closure $login) {

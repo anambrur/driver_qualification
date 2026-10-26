@@ -8,6 +8,7 @@ use Database\Factories\PlatformUserFactory;
 use Database\Factories\ServiceLogFactory;
 use Database\Factories\StoredFileFactory;
 use Database\Factories\SubscriptionFactory;
+use Database\Factories\TripFactory;
 use Database\Factories\VehicleFactory;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\Artisan;
@@ -76,6 +77,10 @@ it('reports the rows that break a rule', function (int $query, Closure $breakIt)
     'vehicle-folder document about nothing' => [5, function ($c) {
         $document = DocumentFactory::new()->inFolder(Docs::systemFolder(VehicleFactory::new()->forCompany($c)->create()))->create();
         DB::table('documents')->where('id', $document->id)->update(['vehicle_id' => null]);
+    }],
+    'trip-folder document about another trip' => [5, function ($c) {
+        $document = DocumentFactory::new()->inFolder(Docs::systemFolder(TripFactory::new()->forCompany($c)->create()))->create();
+        DB::table('documents')->where('id', $document->id)->update(['trip_id' => TripFactory::new()->forCompany($c)->create()->id]);
     }],
     'storage counter out of step' => [6, function ($c) {
         StoredFileFactory::new()->forCompany($c)->create();

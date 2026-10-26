@@ -6,6 +6,7 @@ use App\Models\DocumentType;
 use App\Models\Driver;
 use App\Models\Folder;
 use App\Models\Trailer;
+use App\Models\Trip;
 use App\Models\Vehicle;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Collection;
@@ -27,7 +28,7 @@ class FolderBrowser
      *
      * @return Browser|null
      */
-    public function tab(Driver|Vehicle|Trailer $entity, ?int $folderId): ?array
+    public function tab(Driver|Vehicle|Trailer|Trip $entity, ?int $folderId): ?array
     {
         return Gate::allows('folders.view') ? $this->build([$entity->getForeignKey(), $entity->id], $folderId) : null;
     }
@@ -79,6 +80,7 @@ class FolderBrowser
             'driver_id' => route('admin.driver.show', [$folder->driver_id, 'folder' => $folder->id]).'#documents',
             'vehicle_id' => route('admin.vehicle.show', [$folder->vehicle_id, 'folder' => $folder->id]).'#documents',
             'trailer_id' => route('admin.trailer.show', [$folder->trailer_id, 'folder' => $folder->id]).'#documents',
+            'trip_id' => route('trips.show', [$folder->trip_id, 'folder' => $folder->id]).'#documents',
             default => route('documents.index', $folder === null ? [] : ['folder' => $folder->id]),
         };
     }

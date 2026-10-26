@@ -1,0 +1,152 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\AuditsDeletes;
+use App\Tenancy\BelongsToCompany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
+
+/**
+ * A trip with one load (08 §9, req 4.1–4.3, Q6). The number is unique per company, taken from
+ * trip_number_sequences, and locked once confirmed. Lifecycle: 10 §13.
+ *
+ * @property int $trip_number
+ * @property Carbon $trip_date
+ * @property string $status
+ * @property Carbon|null $number_confirmed_at
+ */
+class Trip extends Model
+{
+    use AuditsDeletes, BelongsToCompany, HasFactory, SoftDeletes;
+
+    protected const AUDIT_NAME = 'trip';
+
+    public const STATUSES = ['draft', 'planned', 'assigned', 'in_progress', 'completed', 'cancelled'];
+
+    /** Details and stops can change; in_progress gets its own rules in P2-3. */
+    public const EDITABLE = ['draft', 'planned', 'assigned'];
+
+    public const CANCELLABLE = ['draft', 'planned', 'assigned'];
+
+    public const DELETABLE = ['draft', 'cancelled'];
+
+    public const WEIGHT_UNITS = ['lb' => 'lb', 'kg' => 'kg'];
+
+    public const MAX_NUMBER = 99_999_999;
+
+    /** The number, date and status change only through TripService. */
+    protected $fillable = [
+        'shipper_id',
+        'product',
+        'weight',
+        'weight_unit',
+        'planned_distance_miles',
+        'notes',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'trip_number' => 'integer',
+            'trip_date' => 'date',
+            'number_confirmed_at' => 'datetime',
+            'weight' => 'decimal:2',
+            'load_pay' => 'decimal:2',
+            'planned_distance_miles' => 'decimal:1',
+            'actual_distance_miles' => 'decimal:1',
+            'paid_miles' => 'decimal:1',
+            'equipment_confirmed_at' => 'datetime',
+            'started_at' => 'datetime',
+            'completed_at' => 'datetime',
+            'cancelled_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * @return HasMany<TripStop, $this>
+     */
+    public function stops(): HasMany
+    {
+        return $this->hasMany(TripStop::class)->orderBy('sequence');
+    }
+
+    /**
+     * A deleted shipper keeps showing on the trips that used it.
+     *
+     * @return BelongsTo<Shipper, $this>
+     */
+    public function shipper(): BelongsTo
+    {
+        return $this->belongsTo(Shipper::class)->withTrashed();
+    }
+
+    /**
+     * @return BelongsTo<Driver, $this>
+     */
+    public function driver(): BelongsTo
+    {
+        return $this->belongsTo(Driver::class)->withTrashed();
+    }
+
+    /**
+     * @return BelongsTo<Vehicle, $this>
+     */
+    public function vehicle(): BelongsTo
+    {
+        return $this->belongsTo(Vehicle::class)->withTrashed();
+    }
+
+    /**
+     * @return BelongsTo<Trailer, $this>
+     */
+    public function trailer(): BelongsTo
+    {
+        return $this->belongsTo(Trailer::class)->withTrashed();
+    }
+
+    /**
+     * The trip's standard folder ("Trip documents").
+     *
+     * @return HasOne<Folder, $this>
+     */
+    public function folder(): HasOne
+    {
+        return $this->hasOne(Folder::class)->where('system_key', Folder::BINDINGS['trip_id']);
+    }
+
+    public function isNumberLocked(): bool
+    {
+        return $this->number_confirmed_at !== null;
+    }
+
+    public function isEditable(): bool
+    {
+        return in_array($this->status, self::EDITABLE, true);
+    }
+
+    public function canBeCancelled(): bool
+    {
+        return in_array($this->status, self::CANCELLABLE, true);
+    }
+
+    public function canBeDeleted(): bool
+    {
+        return in_array($this->status, self::DELETABLE, true);
+    }
+
+    public function label(): string
+    {
+        return '#'.$this->trip_number;
+    }
+
+    public function stop(string $type): ?TripStop
+    {
+        return $this->stops->firstWhere('stop_type', $type);
+    }
+}

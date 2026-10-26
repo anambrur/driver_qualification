@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Driver;
 use App\Models\Folder;
 use App\Models\Trailer;
+use App\Models\Trip;
 use App\Models\Vehicle;
 use App\Services\Documents\FolderService;
 use App\Tenancy\TenantContext;
@@ -15,15 +16,15 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Run once on deploy: the standard folder of every driver, vehicle and trailer that existed
- * before folders did. Retired (soft-deleted) ones too, since their history stays viewable.
+ * Run on deploy: the standard folder of every driver, vehicle, trailer and trip that existed
+ * before its folder did. Retired (soft-deleted) ones too, since their history stays viewable.
  * Public applicants get their DQ file at hire. Safe to run again.
  */
 class EnsureSystemFolders extends Command
 {
     protected $signature = 'folders:ensure-system {company? : Only this company id}';
 
-    protected $description = 'Create the missing DQ file, vehicle and trailer folders';
+    protected $description = 'Create the missing DQ file, vehicle, trailer and trip folders';
 
     public function handle(FolderService $folders, TenantContext $tenant): int
     {
@@ -37,7 +38,7 @@ class EnsureSystemFolders extends Command
                 $drivers = Driver::withTrashed()
                     ->where(fn (Builder $q) => $q->where('source', 'admin')->orWhere('employment_status', '<>', 'applicant'));
 
-                foreach ([$drivers, Vehicle::withTrashed(), Trailer::withTrashed()] as $query) {
+                foreach ([$drivers, Vehicle::withTrashed(), Trailer::withTrashed(), Trip::withTrashed()] as $query) {
                     $column = $query->getModel()->getForeignKey();
 
                     $query->whereNotExists(fn (QueryBuilder $q) => $q->from('folders')

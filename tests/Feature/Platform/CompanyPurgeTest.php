@@ -16,6 +16,8 @@ use Database\Factories\PaymentFactory;
 use Database\Factories\ServiceLogFactory;
 use Database\Factories\ShipperFactory;
 use Database\Factories\StoredFileFactory;
+use Database\Factories\TripFactory;
+use Database\Factories\TripStopFactory;
 use Database\Factories\VehicleFactory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -52,7 +54,11 @@ function companyWithEverything(): Company
         $schedule = MaintenanceScheduleFactory::new()->forVehicle($vehicle)->create();
         ServiceLogFactory::new()->forVehicle($vehicle)->create(['maintenance_schedule_id' => $schedule->id, 'service_date' => now()->subYears(9)]);
         AssetGroupFactory::new()->forCompany($company)->create();
-        ShipperFactory::new()->forCompany($company)->create()->delete();
+        $shipper = ShipperFactory::new()->forCompany($company)->create();
+        $trip = TripFactory::new()->forCompany($company)->completed()->create(['shipper_id' => $shipper->id]);
+        TripStopFactory::new()->onTrip($trip, 'start', 1)->create(['shipper_id' => $shipper->id]);
+        Docs::systemFolder($trip);
+        $shipper->delete();
     });
 
     PaymentFactory::new()->forCompany($company)->create(['created_at' => now()->subYears(9)]);

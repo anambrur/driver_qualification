@@ -8,7 +8,7 @@ use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * A folder bound to a driver, vehicle or trailer also needs the right to see that entity, so
+ * A folder bound to a driver, vehicle, trailer or trip also needs the right to see that entity, so
  * folders.view alone never opens a DQ file.
  */
 class FolderPolicy
@@ -16,7 +16,7 @@ class FolderPolicy
     use OwnedByCompany;
 
     /** Binding column => the entity's view permission. */
-    public const ENTITY_ABILITIES = ['driver_id' => 'drivers.view', 'vehicle_id' => 'vehicles.view', 'trailer_id' => 'trailers.view'];
+    public const ENTITY_ABILITIES = ['driver_id' => 'drivers.view', 'vehicle_id' => 'vehicles.view', 'trailer_id' => 'trailers.view', 'trip_id' => 'trips.view'];
 
     public function view(User $user, Model $model): Response
     {

@@ -20,6 +20,7 @@ use Database\Factories\ServiceLogFactory;
 use Database\Factories\ShipperFactory;
 use Database\Factories\StoredFileFactory;
 use Database\Factories\TrailerFactory;
+use Database\Factories\TripFactory;
 use Database\Factories\UserFactory;
 use Database\Factories\VehicleFactory;
 use Illuminate\Routing\Route as RoutingRoute;
@@ -116,6 +117,7 @@ function isoFixtures(): array
     $folder = fn (Company $a) => [FolderFactory::new()->childOf(Docs::dqFile($a)[1])->create()->id];
     $document = fn (Company $a) => [DocumentFactory::new()->inFolder(Docs::dqFile($a)[1])->withFile(Files::stored($a->id))->create()->id];
     $shipper = fn (Company $a) => [ShipperFactory::new()->forCompany($a)->create()->id];
+    $trip = fn (Company $a) => [TripFactory::new()->forCompany($a)->create()->id];
     $user = fn (Company $a) => [UserFactory::new()->create(['company_id' => $a->id])->id];
     $role = fn (Company $a) => [Role::query()->where('team_id', $a->id)->where('name', 'Dispatcher')->value('id')];
     $invitation = fn (Company $a) => [app(TenantContext::class)->run($a->id, fn () => CompanyInvitation::create([
@@ -203,6 +205,13 @@ function isoFixtures(): array
         'POST admin/shippers/{shipper}/activate' => $shipper,
         'POST admin/shippers/{shipper}/deactivate' => $shipper,
         'DELETE admin/shippers/{shipper}' => $shipper,
+        // Trips (P2-2)
+        'GET admin/trips/{trip}' => $trip,
+        'PUT admin/trips/{trip}' => $trip,
+        'PUT admin/trips/{trip}/stops' => $trip,
+        'POST admin/trips/{trip}/confirm-number' => $trip,
+        'POST admin/trips/{trip}/cancel' => $trip,
+        'DELETE admin/trips/{trip}' => $trip,
         // Company settings
         'GET admin/settings/company/{id}/edit' => fn (Company $a) => [$a->id],
         'PATCH admin/settings/company/{id}' => fn (Company $a) => [$a->id],
