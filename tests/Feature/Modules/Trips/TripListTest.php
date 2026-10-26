@@ -12,8 +12,9 @@ use Tests\Support\Perf;
 
 /*
 | The trips list (req 4.1, yajra): number, date, status, shipper and route, newest date first;
-| status and date filters; search by number, product or shipper; a constant query count. The
-| trip page stays within a query budget with all its tabs.
+| status, date, driver and vehicle filters; search by number, product or shipper; a constant
+| query count. The trip page stays within a query budget with all its tabs and cards, and the
+| driver and vehicle pages show their recent trips.
 */
 
 beforeEach(function () {
@@ -110,4 +111,70 @@ it('shows a read-only trip page for a completed trip', function () {
 
     $this->actingAs($company->owner)->get(route('trips.show', $trip))->assertOk()
         ->assertSee('Lumber')->assertDontSee('Save details')->assertDontSee('Save stops');
+});
+
+it('filters by driver and vehicle, as the driver and vehicle pages link', function () {
+    $company = Actors::company();
+    $mine = TripFactory::new()->forCompany($company)->assigned()->create(['trip_number' => 21]);
+    TripFactory::new()->forCompany($company)->assigned()->create(['trip_number' => 22]);
+    $this->actingAs($company->owner);
+    $numbers = fn (array $query) => collect(tripRows($this, $query))->map(fn ($row) => (int) preg_replace('/\D/', '', strip_tags(explode('</a>', $row['number'])[0])))->sort()->values()->all();
+
+    expect($numbers(['driver_id' => $mine->driver_id]))->toBe([21])
+        ->and($numbers(['vehicle_id' => $mine->vehicle_id]))->toBe([21])
+        ->and($numbers(['driver_id' => 'x']))->toBe([21, 22]);
+
+    $this->get(route('trips.index', ['driver_id' => $mine->driver_id]))->assertOk()
+        ->assertSee('d["driver_id"] = '.$mine->driver_id.';', false)->assertSee('Driver: ');
+});
+
+it('opens an assigned trip with the pickers and warnings within its query budget', function () {
+    $company = Actors::company();
+    $trip = Trips::assigned($company, confirmed: false, pickup: true);
+    Trips::assigned($company, confirmed: false);
+    collect(range(1, 3))->each(fn () => Trips::crew($company));
+    $this->actingAs(Actors::dispatcher($company));
+    $this->get(route('trips.show', $trip))->assertOk();
+
+    Perf::assertMaxQueries(16, fn () => $this->get(route('trips.show', $trip))->assertOk()
+        ->assertSee('Assignment')->assertSee('Confirm equipment')->assertSee('data-group-defaults', false));
+});
+
+it('opens a trip in progress within its query budget', function () {
+    $company = Actors::company();
+    $trip = Trips::inProgress($company, pickup: true);
+    $this->actingAs(Actors::dispatcher($company));
+    $this->get(route('trips.show', $trip))->assertOk();
+
+    Perf::assertMaxQueries(7, fn () => $this->get(route('trips.show', $trip))->assertOk()->assertSee('Save stop times'));
+});
+
+it('shows the recent trips on the driver and vehicle pages to staff with trips.view', function () {
+    $company = Actors::company();
+    $trip = TripFactory::new()->forCompany($company)->assigned()->create(['trip_number' => 31]);
+    TripFactory::new()->forCompany($company)->count(11)->create();
+    $this->actingAs($company->owner);
+
+    $this->get(route('admin.driver.show', $trip->driver_id))->assertOk()
+        ->assertSee('Recent trips')->assertSee('#31')->assertSee(route('trips.index', ['driver_id' => $trip->driver_id]));
+    $this->get(route('admin.vehicle.show', $trip->vehicle_id))->assertOk()
+        ->assertSee('Recent trips')->assertSee('#31')->assertSee(route('trips.index', ['vehicle_id' => $trip->vehicle_id]));
+
+    $office = Actors::officeUser($company);
+    $this->actingAs($office)->get(route('admin.driver.show', $trip->driver_id))->assertOk()->assertDontSee('Recent trips');
+    $this->actingAs($office)->get(route('admin.vehicle.show', $trip->vehicle_id))->assertOk()->assertDontSee('Recent trips');
+});
+
+it('keeps the recent trips to one query and ten rows', function () {
+    $company = Actors::company();
+    $driver = TripFactory::new()->forCompany($company)->assigned()->create()->driver_id;
+    $this->actingAs($company->owner);
+
+    $count = fn () => Perf::countQueries(fn () => $this->get(route('admin.driver.show', $driver))->assertOk());
+    $this->get(route('admin.driver.show', $driver));
+    $before = $count();
+    TripFactory::new()->forCompany($company)->count(12)->assigned()->create(['driver_id' => $driver]);
+
+    expect($count())->toBe($before)
+        ->and(substr_count($this->get(route('admin.driver.show', $driver))->getContent(), 'data-label="Trip" data-primary'))->toBe(10);
 });

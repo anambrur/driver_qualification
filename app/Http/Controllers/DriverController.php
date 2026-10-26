@@ -10,6 +10,7 @@ use App\Models\AssetGroup;
 use App\Models\Driver;
 use App\Models\DriverDocument;
 use App\Models\PolicyPdf;
+use App\Models\Trip;
 use App\Services\Compliance\DriverComplianceService;
 use App\Services\Documents\FolderBrowser;
 use App\Services\Driver\DriverCrudService;
@@ -165,7 +166,14 @@ class DriverController extends Controller
         $documentsBrowser = $browser->tab($driver, $request->integer('folder') ?: null);
         $virtualDocuments = $documentsBrowser === null ? [] : $browser->virtualDocuments($driver);
 
-        return view('admin.driver.show', compact('driver', 'compliance', 'uploadedDocuments', 'activityLogs', 'documentsBrowser', 'virtualDocuments'));
+        // Recent trips need the trips feature and trips.view (checked by the gate)
+        $recentTrips = $request->user()->can('trips.view')
+            ? Trip::query()->where('driver_id', $driver->id)->with('vehicle:id,unit_no')
+                ->orderByDesc('trip_date')->orderByDesc('trip_number')->limit(10)
+                ->get(['id', 'trip_number', 'trip_date', 'status', 'vehicle_id', 'vehicle_unit_no_snapshot'])
+            : null;
+
+        return view('admin.driver.show', compact('driver', 'compliance', 'uploadedDocuments', 'activityLogs', 'documentsBrowser', 'virtualDocuments', 'recentTrips'));
     }
 
     public function edit($id)

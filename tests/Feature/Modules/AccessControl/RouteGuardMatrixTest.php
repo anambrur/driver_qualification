@@ -340,6 +340,14 @@ describe('P2-2 → trips need the trips feature and their permissions', function
         ['trips.cancel', 'trips.edit'],
         ['trips.confirm-number', 'trips.confirm-number'],
         ['trips.destroy', 'trips.delete'],
+        // P2-3
+        ['trips.assignment.update', 'trips.assign'],
+        ['trips.assignment.destroy', 'trips.assign'],
+        ['trips.equipment.confirm', 'trips.assign'],
+        ['trips.start', 'trips.edit'],
+        ['trips.picked-up', 'trips.edit'],
+        ['trips.stop-times.update', 'trips.edit'],
+        ['trips.complete', 'trips.edit'],
     ]);
 });
 

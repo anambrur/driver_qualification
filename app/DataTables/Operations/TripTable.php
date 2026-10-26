@@ -10,8 +10,9 @@ use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
 /**
- * The company's trips (req 4.1), newest trip date first. Driver and vehicle stay empty until
- * assignment (P2-3). Search: a trip number, or the product or shipper name.
+ * The company's trips (req 4.1), newest trip date first, filterable by status, date, driver and
+ * vehicle (the driver and vehicle pages link here). Search: a trip number, or the product or
+ * shipper name.
  */
 final class TripTable
 {
@@ -30,6 +31,11 @@ final class TripTable
 
         if (in_array($status = (string) $this->request->input('status'), Trip::STATUSES, true)) {
             $query->where('status', $status);
+        }
+        foreach (['driver_id', 'vehicle_id'] as $column) {
+            if (ctype_digit($id = (string) $this->request->input($column))) {
+                $query->where($column, (int) $id);
+            }
         }
         if ($from = $this->date('date_from')) {
             $query->where('trip_date', '>=', $from);

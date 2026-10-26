@@ -18,6 +18,11 @@
                     <x-ui.select data-dt-filter="status" aria-label="Filter by status" :options="['' => 'Any status'] + collect($statuses)->mapWithKeys(fn ($status) => [$status => \App\Support\Ui\Status::label($status)])->all()" class="w-auto!" />
                     <x-ui.input type="date" data-dt-filter="date_from" aria-label="Trip date from" class="w-auto!" />
                     <x-ui.input type="date" data-dt-filter="date_to" aria-label="Trip date to" class="w-auto!" />
+                    @if ($filter)
+                        <a href="{{ route('trips.index') }}" class="badge" data-variant="secondary" aria-label="Remove the filter {{ $filter['label'] }}">
+                            {{ $filter['label'] }} <x-ui.icon name="x" class="size-3" />
+                        </a>
+                    @endif
                     <x-ui.button variant="ghost" size="sm" data-dt-reset>Clear</x-ui.button>
                 </div>
             </x-slot:toolbar>
@@ -41,6 +46,10 @@
     <script type="module">
         window.dqTable('#trip-table', {
             ajax: @json(route('trips.data')),
+            @if ($filter)
+                // Opened from a driver or vehicle page; Clear keeps it, the chip removes it
+                data: (d) => { d[@json($filter['name'])] = @json($filter['value']); },
+            @endif
             order: [[1, 'desc']],
             columns: [
                 { data: 'number', name: 'number', searchable: false },

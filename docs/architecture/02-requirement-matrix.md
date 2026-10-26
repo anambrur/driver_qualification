@@ -73,12 +73,12 @@ The differences come from the corrections in section 12. Eight further client it
 
 | # | Requirement | Gap | Verified | Code today | DB changes | Feature | Depends on | Phase | Risks / notes |
 |---|---|---|---|---|---|---|---|---|---|
-| 4.1 | Create a trip / edit trip details | Not avail. | **Complete** (P2-2, 26 Oct 2026; assignment is P2-3) | — | `trips`, `trip_stops` | `trips` | 0 | 2 | One load per trip (decided Q6) |
+| 4.1 | Create a trip / edit trip details | Not avail. | **Complete** (P2-2, 26 Oct 2026; assignment P2-3) | — | `trips`, `trip_stops` | `trips` | 0 | 2 | One load per trip (decided Q6) |
 | 4.2 | Automatic trip number and date, confirmed by the owner | Not avail. | **Complete** (P2-2, 26 Oct 2026) | — | `trip_number_sequences`; `trips.number_confirmed_at` / `_by` | `trips` | 4.1 | 2 | The number is unique per company and assigned under a row lock |
 | 4.3 | Trip details (product, weight) | Not avail. | **Complete** (P2-2, 26 Oct 2026) | — | `trips.product`, `weight`, `weight_unit` | `trips` | 4.1 | 2 | "Load type" in 8.6 = product (decided C8) |
 | 4.4 | Add shipper information and save shippers for reuse | Not avail. | **Complete** (P2-1, 26 Oct 2026; used on trips from P2-2) | — | `shippers` | `trips` | 0 | 2 | — |
-| 4.5 | Assign a driver to a trip / assign a load to a driver | Not avail. | **Missing** | Asset groups pair a driver with equipment, but nothing links them to a trip | `trips.driver_id`, `vehicle_id`, `trailer_id` | `trips` | 4.1 | 2 | These are two client bullets for one action (section 13) |
-| 4.6 | Confirm the assigned tractor and trailer are correct | Not avail. | **Missing** | — | `trips.equipment_confirmed_at` / `_by_user_id` | `trips` | 4.5 | 2 | Done by the driver in the app |
+| 4.5 | Assign a driver to a trip / assign a load to a driver | Not avail. | **Complete** (P2-3, 26 Oct 2026) | Defaults from the driver's active asset group | `trips.driver_id`, `vehicle_id`, `trailer_id` | `trips` | 4.1 | 2 | These are two client bullets for one action (section 13) |
+| 4.6 | Confirm the assigned tractor and trailer are correct | Not avail. | **Complete on the web** (P2-3, 26 Oct 2026: staff confirm for the driver; the driver in the app is Phase 3) | — | `trips.equipment_confirmed_at` / `_by_user_id` | `trips` | 4.5 | 2 | Done by the driver in the app |
 
 ## 5. Pre-trip inspection
 

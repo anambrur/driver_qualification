@@ -96,6 +96,7 @@ Filled in by each package's final report and confirmed against the code in P2-7.
 - `PermissionSeeder`, then `php artisan roles:sync-company` (P2-4 adds `inspections.manage`).
 - The default pre-trip inspection template seeder (P2-4).
 - `php artisan folders:ensure-system` covers trips (P2-2); idempotent. P2-2 adds no permission, env key, queue or schedule.
+- P2-3 (assignment and lifecycle) adds no migration, permission, env key, queue or schedule; nothing to run beyond the code.
 - `npm run build` output committed (Leaflet, P2-1). [L] OpenStreetMap attribution on every map; a tile or geocoding provider once traffic outgrows the public policies.
 - Env (P2-1, all optional): `MAPS_GEOCODER` (`photon` default, `nominatim`, or `none` to switch search off), `MAPS_GEOCODER_URL`, `MAPS_GEOCODER_CONTACT` (defaults to `MAIL_FROM_ADDRESS`, sent in the User-Agent), `MAPS_GEOCODER_TIMEOUT` (4 s), `MAPS_GEOCODER_CACHE_DAYS` (30), `MAPS_TILE_URL`, `MAPS_TILE_ATTRIBUTION`. The app-wide geocoder limit uses the cache store, so production needs a shared cache (`database` today).
 

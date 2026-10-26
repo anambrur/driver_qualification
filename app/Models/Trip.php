@@ -20,6 +20,9 @@ use Illuminate\Support\Carbon;
  * @property Carbon $trip_date
  * @property string $status
  * @property Carbon|null $number_confirmed_at
+ * @property Carbon|null $equipment_confirmed_at
+ * @property Carbon|null $started_at
+ * @property Carbon|null $completed_at
  */
 class Trip extends Model
 {
@@ -29,8 +32,11 @@ class Trip extends Model
 
     public const STATUSES = ['draft', 'planned', 'assigned', 'in_progress', 'completed', 'cancelled'];
 
-    /** Details and stops can change; in_progress gets its own rules in P2-3. */
+    /** Details and stops can change; once in progress only the stop times do (P2-3). */
     public const EDITABLE = ['draft', 'planned', 'assigned'];
+
+    /** A driver and equipment can be (re)assigned. */
+    public const ASSIGNABLE = ['planned', 'assigned'];
 
     public const CANCELLABLE = ['draft', 'planned', 'assigned'];
 
@@ -111,6 +117,14 @@ class Trip extends Model
     }
 
     /**
+     * @return BelongsTo<User, $this>
+     */
+    public function equipmentConfirmedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'equipment_confirmed_by_user_id');
+    }
+
+    /**
      * The trip's standard folder ("Trip documents").
      *
      * @return HasOne<Folder, $this>
@@ -148,5 +162,26 @@ class Trip extends Model
     public function stop(string $type): ?TripStop
     {
         return $this->stops->firstWhere('stop_type', $type);
+    }
+
+    /**
+     * Where the load is picked up: the pickup stop, or the start when it is also the pickup
+     * (08 §9 "pending pickup"). None when the route has neither.
+     */
+    public function pickupStop(): ?TripStop
+    {
+        $start = $this->stop('start');
+
+        return $this->stop('pickup') ?? ($start?->also_pickup ? $start : null);
+    }
+
+    public function isPickedUp(): bool
+    {
+        return $this->pickupStop()?->departed_at !== null;
+    }
+
+    public function isAssignable(): bool
+    {
+        return in_array($this->status, self::ASSIGNABLE, true);
     }
 }

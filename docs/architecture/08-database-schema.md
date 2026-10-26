@@ -545,7 +545,7 @@ Saved shippers, reusable on later trips.
 - Equipment check: `equipment_confirmed_at`, `equipment_confirmed_by_user_id`.
 - Distance and progress: `planned_distance_miles`, `actual_distance_miles`, `paid_miles` (decimal(8,1)) (defaults to `planned_distance_miles`; editable with `pay.manage` until the trip is on an approved payroll run), `started_at`, `completed_at`, `cancelled_at`, `cancel_reason`.
 - Snapshots taken at start: `vehicle_unit_no_snapshot`, `trailer_unit_no_snapshot`.
-- One-active guards: `active_driver_id` (generated: `CASE WHEN status='in_progress' THEN driver_id END`), `active_vehicle_id` (generated, the same way).
+- One-active guards: `active_driver_id` (generated: `CASE WHEN status='in_progress' THEN driver_id END`), `active_vehicle_id` (generated, the same way). `TripLifecycleService::start` turns a unique violation into "This driver already has a trip in progress (#N)" (P2-3).
 - Other: `created_by_user_id`, `notes`, timestamps, `deleted_at`.
 
 **FKs:**
@@ -585,7 +585,8 @@ The planned route.
 - **Unique:** `(trip_id, sequence)`; `(trip_id, stop_type)`, one stop of each type (P2-2).
 - **Place reference:** `place_source` (e.g. `photon`, `nominatim`, `manual`) and `place_ref` (the geocoder's id) are nullable and provider-neutral, the same on `shippers`. The map is free: Leaflet with OpenStreetMap tiles and a server-side geocoder (decided 23 Oct 2026, [14](14-open-questions.md) §2).
 - **Index:** `(company_id, trip_id)`.
-- **"Pending pickup"** = an assigned or in-progress trip whose pickup stop (or start stop with `also_pickup`) has no `departed_at`.
+- **"Pending pickup"** = an assigned or in-progress trip whose pickup stop (or start stop with `also_pickup`) has no `departed_at`. A route with neither has nothing to pick up (`Trip::pickupStop()`, P2-3).
+- **Stop times (P2-3):** set while the trip is in progress, typed in the company time zone and stored in UTC; not before the trip date, not in the future, departure not before arrival. "Picked up" sets the pickup stop's `departed_at`; completing sets the drop-off's `arrived_at` when empty.
 - **Unplanned stops** are `trip_events` of type `stop`.
 
 ### `inspection_templates`, `inspection_template_items` (Reference)
