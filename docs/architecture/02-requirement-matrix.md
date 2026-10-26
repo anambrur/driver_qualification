@@ -73,9 +73,9 @@ The differences come from the corrections in section 12. Eight further client it
 
 | # | Requirement | Gap | Verified | Code today | DB changes | Feature | Depends on | Phase | Risks / notes |
 |---|---|---|---|---|---|---|---|---|---|
-| 4.1 | Create a trip / edit trip details | Not avail. | **Missing** | — | `trips`, `trip_stops` | `trips` | 0 | 2 | One load per trip (decided Q6) |
-| 4.2 | Automatic trip number and date, confirmed by the owner | Not avail. | **Missing** | — | `trip_number_sequences`; `trips.number_confirmed_at` / `_by` | `trips` | 4.1 | 2 | The number is unique per company and assigned under a row lock |
-| 4.3 | Trip details (product, weight) | Not avail. | **Missing** | — | `trips.product`, `weight`, `weight_unit` | `trips` | 4.1 | 2 | "Load type" in 8.6 = product (decided C8) |
+| 4.1 | Create a trip / edit trip details | Not avail. | **Complete** (P2-2, 26 Oct 2026; assignment is P2-3) | — | `trips`, `trip_stops` | `trips` | 0 | 2 | One load per trip (decided Q6) |
+| 4.2 | Automatic trip number and date, confirmed by the owner | Not avail. | **Complete** (P2-2, 26 Oct 2026) | — | `trip_number_sequences`; `trips.number_confirmed_at` / `_by` | `trips` | 4.1 | 2 | The number is unique per company and assigned under a row lock |
+| 4.3 | Trip details (product, weight) | Not avail. | **Complete** (P2-2, 26 Oct 2026) | — | `trips.product`, `weight`, `weight_unit` | `trips` | 4.1 | 2 | "Load type" in 8.6 = product (decided C8) |
 | 4.4 | Add shipper information and save shippers for reuse | Not avail. | **Complete** (P2-1, 26 Oct 2026; used on trips from P2-2) | — | `shippers` | `trips` | 0 | 2 | — |
 | 4.5 | Assign a driver to a trip / assign a load to a driver | Not avail. | **Missing** | Asset groups pair a driver with equipment, but nothing links them to a trip | `trips.driver_id`, `vehicle_id`, `trailer_id` | `trips` | 4.1 | 2 | These are two client bullets for one action (section 13) |
 | 4.6 | Confirm the assigned tractor and trailer are correct | Not avail. | **Missing** | — | `trips.equipment_confirmed_at` / `_by_user_id` | `trips` | 4.5 | 2 | Done by the driver in the app |
@@ -92,9 +92,9 @@ The differences come from the corrections in section 12. Eight further client it
 
 | # | Requirement | Gap | Verified | Code today | DB changes | Feature | Depends on | Phase | Risks / notes |
 |---|---|---|---|---|---|---|---|---|---|
-| 6.1 | Choose start and drop-off from a map (Google or Apple Maps) | Not avail. | **Missing** | — | `trip_stops` with lat/lng, `place_source`, `place_ref` | `trips` | 4.1 | 2 (web), 3 (app) | Free map stack (decided 23 Oct 2026): Leaflet + OpenStreetMap tiles, server-side geocoder. [L] A tile provider once traffic outgrows the public OSM tile policy |
+| 6.1 | Choose start and drop-off from a map (Google or Apple Maps) | Not avail. | **Complete on the web** (P2-2, 26 Oct 2026; the app is Phase 3) | — | `trip_stops` with lat/lng, `place_source`, `place_ref` | `trips` | 4.1 | 2 (web), 3 (app) | Free map stack (decided 23 Oct 2026): Leaflet + OpenStreetMap tiles, server-side geocoder. [L] A tile provider once traffic outgrows the public OSM tile policy |
 | 6.2 | Use current location as the start | Not avail. | **Missing** | — | `trip_stops` (`stop_type = start`) | `mobile_app` | 1.2 | 3 | — |
-| 6.3 | Optional pickup between start and drop-off; not required when it equals the start | Not avail. | **Missing** | — | `trip_stops.also_pickup` on the start stop | `trips` | 4.1 | 2 | — |
+| 6.3 | Optional pickup between start and drop-off; not required when it equals the start | Not avail. | **Complete** (P2-2, 26 Oct 2026) | — | `trip_stops.also_pickup` on the start stop | `trips` | 4.1 | 2 | — |
 | 6.4 | "Start driving!" button, "Trip Started" screen, opens the trip folder | Not avail. | **Missing** | — | `trips.status`, `started_at`; trip system folder | `mobile_app` | 4.1, 2.1 | 3 | — |
 | 6.5 | Miles travelled and distance to destination | Not avail. | **Missing** | — | `trips.actual_distance_miles`, `planned_distance_miles` | `gps_tracking` | 6.7 | 3 | Remaining distance is computed in the app from the Maps API |
 | 6.6 | Continue a trip that was exited | Not avail. | **Missing** | — | The trip stays `in_progress`; the app reloads it | `mobile_app` | 6.4 | 3 | — |

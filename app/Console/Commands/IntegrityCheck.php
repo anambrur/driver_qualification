@@ -60,7 +60,8 @@ class IntegrityCheck extends Command
                 WHERE (f.driver_id IS NOT NULL AND (d.driver_id IS NULL OR d.driver_id <> f.driver_id))
                 OR (f.trailer_id IS NOT NULL AND (d.trailer_id IS NULL OR d.trailer_id <> f.trailer_id))
                 OR (f.vehicle_id IS NOT NULL AND (d.vehicle_id IS NULL OR d.vehicle_id <> f.vehicle_id)
-                    AND NOT EXISTS (SELECT 1 FROM service_logs l WHERE l.id = d.service_log_id AND l.vehicle_id = f.vehicle_id))',
+                    AND NOT EXISTS (SELECT 1 FROM service_logs l WHERE l.id = d.service_log_id AND l.vehicle_id = f.vehicle_id))
+                OR (f.trip_id IS NOT NULL AND (d.trip_id IS NULL OR d.trip_id <> f.trip_id))',
         ],
         6 => [
             'rule' => 'Storage counter matches stored files (exports are not counted)',

@@ -531,17 +531,19 @@ Saved shippers, reusable on later trips.
 
 - **PK:** `company_id` (FK, CASCADE).
 - **Column:** `next_number` bigint unsigned.
-- **How it works:** a trip number is taken with `SELECT … FOR UPDATE` on this row, inside the same transaction as the trip insert.
+- **How it works:** a trip number is taken with `SELECT … FOR UPDATE` on this row, inside the same transaction as the trip insert. The company row is locked first (12 §3).
+- **Row:** created by `CompanyProvisioner` with `next_number = 1`; `TripService` also inserts it (`insertOrIgnore`) when missing (P2-2).
+- **Never back:** a create skips numbers already taken by a typed-in number (trashed trips included) and stores the number used + 1 (P2-2).
 
 ### `trips` (Tenant root)
 
 **Columns:**
-- Numbering: `id`, `company_id`, `trip_number`, `trip_date`, `number_confirmed_at`, `number_confirmed_by_user_id`.
+- Numbering: `id`, `company_id`, `trip_number` (bigint unsigned, 1–99,999,999 when typed in), `trip_date`, `number_confirmed_at`, `number_confirmed_by_user_id`.
 - Status: `status` enum(draft, planned, assigned, in_progress, completed, cancelled).
 - Assignment: `driver_id`, `vehicle_id`, `trailer_id`, `shipper_id` (all null).
-- Load: `product`, `weight` decimal(10,2), `weight_unit`, `load_pay` decimal(12,2), `currency`.
+- Load: `product`, `weight` decimal(10,2), `weight_unit` (`lb` default, `kg`), `load_pay` decimal(12,2), `currency` (both hidden until Phase 4).
 - Equipment check: `equipment_confirmed_at`, `equipment_confirmed_by_user_id`.
-- Distance and progress: `planned_distance_miles`, `actual_distance_miles`, `paid_miles` (defaults to `planned_distance_miles`; editable with `pay.manage` until the trip is on an approved payroll run), `started_at`, `completed_at`, `cancelled_at`, `cancel_reason`.
+- Distance and progress: `planned_distance_miles`, `actual_distance_miles`, `paid_miles` (decimal(8,1)) (defaults to `planned_distance_miles`; editable with `pay.manage` until the trip is on an approved payroll run), `started_at`, `completed_at`, `cancelled_at`, `cancel_reason`.
 - Snapshots taken at start: `vehicle_unit_no_snapshot`, `trailer_unit_no_snapshot`.
 - One-active guards: `active_driver_id` (generated: `CASE WHEN status='in_progress' THEN driver_id END`), `active_vehicle_id` (generated, the same way).
 - Other: `created_by_user_id`, `notes`, timestamps, `deleted_at`.
@@ -577,10 +579,10 @@ The planned route.
   - `stop_type` enum(start, pickup, drop_off);
   - `also_pickup` bool (the start is also the pickup, client X1);
   - `shipper_id` (null);
-  - `address_line`, `city`, `state_code`, `zip`, `latitude`, `longitude`, `place_source`, `place_ref`;
+  - `address_line`, `city`, `state_code`, `zip`, `country_code`, `latitude`, `longitude`, `place_source`, `place_ref` (`country_code` added in P2-2: the picker checks the state and ZIP against the country, as on `shippers`);
   - `planned_at`, `arrived_at`, `departed_at`, timestamps.
 - **FKs:** cFK `trip_id`, CASCADE; cFK `shipper_id`, RESTRICT.
-- **Unique:** `(trip_id, sequence)`.
+- **Unique:** `(trip_id, sequence)`; `(trip_id, stop_type)`, one stop of each type (P2-2).
 - **Place reference:** `place_source` (e.g. `photon`, `nominatim`, `manual`) and `place_ref` (the geocoder's id) are nullable and provider-neutral, the same on `shippers`. The map is free: Leaflet with OpenStreetMap tiles and a server-side geocoder (decided 23 Oct 2026, [14](14-open-questions.md) §2).
 - **Index:** `(company_id, trip_id)`.
 - **"Pending pickup"** = an assigned or in-progress trip whose pickup stop (or start stop with `also_pickup`) has no `departed_at`.

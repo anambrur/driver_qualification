@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Driver;
 use App\Models\Folder;
 use App\Models\Trailer;
+use App\Models\Trip;
 use App\Models\Vehicle;
 use App\Services\Documents\FolderService;
 use App\Tenancy\TenantContext;
@@ -22,7 +23,7 @@ final class Docs
     /**
      * The entity's standard folder, through the service the create paths use.
      */
-    public static function systemFolder(Driver|Vehicle|Trailer $entity): Folder
+    public static function systemFolder(Driver|Vehicle|Trailer|Trip $entity): Folder
     {
         return app(TenantContext::class)->run($entity->company_id, fn () => DB::transaction(
             fn () => app(FolderService::class)->ensureSystemFolder($entity)

@@ -10,8 +10,12 @@ use Database\Factories\DriverComplianceDocumentFactory;
 use Database\Factories\DriverFactory;
 use Database\Factories\LicenseFactory;
 use Database\Factories\PlatformUserFactory;
+use Database\Factories\ShipperFactory;
 use Database\Factories\StoredFileFactory;
 use Database\Factories\SubscriptionFactory;
+use Database\Factories\TrailerFactory;
+use Database\Factories\TripFactory;
+use Database\Factories\TripStopFactory;
 use Database\Factories\VehicleFactory;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -303,7 +307,7 @@ describe('folders and documents', function () {
         ]);
 
         $document(['driver_id' => $driver->id]);
-        $document(['trip_id' => 1]); // no FK until Phase 2, still counted by the CHECK
+        $document(['trip_id' => TripFactory::new()->forCompany($this->company)->create()->id]);
 
         expect(fn () => $document(['driver_id' => $driver->id, 'vehicle_id' => $vehicle->id]))->toThrow(QueryException::class)
             ->and(fn () => $document(['vehicle_id' => $vehicle->id, 'expense_id' => 1]))->toThrow(QueryException::class)
@@ -319,4 +323,98 @@ describe('folders and documents', function () {
 
         expect(fn () => DB::table('folders')->where('id', $folder)->delete())->toThrow(QueryException::class);
     });
+});
+
+describe('trips', function () {
+    beforeEach(function () {
+        $this->company = CompanyFactory::new()->create();
+        $this->trip = fn (array $values) => DB::table('trips')->insertGetId($values + [
+            'company_id' => $this->company->id, 'trip_number' => fake()->unique()->numberBetween(1, 999999), 'trip_date' => '2026-10-26',
+        ]);
+    });
+
+    it('needs a driver and a vehicle once a trip is assigned', function (string $status) {
+        $driver = DriverFactory::new()->forCompany($this->company)->create();
+        $vehicle = VehicleFactory::new()->forCompany($this->company)->create();
+
+        expect(fn () => ($this->trip)(['status' => $status]))->toThrow(QueryException::class)
+            ->and(fn () => ($this->trip)(['status' => $status, 'driver_id' => $driver->id]))->toThrow(QueryException::class)
+            ->and(fn () => ($this->trip)(['status' => $status, 'vehicle_id' => $vehicle->id]))->toThrow(QueryException::class);
+
+        ($this->trip)(['status' => $status, 'driver_id' => $driver->id, 'vehicle_id' => $vehicle->id]);
+        ($this->trip)(['status' => 'cancelled']);
+        ($this->trip)(['status' => 'planned']);
+    })->with(['assigned', 'in_progress', 'completed']);
+
+    it('rejects an unknown status', function () {
+        expect(fn () => ($this->trip)(['status' => 'parked']))->toThrow(QueryException::class);
+    });
+
+    it('allows one in-progress trip per driver and per vehicle', function () {
+        $driver = DriverFactory::new()->forCompany($this->company)->create();
+        $vehicle = VehicleFactory::new()->forCompany($this->company)->create();
+        $otherVehicle = VehicleFactory::new()->forCompany($this->company)->create();
+        $otherDriver = DriverFactory::new()->forCompany($this->company)->create();
+        ($this->trip)(['status' => 'in_progress', 'driver_id' => $driver->id, 'vehicle_id' => $vehicle->id]);
+        ($this->trip)(['status' => 'completed', 'driver_id' => $driver->id, 'vehicle_id' => $vehicle->id]);
+        ($this->trip)(['status' => 'assigned', 'driver_id' => $driver->id, 'vehicle_id' => $vehicle->id]);
+
+        expect(fn () => ($this->trip)(['status' => 'in_progress', 'driver_id' => $driver->id, 'vehicle_id' => $otherVehicle->id]))->toThrow(QueryException::class)
+            ->and(fn () => ($this->trip)(['status' => 'in_progress', 'driver_id' => $otherDriver->id, 'vehicle_id' => $vehicle->id]))->toThrow(QueryException::class);
+    });
+
+    it('keeps trip numbers unique per company only', function () {
+        ($this->trip)(['trip_number' => 5]);
+        DB::table('trips')->insert(['company_id' => CompanyFactory::new()->create()->id, 'trip_number' => 5, 'trip_date' => '2026-10-26']);
+
+        expect(fn () => ($this->trip)(['trip_number' => 5]))->toThrow(QueryException::class);
+    });
+
+    it('rejects a driver, vehicle, trailer or shipper of another company', function (string $column, Closure $foreign) {
+        expect(fn () => ($this->trip)([$column => $foreign()->id]))->toThrow(QueryException::class);
+    })->with([
+        'driver' => ['driver_id', fn () => DriverFactory::new()->create()],
+        'vehicle' => ['vehicle_id', fn () => VehicleFactory::new()->create()],
+        'trailer' => ['trailer_id', fn () => TrailerFactory::new()->create()],
+        'shipper' => ['shipper_id', fn () => ShipperFactory::new()->create()],
+    ]);
+
+    it('restricts deleting a shipper used by a trip or a stop', function () {
+        $shipper = ShipperFactory::new()->forCompany($this->company)->create();
+        $trip = ($this->trip)(['shipper_id' => $shipper->id]);
+
+        expect(fn () => DB::table('shippers')->where('id', $shipper->id)->delete())->toThrow(QueryException::class);
+
+        DB::table('trips')->where('id', $trip)->update(['shipper_id' => null]);
+        TripStopFactory::new()->state(['trip_id' => $trip, 'shipper_id' => $shipper->id])->create();
+
+        expect(fn () => DB::table('shippers')->where('id', $shipper->id)->delete())->toThrow(QueryException::class);
+    });
+
+    it('keeps one stop per place in the route and drops the stops with their trip', function () {
+        $trip = ($this->trip)([]);
+        TripStopFactory::new()->state(['trip_id' => $trip, 'sequence' => 1])->create();
+
+        expect(fn () => TripStopFactory::new()->state(['trip_id' => $trip, 'sequence' => 1, 'stop_type' => 'drop_off'])->create())->toThrow(QueryException::class)
+            ->and(fn () => TripStopFactory::new()->state(['trip_id' => $trip, 'sequence' => 2, 'stop_type' => 'start'])->create())->toThrow(QueryException::class)
+            ->and(fn () => TripStopFactory::new()->state(['trip_id' => $trip, 'sequence' => 2, 'stop_type' => 'depot'])->create())->toThrow(QueryException::class)
+            ->and(fn () => DB::table('trip_stops')->insert(['company_id' => CompanyFactory::new()->create()->id, 'trip_id' => $trip, 'sequence' => 3, 'stop_type' => 'drop_off',
+                'address_line' => 'x', 'city' => 'x', 'state_code' => 'TX', 'zip' => '75202', 'country_code' => 'US']))->toThrow(QueryException::class);
+
+        DB::table('trips')->where('id', $trip)->delete();
+        expect(DB::table('trip_stops')->where('trip_id', $trip)->count())->toBe(0);
+    });
+
+    it('restricts deleting a trip with a folder or a document on MySQL', function () {
+        $trip = ($this->trip)([]);
+        $folder = DB::table('folders')->insertGetId(['company_id' => $this->company->id, 'name' => 'Trip #'.$trip, 'system_key' => 'trip', 'trip_id' => $trip]);
+
+        expect(fn () => DB::table('trips')->where('id', $trip)->delete())->toThrow(QueryException::class)
+            // The folder and document trip_id are same-company composite FKs
+            ->and(fn () => DB::table('folders')->insert(['company_id' => CompanyFactory::new()->create()->id, 'name' => 'Theirs', 'trip_id' => $trip]))->toThrow(QueryException::class)
+            ->and(fn () => DB::table('documents')->insert(['company_id' => $this->company->id, 'title' => 'Doc', 'trip_id' => $trip + 1000,
+                'file_id' => StoredFileFactory::new()->forCompany($this->company)->create()->id]))->toThrow(QueryException::class);
+
+        DB::table('folders')->where('id', $folder)->delete();
+    })->skip(fn () => DB::getDriverName() === 'sqlite', 'The trip FKs on folders and documents are MySQL only (08 §8).');
 });

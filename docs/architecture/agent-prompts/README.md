@@ -48,7 +48,8 @@ P2-1 → P2-3 is a chain. P2-4 and P2-5 both build on P2-3 and may run in either
 - [V] `asset_groups`: driver, vehicle, optional trailer, one active group per vehicle and per trailer; no co-driver. `fuel_types` is a platform lookup (`routes/platform.php:114`, `platform.settings.manage`).
 - [V] `companies.timezone` (default `America/Chicago`); `App\Support\TimeZones`; `App\Support\NamedLock`; `App\Support\CheckConstraints`; `tests/Support/Perf.php` and `Actors.php`; `tests/Feature/Tenancy/IsolationMatrixTest.php`; `tests/Feature/Modules/AccessControl/RouteGuardMatrixTest.php`.
 - [V] Vehicles and trailers have `transferred_out_at`; drivers can be terminated (`employment_status = terminated`).
-- [V] Missing: tables `shippers`, `trip_number_sequences`, `trips`, `trip_stops`, `inspection_templates`, `inspection_template_items`, `inspections`, `inspection_results`, `trip_events`, `fuel_purchases`; any map library (only Alpine in `package.json`).
+- [V] `trip_number_sequences` exists since Phase 0 and `CompanyProvisioner` fills it (found in P2-2; the line below listed it as missing).
+- [V] Missing: tables `shippers`, `trips`, `trip_stops`, `inspection_templates`, `inspection_template_items`, `inspections`, `inspection_results`, `trip_events`, `fuel_purchases`; any map library (only Alpine in `package.json`).
 - [A] Until the first production deploy there is no real data, so create migrations may still be edited and environments rebuilt with `migrate:fresh --seed`.
 
 ## Rules for every session
@@ -94,7 +95,7 @@ Filled in by each package's final report and confirmed against the code in P2-7.
 - `php artisan migrate` (the Phase 2 tables, then the MySQL-only FK migrations on `folders` and `documents`).
 - `PermissionSeeder`, then `php artisan roles:sync-company` (P2-4 adds `inspections.manage`).
 - The default pre-trip inspection template seeder (P2-4).
-- `php artisan folders:ensure-system` covers trips (P2-2).
+- `php artisan folders:ensure-system` covers trips (P2-2); idempotent. P2-2 adds no permission, env key, queue or schedule.
 - `npm run build` output committed (Leaflet, P2-1). [L] OpenStreetMap attribution on every map; a tile or geocoding provider once traffic outgrows the public policies.
 - Env (P2-1, all optional): `MAPS_GEOCODER` (`photon` default, `nominatim`, or `none` to switch search off), `MAPS_GEOCODER_URL`, `MAPS_GEOCODER_CONTACT` (defaults to `MAIL_FROM_ADDRESS`, sent in the User-Agent), `MAPS_GEOCODER_TIMEOUT` (4 s), `MAPS_GEOCODER_CACHE_DAYS` (30), `MAPS_TILE_URL`, `MAPS_TILE_ATTRIBUTION`. The app-wide geocoder limit uses the cache store, so production needs a shared cache (`database` today).
 
