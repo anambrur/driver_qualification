@@ -35,6 +35,7 @@ use App\Http\Controllers\ShipperController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\SupportAccessController;
 use App\Http\Controllers\TrailerController;
+use App\Http\Controllers\TripController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPermissionController;
 use App\Http\Controllers\VehicleController;
@@ -387,6 +388,20 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::post('/{shipper}/activate', [ShipperController::class, 'activate'])->name('activate')->middleware('permission:shippers.manage');
         Route::post('/{shipper}/deactivate', [ShipperController::class, 'deactivate'])->name('deactivate')->middleware('permission:shippers.manage');
         Route::delete('/{shipper}', [ShipperController::class, 'destroy'])->name('destroy')->middleware('permission:shippers.manage');
+    });
+
+    // Trips before assignment (req 4.1–4.3, 6.1, 6.3); assignment and the lifecycle are P2-3
+    Route::prefix('trips')->name('trips.')->middleware('feature:trips')->whereNumber('trip')->group(function () {
+        Route::get('/', [TripController::class, 'index'])->name('index')->middleware('permission:trips.view');
+        Route::get('/data', [TripController::class, 'data'])->name('data')->middleware('permission:trips.view');
+        Route::get('/create', [TripController::class, 'create'])->name('create')->middleware('permission:trips.create');
+        Route::post('/', [TripController::class, 'store'])->name('store')->middleware('permission:trips.create');
+        Route::get('/{trip}', [TripController::class, 'show'])->name('show')->middleware('permission:trips.view');
+        Route::put('/{trip}', [TripController::class, 'update'])->name('update')->middleware('permission:trips.edit');
+        Route::put('/{trip}/stops', [TripController::class, 'updateStops'])->name('stops.update')->middleware('permission:trips.edit');
+        Route::post('/{trip}/confirm-number', [TripController::class, 'confirmNumber'])->name('confirm-number')->middleware('permission:trips.confirm-number');
+        Route::post('/{trip}/cancel', [TripController::class, 'cancel'])->name('cancel')->middleware('permission:trips.edit');
+        Route::delete('/{trip}', [TripController::class, 'destroy'])->name('destroy')->middleware('permission:trips.delete');
     });
 
     // Address search for the map picker (req 6.1): staff who enter shipper or trip addresses
