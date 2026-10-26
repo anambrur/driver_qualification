@@ -212,6 +212,14 @@ function isoFixtures(): array
         'POST admin/trips/{trip}/confirm-number' => $trip,
         'POST admin/trips/{trip}/cancel' => $trip,
         'DELETE admin/trips/{trip}' => $trip,
+        // Trip assignment and lifecycle (P2-3)
+        'PUT admin/trips/{trip}/assignment' => $trip,
+        'DELETE admin/trips/{trip}/assignment' => $trip,
+        'POST admin/trips/{trip}/equipment' => $trip,
+        'POST admin/trips/{trip}/start' => $trip,
+        'POST admin/trips/{trip}/picked-up' => $trip,
+        'PUT admin/trips/{trip}/stop-times' => $trip,
+        'POST admin/trips/{trip}/complete' => $trip,
         // Company settings
         'GET admin/settings/company/{id}/edit' => fn (Company $a) => [$a->id],
         'PATCH admin/settings/company/{id}' => fn (Company $a) => [$a->id],

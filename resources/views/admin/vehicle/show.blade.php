@@ -21,6 +21,9 @@
             <x-ui.tabs id="asset-tabs" :tabs="['overview' => 'Overview', 'documents' => 'Documents']" :selected="$openTab" class="mt-6">
                 <x-ui.tab-panel tabs="asset-tabs" name="overview" :selected="$openTab === 'overview'" class="mt-4">
                     @include('admin.vehicle.partials.specifications')
+                    @if ($recentTrips !== null)
+                        @include('trips.partials.recent-trips', ['allUrl' => route('trips.index', ['vehicle_id' => $vehicle->id]), 'crew' => 'driver'])
+                    @endif
                 </x-ui.tab-panel>
                 <x-ui.tab-panel tabs="asset-tabs" name="documents" :selected="$openTab === 'documents'" class="mt-4">
                     @include('documents.partials.browser', ['browser' => $documentsBrowser, 'virtual' => $virtualDocuments])
@@ -29,6 +32,9 @@
         @else
             <div class="mt-6">
                 @include('admin.vehicle.partials.specifications')
+                @if ($recentTrips !== null)
+                    @include('trips.partials.recent-trips', ['allUrl' => route('trips.index', ['vehicle_id' => $vehicle->id]), 'crew' => 'driver'])
+                @endif
             </div>
         @endif
     </div>

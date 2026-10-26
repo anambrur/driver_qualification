@@ -26,6 +26,9 @@
         <x-ui.tabs id="driver-tabs" :tabs="$tabs" :selected="$openTab" class="mt-6">
             <x-ui.tab-panel tabs="driver-tabs" name="overview" :selected="$openTab === 'overview'" class="mt-4">
                 @include('admin.driver.show.overview')
+                @if ($recentTrips !== null)
+                    @include('trips.partials.recent-trips', ['allUrl' => route('trips.index', ['driver_id' => $driver->id]), 'crew' => 'vehicle'])
+                @endif
             </x-ui.tab-panel>
             <x-ui.tab-panel tabs="driver-tabs" name="driver-info" class="mt-4">
                 @include('admin.driver.show.information')

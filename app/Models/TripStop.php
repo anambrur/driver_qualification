@@ -6,6 +6,7 @@ use App\Tenancy\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * A planned stop of a trip (08 §9, req 6.1, 6.3): the start (also the pickup when also_pickup),
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $stop_type
  * @property int $sequence
  * @property bool $also_pickup
+ * @property Carbon|null $arrived_at
+ * @property Carbon|null $departed_at
  */
 class TripStop extends Model
 {

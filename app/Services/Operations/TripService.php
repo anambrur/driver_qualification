@@ -71,9 +71,15 @@ class TripService
      */
     public function today(?string $timezone = null): string
     {
-        $timezone ??= DB::table('companies')->where('id', $this->tenant->requireCompanyId())->value('timezone');
+        return CarbonImmutable::now($timezone ?: $this->timezone())->toDateString();
+    }
 
-        return CarbonImmutable::now($timezone ?: TimeZones::DEFAULT)->toDateString();
+    /**
+     * The company's time zone (Z1), for dates and stop times typed in by staff.
+     */
+    public function timezone(): string
+    {
+        return DB::table('companies')->where('id', $this->tenant->requireCompanyId())->value('timezone') ?: TimeZones::DEFAULT;
     }
 
     /**

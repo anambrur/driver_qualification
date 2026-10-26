@@ -6,9 +6,12 @@ use App\DataTables\Operations\TripTable;
 use App\Http\Requests\Operations\CancelTripRequest;
 use App\Http\Requests\Operations\TripRequest;
 use App\Http\Requests\Operations\TripStopsRequest;
+use App\Models\Driver;
 use App\Models\Shipper;
 use App\Models\Trip;
+use App\Models\Vehicle;
 use App\Services\Documents\FolderBrowser;
+use App\Services\Operations\TripAssignmentService;
 use App\Services\Operations\TripService;
 use App\Support\Ui\Toast;
 use Illuminate\Http\JsonResponse;
@@ -19,17 +22,25 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 /**
- * Trips before assignment (req 4.1–4.3, 6.1, 6.3): list, create, details, stops, number
- * confirmation, cancel and delete. Route model binding goes through the company scope, so
+ * Trips (req 4.1–4.3, 6.1, 6.3): list, create, details, stops, number confirmation, cancel and
+ * delete; assignment and the lifecycle have their own controllers (P2-3). Route model binding goes through the company scope, so
  * another company's trip is a 404.
  */
 class TripController extends Controller
 {
     public function __construct(private TripService $trips) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        return view('trips.index', ['statuses' => Trip::STATUSES]);
+        // Opened from a driver or vehicle page: the list starts filtered by it
+        $filter = null;
+        if ($driver = Driver::withTrashed()->find($request->integer('driver_id') ?: null, ['id', 'first_name', 'last_name'])) {
+            $filter = ['name' => 'driver_id', 'value' => $driver->id, 'label' => 'Driver: '.trim($driver->first_name.' '.$driver->last_name)];
+        } elseif ($vehicle = Vehicle::withTrashed()->find($request->integer('vehicle_id') ?: null, ['id', 'unit_no'])) {
+            $filter = ['name' => 'vehicle_id', 'value' => $vehicle->id, 'label' => 'Vehicle: '.$vehicle->unit_no];
+        }
+
+        return view('trips.index', ['statuses' => Trip::STATUSES, 'filter' => $filter]);
     }
 
     public function data(Request $request): JsonResponse
@@ -54,19 +65,29 @@ class TripController extends Controller
         return redirect()->to(route('trips.show', $trip).'#stops');
     }
 
-    public function show(Request $request, Trip $trip, FolderBrowser $browser): View
+    public function show(Request $request, Trip $trip, FolderBrowser $browser, TripAssignmentService $assignment): View
     {
         Gate::authorize('view', $trip);
 
-        $trip->load(['stops.shipper:id,name', 'shipper:id,name,deleted_at', 'driver:id,first_name,last_name', 'vehicle:id,unit_no', 'trailer:id,unit_no']);
+        $trip->load(['stops.shipper:id,name', 'shipper:id,name,deleted_at', 'driver:id,first_name,last_name', 'vehicle:id,unit_no', 'trailer:id,unit_no', 'equipmentConfirmedBy:id,name']);
+        if ($trip->status === 'assigned') {
+            $trip->driver?->load(['currentLicense:id,driver_id,expires,is_current', 'medicalCertificate:id,driver_id,document_type_id,expiry_date']);
+        }
         $documentsBrowser = $browser->tab($trip, $request->integer('folder') ?: null);
         $canEdit = $trip->isEditable() && $request->user()->can('trips.edit');
+        $canAssign = $trip->isAssignable() && $request->user()->can('trips.assign');
 
         return view('trips.show', [
             'trip' => $trip,
             'documentsBrowser' => $documentsBrowser,
             'canEdit' => $canEdit,
+            'canAssign' => $canAssign,
             'shippers' => $canEdit ? $this->shipperOptions($trip) : [],
+            'assignOptions' => $canAssign ? $assignment->options($trip) : null,
+            'groupDefaults' => $canAssign ? $assignment->groupDefaults() : [],
+            'warnings' => $trip->status === 'assigned' ? $assignment->warnings($trip) : [],
+            // Times are shown and typed in the company's time zone (Z1)
+            'timezone' => $trip->driver_id !== null ? $this->trips->timezone() : null,
         ]);
     }
 

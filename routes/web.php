@@ -35,7 +35,9 @@ use App\Http\Controllers\ShipperController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\SupportAccessController;
 use App\Http\Controllers\TrailerController;
+use App\Http\Controllers\TripAssignmentController;
 use App\Http\Controllers\TripController;
+use App\Http\Controllers\TripLifecycleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPermissionController;
 use App\Http\Controllers\VehicleController;
@@ -401,6 +403,13 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::put('/{trip}/stops', [TripController::class, 'updateStops'])->name('stops.update')->middleware('permission:trips.edit');
         Route::post('/{trip}/confirm-number', [TripController::class, 'confirmNumber'])->name('confirm-number')->middleware('permission:trips.confirm-number');
         Route::post('/{trip}/cancel', [TripController::class, 'cancel'])->name('cancel')->middleware('permission:trips.edit');
+        Route::put('/{trip}/assignment', [TripAssignmentController::class, 'update'])->name('assignment.update')->middleware('permission:trips.assign');
+        Route::delete('/{trip}/assignment', [TripAssignmentController::class, 'destroy'])->name('assignment.destroy')->middleware('permission:trips.assign');
+        Route::post('/{trip}/equipment', [TripAssignmentController::class, 'confirmEquipment'])->name('equipment.confirm')->middleware('permission:trips.assign');
+        Route::post('/{trip}/start', [TripLifecycleController::class, 'start'])->name('start')->middleware('permission:trips.edit');
+        Route::post('/{trip}/picked-up', [TripLifecycleController::class, 'pickedUp'])->name('picked-up')->middleware('permission:trips.edit');
+        Route::put('/{trip}/stop-times', [TripLifecycleController::class, 'stopTimes'])->name('stop-times.update')->middleware('permission:trips.edit');
+        Route::post('/{trip}/complete', [TripLifecycleController::class, 'complete'])->name('complete')->middleware('permission:trips.edit');
         Route::delete('/{trip}', [TripController::class, 'destroy'])->name('destroy')->middleware('permission:trips.delete');
     });
 

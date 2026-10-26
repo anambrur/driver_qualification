@@ -5,9 +5,6 @@
             <x-ui.detail label="Trip number" :value="$trip->label()" />
             <x-ui.detail label="Trip date" :value="$trip->trip_date->format('M d, Y')" />
             <x-ui.detail label="Status" :value="\App\Support\Ui\Status::label($trip->status)" />
-            <x-ui.detail label="Driver" :value="$trip->driver ? trim($trip->driver->first_name.' '.$trip->driver->last_name) : null" />
-            <x-ui.detail label="Vehicle" :value="$trip->vehicle?->unit_no" />
-            <x-ui.detail label="Trailer" :value="$trip->trailer?->unit_no" />
             @if ($trip->status === 'cancelled')
                 <x-ui.detail label="Cancelled" :value="$trip->cancelled_at?->format('M d, Y')" />
                 <x-ui.detail label="Reason" :value="$trip->cancel_reason" class="sm:col-span-2" />

@@ -8,6 +8,7 @@ use App\Features\Feature;
 use App\Http\Requests\Fleet\VehicleRequest;
 use App\Models\AssetGroup;
 use App\Models\FuelType;
+use App\Models\Trip;
 use App\Models\Vehicle;
 use App\Models\VehicleGroup;
 use App\Models\VehicleType;
@@ -75,7 +76,14 @@ class VehicleController extends Controller
         $documentsBrowser = $browser->tab($vehicle, $request->integer('folder') ?: null);
         $virtualDocuments = $documentsBrowser === null ? [] : $browser->virtualDocuments($vehicle);
 
-        return view('admin.vehicle.show', compact('vehicle', 'documentsBrowser', 'virtualDocuments'));
+        // Recent trips need the trips feature and trips.view (checked by the gate)
+        $recentTrips = $request->user()->can('trips.view')
+            ? Trip::query()->where('vehicle_id', $vehicle->id)->with('driver:id,first_name,last_name')
+                ->orderByDesc('trip_date')->orderByDesc('trip_number')->limit(10)
+                ->get(['id', 'trip_number', 'trip_date', 'status', 'driver_id'])
+            : null;
+
+        return view('admin.vehicle.show', compact('vehicle', 'documentsBrowser', 'virtualDocuments', 'recentTrips'));
     }
 
     /**

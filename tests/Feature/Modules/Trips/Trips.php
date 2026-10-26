@@ -3,14 +3,22 @@
 namespace Tests\Feature\Modules\Trips;
 
 use App\Models\Company;
+use App\Models\Driver;
+use App\Models\Trailer;
 use App\Models\Trip;
 use App\Models\User;
+use App\Models\Vehicle;
+use App\Services\Operations\TripAssignmentService;
+use App\Services\Operations\TripLifecycleService;
 use App\Services\Operations\TripService;
 use App\Tenancy\TenantContext;
 use Closure;
+use Database\Factories\DriverFactory;
+use Database\Factories\TrailerFactory;
+use Database\Factories\VehicleFactory;
 
 /**
- * Trip fixtures (req 4.1–4.3, 6.1, 6.3). Shippers::seedStates() provides TX and ON.
+ * Trip fixtures (req 4.1–4.6, 6.1, 6.3). Shippers::seedStates() provides TX and ON.
  */
 final class Trips
 {
@@ -109,12 +117,77 @@ final class Trips
         ], $overrides);
     }
 
-    public static function confirmAndRoute(Trip $trip, Company $company): Trip
+    public static function confirmAndRoute(Trip $trip, Company $company, bool $pickup = false, bool $alsoPickup = false): Trip
     {
-        return self::service($company, function (TripService $trips) use ($trip, $company) {
+        return self::service($company, function (TripService $trips) use ($trip, $company, $pickup, $alsoPickup) {
             $trips->confirmNumber($trip, $company->owner);
 
-            return $trips->saveStops($trip, self::route(), $company->owner);
+            return $trips->saveStops($trip, self::route($pickup, $alsoPickup), $company->owner);
         });
+    }
+
+    /**
+     * An active driver, a vehicle and a trailer of the company.
+     *
+     * @return array{driver: Driver, vehicle: Vehicle, trailer: Trailer}
+     */
+    public static function crew(Company $company): array
+    {
+        return [
+            'driver' => DriverFactory::new()->forCompany($company)->withCurrentLicense()->create(),
+            'vehicle' => VehicleFactory::new()->forCompany($company)->create(),
+            'trailer' => TrailerFactory::new()->forCompany($company)->create(),
+        ];
+    }
+
+    /**
+     * Runs $callback with TripAssignmentService and TripLifecycleService in the company's context.
+     *
+     * @template T
+     *
+     * @param  Closure(TripAssignmentService, TripLifecycleService): T  $callback
+     * @return T
+     */
+    public static function operate(Company $company, Closure $callback): mixed
+    {
+        return app(TenantContext::class)->run($company->id, fn () => $callback(app(TripAssignmentService::class), app(TripLifecycleService::class)));
+    }
+
+    /**
+     * A planned trip (confirmed, routed), optionally with a pickup or with the start as the pickup.
+     */
+    public static function planned(Company $company, bool $pickup = false, bool $alsoPickup = false): Trip
+    {
+        return self::confirmAndRoute(self::create($company), $company, $pickup, $alsoPickup);
+    }
+
+    /**
+     * A planned trip assigned through the service, with the equipment confirmed unless asked not to.
+     * Returned without relations, so refresh() works outside a tenant context.
+     *
+     * @param  array{driver: Driver, vehicle: Vehicle, trailer: Trailer}|null  $crew
+     */
+    public static function assigned(Company $company, ?array $crew = null, bool $confirmed = true, bool $pickup = false, bool $alsoPickup = false): Trip
+    {
+        $crew ??= self::crew($company);
+        $trip = self::planned($company, $pickup, $alsoPickup);
+
+        return self::operate($company, function (TripAssignmentService $assignment) use ($trip, $crew, $company, $confirmed) {
+            $trip = $assignment->assign($trip, ['driver_id' => $crew['driver']->id, 'vehicle_id' => $crew['vehicle']->id, 'trailer_id' => $crew['trailer']->id], $company->owner);
+
+            return ($confirmed ? $assignment->confirmEquipment($trip, $company->owner) : $trip)->withoutRelations();
+        });
+    }
+
+    /**
+     * An assigned trip started through the service.
+     *
+     * @param  array{driver: Driver, vehicle: Vehicle, trailer: Trailer}|null  $crew
+     */
+    public static function inProgress(Company $company, ?array $crew = null, bool $pickup = false, bool $alsoPickup = false): Trip
+    {
+        $trip = self::assigned($company, $crew, true, $pickup, $alsoPickup);
+
+        return self::operate($company, fn ($assignment, TripLifecycleService $lifecycle) => $lifecycle->start($trip, $company->owner)->withoutRelations());
     }
 }

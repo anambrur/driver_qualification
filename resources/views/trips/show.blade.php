@@ -1,4 +1,4 @@
-{{-- A trip (req 4.1–4.3, 6.1, 6.3): Details, Stops (map) and its Documents folder. --}}
+{{-- A trip (req 4.1–4.6, 6.1, 6.3): assignment and progress, Details, Stops (map) and its Documents folder. --}}
 @extends('layouts.main-layout')
 
 @section('title', 'Trip '.$trip->label())
@@ -9,9 +9,16 @@
         $canConfirm = $trip->status === 'draft' && ! $trip->isNumberLocked() && $user->can('trips.confirm-number');
         $canCancel = $trip->canBeCancelled() && $user->can('trips.edit');
         $canDelete = $trip->canBeDeleted() && $user->can('trips.delete');
+        $canConfirmEquipment = $trip->status === 'assigned' && $trip->equipment_confirmed_at === null && $user->can('trips.assign');
+        $canOperate = $user->can('trips.edit');
+        $canPickUp = $canOperate && $trip->status === 'in_progress' && $trip->pickupStop() !== null && ! $trip->isPickedUp();
         $tabs = ['details' => 'Details', 'stops' => 'Stops'] + ($documentsBrowser ? ['documents' => 'Documents'] : []);
         // A folder link opens the Documents tab even before the page's script runs.
         $openTab = $documentsBrowser && request()->filled('folder') ? 'documents' : 'details';
+        // A refused stop-times save opens the Stops tab, where its errors are
+        if (collect($errors->keys())->contains(fn ($key) => $key === 'stops' || str_starts_with($key, 'stops.'))) {
+            $openTab = 'stops';
+        }
     @endphp
     <div class="p-4 sm:p-6 lg:p-8">
         <x-ui.page-header :title="'Trip '.$trip->label()" :description="$trip->trip_date->format('M d, Y').($trip->shipper ? ' · '.$trip->shipper->name : '')">
@@ -25,6 +32,33 @@
                         @csrf
                         <x-ui.button type="submit" icon="badge-check">Confirm number and date</x-ui.button>
                     </form>
+                @endif
+                @if ($canConfirmEquipment)
+                    <form method="POST" action="{{ route('trips.equipment.confirm', $trip) }}"
+                        data-confirm="Confirm the equipment?" data-confirm-text="Tractor {{ $trip->vehicle?->unit_no }}{{ $trip->trailer ? ' and trailer '.$trip->trailer->unit_no : ', no trailer' }} for {{ trim($trip->driver?->first_name.' '.$trip->driver?->last_name) }}." data-confirm-button="Confirm">
+                        @csrf
+                        <x-ui.button type="submit" variant="outline" icon="clipboard-check">Confirm equipment</x-ui.button>
+                    </form>
+                @endif
+                @if ($canOperate && $trip->status === 'assigned')
+                    @if ($trip->equipment_confirmed_at === null)
+                        <x-ui.button icon="play" disabled title="Confirm the tractor and trailer first">Start trip</x-ui.button>
+                    @else
+                        <form method="POST" action="{{ route('trips.start', $trip) }}"
+                            data-confirm="Start trip {{ $trip->label() }}?" data-confirm-text="The trip is in progress from now. The driver and vehicle can't start another trip until it is completed." data-confirm-button="Start">
+                            @csrf
+                            <x-ui.button type="submit" icon="play">Start trip</x-ui.button>
+                        </form>
+                    @endif
+                @endif
+                @if ($canPickUp)
+                    <form method="POST" action="{{ route('trips.picked-up', $trip) }}">
+                        @csrf
+                        <x-ui.button type="submit" icon="package-check">Picked up</x-ui.button>
+                    </form>
+                @endif
+                @if ($canOperate && $trip->status === 'in_progress')
+                    <x-ui.button :variant="$canPickUp ? 'outline' : null" icon="flag" data-dialog-open="trip-complete-dialog">Complete</x-ui.button>
                 @endif
                 @if ($canCancel)
                     <x-ui.button variant="outline" icon="circle-x" data-dialog-open="trip-cancel-dialog">Cancel trip</x-ui.button>
@@ -44,6 +78,9 @@
         @error('trip')
             <x-ui.alert tone="danger" class="mb-6">{{ $message }}</x-ui.alert>
         @enderror
+        @error('actual_distance_miles')
+            <x-ui.alert tone="danger" class="mb-6">{{ $message }}</x-ui.alert>
+        @enderror
 
         <div class="mb-6 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             @include('partials.ui.status-badge', ['status' => $trip->status])
@@ -55,6 +92,11 @@
 
         <x-ui.tabs id="trip-tabs" :tabs="$tabs" :selected="$openTab">
             <x-ui.tab-panel tabs="trip-tabs" name="details" :selected="$openTab === 'details'" class="mt-4">
+                @if ($trip->status !== 'draft')
+                    <div class="mb-6 max-w-4xl">
+                        @include('trips.partials.assignment')
+                    </div>
+                @endif
                 @if ($canEdit)
                     <form method="POST" action="{{ route('trips.update', $trip) }}" class="max-w-4xl space-y-6">
                         @csrf
@@ -90,6 +132,21 @@
             <x-slot:footer>
                 <button type="button" class="btn" data-variant="outline" data-dialog-close>Keep trip</button>
                 <button type="submit" form="trip-cancel-form" class="btn" data-variant="destructive">Cancel trip</button>
+            </x-slot:footer>
+        </x-ui.dialog>
+    @endif
+
+    @if ($canOperate && $trip->status === 'in_progress')
+        <x-ui.dialog id="trip-complete-dialog" :title="'Complete trip '.$trip->label().'?'" description="The drop-off is reached. A completed trip can't change any more." icon="flag" size="sm">
+            <form id="trip-complete-form" method="POST" action="{{ route('trips.complete', $trip) }}" class="grid gap-4">
+                @csrf
+                <x-ui.field label="Actual miles" name="actual_distance_miles" hint="Optional. Prefilled with the planned miles.">
+                    <x-ui.input type="number" name="actual_distance_miles" :value="$trip->planned_distance_miles" min="0" max="9999999.9" step="0.1" />
+                </x-ui.field>
+            </form>
+            <x-slot:footer>
+                <button type="button" class="btn" data-variant="outline" data-dialog-close>Not yet</button>
+                <button type="submit" form="trip-complete-form" class="btn">Complete trip</button>
             </x-slot:footer>
         </x-ui.dialog>
     @endif

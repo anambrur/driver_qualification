@@ -31,11 +31,20 @@
                                 @endif
                             </p>
                             <p class="text-sm text-muted-foreground">{{ $stop->address_line }}, {{ $stop->cityState() }} {{ $stop->zip }}</p>
+                            @if ($stop->arrived_at || $stop->departed_at)
+                                <p class="text-xs text-muted-foreground">
+                                    {{ collect(['Arrived' => $stop->arrived_at, 'Departed' => $stop->departed_at])->filter()->map(fn ($at, $label) => $label.' '.$at->timezone($timezone)->format('M d, g:i A'))->implode(' · ') }}
+                                </p>
+                            @endif
                         </div>
                     </li>
                 @endforeach
             </ol>
         </x-ui.card>
+    @endif
+
+    @if ($trip->status === 'in_progress' && auth()->user()->can('trips.edit'))
+        @include('trips.partials.stop-times')
     @endif
 
     @if ($canEdit)
