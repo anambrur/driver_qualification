@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * A folder (08 §8). A system folder (system_key set) is the standard folder of one driver
- * (DQ file), vehicle or trailer; custom folders nest below it, or at company level when unbound.
+ * (DQ file), vehicle, trailer or trip; custom folders nest below it, or at company level when unbound.
  * A child always has its parent's binding.
  */
 class Folder extends Model
@@ -87,6 +87,14 @@ class Folder extends Model
         return $this->belongsTo(Trailer::class)->withTrashed();
     }
 
+    /**
+     * @return BelongsTo<Trip, $this>
+     */
+    public function trip(): BelongsTo
+    {
+        return $this->belongsTo(Trip::class)->withTrashed();
+    }
+
     public function isSystem(): bool
     {
         return $this->system_key !== null;
@@ -96,11 +104,12 @@ class Folder extends Model
      * The stored name of an entity's standard folder: root names are unique per company and two
      * drivers may share a name, so it carries the id. Pages show label() instead.
      */
-    public static function systemName(Driver|Vehicle|Trailer $entity): string
+    public static function systemName(Driver|Vehicle|Trailer|Trip $entity): string
     {
         return match (true) {
             $entity instanceof Driver => "DQ file #{$entity->id}",
             $entity instanceof Vehicle => "Vehicle #{$entity->id}",
+            $entity instanceof Trip => "Trip #{$entity->id}",
             default => "Trailer #{$entity->id}",
         };
     }
@@ -111,6 +120,7 @@ class Folder extends Model
             'dq_file' => 'DQ file',
             'vehicle' => 'Vehicle documents',
             'trailer' => 'Trailer documents',
+            'trip' => 'Trip documents',
             default => $this->name,
         };
     }
@@ -144,7 +154,7 @@ class Folder extends Model
     }
 
     /**
-     * The document_types module of the binding (driver, vehicle, trailer), null at company level.
+     * The document_types module of the binding (driver, vehicle, trailer, trip), null at company level.
      */
     public function module(): ?string
     {

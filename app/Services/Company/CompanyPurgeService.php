@@ -30,7 +30,7 @@ class CompanyPurgeService
         'company_retained_features', 'company_settings', 'documents', 'driver_compliance_documents', 'drivers',
         'exports', 'folders', 'maintenance_schedules', 'payments', 'platform_support_sessions', 'policy_pdfs',
         'service_documents', 'service_logs', 'shippers', 'stored_files', 'subscription_notification_logs', 'subscriptions',
-        'trailer_documents', 'trailers', 'trip_number_sequences', 'users', 'vehicle_documents', 'vehicles',
+        'trailer_documents', 'trailers', 'trip_number_sequences', 'trip_stops', 'trips', 'users', 'vehicle_documents', 'vehicles',
     ];
 
     /**
@@ -151,7 +151,9 @@ class CompanyPurgeService
             $deleted['exports'] = $of('exports')->delete();
             $deleted['policy_pdfs'] = $of('policy_pdfs')->delete();
 
-            // Operations
+            // Operations: stops cascade from their trip; trips before shippers, drivers and assets
+            $deleted['trip_stops'] = $of('trip_stops')->count();
+            $deleted['trips'] = $of('trips')->delete();
             $deleted['shippers'] = $of('shippers')->delete();
 
             // Fleet and maintenance (service documents and categories cascade from the logs)

@@ -5,6 +5,7 @@ namespace App\Services\Documents;
 use App\Models\Driver;
 use App\Models\Folder;
 use App\Models\Trailer;
+use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Database\Eloquent\Collection;
@@ -14,13 +15,13 @@ use Illuminate\Validation\ValidationException;
 use LogicException;
 
 /**
- * Folders (08 §8, req 2.1–2.2). Each driver (DQ file), vehicle and trailer has one system folder,
+ * Folders (08 §8, req 2.1–2.2). Each driver (DQ file), vehicle, trailer and trip has one system folder,
  * created in the transaction that creates the entity. Custom folders nest up to MAX_DEPTH levels,
  * take their parent's binding, and have unique names among their siblings.
  */
 class FolderService
 {
-    public function ensureSystemFolder(Driver|Vehicle|Trailer $entity): Folder
+    public function ensureSystemFolder(Driver|Vehicle|Trailer|Trip $entity): Folder
     {
         if (DB::transactionLevel() === 0) {
             throw new LogicException('FolderService::ensureSystemFolder must run inside the transaction that creates the entity.');
