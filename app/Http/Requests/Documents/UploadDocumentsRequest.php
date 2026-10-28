@@ -36,7 +36,7 @@ class UploadDocumentsRequest extends FormRequest
 
         return [
             'files' => ['required', 'array', 'max:'.self::MAX_FILES],
-            'files.*' => ['bail', 'required', 'file', $this->refuseHeic(...), 'max:'.self::MAX_KB, "mimes:{$types}", "extensions:{$types}"],
+            'files.*' => ['bail', 'required', 'file', self::refuseHeic(...), 'max:'.self::MAX_KB, "mimes:{$types}", "extensions:{$types}"],
             'title' => ['nullable', 'string', 'max:255', Rule::prohibitedIf(fn () => count((array) $this->file('files', [])) > 1)],
             'document_type_id' => ['nullable', 'integer', $this->enabledType(...)],
             'issued_on' => ['nullable', 'date'],
@@ -72,7 +72,10 @@ class UploadDocumentsRequest extends FormRequest
         return FolderBrowser::url($this->folder());
     }
 
-    private function refuseHeic(string $attribute, mixed $value, Closure $fail): void
+    /**
+     * Also used by the trip event uploads (ValidatesTripEventPlace).
+     */
+    public static function refuseHeic(string $attribute, mixed $value, Closure $fail): void
     {
         if ($value instanceof UploadedFile && (in_array(strtolower($value->getClientOriginalExtension()), ['heic', 'heif'], true)
             || in_array($value->getMimeType(), ['image/heic', 'image/heif'], true))) {

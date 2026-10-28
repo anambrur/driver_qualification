@@ -1,4 +1,4 @@
-{{-- A trip (req 4.1–4.6, 5.1–5.3, 6.1, 6.3): assignment and progress, Details, Stops (map), the pre-trip Inspection and its Documents folder. --}}
+{{-- A trip (req 4.1–4.6, 5.1–5.3, 6.1, 6.3, 7.1–7.6): assignment and progress, Details, Stops (map), the pre-trip Inspection, Events and its Documents folder. --}}
 @extends('layouts.main-layout')
 
 @section('title', 'Trip '.$trip->label())
@@ -12,7 +12,7 @@
         $canConfirmEquipment = $trip->status === 'assigned' && $trip->equipment_confirmed_at === null && $user->can('trips.assign');
         $canOperate = $user->can('trips.edit');
         $canPickUp = $canOperate && $trip->status === 'in_progress' && $trip->pickupStop() !== null && ! $trip->isPickedUp();
-        $tabs = ['details' => 'Details', 'stops' => 'Stops'] + ($inspections !== null ? ['inspection' => 'Inspection'] : []) + ($documentsBrowser ? ['documents' => 'Documents'] : []);
+        $tabs = ['details' => 'Details', 'stops' => 'Stops'] + ($inspections !== null ? ['inspection' => 'Inspection'] : []) + ($events !== null ? ['events' => 'Events'] : []) + ($documentsBrowser ? ['documents' => 'Documents'] : []);
         // A folder link opens the Documents tab even before the page's script runs.
         $openTab = $documentsBrowser && request()->filled('folder') ? 'documents' : 'details';
         // A refused stop-times save opens the Stops tab, where its errors are
@@ -21,6 +21,10 @@
         }
         if ($inspections !== null && $errors->has('inspection')) {
             $openTab = 'inspection';
+        }
+        // A refused event, fuel stop, file or void opens the Events tab (and its dialog)
+        if ($events !== null && ($errors->has('event') || in_array(old('_form'), ['event', 'fuel', 'attach', 'void'], true))) {
+            $openTab = 'events';
         }
     @endphp
     <div class="p-4 sm:p-6 lg:p-8">
@@ -126,6 +130,11 @@
                     @include('trips.partials.inspection')
                 </x-ui.tab-panel>
             @endif
+            @if ($events !== null)
+                <x-ui.tab-panel tabs="trip-tabs" name="events" :selected="$openTab === 'events'" class="mt-4 max-w-4xl">
+                    @include('trips.partials.events')
+                </x-ui.tab-panel>
+            @endif
             @if ($documentsBrowser)
                 <x-ui.tab-panel tabs="trip-tabs" name="documents" :selected="$openTab === 'documents'" class="mt-4">
                     @include('documents.partials.browser', ['browser' => $documentsBrowser, 'empty' => 'This trip has no folder yet.'])
@@ -162,6 +171,10 @@
                 <button type="submit" form="trip-complete-form" class="btn">Complete trip</button>
             </x-slot:footer>
         </x-ui.dialog>
+    @endif
+
+    @if ($canRecordEvents)
+        @include('trips.partials.event-dialogs')
     @endif
 @endsection
 

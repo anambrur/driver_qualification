@@ -10,6 +10,7 @@ use Database\Factories\AssetGroupFactory;
 use Database\Factories\AssetTransferFactory;
 use Database\Factories\DocumentFactory;
 use Database\Factories\DriverFactory;
+use Database\Factories\FuelPurchaseFactory;
 use Database\Factories\InspectionFactory;
 use Database\Factories\LicenseFactory;
 use Database\Factories\MaintenanceScheduleFactory;
@@ -17,6 +18,7 @@ use Database\Factories\PaymentFactory;
 use Database\Factories\ServiceLogFactory;
 use Database\Factories\ShipperFactory;
 use Database\Factories\StoredFileFactory;
+use Database\Factories\TripEventFactory;
 use Database\Factories\TripFactory;
 use Database\Factories\TripStopFactory;
 use Database\Factories\VehicleFactory;
@@ -63,6 +65,10 @@ function companyWithEverything(): Company
         $item = $inspection->template->items()->first();
         $inspection->results()->create(['template_item_id' => $item->id, 'item_label' => $item->label, 'result' => 'fail']);
         DocumentFactory::new()->inFolder($folder)->create(['trip_id' => null, 'inspection_id' => $inspection->id]);
+        $fuel = TripEventFactory::new()->forTrip($trip)->ofType('fuel')->create();
+        $purchase = FuelPurchaseFactory::new()->forEvent($fuel)->confirmed()->create();
+        DocumentFactory::new()->inFolder($folder)->create(['trip_id' => null, 'fuel_purchase_id' => $purchase->id]);
+        DocumentFactory::new()->inFolder($folder)->create(['trip_id' => null, 'trip_event_id' => TripEventFactory::new()->forTrip($trip)->ofType('accident')->voided()->create()->id]);
         $shipper->delete();
     });
 

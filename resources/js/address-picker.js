@@ -71,7 +71,7 @@ function initPicker(root) {
 
     // From the pin (keepPin) only the address is taken; the pin stays where it was put
     const fill = (place, keepPin = false) => {
-        field("country_code").value = place.country_code;
+        setValue("country_code", place.country_code);
         setValue("address_line1", place.address_line1);
         setValue("city", place.city);
         setValue("state_code", place.state_code);

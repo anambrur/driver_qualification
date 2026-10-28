@@ -315,8 +315,8 @@ describe('P2-1 → shippers and address search need the trips feature and their 
         ['shippers.activate', 'shippers.manage'],
         ['shippers.deactivate', 'shippers.manage'],
         ['shippers.destroy', 'shippers.manage'],
-        ['maps.search', 'shippers.manage|trips.create|trips.edit'],
-        ['maps.reverse', 'shippers.manage|trips.create|trips.edit'],
+        ['maps.search', 'shippers.manage|trips.create|trips.edit|trip-events.manage'],
+        ['maps.reverse', 'shippers.manage|trips.create|trips.edit|trip-events.manage'],
     ]);
 
     it('throttles the address search per user', function (string $name) {
@@ -364,6 +364,20 @@ describe('P2-4 → inspections need the pre_trip_inspections feature and their p
         ['inspections.abandon', 'inspections.manage'],
         ['inspections.attachments.store', 'inspections.manage'],
         ['inspections.attachments.show', 'inspections.view'],
+    ]);
+});
+
+describe('P2-5 → trip events need the trip_events feature and their permissions', function () {
+    it('guards each route with its permission and the feature', function (string $name, string $permission) {
+        $middleware = Route::getRoutes()->getByName($name)?->gatherMiddleware();
+
+        expect($middleware)->toContain("permission:$permission")->toContain('feature:trip_events')->toContain('feature:trips');
+    })->with([
+        ['trips.events.store', 'trip-events.manage'],
+        ['trips.fuel-stops.store', 'trip-events.manage'],
+        ['trip-events.attachments.store', 'trip-events.manage'],
+        ['trip-events.void', 'trip-events.manage'],
+        ['trip-events.attachments.show', 'trip-events.view'],
     ]);
 });
 

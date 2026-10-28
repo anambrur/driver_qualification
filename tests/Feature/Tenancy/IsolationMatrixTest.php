@@ -15,12 +15,14 @@ use Database\Factories\DriverComplianceDocumentFactory;
 use Database\Factories\DriverFactory;
 use Database\Factories\ExportFactory;
 use Database\Factories\FolderFactory;
+use Database\Factories\FuelPurchaseFactory;
 use Database\Factories\InspectionFactory;
 use Database\Factories\MaintenanceScheduleFactory;
 use Database\Factories\ServiceLogFactory;
 use Database\Factories\ShipperFactory;
 use Database\Factories\StoredFileFactory;
 use Database\Factories\TrailerFactory;
+use Database\Factories\TripEventFactory;
 use Database\Factories\TripFactory;
 use Database\Factories\UserFactory;
 use Database\Factories\VehicleFactory;
@@ -119,6 +121,7 @@ function isoFixtures(): array
     $document = fn (Company $a) => [DocumentFactory::new()->inFolder(Docs::dqFile($a)[1])->withFile(Files::stored($a->id))->create()->id];
     $shipper = fn (Company $a) => [ShipperFactory::new()->forCompany($a)->create()->id];
     $trip = fn (Company $a) => [TripFactory::new()->forCompany($a)->create()->id];
+    $tripEvent = fn (Company $a) => [TripEventFactory::new()->forTrip(TripFactory::new()->forCompany($a)->inProgress()->create())->create()->id];
     $inspection = fn (Company $a) => [InspectionFactory::new()->forTrip(TripFactory::new()->forCompany($a)->assigned()->create())->create()->id];
     $user = fn (Company $a) => [UserFactory::new()->create(['company_id' => $a->id])->id];
     $role = fn (Company $a) => [Role::query()->where('team_id', $a->id)->where('name', 'Dispatcher')->value('id')];
@@ -235,6 +238,19 @@ function isoFixtures(): array
             $document = DocumentFactory::new()->inFolder(Docs::systemFolder($trip))->create(['trip_id' => null, 'inspection_id' => $inspection->id]);
 
             return [$inspection->id, $document->id];
+        },
+        // Trip events and fuel stops (P2-5)
+        'POST admin/trips/{trip}/events' => $trip,
+        'POST admin/trips/{trip}/fuel-stops' => $trip,
+        'POST admin/trip-events/{tripEvent}/attachments' => $tripEvent,
+        'POST admin/trip-events/{tripEvent}/void' => $tripEvent,
+        'GET admin/trip-events/{tripEvent}/attachments/{document}' => function (Company $a) {
+            $trip = TripFactory::new()->forCompany($a)->inProgress()->create();
+            $event = TripEventFactory::new()->forTrip($trip)->ofType('fuel')->create();
+            $purchase = FuelPurchaseFactory::new()->forEvent($event)->confirmed()->create();
+            $document = DocumentFactory::new()->inFolder(Docs::systemFolder($trip))->create(['trip_id' => null, 'fuel_purchase_id' => $purchase->id]);
+
+            return [$event->id, $document->id];
         },
         // Company settings
         'GET admin/settings/company/{id}/edit' => fn (Company $a) => [$a->id],

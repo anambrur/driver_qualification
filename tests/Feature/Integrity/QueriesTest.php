@@ -4,11 +4,13 @@ use App\Console\Commands\IntegrityCheck;
 use App\Models\User;
 use Database\Factories\DocumentFactory;
 use Database\Factories\DriverFactory;
+use Database\Factories\FuelPurchaseFactory;
 use Database\Factories\InspectionFactory;
 use Database\Factories\PlatformUserFactory;
 use Database\Factories\ServiceLogFactory;
 use Database\Factories\StoredFileFactory;
 use Database\Factories\SubscriptionFactory;
+use Database\Factories\TripEventFactory;
 use Database\Factories\TripFactory;
 use Database\Factories\VehicleFactory;
 use Database\Seeders\DatabaseSeeder;
@@ -83,6 +85,16 @@ it('reports the rows that break a rule', function (int $query, Closure $breakIt)
         $document = DocumentFactory::new()->inFolder(Docs::systemFolder(TripFactory::new()->forCompany($c)->create()))->create();
         DB::table('documents')->where('id', $document->id)->update(['trip_id' => TripFactory::new()->forCompany($c)->create()->id]);
     }],
+    'trip-folder document about an event of another trip' => [5, function ($c) {
+        $document = DocumentFactory::new()->inFolder(Docs::systemFolder(TripFactory::new()->forCompany($c)->create()))->create();
+        $event = TripEventFactory::new()->forTrip(TripFactory::new()->forCompany($c)->inProgress()->create())->create();
+        DB::table('documents')->where('id', $document->id)->update(['trip_id' => null, 'trip_event_id' => $event->id]);
+    }],
+    'trip-folder document about a fuel purchase of another trip' => [5, function ($c) {
+        $document = DocumentFactory::new()->inFolder(Docs::systemFolder(TripFactory::new()->forCompany($c)->create()))->create();
+        $event = TripEventFactory::new()->forTrip(TripFactory::new()->forCompany($c)->inProgress()->create())->ofType('fuel')->create();
+        DB::table('documents')->where('id', $document->id)->update(['trip_id' => null, 'fuel_purchase_id' => FuelPurchaseFactory::new()->forEvent($event)->create()->id]);
+    }],
     'trip-folder document about an inspection of another trip' => [5, function ($c) {
         $document = DocumentFactory::new()->inFolder(Docs::systemFolder(TripFactory::new()->forCompany($c)->create()))->create();
         $inspection = InspectionFactory::new()->forTrip(TripFactory::new()->forCompany($c)->assigned()->create())->create();
@@ -134,6 +146,18 @@ it('accepts a vehicle-folder document about one of its service logs', function (
     DB::table('documents')->where('id', $document->id)->update([
         'vehicle_id' => null, 'service_log_id' => ServiceLogFactory::new()->forVehicle($vehicle)->create()->id,
     ]);
+
+    [$exit] = integrityOutput();
+
+    expect($exit)->toBe(0);
+});
+
+it('accepts trip-folder documents about its events and fuel purchases', function () {
+    $trip = TripFactory::new()->forCompany(Actors::company())->inProgress()->create();
+    $folder = Docs::systemFolder($trip);
+    $fuel = TripEventFactory::new()->forTrip($trip)->ofType('fuel')->create();
+    DB::table('documents')->where('id', DocumentFactory::new()->inFolder($folder)->create()->id)->update(['trip_id' => null, 'trip_event_id' => TripEventFactory::new()->forTrip($trip)->create()->id]);
+    DB::table('documents')->where('id', DocumentFactory::new()->inFolder($folder)->create()->id)->update(['trip_id' => null, 'fuel_purchase_id' => FuelPurchaseFactory::new()->forEvent($fuel)->create()->id]);
 
     [$exit] = integrityOutput();
 

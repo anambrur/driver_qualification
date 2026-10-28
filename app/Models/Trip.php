@@ -135,6 +135,16 @@ class Trip extends Model
     }
 
     /**
+     * Events recorded during the trip (P2-5), voided ones included.
+     *
+     * @return HasMany<TripEvent, $this>
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(TripEvent::class);
+    }
+
+    /**
      * The trip's standard folder ("Trip documents").
      *
      * @return HasOne<Folder, $this>

@@ -55,14 +55,16 @@ class IntegrityCheck extends Command
         ],
         5 => [
             'rule' => 'A document filed in an entity folder is about that entity or one of its children (F18)',
-            'tables' => ['documents', 'folders', 'service_logs', 'inspections'],
+            'tables' => ['documents', 'folders', 'service_logs', 'inspections', 'trip_events', 'fuel_purchases'],
             'sql' => 'SELECT d.id FROM documents d JOIN folders f ON f.id = d.folder_id
                 WHERE (f.driver_id IS NOT NULL AND (d.driver_id IS NULL OR d.driver_id <> f.driver_id))
                 OR (f.trailer_id IS NOT NULL AND (d.trailer_id IS NULL OR d.trailer_id <> f.trailer_id))
                 OR (f.vehicle_id IS NOT NULL AND (d.vehicle_id IS NULL OR d.vehicle_id <> f.vehicle_id)
                     AND NOT EXISTS (SELECT 1 FROM service_logs l WHERE l.id = d.service_log_id AND l.vehicle_id = f.vehicle_id))
                 OR (f.trip_id IS NOT NULL AND (d.trip_id IS NULL OR d.trip_id <> f.trip_id)
-                    AND NOT EXISTS (SELECT 1 FROM inspections i WHERE i.id = d.inspection_id AND i.trip_id = f.trip_id))',
+                    AND NOT EXISTS (SELECT 1 FROM inspections i WHERE i.id = d.inspection_id AND i.trip_id = f.trip_id)
+                    AND NOT EXISTS (SELECT 1 FROM trip_events e WHERE e.id = d.trip_event_id AND e.trip_id = f.trip_id)
+                    AND NOT EXISTS (SELECT 1 FROM fuel_purchases p WHERE p.id = d.fuel_purchase_id AND p.trip_id = f.trip_id))',
         ],
         6 => [
             'rule' => 'Storage counter matches stored files (exports are not counted)',

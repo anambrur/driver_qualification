@@ -7,11 +7,13 @@ use App\Http\Requests\Operations\CancelTripRequest;
 use App\Http\Requests\Operations\TripRequest;
 use App\Http\Requests\Operations\TripStopsRequest;
 use App\Models\Driver;
+use App\Models\FuelType;
 use App\Models\Shipper;
 use App\Models\Trip;
 use App\Models\Vehicle;
 use App\Services\Documents\FolderBrowser;
 use App\Services\Operations\TripAssignmentService;
+use App\Services\Operations\TripEventService;
 use App\Services\Operations\TripLifecycleService;
 use App\Services\Operations\TripService;
 use App\Support\Ui\Toast;
@@ -81,6 +83,18 @@ class TripController extends Controller
             ? $trip->inspections()->withCount(['results', 'documents'])->with(['template' => fn ($q) => $q->withCount('items'), 'performedBy:id,name'])->get()
             : null;
         $inspections?->first()?->load(['results' => fn ($q) => $q->where('result', 'fail')->orderBy('id')]);
+        // trip-events.view is denied while the company lacks trip_events (PermissionGate step 4)
+        $events = $request->user()->can('trip-events.view')
+            ? $trip->events()->orderByDesc('occurred_at')->orderByDesc('id')->with([
+                'recordedBy:id,name',
+                'documents' => fn ($q) => $q->select(['id', 'trip_event_id', 'title'])->orderBy('id'),
+                'fuelPurchase.fuelType:id,name',
+                'fuelPurchase.documents' => fn ($q) => $q->select(['id', 'fuel_purchase_id', 'title'])->orderBy('id'),
+            ])->get()
+            : null;
+        $canRecordEvents = $events !== null && TripEventService::isRecordable($trip) && $request->user()->can('trip-events.manage');
+        // Times are shown and typed in the company's time zone (Z1)
+        $timezone = $trip->driver_id !== null ? $this->trips->timezone() : null;
 
         return view('trips.show', [
             'trip' => $trip,
@@ -92,9 +106,12 @@ class TripController extends Controller
             'groupDefaults' => $canAssign ? $assignment->groupDefaults() : [],
             'warnings' => $trip->status === 'assigned' ? $assignment->warnings($trip) : [],
             'inspections' => $inspections,
+            'events' => $events,
+            'canRecordEvents' => $canRecordEvents,
+            'eventDefaultAt' => $canRecordEvents ? TripEventService::defaultOccurredAt($trip, (string) $timezone)->format('Y-m-d\TH:i') : null,
+            'fuelTypes' => $canRecordEvents ? FuelType::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id')->all() : [],
             'preTripBlocker' => $trip->status === 'assigned' ? $lifecycle->preTripBlocker($trip) : null,
-            // Times are shown and typed in the company's time zone (Z1)
-            'timezone' => $trip->driver_id !== null ? $this->trips->timezone() : null,
+            'timezone' => $timezone,
         ]);
     }
 

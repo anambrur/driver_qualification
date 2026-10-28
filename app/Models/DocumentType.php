@@ -141,6 +141,7 @@ class DocumentType extends Model
             'driver' => 'Driver',
             'vehicle' => 'Vehicle',
             'trailer' => 'Trailer',
+            'trip' => 'Trip',
         ];
     }
 
