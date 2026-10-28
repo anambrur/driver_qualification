@@ -1,8 +1,8 @@
 # DriverFilesHub data model
 
-Entity-relationship diagrams for every table the migrations build, read from a migrated MySQL schema (`information_schema`, commit 82b0468, 15 October 2026; Phase 1 tables added from commit 2331008, 23 October 2026; `site_settings`, `companies`, `plans`, `roles`, the public-site tables and the co-driver drop re-read on 23 October 2026) and laid out like [erd-proposed.md](erd-proposed.md), the target design. Update this file when you add or change a migration.
+Entity-relationship diagrams for every table the migrations build, read from a migrated MySQL schema (`information_schema`, commit 82b0468, 15 October 2026; Phase 1 tables added from commit 2331008, 23 October 2026; `site_settings`, `companies`, `plans`, `roles`, the public-site tables and the co-driver drop re-read on 23 October 2026; Phase 2 tables added from the P2-7 run, 28 October 2026) and laid out like [erd-proposed.md](erd-proposed.md), the target design. Update this file when you add or change a migration.
 
-76 tables (66 without the framework tables) · 132 foreign keys (all listed below) · 12 soft-delete tables. The Phase 0 and Phase 1 tables of the redesign are built; the tables of later phases are listed under [Not built yet](#not-built-yet). The public-site tables are drawn under [Public site](#public-site).
+85 tables (75 without the framework tables) · 171 foreign keys (all listed below) · 14 soft-delete tables. The Phase 0, Phase 1 and Phase 2 tables of the redesign are built; the tables of later phases are listed under [Not built yet](#not-built-yet). The public-site tables are drawn under [Public site](#public-site).
 
 - Full column, constraint and index specifications are in [architecture/08-database-schema.md](architecture/08-database-schema.md).
 - The reason for each change to an earlier table is in [architecture/09-erd-audit.md](architecture/09-erd-audit.md).
@@ -60,6 +60,13 @@ erDiagram
   trailers ||--o{ trailer_documents : ""
   drivers ||--o{ asset_groups : "default pairing"
   vehicles ||--o{ service_logs : "serviced"
+  companies ||--o{ trips : "runs"
+  drivers |o--o{ trips : "assigned"
+  vehicles |o--o{ trips : "assigned"
+  trips ||--o{ trip_stops : "route"
+  trips ||--o{ trip_events : "events"
+  trip_events |o--o| fuel_purchases : "fuel"
+  trips |o--o{ inspections : "pre-trip"
   companies ||--o{ stored_files : "stores"
   companies ||--o{ audit_logs : ""
   companies ||--o{ platform_support_sessions : "support access"
@@ -851,7 +858,7 @@ erDiagram
     bigint driver_id FK "cFK, restrict; CHECK at most one binding"
     bigint vehicle_id FK "cFK, restrict"
     bigint trailer_id FK "cFK, restrict"
-    bigint trip_id "no FK until Phase 2"
+    bigint trip_id FK "cFK, restrict (MySQL only)"
     bigint created_by_user_id FK "set null"
     timestamp deleted_at
     bigint parent_key "generated: 0 for root, null when deleted"
@@ -869,12 +876,12 @@ erDiagram
     bigint driver_id FK "subject, cFK, restrict; CHECK at most one subject"
     bigint vehicle_id FK "subject, cFK, restrict"
     bigint trailer_id FK "subject, cFK, restrict"
-    bigint trip_id "subject, no FK until Phase 2"
-    bigint trip_event_id "subject, no FK until Phase 2"
-    bigint fuel_purchase_id "subject, no FK until Phase 2"
+    bigint trip_id FK "subject, cFK, restrict (MySQL only)"
+    bigint trip_event_id FK "subject, cFK, restrict (MySQL only)"
+    bigint fuel_purchase_id FK "subject, cFK, restrict (MySQL only)"
     bigint expense_id "subject, no FK until Phase 4"
     bigint service_log_id FK "subject, cFK, restrict"
-    bigint inspection_id "subject, no FK until Phase 2"
+    bigint inspection_id FK "subject, cFK, restrict (MySQL only)"
     bigint uploaded_by_user_id FK "set null"
     timestamp deleted_at
   }
@@ -905,7 +912,7 @@ erDiagram
   stored_files |o--o| exports : "result"
 ```
 
-`folders` and `documents` also reference `drivers`, `vehicles`, `trailers` (and `documents` `service_logs` and `document_types`) through the keys above; those links are in the delete-rule table below.
+`folders` and `documents` also reference `drivers`, `vehicles`, `trailers`, `trips` (and `documents` `trip_events`, `fuel_purchases`, `inspections`, `service_logs` and `document_types`) through the keys above; those links are in the delete-rule table below. The FKs to the Phase 2 tables are added by MySQL-only migrations (08 §8), so SQLite does not enforce them.
 
 ## Trips, inspections, events and tracking
 
@@ -915,7 +922,187 @@ erDiagram
     bigint company_id PK, FK "cascade"
     bigint next_number "locked on use"
   }
+  shippers {
+    bigint id PK
+    bigint company_id FK "restrict"
+    string name "indexed with company, not unique"
+    string contact_name
+    string phone
+    string email
+    string address_line1
+    string address_line2
+    string city
+    char state_code
+    string zip
+    char country_code "US / CA"
+    decimal latitude
+    decimal longitude
+    string place_source "photon / nominatim / manual"
+    string place_ref "OpenStreetMap object"
+    text notes
+    boolean is_active
+    timestamp deleted_at
+  }
+  trips {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint trip_number "UK with company"
+    date trip_date
+    timestamp number_confirmed_at
+    bigint number_confirmed_by_user_id FK "set null"
+    enum status "draft / planned / assigned / in_progress / completed / cancelled; CHECK crew when assigned or later"
+    bigint driver_id FK "cFK, restrict"
+    bigint vehicle_id FK "cFK, restrict"
+    bigint trailer_id FK "cFK, restrict"
+    bigint shipper_id FK "cFK, restrict"
+    string product
+    decimal weight
+    string weight_unit "lb / kg"
+    decimal load_pay "Phase 4"
+    char currency "Phase 4"
+    timestamp equipment_confirmed_at
+    bigint equipment_confirmed_by_user_id FK "set null"
+    decimal planned_distance_miles
+    decimal actual_distance_miles
+    decimal paid_miles "Phase 4"
+    timestamp started_at
+    timestamp completed_at
+    timestamp cancelled_at
+    string cancel_reason
+    string vehicle_unit_no_snapshot
+    string trailer_unit_no_snapshot
+    bigint created_by_user_id FK "set null"
+    text notes
+    timestamp deleted_at
+    bigint active_driver_id UK "generated: driver_id while in_progress"
+    bigint active_vehicle_id UK "generated: vehicle_id while in_progress"
+  }
+  trip_stops {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint trip_id FK "cFK, cascade"
+    smallint sequence "UK with trip"
+    enum stop_type "start / pickup / drop_off; UK with trip"
+    boolean also_pickup "start is the pickup"
+    bigint shipper_id FK "cFK, restrict"
+    string address_line
+    string city
+    char state_code
+    string zip
+    char country_code
+    decimal latitude
+    decimal longitude
+    string place_source
+    string place_ref
+    timestamp planned_at
+    timestamp arrived_at
+    timestamp departed_at
+  }
+  inspection_templates {
+    bigint id PK
+    string name "UK with version"
+    enum inspection_type "pre_trip"
+    smallint version
+    boolean is_active
+    timestamp published_at
+  }
+  inspection_template_items {
+    bigint id PK
+    bigint template_id FK "cascade"
+    string section
+    string label
+    smallint sort_order
+    boolean is_required
+  }
+  inspections {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint trip_id FK "cFK, restrict"
+    bigint driver_id FK "cFK, restrict"
+    bigint vehicle_id FK "cFK, restrict"
+    bigint trailer_id FK "cFK, restrict"
+    bigint template_id FK "restrict"
+    enum status "in_progress / completed / abandoned"
+    enum result "no_defects / defects_found"
+    int odometer
+    timestamp started_at
+    timestamp completed_at
+    bigint performed_by_user_id FK "set null"
+    text notes
+  }
+  inspection_results {
+    bigint id PK
+    bigint inspection_id FK "cascade; UK with template_item_id"
+    bigint template_item_id FK "restrict"
+    string item_label "snapshot"
+    enum result "pass / fail / na"
+    string note
+  }
+  trip_events {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint trip_id FK "cFK, restrict"
+    bigint driver_id FK "cFK, restrict"
+    bigint vehicle_id FK "cFK, restrict"
+    enum type "stop / police_stop / weigh_station / accident / breakdown / fuel; CHECKs per type"
+    timestamp occurred_at
+    decimal latitude
+    decimal longitude
+    string address
+    string city
+    char state_code
+    text reason "required for stop; police_stop without ticket"
+    boolean ticket_issued "required for police_stop"
+    boolean weight_ok "required for weigh_station"
+    json details
+    smallint injuries_count "accident only"
+    smallint fatalities_count "accident only"
+    boolean hazmat_released "accident only"
+    bigint recorded_by_user_id FK "set null"
+    timestamp voided_at
+    string void_reason
+  }
+  fuel_purchases {
+    bigint id PK
+    bigint company_id FK "restrict"
+    bigint trip_id FK "cFK, restrict"
+    bigint trip_event_id FK "cFK, restrict; UK"
+    bigint driver_id FK "cFK, restrict"
+    bigint vehicle_id FK "cFK, restrict"
+    bigint fuel_type_id FK "restrict"
+    timestamp purchased_at
+    decimal latitude
+    decimal longitude
+    string location_name
+    char state_code
+    decimal gallons
+    decimal price_per_gallon
+    decimal total_amount
+    char currency "USD"
+    int odometer
+    timestamp confirmed_at "Done: first receipt"
+    bigint recorded_by_user_id FK "set null"
+  }
+  companies {
+    bigint id PK
+  }
+  companies ||--|| trip_number_sequences : "numbers"
+  companies ||--o{ shippers : ""
+  companies ||--o{ trips : ""
+  shippers |o--o{ trips : "shipper"
+  trips ||--o{ trip_stops : "route"
+  shippers |o--o{ trip_stops : "at"
+  inspection_templates ||--o{ inspection_template_items : "items"
+  inspection_templates ||--o{ inspections : "version used"
+  trips |o--o{ inspections : "pre-trip"
+  inspections ||--o{ inspection_results : "answers"
+  inspection_template_items ||--o{ inspection_results : "item"
+  trips ||--o{ trip_events : "events"
+  trip_events |o--o| fuel_purchases : "fuel stop"
+  trips |o--o{ fuel_purchases : ""
 ```
+
+`trips`, `inspections`, `trip_events` and `fuel_purchases` also reference `drivers`, `vehicles`, `trailers`, `users` and `fuel_types` through the keys above; those links are in the delete-rule table below. "One in-progress trip per driver and per vehicle" is the unique `active_driver_id` / `active_vehicle_id`, so `trips.driver_id` and `vehicle_id` use `restrict` (08 §1).
 
 ## Communication, integrations and audit
 
@@ -1139,6 +1326,11 @@ What the database does when a parent row is hard-deleted, as built. In normal us
 | Files | `documents` cFK `service_log_id` | `service_logs` | nullable | restrict |
 | Files | `documents.document_type_id` | `document_types.id` | nullable | restrict |
 | Files | `documents.uploaded_by_user_id` | `users.id` | nullable | set null |
+| Files | `folders` cFK `trip_id` (MySQL only) | `trips` | nullable | restrict |
+| Files | `documents` cFK `trip_id` (MySQL only) | `trips` | nullable | restrict |
+| Files | `documents` cFK `trip_event_id` (MySQL only) | `trip_events` | nullable | restrict |
+| Files | `documents` cFK `fuel_purchase_id` (MySQL only) | `fuel_purchases` | nullable | restrict |
+| Files | `documents` cFK `inspection_id` (MySQL only) | `inspections` | nullable | restrict |
 | Files | `exports.company_id` | `companies.id` | required | restrict |
 | Files | `exports` cFK `file_id` | `stored_files` | nullable | restrict |
 | Files | `exports.requested_by_user_id` | `users.id` | nullable | set null |
@@ -1206,7 +1398,41 @@ What the database does when a parent row is hard-deleted, as built. In normal us
 | Reference | `company_retained_features.company_id` | `companies.id` | required | cascade |
 | Reference | `company_retained_features.feature_key` | `features.key` | required | restrict |
 | Reference | `states.country_id` | `countries.id` | required | cascade |
+| Trips | `fuel_purchases.company_id` | `companies.id` | required | restrict |
+| Trips | `fuel_purchases` cFK `trip_id` | `trips` | nullable | restrict |
+| Trips | `fuel_purchases` cFK `trip_event_id` | `trip_events` | nullable | restrict |
+| Trips | `fuel_purchases` cFK `driver_id` | `drivers` | required | restrict |
+| Trips | `fuel_purchases` cFK `vehicle_id` | `vehicles` | required | restrict |
+| Trips | `fuel_purchases.fuel_type_id` | `fuel_types.id` | nullable | restrict |
+| Trips | `fuel_purchases.recorded_by_user_id` | `users.id` | nullable | set null |
+| Trips | `inspection_results.inspection_id` | `inspections.id` | required | cascade |
+| Trips | `inspection_results.template_item_id` | `inspection_template_items.id` | required | restrict |
+| Trips | `inspection_template_items.template_id` | `inspection_templates.id` | required | cascade |
+| Trips | `inspections.company_id` | `companies.id` | required | restrict |
+| Trips | `inspections` cFK `trip_id` | `trips` | nullable | restrict |
+| Trips | `inspections` cFK `driver_id` | `drivers` | required | restrict |
+| Trips | `inspections` cFK `vehicle_id` | `vehicles` | required | restrict |
+| Trips | `inspections` cFK `trailer_id` | `trailers` | nullable | restrict |
+| Trips | `inspections.template_id` | `inspection_templates.id` | required | restrict |
+| Trips | `inspections.performed_by_user_id` | `users.id` | nullable | set null |
+| Trips | `shippers.company_id` | `companies.id` | required | restrict |
+| Trips | `trip_events.company_id` | `companies.id` | required | restrict |
+| Trips | `trip_events` cFK `trip_id` | `trips` | required | restrict |
+| Trips | `trip_events` cFK `driver_id` | `drivers` | required | restrict |
+| Trips | `trip_events` cFK `vehicle_id` | `vehicles` | nullable | restrict |
+| Trips | `trip_events.recorded_by_user_id` | `users.id` | nullable | set null |
 | Trips | `trip_number_sequences.company_id` | `companies.id` | required | cascade |
+| Trips | `trip_stops.company_id` | `companies.id` | required | restrict |
+| Trips | `trip_stops` cFK `trip_id` | `trips` | required | cascade |
+| Trips | `trip_stops` cFK `shipper_id` | `shippers` | nullable | restrict |
+| Trips | `trips.company_id` | `companies.id` | required | restrict |
+| Trips | `trips` cFK `driver_id` | `drivers` | nullable | restrict |
+| Trips | `trips` cFK `vehicle_id` | `vehicles` | nullable | restrict |
+| Trips | `trips` cFK `trailer_id` | `trailers` | nullable | restrict |
+| Trips | `trips` cFK `shipper_id` | `shippers` | nullable | restrict |
+| Trips | `trips.number_confirmed_by_user_id` | `users.id` | nullable | set null |
+| Trips | `trips.equipment_confirmed_by_user_id` | `users.id` | nullable | set null |
+| Trips | `trips.created_by_user_id` | `users.id` | nullable | set null |
 
 The tables with deliberately **no FK** are `audit_logs` (it outlives what it records) and the Spatie `model_id` columns. The reasons are in [architecture/08-database-schema.md](architecture/08-database-schema.md).
 
@@ -1215,7 +1441,7 @@ The tables with deliberately **no FK** are `audit_logs` (it outlives what it rec
 Tables of the design in [erd-proposed.md](erd-proposed.md) that later phases build ([architecture/13-implementation-roadmap.md](architecture/13-implementation-roadmap.md)):
 
 - **Accounts, tenancy and authorization:** `device_tokens`
-- **Trips, inspections, events and tracking:** `shippers`, `trips`, `trip_stops`, `inspection_templates`, `inspection_template_items`, `inspections`, `inspection_results`, `trip_events`, `fuel_purchases`, `location_pings`, `vehicle_last_locations`
+- **Tracking (Phase 3):** `location_pings`, `vehicle_last_locations`
 - **Money:** `driver_pay_rates`, `expenses`, `time_entries`, `timesheets`, `payroll_runs`, `payroll_run_lines`
 - **Communication, integrations and audit:** `conversations`, `conversation_participants`, `messages`, `time_off_requests`, `integration_connections`, `external_references`, `integration_sync_logs`
 

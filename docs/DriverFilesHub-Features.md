@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | 13 October 2026, statuses updated 23 October 2026 |
+| Version | 13 October 2026, statuses updated 28 October 2026 |
 | Based on | Client use cases (DOT Doc Hub, 7 March 2023), the gap report (26 September 2026), the architecture set in [architecture/](architecture/README.md), and the code at commit `d1d4d8d` |
 | PDF version | [DriverFilesHub-Features.pdf](DriverFilesHub-Features.pdf) |
 | For developers | [Technical-Features-and-Workflow.md](Technical-Features-and-Workflow.md) |
@@ -59,7 +59,7 @@ flowchart TB
 | **Platform Owner and staff** | Run the service: companies, plans, prices, subscriptions, settings. They **cannot** see a company's drivers or documents unless the company Owner approves a support session. | 🔄 Upgrading (today a single "super-admin") |
 | **Company Owner** | Holds the account and pays the subscription. Has full control of the company. | ✅ Ready |
 | **Administrator** | Runs the company day to day. Everything except billing. | ✅ Ready (Phase 0) |
-| **Dispatcher** | Creates trips, assigns drivers and trucks, follows trips. | ✅ Ready (Phase 0; trips in Phase 2) |
+| **Dispatcher** | Creates trips, assigns drivers and trucks, follows trips. | ✅ Ready (Phase 0; trips Phase 2) |
 | **Office / Compliance** | Drivers, documents, fleet, maintenance. | ✅ Ready (Phase 0) |
 | **Driver** | Uses the mobile app: trips, inspections, fuel stops, events, time, messages. | 🟧 Phase 3 |
 | **Driver applicant** | Applies online from the company's own link. Verified by an SMS code. | ✅ Ready |
@@ -205,12 +205,12 @@ flowchart LR
 
 | Feature | What it means for you | Status |
 |---|---|---|
-| Standard folders | Ready-made folders for each driver (DQ file), truck, trailer and trip | ✅ Ready (Phase 1); trip folder 🟩 Phase 2 |
+| Standard folders | Ready-made folders for each driver (DQ file), truck, trailer and trip | ✅ Ready (Phase 1; trip folder Phase 2) |
 | Your own folders | Create, rename and delete folders, inside each other (up to 5 levels) | ✅ Ready (Phase 1) |
 | Upload into a folder | Put any document in the folder you choose | ✅ Ready (Phase 1) |
 | Photo becomes PDF | A photo you upload is turned into a PDF automatically. The original is kept. | ✅ Ready (Phase 1) |
 | ZIP download: driver or company | Everything for one driver, or the whole company, in one file | ✅ Ready (Phase 1) |
-| ZIP download: trip | Everything for one trip | 🟩 Phase 2 |
+| ZIP download: trip | Everything for one trip | ✅ Ready (Phase 2) |
 | Safe downloads | Large ZIPs are built in the background; you get a notice and a link that expires | ✅ Ready (Phase 1) |
 
 ### 3.6 Trips and loads
@@ -228,21 +228,21 @@ flowchart LR
 
 | Feature | What it means for you | Status |
 |---|---|---|
-| Create and edit trips | One load per trip | 🟩 Phase 2 |
-| Automatic trip number and date | You confirm them before the trip goes out | 🟩 Phase 2 |
-| Load details | Product, weight, unit, and the pay you get for the load | 🟩 Phase 2 (pay: 🟪 Phase 4) |
-| Shippers | Add shipper details and save them for next time | 🟩 Phase 2 |
-| Map picker | Choose start and drop-off from Google Maps. Pickup is optional: skip it when it is the same as the start. | 🟩 Phase 2 |
-| Assign driver, truck and trailer | Filled in from the driver's asset group, so it is quick | 🟩 Phase 2 |
-| Driver confirms the equipment | The driver checks the truck and trailer are the right ones | 🟩 Phase 2 (in the app: 🟧 Phase 3) |
-| Pre-trip checklist | One screen, with a progress bar until it is finished. A pre-trip checklist, not a DVIR. | 🟩 Phase 2 |
-| Add Stop | Record an unplanned stop and the reason | 🟩 Phase 2 |
-| Police stop | Ticket yes or no. Yes: upload the ticket. No: say why you were stopped. | 🟩 Phase 2 |
-| Weigh station | Weight OK yes or no. No: upload the documents. | 🟩 Phase 2 |
-| Accident | Upload licence, insurance and photos of both vehicles. Feeds the accident register report. | 🟩 Phase 2 |
-| Breakdown | Record a breakdown on the trip | 🟩 Phase 2 |
-| Add Fuel Stop | Where, how many gallons, price, receipt, then a "Done" screen. You can see later where each fuel stop was. | 🟩 Phase 2 |
-| Dashboard counts | Loads on the road and loads waiting for pickup | 🟩 Phase 2 |
+| Create and edit trips | One load per trip | ✅ Ready (Phase 2) |
+| Automatic trip number and date | You confirm them before the trip goes out | ✅ Ready (Phase 2) |
+| Load details | Product, weight, unit, and the pay you get for the load | ✅ Ready (Phase 2; pay: 🟪 Phase 4) |
+| Shippers | Add shipper details and save them for next time | ✅ Ready (Phase 2) |
+| Map picker | Choose start and drop-off from Google Maps. Pickup is optional: skip it when it is the same as the start. | ✅ Ready on the website (Phase 2; in the app: 🟧 Phase 3) |
+| Assign driver, truck and trailer | Filled in from the driver's asset group, so it is quick | ✅ Ready (Phase 2) |
+| Driver confirms the equipment | The driver checks the truck and trailer are the right ones | ✅ Ready on the website, by the office (Phase 2; in the app: 🟧 Phase 3) |
+| Pre-trip checklist | One screen, with a progress bar until it is finished. A pre-trip checklist, not a DVIR. | ✅ Ready on the website, by the office (Phase 2; in the app: 🟧 Phase 3) |
+| Add Stop | Record an unplanned stop and the reason | ✅ Ready on the website, by the office (Phase 2; in the app: 🟧 Phase 3) |
+| Police stop | Ticket yes or no. Yes: upload the ticket. No: say why you were stopped. | ✅ Ready on the website, by the office (Phase 2; in the app: 🟧 Phase 3) |
+| Weigh station | Weight OK yes or no. No: upload the documents. | ✅ Ready on the website, by the office (Phase 2; in the app: 🟧 Phase 3) |
+| Accident | Upload licence, insurance and photos of both vehicles. Feeds the accident register report. | ✅ Ready on the website, by the office (Phase 2; in the app: 🟧 Phase 3) |
+| Breakdown | Record a breakdown on the trip | ✅ Ready on the website, by the office (Phase 2; in the app: 🟧 Phase 3) |
+| Add Fuel Stop | Where, how many gallons, price, receipt, then a "Done" screen. You can see later where each fuel stop was. | ✅ Ready on the website, by the office (Phase 2; in the app: 🟧 Phase 3) |
+| Dashboard counts | Loads on the road and loads waiting for pickup | ✅ Ready (Phase 2) |
 
 ### 3.7 Driver mobile app
 
@@ -410,7 +410,7 @@ flowchart LR
 |---|---|
 | 🧱 0 Foundation (✅ done 21 Oct 2026) | Staff accounts, company roles, company billing, plan limits, read-only after non-payment, support sessions, activity log, medical card and CDL expiry tracking |
 | 🟦 1 Quick wins (✅ done 23 Oct 2026) | Google and Facebook login, folders, photo-to-PDF, ZIP per driver and company, licence plates and photos, per-user permissions screen |
-| 🟩 2 Trips and loads | Trips, shippers, map, assignment, pre-trip checklist, events, fuel stops, dashboard counts, ZIP per trip |
+| 🟩 2 Trips and loads (✅ done 28 Oct 2026) | Trips, shippers, map, assignment, pre-trip checklist, events, fuel stops, dashboard counts, ZIP per trip |
 | 🟧 3 Driver app | Driver login and app, Start driving, live tracking, miles, messages and push notifications |
 | 🟪 4 Money | Load pay, pay rates, timesheets and overtime, expenses, daily profit and loss, year-end report, QuickBooks, time off |
 

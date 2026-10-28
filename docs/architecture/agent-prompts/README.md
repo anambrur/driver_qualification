@@ -1,5 +1,7 @@
 # Agent prompts: Phase 2 (Trips and loads, web)
 
+**Phase 2 done 28 Oct 2026** (P2-1 to P2-6 merged, accepted in P2-7). These prompts are replaced by the Phase 3 set when it is written.
+
 Phase 0 (foundation) and Phase 1 (quick wins) are done: Phase 1 merged and accepted on 23 Oct 2026 (main `2b44dc9`, MySQL suite 2,425 passed), then the pre-Phase-2 work on `p2prep/*` (co-driver dropped, registration time zone, docs pass, site-settings UI, transfer back, company purge, driver Terminate, applications closed) merged by `3182e1f`.
 Phase 2 delivers roadmap tasks 2.1–2.7 ([13](../13-implementation-roadmap.md#phase-2-trips-and-loads-web)). The plan was approved on 23 Oct 2026 with the recommended defaults ([14](../14-open-questions.md) §2 "Maps (Phase 2 plan)" and "Phase 2 plan").
 
@@ -89,18 +91,19 @@ AUTO-FINISH (do all of this yourself after I approve the plan; do not ask me to 
 Never use --no-verify, skip tests, or weaken assertions to get green.
 ```
 
-## Deploy checklist for Phase 2
+## Deploy checklist for Phase 2 (keep until the first production deploy)
 
-Filled in by each package's final report and confirmed against the code in P2-7. Known so far:
-- `php artisan migrate` (the Phase 2 tables, then the MySQL-only FK migrations on `folders` and `documents`).
-- `PermissionSeeder`, then `php artisan roles:sync-company` (P2-4 adds `inspections.manage`).
-- P2-4 (inspections): `php artisan migrate` (`inspection_templates`, `inspection_template_items`, `inspections`, `inspection_results`, then the MySQL-only `documents.inspection_id` FK); `php artisan db:seed --class=PermissionSeeder` and `php artisan roles:sync-company` (`inspections.manage` for the Dispatcher); `php artisan db:seed --class=InspectionTemplateSeeder` (the "Pre-trip" v1 checklist, idempotent; also in `DatabaseSeeder`). No env key, queue or schedule; photos of failed items use the existing `default` queue (image to PDF). Review the checklist under Platform > Lookups > Inspection templates.
-- P2-5 (trip events and fuel): `php artisan migrate` (`trip_events`, `fuel_purchases`, then the MySQL-only `documents.trip_event_id` / `documents.fuel_purchase_id` FKs); `php artisan db:seed --class=DocumentTypeSeeder` (the six `trip` document types, idempotent; also in `DatabaseSeeder`); `npm run build` output committed (address picker). No permission, env key, queue or schedule change; photos become PDFs on the existing `default` queue. Platform > Lookups > Fuel types needs at least one active type for the fuel dialog.
-- P2-6 (dashboard trip counts and the trip ZIP) adds no migration, permission, env key, queue or schedule; trip ZIPs use the existing `exports` worker. Nothing to run beyond the code.
-- `php artisan folders:ensure-system` covers trips (P2-2); idempotent. P2-2 adds no permission, env key, queue or schedule.
-- P2-3 (assignment and lifecycle) adds no migration, permission, env key, queue or schedule; nothing to run beyond the code.
-- `npm run build` output committed (Leaflet, P2-1). [L] OpenStreetMap attribution on every map; a tile or geocoding provider once traffic outgrows the public policies.
-- Env (P2-1, all optional): `MAPS_GEOCODER` (`photon` default, `nominatim`, or `none` to switch search off), `MAPS_GEOCODER_URL`, `MAPS_GEOCODER_CONTACT` (defaults to `MAIL_FROM_ADDRESS`, sent in the User-Agent), `MAPS_GEOCODER_TIMEOUT` (4 s), `MAPS_GEOCODER_CACHE_DAYS` (30), `MAPS_TILE_URL`, `MAPS_TILE_ATTRIBUTION`. The app-wide geocoder limit uses the cache store, so production needs a shared cache (`database` today).
+Confirmed against the code in P2-7 (28 Oct 2026). [V] unless marked.
+
+- `php artisan migrate`: 11 migrations, `2026_10_26_000100` to `2026_10_28_000700` (`shippers`, `trips`, `trip_stops`, `inspection_templates` + `inspection_template_items`, `inspections`, `inspection_results`, `trip_events`, `fuel_purchases`) and the three MySQL-only FK migrations on `folders` / `documents` (`…_000400_add_trip_fks_…`, `…_000400_add_inspection_fk_…`, `…_000700_add_trip_event_fks_…`). `trip_number_sequences` already exists (Phase 0).
+- Seeders, both idempotent and both in `DatabaseSeeder`: `php artisan db:seed --class=DocumentTypeSeeder` (the six `trip` document types, P2-5) and `php artisan db:seed --class=InspectionTemplateSeeder` (the "Pre-trip" v1 checklist, 8 sections, 37 items, P2-4).
+- `php artisan db:seed --class=PermissionSeeder`, then `php artisan roles:sync-company`: the one new permission is `inspections.manage` (`PermissionCatalogue.php:95`), which the Dispatcher gets through `inspections.*` (`RoleTemplates.php:33`).
+- `php artisan folders:ensure-system` once: it creates the trip folders of existing trips and is idempotent (second run on the seeded scratch database: 0 created).
+- No new queue, worker, schedule or command: photos of failed items and event files become PDFs on the existing `default` queue; trip ZIPs use the existing `exports` worker.
+- Assets: `npm run build` output is committed. `public/build/manifest.json` has the `address-picker.js` and `trip-map.js` entries (Leaflet from npm, `package.json:34`).
+- Env, all optional (`config/maps.php`, `.env.example:99-105`): `MAPS_GEOCODER` (`photon` default, `nominatim`, or `none` to switch search off), `MAPS_GEOCODER_URL`, `MAPS_GEOCODER_CONTACT` (defaults to `MAIL_FROM_ADDRESS`, sent in the User-Agent), `MAPS_GEOCODER_TIMEOUT` (4 s), `MAPS_GEOCODER_CACHE_DAYS` (30), `MAPS_TILE_URL`, `MAPS_TILE_ATTRIBUTION`. The app-wide geocoder limit uses the cache store, so production needs a shared cache (`database` today).
+- Platform > Lookups: at least one active fuel type (the fuel dialog needs one); review the Pre-trip checklist under Inspection templates.
+- [L] OpenStreetMap attribution is on every map (`config/maps.php:25`, passed to Leaflet in `address-picker.js:30` and `trip-map.js:11`). The public OSM tile, Nominatim and Photon policies allow light use only ([14](../14-open-questions.md) §4): move to a tile or geocoding provider once traffic grows.
 
 ## Deploy checklist for Phase 1 (keep until the first production deploy)
 
