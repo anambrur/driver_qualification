@@ -83,6 +83,22 @@ class TripService
     }
 
     /**
+     * The dashboard's loads on the road and loads pending pickup (req 9.2), in one query on
+     * trips(company_id, status).
+     *
+     * @return array{on_road: int, pending_pickup: int}
+     */
+    public function roadCounts(): array
+    {
+        $counts = Trip::query()->whereIn('status', Trip::LOAD_STATUSES)->toBase()
+            ->selectRaw("SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as on_road")
+            ->selectRaw('SUM(CASE WHEN '.Trip::PICKUP_PENDING_SQL.' THEN 1 ELSE 0 END) as pending_pickup')
+            ->first();
+
+        return ['on_road' => (int) $counts?->on_road, 'pending_pickup' => (int) $counts?->pending_pickup];
+    }
+
+    /**
      * Load, shipper, planned miles and notes; the number and date only while unconfirmed.
      *
      * @param  array<string, mixed>  $data  validated TripRequest data

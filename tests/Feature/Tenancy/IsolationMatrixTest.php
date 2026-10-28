@@ -204,6 +204,7 @@ function isoFixtures(): array
         'DELETE admin/documents/{document}' => $document,
         // Exports (P1-6)
         'GET admin/exports/{export}/download' => fn (Company $a) => [ExportFactory::new()->ready(Files::stored($a->id, 'PK', 'zip'))->create()->id],
+        'POST admin/trips/{trip}/export' => $trip,
         // Shippers (P2-1)
         'GET admin/shippers/{shipper}/edit' => $shipper,
         'PUT admin/shippers/{shipper}' => $shipper,

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * ZIP exports of a driver or the whole company (req 2.5, 10 §9): requested here, built by
+ * ZIP exports of a driver, a trip or the whole company (req 2.5, 10 §9): requested here, built by
  * BuildExport, downloadable until expires_at, then expired by exports:prune. Requests and
  * downloads are audited (08 §10). Export files don't count toward storage (05 §5).
  */
@@ -25,13 +25,19 @@ class ExportService
     public function __construct(private StoredFileService $files, private TenantContext $tenant) {}
 
     /**
-     * A ZIP holds what the user could open one by one: DQ files (drivers.view) and folder
-     * documents (folders.view, when the company has folders; the Starter plan has none).
+     * A ZIP holds what the user could open one by one: DQ files (drivers.view), trips (trips.view,
+     * for a trip ZIP or a company ZIP with its trips) and folder documents (folders.view, when the
+     * company has folders; the Starter plan has none).
+     *
+     * @param  array<string, mixed>  $parameters
      */
-    public function canAccess(User $user, string $type): bool
+    public function canAccess(User $user, string $type, array $parameters = []): bool
     {
-        $needs = ['drivers.view'];
+        $needs = $type === 'zip_trip' ? ['trips.view'] : ['drivers.view'];
 
+        if ($type === 'zip_company' && ! empty($parameters['trips'])) {
+            $needs[] = 'trips.view';
+        }
         if (in_array($type, Export::ZIP_TYPES, true) && $user->company && Entitlements::for($user->company)->allows(Feature::DocumentFolders)) {
             $needs[] = 'folders.view';
         }
@@ -39,14 +45,17 @@ class ExportService
         return collect($needs)->every(fn (string $permission) => $user->can($permission));
     }
 
-    public function canRequest(User $user, string $type): bool
+    /**
+     * @param  array<string, mixed>  $parameters
+     */
+    public function canRequest(User $user, string $type, array $parameters = []): bool
     {
-        return $user->can('exports.create') && $this->canAccess($user, $type);
+        return $user->can('exports.create') && $this->canAccess($user, $type, $parameters);
     }
 
     public function canDownload(User $user, Export $export): bool
     {
-        return $user->can('exports.download') && $this->canAccess($user, $export->type) && $export->isDownloadable();
+        return $user->can('exports.download') && $this->canAccess($user, $export->type, $export->parameters) && $export->isDownloadable();
     }
 
     /**
@@ -83,7 +92,7 @@ class ExportService
     public function download(Export $export, User $actor): StreamedResponse
     {
         abort_unless($export->isDownloadable(), 404, 'Export not found');
-        abort_unless($this->canAccess($actor, $export->type), 403);
+        abort_unless($this->canAccess($actor, $export->type, $export->parameters), 403);
 
         $response = $this->files->response($export->file, $export->file?->original_name);
         AuditLog::record($actor, $export->company_id, 'export.downloaded', $export, ['type' => $export->type] + $export->parameters);

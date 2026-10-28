@@ -14,6 +14,7 @@ use App\Models\ServiceLog;
 use App\Models\StoredFile;
 use App\Models\Trailer;
 use App\Models\TrailerDocument;
+use App\Models\Trip;
 use App\Models\Vehicle;
 use App\Models\VehicleDocument;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,10 +24,12 @@ use Illuminate\Support\Str;
 /**
  * What an export ZIP holds (Q8: everything attached to the entity) and where:
  * Drivers/<Last, First> (#id)/<document type | Application | folder path>/<file>, the same for
- * Vehicles/ and Trailers/ by unit number, and Company folders/. Rows are read in chunks with
- * their files eager loaded, so queries grow with chunks, not rows. Soft-deleted rows are left
- * out; the company ZIP also leaves out draft applications and keeps terminated drivers. A
- * stored file is added once per entity.
+ * Vehicles/ and Trailers/ by unit number, Trips/<number> (#id)/<folder path>/<file> (the trip
+ * folder holds the event, fuel and inspection files too), and Company folders/. Rows are read in
+ * chunks with their files eager loaded, so queries grow with chunks, not rows. Soft-deleted rows
+ * are left out; the company ZIP also leaves out draft applications and keeps terminated drivers
+ * and cancelled trips, and has Trips/ only when requested with them. A stored file is added
+ * once per entity.
  */
 class ExportContents
 {
@@ -46,9 +49,19 @@ class ExportContents
             return ZipWriter::sanitise('DQ file - '.self::driverFolder($driver)." - {$date}").'.zip';
         }
 
+        if ($export->type === 'zip_trip') {
+            $trip = Trip::query()->find($export->tripId()) ?? throw new ExportFailed('The trip no longer exists.');
+            $this->trips(Trip::query()->whereKey($trip->id), $zip);
+
+            return ZipWriter::sanitise("Trip files - {$trip->trip_number} - {$date}").'.zip';
+        }
+
         $this->drivers(Driver::query()->listed(), $zip);
         $this->vehicles($zip);
         $this->trailers($zip);
+        if ($export->withTrips()) {
+            $this->trips(Trip::query(), $zip);
+        }
         $this->companyFolders($zip);
         $company = Company::query()->findOrFail($export->company_id);
 
@@ -121,6 +134,21 @@ class ExportContents
                     $this->folderDocuments($zip, $seen, $base, $folders, $asset->id);
                 }
             });
+    }
+
+    /**
+     * @param  Builder<Trip>  $trips
+     */
+    private function trips(Builder $trips, ZipWriter $zip): void
+    {
+        $trips->select(['id', 'company_id', 'trip_number'])->chunkById(self::CHUNK, function (Collection $chunk) use ($zip) {
+            $folders = $this->entityFolders('trip_id', $chunk->modelKeys());
+
+            foreach ($chunk as $trip) {
+                $seen = [];
+                $this->folderDocuments($zip, $seen, ['Trips', "{$trip->trip_number} (#{$trip->id})"], $folders, $trip->id);
+            }
+        });
     }
 
     private function companyFolders(ZipWriter $zip): void

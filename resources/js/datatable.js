@@ -29,6 +29,13 @@ window.dqTable = (root, options = {}) => {
     const { ajax, data: extraData, primary = null, ...rest } = options;
     const template = (name) => wrapper.querySelector(`template[data-dt-${name}]`)?.innerHTML.trim();
 
+    // Preset filter values (e.g. a status from the URL) must be in place before the first request,
+    // which DataTables sends from its constructor
+    wrapper.querySelectorAll("[data-dt-filter]").forEach((el) => {
+        if (el.tagName !== "BUTTON") filters[el.dataset.dtFilter] = el.value;
+        else if (el.getAttribute("aria-pressed") === "true") filters[el.dataset.dtFilter] = el.dataset.value;
+    });
+
     const table = new DataTable(tableEl, {
         serverSide: true,
         processing: true,
@@ -104,10 +111,8 @@ window.dqTable = (root, options = {}) => {
     wrapper.querySelectorAll("[data-dt-filter]").forEach((el) => {
         const name = el.dataset.dtFilter;
         if (el.tagName === "BUTTON") {
-            if (el.getAttribute("aria-pressed") === "true") filters[name] = el.dataset.value;
             el.addEventListener("click", () => setFilter(name, el.dataset.value));
         } else {
-            filters[name] = el.value;
             el.addEventListener("change", () => setFilter(name, el.value));
         }
     });

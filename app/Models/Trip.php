@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\AuditsDeletes;
 use App\Tenancy\BelongsToCompany;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -45,6 +46,16 @@ class Trip extends Model
     public const WEIGHT_UNITS = ['lb' => 'lb', 'kg' => 'kg'];
 
     public const MAX_NUMBER = 99_999_999;
+
+    /**
+     * The trip's pickup stop (or its start with also_pickup) has not departed yet (08 §9, the SQL
+     * form of pickupStop() and isPickedUp()). A route with neither has nothing to pick up.
+     */
+    public const PICKUP_PENDING_SQL = 'EXISTS (SELECT 1 FROM trip_stops WHERE trip_stops.company_id = trips.company_id AND trip_stops.trip_id = trips.id'
+        ." AND trip_stops.departed_at IS NULL AND (trip_stops.stop_type = 'pickup' OR (trip_stops.stop_type = 'start' AND trip_stops.also_pickup = 1)))";
+
+    /** Trips that count as loads: on the road or about to be. */
+    public const LOAD_STATUSES = ['assigned', 'in_progress'];
 
     /** The number, date and status change only through TripService. */
     protected $fillable = [
@@ -198,6 +209,16 @@ class Trip extends Model
     public function isPickedUp(): bool
     {
         return $this->pickupStop()?->departed_at !== null;
+    }
+
+    /**
+     * Assigned or in-progress trips whose load is still to be picked up (req 9.2).
+     *
+     * @param  Builder<Trip>  $query
+     */
+    public function scopePendingPickup(Builder $query): void
+    {
+        $query->whereIn('status', self::LOAD_STATUSES)->whereRaw(self::PICKUP_PENDING_SQL);
     }
 
     public function isAssignable(): bool

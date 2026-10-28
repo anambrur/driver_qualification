@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Exports;
 
 use App\Models\Driver;
-use App\Models\Export;
 use App\Services\Exports\ExportService;
 use App\Tenancy\TenantRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,9 +10,12 @@ use Illuminate\Validation\Rule;
 
 class StoreExportRequest extends FormRequest
 {
+    /** A trip ZIP is requested on its trip (trips.export). */
+    private const TYPES = ['zip_driver', 'zip_company'];
+
     /**
      * What the ZIP holds must be visible to the user (ExportService::canAccess); a driver ZIP
-     * also needs the driver itself.
+     * also needs the driver itself. The company ZIP adds the trips when the user sees them.
      */
     public function authorize(): bool
     {
@@ -21,7 +23,7 @@ class StoreExportRequest extends FormRequest
         $type = (string) $this->input('type');
         $driver = $this->driver();
 
-        if ($user === null || ! in_array($type, Export::ZIP_TYPES, true)) {
+        if ($user === null || ! in_array($type, self::TYPES, true)) {
             return true; // validation answers
         }
 
@@ -34,7 +36,7 @@ class StoreExportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', Rule::in(Export::ZIP_TYPES)],
+            'type' => ['required', Rule::in(self::TYPES)],
             'driver_id' => ['required_if:type,zip_driver', 'prohibited_unless:type,zip_driver', 'integer', TenantRule::exists('drivers')->whereNull('deleted_at')],
         ];
     }
@@ -44,7 +46,12 @@ class StoreExportRequest extends FormRequest
      */
     public function parameters(): array
     {
-        return $this->validated('type') === 'zip_driver' ? ['driver_id' => (int) $this->validated('driver_id')] : [];
+        if ($this->validated('type') === 'zip_driver') {
+            return ['driver_id' => (int) $this->validated('driver_id')];
+        }
+
+        // The company ZIP holds the trips only for a requester who may see them
+        return $this->user()?->can('trips.view') ? ['trips' => 1] : [];
     }
 
     private function driver(): ?Driver

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Features\Feature;
 use App\Models\Driver;
 use App\Models\DriverComplianceDocument;
 use App\Models\ServiceLog;
@@ -9,12 +10,14 @@ use App\Models\Trailer;
 use App\Models\TrailerDocument;
 use App\Models\Vehicle;
 use App\Models\VehicleDocument;
+use App\Services\Entitlements\Entitlements;
+use App\Services\Operations\TripService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(TripService $trips)
     {
         $user = Auth::user();
 
@@ -76,8 +79,12 @@ class DashboardController extends Controller
         $totalServices = (int) $serviceCounts->total;
         $recentServices30 = (int) $serviceCounts->recent;
 
+        // Loads on the road and pending pickup (req 9.2): only for companies and users with trips
+        $tripStats = $company && Entitlements::for($company)->allows(Feature::Trips) && $user->can('trips.view') ? $trips->roadCounts() : null;
+
         return view('dashboard', [
             'company' => $company,
+            'tripStats' => $tripStats,
             'driverStats' => [
                 'total' => $totalDrivers,
                 'active' => $activeDrivers,
