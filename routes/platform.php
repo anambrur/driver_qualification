@@ -16,6 +16,7 @@ use App\Http\Controllers\Platform\DemoRequestController;
 use App\Http\Controllers\Platform\FaqController;
 use App\Http\Controllers\Platform\FeatureController;
 use App\Http\Controllers\Platform\FooterController;
+use App\Http\Controllers\Platform\InspectionTemplateController;
 use App\Http\Controllers\Platform\LandingPageController;
 use App\Http\Controllers\Platform\PageController;
 use App\Http\Controllers\Platform\PlanController;
@@ -114,6 +115,22 @@ Route::prefix('platform')->name('platform.')->group(function () use ($can) {
             $lookup('fuel-types', FuelTypeController::class);
             $lookup('equipment-types', EquipmentTypeController::class);
             $lookup('maintenance-categories', MaintenanceCategoryController::class);
+
+            Route::prefix('inspection-templates')->name('inspection-templates.')->whereNumber(['template', 'item'])->group(function () {
+                Route::get('/', [InspectionTemplateController::class, 'index'])->name('index');
+                Route::post('/', [InspectionTemplateController::class, 'store'])->name('store');
+                Route::get('/{template}/edit', [InspectionTemplateController::class, 'edit'])->name('edit');
+                Route::delete('/{template}', [InspectionTemplateController::class, 'destroy'])->name('destroy');
+                Route::post('/{template}/publish', [InspectionTemplateController::class, 'publish'])->name('publish');
+                Route::post('/{template}/new-version', [InspectionTemplateController::class, 'newVersion'])->name('new-version');
+                Route::post('/{template}/activate', [InspectionTemplateController::class, 'activate'])->name('activate');
+                Route::post('/{template}/deactivate', [InspectionTemplateController::class, 'deactivate'])->name('deactivate');
+                Route::scopeBindings()->group(function () {
+                    Route::post('/{template}/items', [InspectionTemplateController::class, 'storeItem'])->name('items.store');
+                    Route::put('/{template}/items/{item}', [InspectionTemplateController::class, 'updateItem'])->name('items.update');
+                    Route::delete('/{template}/items/{item}', [InspectionTemplateController::class, 'destroyItem'])->name('items.destroy');
+                });
+            });
 
             Route::prefix('document-types')->name('document-types.')->group(function () {
                 Route::get('/', [DocumentTypeController::class, 'index'])->name('index');

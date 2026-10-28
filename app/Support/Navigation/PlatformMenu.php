@@ -34,6 +34,7 @@ final class PlatformMenu
             ['Fuel types', 'platform.lookups.fuel-types.index', 'platform.settings.manage', 'fuel'],
             ['Equipment types', 'platform.lookups.equipment-types.index', 'platform.settings.manage', 'caravan'],
             ['Maintenance categories', 'platform.lookups.maintenance-categories.index', 'platform.settings.manage', 'wrench'],
+            ['Inspection templates', 'platform.lookups.inspection-templates.index', 'platform.settings.manage', 'clipboard-check'],
         ],
         'Content' => [
             ['Landing page', 'platform.content.landing.edit', 'platform.content.manage', 'layout-template'],

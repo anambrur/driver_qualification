@@ -28,7 +28,7 @@ class CompanyPurgeService
     public const COMPANY_TABLES = [
         'asset_groups', 'audit_logs', 'company_document_type', 'company_feature_overrides', 'company_invitations',
         'company_retained_features', 'company_settings', 'documents', 'driver_compliance_documents', 'drivers',
-        'exports', 'folders', 'maintenance_schedules', 'payments', 'platform_support_sessions', 'policy_pdfs',
+        'exports', 'folders', 'inspections', 'maintenance_schedules', 'payments', 'platform_support_sessions', 'policy_pdfs',
         'service_documents', 'service_logs', 'shippers', 'stored_files', 'subscription_notification_logs', 'subscriptions',
         'trailer_documents', 'trailers', 'trip_number_sequences', 'trip_stops', 'trips', 'users', 'vehicle_documents', 'vehicles',
     ];
@@ -151,7 +151,9 @@ class CompanyPurgeService
             $deleted['exports'] = $of('exports')->delete();
             $deleted['policy_pdfs'] = $of('policy_pdfs')->delete();
 
-            // Operations: stops cascade from their trip; trips before shippers, drivers and assets
+            // Operations: stops cascade from their trip, results from their inspection; inspections
+            // before trips; trips before shippers, drivers and assets
+            $deleted['inspections'] = $of('inspections')->delete();
             $deleted['trip_stops'] = $of('trip_stops')->count();
             $deleted['trips'] = $of('trips')->delete();
             $deleted['shippers'] = $of('shippers')->delete();

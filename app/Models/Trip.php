@@ -125,6 +125,16 @@ class Trip extends Model
     }
 
     /**
+     * Pre-trip inspections of this trip (P2-4), newest first.
+     *
+     * @return HasMany<Inspection, $this>
+     */
+    public function inspections(): HasMany
+    {
+        return $this->hasMany(Inspection::class)->latest('id');
+    }
+
+    /**
      * The trip's standard folder ("Trip documents").
      *
      * @return HasOne<Folder, $this>
