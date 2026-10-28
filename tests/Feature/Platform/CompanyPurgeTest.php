@@ -10,6 +10,7 @@ use Database\Factories\AssetGroupFactory;
 use Database\Factories\AssetTransferFactory;
 use Database\Factories\DocumentFactory;
 use Database\Factories\DriverFactory;
+use Database\Factories\InspectionFactory;
 use Database\Factories\LicenseFactory;
 use Database\Factories\MaintenanceScheduleFactory;
 use Database\Factories\PaymentFactory;
@@ -57,7 +58,11 @@ function companyWithEverything(): Company
         $shipper = ShipperFactory::new()->forCompany($company)->create();
         $trip = TripFactory::new()->forCompany($company)->completed()->create(['shipper_id' => $shipper->id]);
         TripStopFactory::new()->onTrip($trip, 'start', 1)->create(['shipper_id' => $shipper->id]);
-        Docs::systemFolder($trip);
+        $folder = Docs::systemFolder($trip);
+        $inspection = InspectionFactory::new()->forTrip($trip)->completed('defects_found')->create();
+        $item = $inspection->template->items()->first();
+        $inspection->results()->create(['template_item_id' => $item->id, 'item_label' => $item->label, 'result' => 'fail']);
+        DocumentFactory::new()->inFolder($folder)->create(['trip_id' => null, 'inspection_id' => $inspection->id]);
         $shipper->delete();
     });
 

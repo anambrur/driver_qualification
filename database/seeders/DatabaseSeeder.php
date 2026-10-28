@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
         $this->call(VehicleGroupsSeeder::class);
         $this->call(MaintenaneCategoySeeder::class);
         $this->call(EquipmentTypesSeeder::class);
+        $this->call(InspectionTemplateSeeder::class);
         $this->call(PermissionSeeder::class);
         $this->call(PlatformRoleSeeder::class);
         $this->call(PlanSeeder::class);

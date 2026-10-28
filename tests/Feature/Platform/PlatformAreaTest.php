@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\PlatformResetPasswordNotification;
 use Database\Factories\DemoRequestFactory;
 use Database\Factories\FaqFactory;
+use Database\Factories\InspectionTemplateFactory;
 use Database\Factories\PlanFactory;
 use Database\Factories\PlatformUserFactory;
 use Database\Factories\TestimonialFactory;
@@ -151,6 +152,8 @@ it('opens each screen only to the roles that hold its permission', function (str
     ['platform_admin', 'platform.plans.index', 200],
     ['platform_admin', 'platform.asset-transfers.index', 200],
     ['platform_admin', 'platform.lookups.fuel-types.index', 200],
+    ['platform_admin', 'platform.lookups.inspection-templates.index', 200],
+    ['platform_support', 'platform.lookups.inspection-templates.index', 403],
     ['platform_admin', 'platform.staff.index', 403],
     ['platform_admin', 'platform.content.landing.edit', 200],
     ['platform_admin', 'platform.roles.index', 403],
@@ -178,6 +181,7 @@ it('renders every platform screen', function () {
         route('platform.subscriptions.dashboard'), route('platform.subscriptions.index', ['open' => 1]), route('platform.subscriptions.payments'),
         route('platform.lookups.document-types.index'), route('platform.lookups.vehicle-types.index'), route('platform.lookups.vehicle-groups.index'),
         route('platform.lookups.fuel-types.index'), route('platform.lookups.equipment-types.index'), route('platform.lookups.maintenance-categories.index'),
+        route('platform.lookups.inspection-templates.index'), route('platform.lookups.inspection-templates.edit', InspectionTemplateFactory::new()->withItems()->create()),
         route('platform.settings.site.index'), route('platform.settings.tawk.index'),
         route('platform.staff.index'), route('platform.staff.create'), route('platform.staff.edit', $staff),
         route('platform.roles.index'), route('platform.roles.create'),

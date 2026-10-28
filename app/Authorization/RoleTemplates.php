@@ -30,7 +30,7 @@ final class RoleTemplates
     private const GRANTS = [
         'Dispatcher' => [
             'trips.*', 'shippers.*', 'drivers.view', 'vehicles.view', 'trailers.view', 'asset-groups.view',
-            'tracking.view', 'trip-events.*', 'inspections.view', 'messages.*', 'time-off.view',
+            'tracking.view', 'trip-events.*', 'inspections.*', 'messages.*', 'time-off.view',
         ],
         'Office / Compliance' => [
             'drivers.*', 'driver-documents.*', 'vehicles.*', 'trailers.*', 'asset-groups.*', 'fleets.*',

@@ -1,4 +1,4 @@
-{{-- A trip (req 4.1–4.6, 6.1, 6.3): assignment and progress, Details, Stops (map) and its Documents folder. --}}
+{{-- A trip (req 4.1–4.6, 5.1–5.3, 6.1, 6.3): assignment and progress, Details, Stops (map), the pre-trip Inspection and its Documents folder. --}}
 @extends('layouts.main-layout')
 
 @section('title', 'Trip '.$trip->label())
@@ -12,12 +12,15 @@
         $canConfirmEquipment = $trip->status === 'assigned' && $trip->equipment_confirmed_at === null && $user->can('trips.assign');
         $canOperate = $user->can('trips.edit');
         $canPickUp = $canOperate && $trip->status === 'in_progress' && $trip->pickupStop() !== null && ! $trip->isPickedUp();
-        $tabs = ['details' => 'Details', 'stops' => 'Stops'] + ($documentsBrowser ? ['documents' => 'Documents'] : []);
+        $tabs = ['details' => 'Details', 'stops' => 'Stops'] + ($inspections !== null ? ['inspection' => 'Inspection'] : []) + ($documentsBrowser ? ['documents' => 'Documents'] : []);
         // A folder link opens the Documents tab even before the page's script runs.
         $openTab = $documentsBrowser && request()->filled('folder') ? 'documents' : 'details';
         // A refused stop-times save opens the Stops tab, where its errors are
         if (collect($errors->keys())->contains(fn ($key) => $key === 'stops' || str_starts_with($key, 'stops.'))) {
             $openTab = 'stops';
+        }
+        if ($inspections !== null && $errors->has('inspection')) {
+            $openTab = 'inspection';
         }
     @endphp
     <div class="p-4 sm:p-6 lg:p-8">
@@ -43,6 +46,8 @@
                 @if ($canOperate && $trip->status === 'assigned')
                     @if ($trip->equipment_confirmed_at === null)
                         <x-ui.button icon="play" disabled title="Confirm the tractor and trailer first">Start trip</x-ui.button>
+                    @elseif ($preTripBlocker)
+                        <x-ui.button icon="play" disabled :title="$preTripBlocker">Start trip</x-ui.button>
                     @else
                         <form method="POST" action="{{ route('trips.start', $trip) }}"
                             data-confirm="Start trip {{ $trip->label() }}?" data-confirm-text="The trip is in progress from now. The driver and vehicle can't start another trip until it is completed." data-confirm-button="Start">
@@ -78,6 +83,9 @@
         @error('trip')
             <x-ui.alert tone="danger" class="mb-6">{{ $message }}</x-ui.alert>
         @enderror
+        @if ($preTripBlocker && $canOperate)
+            <x-ui.alert tone="warning" class="mb-6">{{ $preTripBlocker }}@if ($inspections !== null) <a href="#inspection" class="font-medium underline underline-offset-2">Open the inspection</a>@endif</x-ui.alert>
+        @endif
         @error('actual_distance_miles')
             <x-ui.alert tone="danger" class="mb-6">{{ $message }}</x-ui.alert>
         @enderror
@@ -113,6 +121,11 @@
             <x-ui.tab-panel tabs="trip-tabs" name="stops" :selected="$openTab === 'stops'" class="mt-4 max-w-4xl">
                 @include('trips.partials.stops')
             </x-ui.tab-panel>
+            @if ($inspections !== null)
+                <x-ui.tab-panel tabs="trip-tabs" name="inspection" :selected="$openTab === 'inspection'" class="mt-4 max-w-4xl">
+                    @include('trips.partials.inspection')
+                </x-ui.tab-panel>
+            @endif
             @if ($documentsBrowser)
                 <x-ui.tab-panel tabs="trip-tabs" name="documents" :selected="$openTab === 'documents'" class="mt-4">
                     @include('documents.partials.browser', ['browser' => $documentsBrowser, 'empty' => 'This trip has no folder yet.'])

@@ -351,6 +351,22 @@ describe('P2-2 → trips need the trips feature and their permissions', function
     ]);
 });
 
+describe('P2-4 → inspections need the pre_trip_inspections feature and their permissions', function () {
+    it('guards each route with its permission and the feature', function (string $name, string $permission) {
+        $middleware = Route::getRoutes()->getByName($name)?->gatherMiddleware();
+
+        expect($middleware)->toContain("permission:$permission")->toContain('feature:pre_trip_inspections')->toContain('feature:trips');
+    })->with([
+        ['trips.inspections.store', 'inspections.manage'],
+        ['inspections.show', 'inspections.view'],
+        ['inspections.results.update', 'inspections.manage'],
+        ['inspections.complete', 'inspections.manage'],
+        ['inspections.abandon', 'inspections.manage'],
+        ['inspections.attachments.store', 'inspections.manage'],
+        ['inspections.attachments.show', 'inspections.view'],
+    ]);
+});
+
 // The page was an unrelated investment calculator; the product owner had it removed (2026-10-09).
 describe('ACL-04 → /profit is removed', function () {
     it('returns 404 for everyone', function (?Closure $login) {

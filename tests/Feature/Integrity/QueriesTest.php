@@ -4,6 +4,7 @@ use App\Console\Commands\IntegrityCheck;
 use App\Models\User;
 use Database\Factories\DocumentFactory;
 use Database\Factories\DriverFactory;
+use Database\Factories\InspectionFactory;
 use Database\Factories\PlatformUserFactory;
 use Database\Factories\ServiceLogFactory;
 use Database\Factories\StoredFileFactory;
@@ -82,6 +83,11 @@ it('reports the rows that break a rule', function (int $query, Closure $breakIt)
         $document = DocumentFactory::new()->inFolder(Docs::systemFolder(TripFactory::new()->forCompany($c)->create()))->create();
         DB::table('documents')->where('id', $document->id)->update(['trip_id' => TripFactory::new()->forCompany($c)->create()->id]);
     }],
+    'trip-folder document about an inspection of another trip' => [5, function ($c) {
+        $document = DocumentFactory::new()->inFolder(Docs::systemFolder(TripFactory::new()->forCompany($c)->create()))->create();
+        $inspection = InspectionFactory::new()->forTrip(TripFactory::new()->forCompany($c)->assigned()->create())->create();
+        DB::table('documents')->where('id', $document->id)->update(['trip_id' => null, 'inspection_id' => $inspection->id]);
+    }],
     'storage counter out of step' => [6, function ($c) {
         StoredFileFactory::new()->forCompany($c)->create();
         DB::table('companies')->where('id', $c->id)->update(['storage_bytes' => 1]);
@@ -128,6 +134,16 @@ it('accepts a vehicle-folder document about one of its service logs', function (
     DB::table('documents')->where('id', $document->id)->update([
         'vehicle_id' => null, 'service_log_id' => ServiceLogFactory::new()->forVehicle($vehicle)->create()->id,
     ]);
+
+    [$exit] = integrityOutput();
+
+    expect($exit)->toBe(0);
+});
+
+it('accepts a trip-folder document about one of its inspections', function () {
+    $trip = TripFactory::new()->forCompany(Actors::company())->assigned()->create();
+    $document = DocumentFactory::new()->inFolder(Docs::systemFolder($trip))->create();
+    DB::table('documents')->where('id', $document->id)->update(['trip_id' => null, 'inspection_id' => InspectionFactory::new()->forTrip($trip)->create()->id]);
 
     [$exit] = integrityOutput();
 

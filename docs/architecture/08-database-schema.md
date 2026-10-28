@@ -483,7 +483,7 @@ One row per stored object.
 - Maximum depth 5 (decided P1-4).
 - System folders can't be renamed or deleted.
 - Only an empty folder (no live child folders, no live documents) can be deleted; it is soft-deleted and its trashed documents keep their `folder_id` (P1-4).
-- The trip FK on `folders.trip_id` and on `documents.trip_id`, `trip_event_id`, `fuel_purchase_id`, `expense_id`, `inspection_id` is added by MySQL-only migrations in the phase that creates those tables; the columns and the CHECKs exist from Phase 1 (P1-4).
+- The trip FK on `folders.trip_id` and on `documents.trip_id`, `trip_event_id`, `fuel_purchase_id`, `expense_id`, `inspection_id` is added by MySQL-only migrations in the phase that creates those tables; the columns and the CHECKs exist from Phase 1 (P1-4). Done: `trip_id` (P2-2), `inspection_id` (P2-4).
 
 ### `documents` (Tenant root)
 
@@ -599,6 +599,8 @@ Platform-managed checklists, in line with LKP-01.
 - **Versioning:** a template that has been used is never edited; changes publish a new version.
 - Company-specific templates are out of scope until requested.
 - **Not a DVIR (decided C10).** This is a pre-trip checklist. Post-trip DVIR sign-off and defect certification (§396.11) are not part of it.
+- **States (P2-4):** a draft has no `published_at`; publishing sets it and makes the version active. One active published version per `inspection_type` at a time: publishing or activating a version deactivates the others (`InspectionTemplateService`). A version is "used" once any inspection references it; item edits lock the template row and `InspectionService::start` reads the active version with a shared lock. Managed under Platform > Lookups with `platform.settings.manage`; publish, activate, deactivate and draft deletes are audited.
+- **Default:** `InspectionTemplateSeeder` seeds "Pre-trip" v1 (8 sections, every item required).
 
 ### `inspections` (Tenant root)
 
@@ -613,6 +615,9 @@ Platform-managed checklists, in line with LKP-01.
   - `performed_by_user_id`, SET NULL.
 - **Indexes:** `(company_id, trip_id)`, `(company_id, vehicle_id, completed_at)`.
 - **Progress** = results answered ÷ template items.
+- **Rules (P2-4, `InspectionService`):** started from an assigned trip, copying its driver, vehicle and trailer; one `in_progress` inspection per trip; completing needs every required item answered and the same crew as the trip; `result` is `defects_found` when any item failed. Every web inspection has a trip (Phase 2).
+- **Pre-trip gate:** with `pre_trip_inspections` on, `TripLifecycleService::start` needs the latest completed inspection of the trip with its current crew to be `no_defects` (396.13).
+- **Attachments:** photos or files for a failed item are `documents` filed in the trip folder with subject `inspection_id` (not `trip_id`: one subject per row) and titled "section · item"; integrity query 5 accepts an inspection of the folder's trip.
 
 ### `inspection_results` (Tenant detail, via inspection)
 

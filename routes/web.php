@@ -23,6 +23,7 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InspectionController;
 use App\Http\Controllers\MaintenanceScheduleController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PlanController;
@@ -410,7 +411,18 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::post('/{trip}/picked-up', [TripLifecycleController::class, 'pickedUp'])->name('picked-up')->middleware('permission:trips.edit');
         Route::put('/{trip}/stop-times', [TripLifecycleController::class, 'stopTimes'])->name('stop-times.update')->middleware('permission:trips.edit');
         Route::post('/{trip}/complete', [TripLifecycleController::class, 'complete'])->name('complete')->middleware('permission:trips.edit');
+        Route::post('/{trip}/inspections', [InspectionController::class, 'store'])->name('inspections.store')->middleware(['feature:pre_trip_inspections', 'permission:inspections.manage']);
         Route::delete('/{trip}', [TripController::class, 'destroy'])->name('destroy')->middleware('permission:trips.delete');
+    });
+
+    // Pre-trip inspections of a trip (req 5.1–5.3, P2-4)
+    Route::prefix('inspections')->name('inspections.')->middleware(['feature:trips', 'feature:pre_trip_inspections'])->whereNumber(['inspection', 'document'])->group(function () {
+        Route::get('/{inspection}', [InspectionController::class, 'show'])->name('show')->middleware('permission:inspections.view');
+        Route::put('/{inspection}/results', [InspectionController::class, 'updateResults'])->name('results.update')->middleware('permission:inspections.manage');
+        Route::post('/{inspection}/complete', [InspectionController::class, 'complete'])->name('complete')->middleware('permission:inspections.manage');
+        Route::post('/{inspection}/abandon', [InspectionController::class, 'abandon'])->name('abandon')->middleware('permission:inspections.manage');
+        Route::post('/{inspection}/attachments', [InspectionController::class, 'attach'])->name('attachments.store')->middleware('permission:inspections.manage');
+        Route::get('/{inspection}/attachments/{document}', [InspectionController::class, 'attachment'])->name('attachments.show')->middleware('permission:inspections.view');
     });
 
     // Address search for the map picker (req 6.1): staff who enter shipper or trip addresses

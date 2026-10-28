@@ -2,10 +2,12 @@
 
 namespace App\Services\Operations;
 
+use App\Features\Feature;
 use App\Models\AuditLog;
 use App\Models\Trip;
 use App\Models\TripStop;
 use App\Models\User;
+use App\Services\Entitlements\Entitlements;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -165,10 +167,41 @@ class TripLifecycleService
     }
 
     /**
-     * The pre-trip gate. P2-4 adds it here: with the pre_trip_inspections feature, a completed
-     * inspection of this trip's vehicle is required before the trip starts.
+     * The pre-trip gate (P2-4): with the pre_trip_inspections feature, the latest completed
+     * inspection of this trip with its current driver, vehicle and trailer must have found no
+     * defects (396.13). Without the feature there is no gate.
      */
-    private function assertPreTripDone(Trip $trip): void {}
+    private function assertPreTripDone(Trip $trip): void
+    {
+        $message = $this->preTripBlocker($trip);
+
+        if ($message !== null) {
+            throw ValidationException::withMessages(['trip' => $message]);
+        }
+    }
+
+    /**
+     * Why the pre-trip gate holds this assigned trip, or null when it may start. Also shown next
+     * to the Start button.
+     */
+    public function preTripBlocker(Trip $trip): ?string
+    {
+        // Only while inspections can be recorded: a read-only feature must not block every start
+        if (! Entitlements::for($trip->company()->firstOrFail())->state(Feature::PreTripInspections)->allowsWrite()) {
+            return null;
+        }
+
+        $result = $trip->inspections()->where('status', 'completed')
+            ->where('driver_id', $trip->driver_id)->where('vehicle_id', $trip->vehicle_id)
+            ->when($trip->trailer_id === null, fn ($q) => $q->whereNull('trailer_id'), fn ($q) => $q->where('trailer_id', $trip->trailer_id))
+            ->reorder()->latest('completed_at')->latest('id')->value('result');
+
+        return match ($result) {
+            'no_defects' => null,
+            'defects_found' => 'The last pre-trip inspection found defects. Record a new inspection with no defects before starting the trip.',
+            default => 'Complete the pre-trip inspection before starting the trip.',
+        };
+    }
 
     /**
      * Which one-active guard the start hit, as the message for the form. A locking read, so a

@@ -43,8 +43,8 @@ afterEach(function () {
 it('starts only one of two trips of the same driver started at once', function () {
     $company = Actors::company();
     $crew = Trips::crew($company);
-    $first = Trips::assigned($company, $crew);
-    $second = Trips::assigned($company, ['vehicle' => Trips::crew($company)['vehicle']] + $crew);
+    $first = Trips::inspected(Trips::assigned($company, $crew));
+    $second = Trips::inspected(Trips::assigned($company, ['vehicle' => Trips::crew($company)['vehicle']] + $crew));
 
     $startAt = sprintf('%.3f', microtime(true) + 3);
     $results = collect([$first, $second])
