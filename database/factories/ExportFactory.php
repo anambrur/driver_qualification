@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Driver;
 use App\Models\Export;
 use App\Models\StoredFile;
+use App\Models\Trip;
 use Database\Factories\Concerns\CreatesInTenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -33,6 +34,11 @@ class ExportFactory extends Factory
     public function forDriver(Driver $driver): static
     {
         return $this->state(fn () => ['company_id' => $driver->company_id, 'type' => 'zip_driver', 'parameters' => ['driver_id' => $driver->id]]);
+    }
+
+    public function forTrip(Trip $trip): static
+    {
+        return $this->state(fn () => ['company_id' => $trip->company_id, 'type' => 'zip_trip', 'parameters' => ['trip_id' => $trip->id]]);
     }
 
     /**

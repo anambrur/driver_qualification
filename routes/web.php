@@ -373,7 +373,7 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::delete('/{document}', [DocumentController::class, 'destroy'])->name('destroy')->middleware('permission:documents.delete');
     });
 
-    // ZIP exports of a driver or the whole company (req 2.5); exporting is not a write (Q2)
+    // ZIP exports of a driver, a trip or the whole company (req 2.5); exporting is not a write (Q2)
     Route::prefix('exports')->name('exports.')->middleware('feature:zip_export')->whereNumber('export')->group(function () {
         Route::get('/', [ExportController::class, 'index'])->name('index')->middleware('permission:exports.create|exports.download');
         Route::get('/data', [ExportController::class, 'data'])->name('data')->middleware('permission:exports.create|exports.download');
@@ -414,6 +414,8 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::post('/{trip}/complete', [TripLifecycleController::class, 'complete'])->name('complete')->middleware('permission:trips.edit');
         Route::post('/{trip}/events', [TripEventController::class, 'store'])->name('events.store')->middleware(['feature:trip_events', 'permission:trip-events.manage']);
         Route::post('/{trip}/fuel-stops', [TripEventController::class, 'storeFuel'])->name('fuel-stops.store')->middleware(['feature:trip_events', 'permission:trip-events.manage']);
+        // A trip's ZIP (req 2.5); exporting is not a write (Q2)
+        Route::post('/{trip}/export', [ExportController::class, 'trip'])->name('export')->middleware(['feature:zip_export', 'permission:exports.create', 'throttle:10,1']);
         Route::post('/{trip}/inspections', [InspectionController::class, 'store'])->name('inspections.store')->middleware(['feature:pre_trip_inspections', 'permission:inspections.manage']);
         Route::delete('/{trip}', [TripController::class, 'destroy'])->name('destroy')->middleware('permission:trips.delete');
     });

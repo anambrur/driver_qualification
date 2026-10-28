@@ -80,6 +80,14 @@
                         <x-ui.button type="submit" variant="destructive" icon="trash-2">Delete</x-ui.button>
                     </form>
                 @endif
+                @feature('zip_export')
+                    @if (app(\App\Services\Exports\ExportService::class)->canRequest($user, 'zip_trip'))
+                        <form action="{{ route('trips.export', $trip) }}" method="POST">
+                            @csrf
+                            <x-ui.button type="submit" variant="outline" icon="archive">Download ZIP</x-ui.button>
+                        </form>
+                    @endif
+                @endfeature
                 <x-ui.button :href="route('trips.index')" variant="outline" icon="arrow-left">Back</x-ui.button>
             </x-slot:actions>
         </x-ui.page-header>

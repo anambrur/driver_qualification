@@ -71,7 +71,8 @@ describe('DSH-02 → dashboard query budget', function () {
         seedDashboardData($owner, 3);
 
         $this->actingAs($owner);
-        Perf::assertMaxQueries(18, fn () => $this->get(route('admin.dashboard'))->assertOk());
+        // 18 before P2-6, plus the one trip counts query (req 9.2)
+        Perf::assertMaxQueries(19, fn () => $this->get(route('admin.dashboard'))->assertOk());
     });
 
     it('does not grow with the amount of data', function () {

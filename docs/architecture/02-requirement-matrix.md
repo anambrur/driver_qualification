@@ -57,7 +57,7 @@ The differences come from the corrections in section 12. Eight further client it
 | 2.2 | Add, create, edit and delete folders | Not avail. | **Complete** (P1, 23 Oct 2026) | — | `folders` | `document_folders` | 2.1 | 1 | Nesting depth limit [R] |
 | 2.3 | Upload documents to a specific folder | Available | **Complete** (P1, 23 Oct 2026) | Typed compliance uploads with expiry (`DriverDocumentUploadController`, `DocumentUploadController`) | `stored_files`, `documents.folder_id` | `document_folders` | 2.1 | 1 | Works for typed compliance slots only, not for arbitrary folders |
 | 2.4 | Uploaded picture converts to PDF automatically | Not avail. | **Complete** (P1, 23 Oct 2026) | `dompdf` is installed but unused | `stored_files.converted_from_file_id` | platform capability | 2.3 | 1 | Folder uploads converted; original kept (decided Q8) |
-| 2.5 | ZIP download per trip, per driver, and for the whole company | Not avail. | **Partial** (P1, 23 Oct 2026: driver and company; trip in Phase 2) | Files download one at a time | `exports` | `zip_export` | 2.3, 4.1 | 1 (driver and company), 2 (trip) | Large companies need a queued job and a size cap. A ZIP contains everything attached to the entity (decided Q8). |
+| 2.5 | ZIP download per trip, per driver, and for the whole company | Not avail. | **Complete** (P1, 23 Oct 2026: driver and company; P2-6, 28 Oct 2026: trip, and trips in the company ZIP) | Files download one at a time | `exports` | `zip_export` | 2.3, 4.1 | 1 (driver and company), 2 (trip) | Large companies need a queued job and a size cap. A ZIP contains everything attached to the entity (decided Q8). |
 
 ## 3. Drivers, tractors and trailers
 
@@ -127,7 +127,7 @@ The differences come from the corrections in section 12. Eight further client it
 | # | Requirement | Gap | Verified | Code today | DB changes | Feature | Depends on | Phase | Risks / notes |
 |---|---|---|---|---|---|---|---|---|---|
 | 9.1 | Dashboard overview | Available | **Complete** | `DashboardController.php:20-144`, tenant-filtered | Respect entitlements | core | 0 | 0 | — |
-| 9.2 | Loads on the road and loads pending pickup | Not avail. | **Missing** | — | Index `trips(company_id, status)`; pickup-stop state | `trips` | 4.1 | 2 | "Pending pickup" means assigned but the pickup stop not yet departed [R] |
+| 9.2 | Loads on the road and loads pending pickup | Not avail. | **Complete** (P2-6, 28 Oct 2026) | — | Index `trips(company_id, status)`; pickup-stop state | `trips` | 4.1 | 2 | "Pending pickup" means assigned but the pickup stop not yet departed [R] |
 
 ## 10. Integrations and communication
 

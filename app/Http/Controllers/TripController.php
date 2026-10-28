@@ -35,15 +35,18 @@ class TripController extends Controller
 
     public function index(Request $request): View
     {
-        // Opened from a driver or vehicle page: the list starts filtered by it
+        // Opened from a driver or vehicle page, or the dashboard: the list starts filtered by it
         $filter = null;
         if ($driver = Driver::withTrashed()->find($request->integer('driver_id') ?: null, ['id', 'first_name', 'last_name'])) {
             $filter = ['name' => 'driver_id', 'value' => $driver->id, 'label' => 'Driver: '.trim($driver->first_name.' '.$driver->last_name)];
         } elseif ($vehicle = Vehicle::withTrashed()->find($request->integer('vehicle_id') ?: null, ['id', 'unit_no'])) {
             $filter = ['name' => 'vehicle_id', 'value' => $vehicle->id, 'label' => 'Vehicle: '.$vehicle->unit_no];
+        } elseif ($request->query('pickup') === 'pending') {
+            $filter = ['name' => 'pickup', 'value' => 'pending', 'label' => 'Pending pickup'];
         }
+        $status = in_array($request->query('status'), Trip::STATUSES, true) ? $request->query('status') : '';
 
-        return view('trips.index', ['statuses' => Trip::STATUSES, 'filter' => $filter]);
+        return view('trips.index', ['statuses' => Trip::STATUSES, 'filter' => $filter, 'status' => $status]);
     }
 
     public function data(Request $request): JsonResponse

@@ -15,7 +15,7 @@
         <x-ui.datatable id="trip-table" title="All trips">
             <x-slot:toolbar>
                 <div class="flex flex-wrap items-center gap-2">
-                    <x-ui.select data-dt-filter="status" aria-label="Filter by status" :options="['' => 'Any status'] + collect($statuses)->mapWithKeys(fn ($status) => [$status => \App\Support\Ui\Status::label($status)])->all()" class="w-auto!" />
+                    <x-ui.select data-dt-filter="status" aria-label="Filter by status" :options="['' => 'Any status'] + collect($statuses)->mapWithKeys(fn ($status) => [$status => \App\Support\Ui\Status::label($status)])->all()" :value="$status" class="w-auto!" />
                     <x-ui.input type="date" data-dt-filter="date_from" aria-label="Trip date from" class="w-auto!" />
                     <x-ui.input type="date" data-dt-filter="date_to" aria-label="Trip date to" class="w-auto!" />
                     @if ($filter)
@@ -47,7 +47,7 @@
         window.dqTable('#trip-table', {
             ajax: @json(route('trips.data')),
             @if ($filter)
-                // Opened from a driver or vehicle page; Clear keeps it, the chip removes it
+                // Opened from a driver or vehicle page or the dashboard; Clear keeps it, the chip removes it
                 data: (d) => { d[@json($filter['name'])] = @json($filter['value']); },
             @endif
             order: [[1, 'desc']],

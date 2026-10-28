@@ -8,6 +8,7 @@
         $user = auth()->user();
         $showDrivers = \Illuminate\Support\Facades\Blade::check('feature', 'drivers') && $user->can('drivers.view');
         $showFleet = \Illuminate\Support\Facades\Blade::check('feature', 'fleet') && $user->can('fleets.dashboard');
+        $showTrips = $tripStats !== null;
         $showMaintenance = \Illuminate\Support\Facades\Blade::check('feature', 'maintenance') && $user->can('maintenance.view');
         $percent = fn (int $part, int $whole): int => $whole > 0 ? (int) round($part / $whole * 100) : 0;
         $applicationUrl = $company?->slug ? route('application.form', $company->slug) : null;
@@ -42,6 +43,16 @@
                 <x-ui.stat label="Pending review" :value="$driverStats['pending']" icon="clock" tone="warning" :href="route('admin.driver.index')" />
                 <x-ui.stat label="New applicants" :value="$driverStats['new_applicants']" icon="user-round-plus" tone="info" hint="Last 7 days" />
                 <x-ui.stat label="Inactive" :value="$driverStats['inactive']" icon="user-round-x" tone="neutral" hint="Inactive, terminated or rejected" />
+            </div>
+        @endif
+
+        @if ($showTrips)
+            <h2 class="sr-only">Trips</h2>
+            <div @class(['grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4', 'mt-4' => $showDrivers])>
+                <x-ui.stat label="On the road" :value="$tripStats['on_road']" icon="truck" tone="info" hint="Trips in progress"
+                    :href="route('trips.index', ['status' => 'in_progress'])" />
+                <x-ui.stat label="Pending pickup" :value="$tripStats['pending_pickup']" icon="package" tone="warning" hint="Load not picked up yet"
+                    :href="route('trips.index', ['pickup' => 'pending'])" />
             </div>
         @endif
 

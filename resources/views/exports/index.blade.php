@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="p-4 sm:p-6 lg:p-8">
-        <x-ui.page-header title="Exports" description="ZIP files of a driver's DQ file or of the whole company. Each file can be downloaded for 7 days." />
+        <x-ui.page-header title="Exports" description="ZIP files of a driver's DQ file, a trip or the whole company. Each file can be downloaded for 7 days." />
 
         <x-ui.datatable id="export-table" title="All exports">
             <th>Type</th>
@@ -16,7 +16,7 @@
             <th class="text-right"><span class="sr-only">Actions</span></th>
 
             <x-slot:empty>
-                <x-ui.empty-state icon="archive" title="No exports yet" description="Use “Download ZIP” on a driver page or on the Documents page." class="border-0" />
+                <x-ui.empty-state icon="archive" title="No exports yet" description="Use “Download ZIP” on a driver page, a trip page or the Documents page." class="border-0" />
             </x-slot:empty>
         </x-ui.datatable>
     </div>

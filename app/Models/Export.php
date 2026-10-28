@@ -10,7 +10,8 @@ use Illuminate\Support\Carbon;
 
 /**
  * A requested export (08 §12, 10 §9): queued, built by BuildExport, ready until expires_at,
- * then expired by exports:prune. parameters holds the scope (driver_id for a driver ZIP).
+ * then expired by exports:prune. parameters holds the scope: driver_id for a driver ZIP, trip_id
+ * for a trip ZIP, trips = 1 for a company ZIP with its trips.
  *
  * @property array<string, mixed> $parameters
  * @property Carbon|null $expires_at
@@ -29,8 +30,8 @@ class Export extends Model
         'accident_register' => 'Accident register',
     ];
 
-    /** The types Phase 1 builds (req 2.5). */
-    public const ZIP_TYPES = ['zip_driver', 'zip_company'];
+    /** The ZIP types (req 2.5): driver and company since Phase 1, trip since P2-6. */
+    public const ZIP_TYPES = ['zip_driver', 'zip_trip', 'zip_company'];
 
     public const PENDING = ['queued', 'running'];
 
@@ -81,6 +82,16 @@ class Export extends Model
     public function driverId(): ?int
     {
         return isset($this->parameters['driver_id']) ? (int) $this->parameters['driver_id'] : null;
+    }
+
+    public function tripId(): ?int
+    {
+        return isset($this->parameters['trip_id']) ? (int) $this->parameters['trip_id'] : null;
+    }
+
+    public function withTrips(): bool
+    {
+        return ! empty($this->parameters['trips']);
     }
 
     public function isDownloadable(): bool
