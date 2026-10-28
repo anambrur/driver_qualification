@@ -98,7 +98,7 @@ class TripEventService
             $event = new TripEvent;
             $event->forceFill($this->baseAttributes($trip, $data, $actor) + array_fill_keys(['reason', 'ticket_issued', 'weight_ok', 'injuries_count', 'fatalities_count', 'hazmat_released'], null) + [
                 'type' => $type,
-            ])->forceFill(array_map(fn ($value) => $value === '' ? null : $value, $kept))->save();
+            ])->forceFill(array_map(self::filledOrNull(...), $kept))->save();
 
             $documents = $this->attachFiles($trip, $event, $files, ['trip_event_id' => $event->id], $actor);
             AuditLog::record($actor, $trip->company_id, 'trip_event.recorded', $event, [
@@ -203,13 +203,14 @@ class TripEventService
     }
 
     /**
-     * When an event happened by default: now, or the completion of a completed trip.
+     * When an event happened by default, in the company time zone: now, or the completion of a
+     * completed trip.
      */
-    public function defaultOccurredAt(Trip $trip): CarbonImmutable
+    public static function defaultOccurredAt(Trip $trip, string $timezone): CarbonImmutable
     {
         $at = $trip->status === 'completed' && $trip->completed_at !== null ? CarbonImmutable::instance($trip->completed_at) : CarbonImmutable::now();
 
-        return $at->setTimezone($this->trips->timezone());
+        return $at->setTimezone($timezone);
     }
 
     /**
@@ -225,13 +226,18 @@ class TripEventService
             'driver_id' => $trip->driver_id,
             'vehicle_id' => $trip->vehicle_id,
             'occurred_at' => $this->occurredAt($trip, (string) $data['occurred_at']),
-            'address' => ($data['address'] ?? null) ?: null,
-            'city' => ($data['city'] ?? null) ?: null,
-            'state_code' => ($data['state_code'] ?? null) ?: null,
-            'latitude' => ($data['latitude'] ?? null) ?: null,
-            'longitude' => ($data['longitude'] ?? null) ?: null,
+            'address' => self::filledOrNull($data['address'] ?? null),
+            'city' => self::filledOrNull($data['city'] ?? null),
+            'state_code' => self::filledOrNull($data['state_code'] ?? null),
+            'latitude' => self::filledOrNull($data['latitude'] ?? null),
+            'longitude' => self::filledOrNull($data['longitude'] ?? null),
             'recorded_by_user_id' => $actor->id,
         ];
+    }
+
+    private static function filledOrNull(mixed $value): mixed
+    {
+        return blank($value) ? null : $value;
     }
 
     /**

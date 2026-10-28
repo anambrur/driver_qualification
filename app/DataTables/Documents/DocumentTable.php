@@ -26,7 +26,7 @@ final class DocumentTable
 
         $query = Document::query()
             ->where('folder_id', $this->folder->id)
-            ->select(['id', 'company_id', 'folder_id', 'file_id', 'original_file_id', 'title', 'document_type_id', 'issued_on', 'expires_on', 'uploaded_by_user_id', 'created_at'])
+            ->select(['id', 'company_id', 'folder_id', 'file_id', 'original_file_id', 'title', 'document_type_id', 'trip_event_id', 'fuel_purchase_id', 'issued_on', 'expires_on', 'uploaded_by_user_id', 'created_at'])
             ->with(['file:id,path,size_bytes', 'documentType:id,name', 'uploadedBy:id,name']);
 
         $term = trim((string) data_get($this->request->input('search'), 'value', ''));
@@ -44,7 +44,7 @@ final class DocumentTable
             ->addColumn('size', fn (Document $document) => $document->file ? FileSize::format($document->file->size_bytes) : '—')
             ->addColumn('uploaded', fn (Document $document) => e(trim($document->created_at?->format('M d, Y').($document->uploadedBy ? ' · '.$document->uploadedBy->name : ''))))
             ->addColumn('action', fn (Document $document) => view('documents.partials.document-actions', [
-                'document' => $document, 'canMove' => $canMove, 'canDelete' => $canDelete,
+                'document' => $document, 'canMove' => $canMove, 'canDelete' => $canDelete && $document->trip_event_id === null && $document->fuel_purchase_id === null,
             ])->render())
             ->orderColumn('document', 'title $1')
             ->orderColumn('uploaded', 'created_at $1')

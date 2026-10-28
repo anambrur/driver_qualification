@@ -483,7 +483,7 @@ One row per stored object.
 - Maximum depth 5 (decided P1-4).
 - System folders can't be renamed or deleted.
 - Only an empty folder (no live child folders, no live documents) can be deleted; it is soft-deleted and its trashed documents keep their `folder_id` (P1-4).
-- The trip FK on `folders.trip_id` and on `documents.trip_id`, `trip_event_id`, `fuel_purchase_id`, `expense_id`, `inspection_id` is added by MySQL-only migrations in the phase that creates those tables; the columns and the CHECKs exist from Phase 1 (P1-4). Done: `trip_id` (P2-2), `inspection_id` (P2-4).
+- The trip FK on `folders.trip_id` and on `documents.trip_id`, `trip_event_id`, `fuel_purchase_id`, `expense_id`, `inspection_id` is added by MySQL-only migrations in the phase that creates those tables; the columns and the CHECKs exist from Phase 1 (P1-4). Done: `trip_id` (P2-2), `inspection_id` (P2-4), `trip_event_id` and `fuel_purchase_id` (P2-5).
 
 ### `documents` (Tenant root)
 
@@ -650,12 +650,17 @@ Live events recorded during a trip.
 - `type <> 'accident' OR (injuries_count IS NOT NULL AND fatalities_count IS NOT NULL AND hazmat_released IS NOT NULL)`;
 - `type = 'accident' OR (injuries_count IS NULL AND fatalities_count IS NULL AND hazmat_released IS NULL)`.
 
+**Unique:** `(company_id, id)` (the cFK target of `fuel_purchases` and `documents`, P2-5).
+
 **Indexes:** `(company_id, trip_id, occurred_at)`, `(company_id, type, occurred_at)`.
 
-**Rules in the service:**
+**Rules in the service (`TripEventService`, P2-5):**
+- Recorded while the trip is in progress, or up to 7 days after it completed; never on draft, planned, assigned or cancelled trips. `occurred_at` is typed in the company time zone and lies between the start and now (or the completion).
 - A ticket file is required when `ticket_issued = 1`.
-- Documents are required for a weigh station with `weight_ok = 0`, and for an accident (licence, insurance, photos).
-- Evidence is never deleted; it is voided.
+- Documents are required for a weigh station with `weight_ok = 0`, and for an accident (licence, insurance, photos): at least one file.
+- Files go into the trip folder with subject `trip_event_id` (receipts: `fuel_purchase_id`), typed by their upload slot from the `trip` document types (Police ticket, Weight ticket, Driver licence, Insurance card, Accident photo, Fuel receipt); integrity query 5 accepts them.
+- Each type keeps only its own fields; `details` stays null in Phase 2.
+- Evidence is never deleted; it is voided (`voided_at`, `void_reason`) and stays on the timeline, struck through.
 
 ### `fuel_purchases` (Tenant root)
 
@@ -670,7 +675,9 @@ Live events recorded during a trip.
   - `recorded_by_user_id`, SET NULL.
 - **Unique:** `trip_event_id`, `(company_id, id)`.
 - **Indexes:** `(company_id, purchased_at)`, `(company_id, vehicle_id, purchased_at)`.
-- **"Done" screen** = `confirmed_at` is set after the receipt documents are uploaded.
+- **"Done" screen** = `confirmed_at` is set after the receipt documents are uploaded: by the first receipt, in the fuel dialog or later (P2-5), audited `fuel_purchase.confirmed`.
+- **Written with its event** (P2-5): the `fuel` trip event and this row in one transaction; `purchased_at` = the event's `occurred_at`; `currency` USD only; the total is typed in and a warning (not a block) shows when it is more than 1 % off gallons × price.
+- **Void:** there is no void column; a purchase whose event is voided is out of the totals (`FuelPurchase::live()`).
 
 ### `location_pings` (Tenant root, high volume)
 

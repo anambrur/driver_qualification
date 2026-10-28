@@ -129,6 +129,13 @@ class FuelTypeController extends Controller
             ], 400);
         }
 
+        if (DB::table('fuel_purchases')->where('fuel_type_id', $fuelType->id)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete fuel type because fuel stops use it. Deactivate it instead.',
+            ], 400);
+        }
+
         DB::beginTransaction();
 
         try {

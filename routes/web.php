@@ -38,6 +38,7 @@ use App\Http\Controllers\SupportAccessController;
 use App\Http\Controllers\TrailerController;
 use App\Http\Controllers\TripAssignmentController;
 use App\Http\Controllers\TripController;
+use App\Http\Controllers\TripEventController;
 use App\Http\Controllers\TripLifecycleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPermissionController;
@@ -411,6 +412,8 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::post('/{trip}/picked-up', [TripLifecycleController::class, 'pickedUp'])->name('picked-up')->middleware('permission:trips.edit');
         Route::put('/{trip}/stop-times', [TripLifecycleController::class, 'stopTimes'])->name('stop-times.update')->middleware('permission:trips.edit');
         Route::post('/{trip}/complete', [TripLifecycleController::class, 'complete'])->name('complete')->middleware('permission:trips.edit');
+        Route::post('/{trip}/events', [TripEventController::class, 'store'])->name('events.store')->middleware(['feature:trip_events', 'permission:trip-events.manage']);
+        Route::post('/{trip}/fuel-stops', [TripEventController::class, 'storeFuel'])->name('fuel-stops.store')->middleware(['feature:trip_events', 'permission:trip-events.manage']);
         Route::post('/{trip}/inspections', [InspectionController::class, 'store'])->name('inspections.store')->middleware(['feature:pre_trip_inspections', 'permission:inspections.manage']);
         Route::delete('/{trip}', [TripController::class, 'destroy'])->name('destroy')->middleware('permission:trips.delete');
     });
@@ -425,8 +428,15 @@ Route::middleware(['auth', 'verified', 'subscribed'])->prefix('admin')->group(fu
         Route::get('/{inspection}/attachments/{document}', [InspectionController::class, 'attachment'])->name('attachments.show')->middleware('permission:inspections.view');
     });
 
-    // Address search for the map picker (req 6.1): staff who enter shipper or trip addresses
-    Route::prefix('maps')->name('maps.')->middleware(['feature:trips', 'permission:shippers.manage|trips.create|trips.edit', 'throttle:30,1,geocoder'])->group(function () {
+    // Events and fuel stops of a trip (req 7.1–7.6, P2-5): files and voids; recorded under trips.*
+    Route::prefix('trip-events')->name('trip-events.')->middleware(['feature:trips', 'feature:trip_events'])->whereNumber(['tripEvent', 'document'])->group(function () {
+        Route::post('/{tripEvent}/attachments', [TripEventController::class, 'attach'])->name('attachments.store')->middleware('permission:trip-events.manage');
+        Route::post('/{tripEvent}/void', [TripEventController::class, 'void'])->name('void')->middleware('permission:trip-events.manage');
+        Route::get('/{tripEvent}/attachments/{document}', [TripEventController::class, 'attachment'])->name('attachments.show')->middleware('permission:trip-events.view');
+    });
+
+    // Address search for the map picker (req 6.1): staff who enter shipper, trip or trip event addresses
+    Route::prefix('maps')->name('maps.')->middleware(['feature:trips', 'permission:shippers.manage|trips.create|trips.edit|trip-events.manage', 'throttle:30,1,geocoder'])->group(function () {
         Route::get('/search', [GeocodeController::class, 'search'])->name('search');
         Route::get('/reverse', [GeocodeController::class, 'reverse'])->name('reverse');
     });
