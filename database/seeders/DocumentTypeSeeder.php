@@ -46,6 +46,14 @@ class DocumentTypeSeeder extends Seeder
             ['name' => '90-Day Inspection Records', 'module' => 'trailer', 'status' => true],
             ['name' => 'Quarterly Inspection Records', 'module' => 'trailer', 'status' => true],
             ['name' => 'Inspection Stickers/Decals', 'module' => 'trailer', 'status' => true],
+
+            // Trip Module: attachments of trip events and fuel stops (P2-5, TripEventService::SLOTS)
+            ['name' => 'Police ticket', 'module' => 'trip', 'status' => true, 'system_key' => 'trip_police_ticket'],
+            ['name' => 'Weight ticket', 'module' => 'trip', 'status' => true, 'system_key' => 'trip_weight_ticket'],
+            ['name' => 'Driver licence', 'module' => 'trip', 'status' => true, 'system_key' => 'trip_driver_licence'],
+            ['name' => 'Insurance card', 'module' => 'trip', 'status' => true, 'system_key' => 'trip_insurance_card'],
+            ['name' => 'Accident photo', 'module' => 'trip', 'status' => true, 'system_key' => 'trip_accident_photo'],
+            ['name' => 'Fuel receipt', 'module' => 'trip', 'status' => true, 'system_key' => 'trip_fuel_receipt'],
         ];
 
         foreach ($documentTypes as $documentType) {
