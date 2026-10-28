@@ -85,15 +85,17 @@ flowchart LR
 | 2.6 | Dashboard counts: on the road, pending pickup | 9.2 |
 | 2.7 | ZIP per trip | 2.5 |
 
+**Status: done 28 Oct 2026** (P2-1 to P2-6 merged by `18a3de4`, accepted in P2-7; MySQL 9.3 on a freshly seeded database: full suite 2,890 passed, `--group=mysql` and `--group=scale` green, `integrity:check` clean). Tasks 2.1–2.7 are built for office staff on the web; the driver's own flows come with the app in Phase 3.
+
 **Depends on:** Phase 0; Phase 1 (folders and documents for trip folders and attachments).
 
 **Before it starts:** the hooks into P1-4 and P1-6 are listed in [14](14-open-questions.md) §3 ("Before Phase 2"). The packages are P2-1 to P2-7 in [agent-prompts/](agent-prompts/README.md).
 
 **Acceptance criteria**
-- The trip lifecycle ([10](10-workflows.md) §13) works end-to-end on the web.
-- A driver cannot have two in-progress trips.
-- Event CHECK rules are enforced.
-- Dashboard counts match the trip states.
+- ✅ The trip lifecycle ([10](10-workflows.md) §13) works end-to-end on the web. (`TripEndToEndTest`: "walks a trip from draft to completed on the web (acceptance)", shipper to trip ZIP over HTTP)
+- ✅ A driver cannot have two in-progress trips. (`TripLifecycleServiceTest` › "one in-progress trip per driver and per vehicle (acceptance)"; `TripStartConcurrencyTest`, group `mysql`: "starts only one of two trips of the same driver started at once")
+- ✅ Event CHECK rules are enforced. (`TripEventSchemaTest`, on MySQL)
+- ✅ Dashboard counts match the trip states. (`TripCountsTest`: "counts the loads on the road and pending pickup by trip state", "lists the same trips as the pending pickup card"; also checked at each state in `TripEndToEndTest`)
 
 **Risks**
 - Trip vs load resolved: one load per trip (decided Q6).

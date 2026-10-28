@@ -30,7 +30,7 @@ This matrix checks every requirement against the code, not against whether a tab
 | Missing / Not available | 34 | 39 |
 | **Total** | **52** | **52** |
 
-After Phase 0 (21 Oct 2026): 1.7 is Complete (roles per company). After Phase 1 (23 Oct 2026): 1.8, 2.2, 2.3, 2.4 and 3.5 are Complete; 1.4, 2.1 and 2.5 are Partial until their Phase 2–3 parts land. The table above still shows the state at `d1d4d8d`.
+After Phase 0 (21 Oct 2026): 1.7 is Complete (roles per company). After Phase 1 (23 Oct 2026): 1.8, 2.2, 2.3, 2.4 and 3.5 are Complete; 1.4, 2.1 and 2.5 are Partial until their Phase 2–3 parts land. After Phase 2 (28 Oct 2026): 2.1, 2.5, 4.1–4.5, 5.1, 6.3 and 9.2 are Complete; 4.6, 5.2, 5.3, 6.1 and 7.1–7.6 are Complete on the web, with the driver app in Phase 3. The table above still shows the state at `d1d4d8d`.
 
 The differences come from the corrections in section 12. Eight further client items that the gap report merged or left out are listed in section 11.
 
@@ -53,7 +53,7 @@ The differences come from the corrections in section 12. Eight further client it
 
 | # | Requirement | Gap | Verified | Code today | DB changes | Feature | Depends on | Phase | Risks / notes |
 |---|---|---|---|---|---|---|---|---|---|
-| 2.1 | Standard set of folders | Partial | **Partial** (P1, 23 Oct 2026: driver, vehicle and trailer; trip folder in Phase 2) | Fixed document types per driver, vehicle and trailer act as slots (`DocumentTypeSeeder.php`) | System folders per entity in `folders` (`system_key`) | `document_folders` | 0 | 1 | Standard folders per entity: DQ file, vehicle, trailer, trip (decided Q8) |
+| 2.1 | Standard set of folders | Partial | **Complete** (P1, 23 Oct 2026: driver, vehicle and trailer; P2-2, 26 Oct 2026: trip) | Fixed document types per driver, vehicle and trailer act as slots (`DocumentTypeSeeder.php`) | System folders per entity in `folders` (`system_key`) | `document_folders` | 0 | 1 | Standard folders per entity: DQ file, vehicle, trailer, trip (decided Q8) |
 | 2.2 | Add, create, edit and delete folders | Not avail. | **Complete** (P1, 23 Oct 2026) | — | `folders` | `document_folders` | 2.1 | 1 | Nesting depth limit [R] |
 | 2.3 | Upload documents to a specific folder | Available | **Complete** (P1, 23 Oct 2026) | Typed compliance uploads with expiry (`DriverDocumentUploadController`, `DocumentUploadController`) | `stored_files`, `documents.folder_id` | `document_folders` | 2.1 | 1 | Works for typed compliance slots only, not for arbitrary folders |
 | 2.4 | Uploaded picture converts to PDF automatically | Not avail. | **Complete** (P1, 23 Oct 2026) | `dompdf` is installed but unused | `stored_files.converted_from_file_id` | platform capability | 2.3 | 1 | Folder uploads converted; original kept (decided Q8) |
@@ -84,9 +84,9 @@ The differences come from the corrections in section 12. Eight further client it
 
 | # | Requirement | Gap | Verified | Code today | DB changes | Feature | Depends on | Phase | Risks / notes |
 |---|---|---|---|---|---|---|---|---|---|
-| 5.1 | Fill out a pre-trip checklist | Not avail. | **Missing** | — | `inspection_templates`, `inspection_template_items`, `inspections`, `inspection_results` | `pre_trip_inspections` | 4.1 | 2 | A pre-trip checklist only; not a DVIR (decided C10) |
-| 5.2 | Pre-trip inspection on one screen | Not avail. | **Missing** | — | (UI) | `pre_trip_inspections` | 5.1 | 2–3 | — |
-| 5.3 | See checklist progress until finished | Not avail. | **Missing** | — | Progress = answered results ÷ template items | `pre_trip_inspections` | 5.1 | 2–3 | — |
+| 5.1 | Fill out a pre-trip checklist | Not avail. | **Complete** (P2-4, 28 Oct 2026: staff record it for the driver; the driver in the app is Phase 3) | — | `inspection_templates`, `inspection_template_items`, `inspections`, `inspection_results` | `pre_trip_inspections` | 4.1 | 2 | A pre-trip checklist only; not a DVIR (decided C10) |
+| 5.2 | Pre-trip inspection on one screen | Not avail. | **Complete on the web** (P2-4, 28 Oct 2026; the app is Phase 3) | — | (UI) | `pre_trip_inspections` | 5.1 | 2–3 | — |
+| 5.3 | See checklist progress until finished | Not avail. | **Complete on the web** (P2-4, 28 Oct 2026; the app is Phase 3) | — | Progress = answered results ÷ template items | `pre_trip_inspections` | 5.1 | 2–3 | — |
 
 ## 6. Maps, driving and tracking
 
@@ -104,12 +104,12 @@ The differences come from the corrections in section 12. Eight further client it
 
 | # | Requirement | Gap | Verified | Code today | DB changes | Feature | Depends on | Phase | Risks / notes |
 |---|---|---|---|---|---|---|---|---|---|
-| 7.1 | "Add Stop" with a reason | Not avail. | **Missing** | — | `trip_events` (`type = stop`, `reason`) | `trip_events` | 4.1 | 2 | — |
-| 7.2 | Police stop: ticket yes/no, upload the ticket, or give a reason | Not avail. | **Missing** | — | `trip_events.ticket_issued` + CHECK; documents attached to the event | `trip_events` | 7.1 | 2 | — |
-| 7.3 | Weigh station: weight OK yes/no, upload documents if no | Not avail. | **Missing** | — | `trip_events.weight_ok` + CHECK | `trip_events` | 7.1 | 2 | — |
-| 7.4 | Accident: upload licence, insurance, photos of both vehicles | Partial | **Missing** | `accidents` holds the applicant's past history; nothing records live events | `trip_events` (`type = accident`) + documents | `trip_events` | 7.1 | 2 | Accident register report generated from accident events (decided C9) |
-| 7.5 | Breakdown event | Not avail. | **Missing** | — | `trip_events` (`type = breakdown`) | `trip_events` | 7.1 | 2 | Could later link to maintenance [R] |
-| 7.6 | "Add Fuel Stop": location, price, documents, "Done" screen | Partial | **Missing** | Only the `fuel_types` lookup exists | `fuel_purchases` (+ `trip_event_id`) | `trip_events` | 7.1 | 2 | — |
+| 7.1 | "Add Stop" with a reason | Not avail. | **Complete on the web** (P2-5, 28 Oct 2026; camera uploads from the app are Phase 3) | — | `trip_events` (`type = stop`, `reason`) | `trip_events` | 4.1 | 2 | — |
+| 7.2 | Police stop: ticket yes/no, upload the ticket, or give a reason | Not avail. | **Complete on the web** (P2-5, 28 Oct 2026; camera uploads from the app are Phase 3) | — | `trip_events.ticket_issued` + CHECK; documents attached to the event | `trip_events` | 7.1 | 2 | — |
+| 7.3 | Weigh station: weight OK yes/no, upload documents if no | Not avail. | **Complete on the web** (P2-5, 28 Oct 2026; camera uploads from the app are Phase 3) | — | `trip_events.weight_ok` + CHECK | `trip_events` | 7.1 | 2 | — |
+| 7.4 | Accident: upload licence, insurance, photos of both vehicles | Partial | **Complete on the web** (P2-5, 28 Oct 2026; camera uploads from the app are Phase 3) | `accidents` holds the applicant's past history; nothing records live events | `trip_events` (`type = accident`) + documents | `trip_events` | 7.1 | 2 | Accident register report generated from accident events (decided C9) |
+| 7.5 | Breakdown event | Not avail. | **Complete on the web** (P2-5, 28 Oct 2026; camera uploads from the app are Phase 3) | — | `trip_events` (`type = breakdown`) | `trip_events` | 7.1 | 2 | Could later link to maintenance [R] |
+| 7.6 | "Add Fuel Stop": location, price, documents, "Done" screen | Partial | **Complete on the web** (P2-5, 28 Oct 2026; camera uploads from the app are Phase 3) | Only the `fuel_types` lookup exists | `fuel_purchases` (+ `trip_event_id`) | `trip_events` | 7.1 | 2 | — |
 
 ## 8. Pay, expenses and reports
 
