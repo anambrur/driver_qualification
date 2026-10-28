@@ -136,7 +136,8 @@ it('opens an assigned trip with the pickers and warnings within its query budget
     $this->actingAs(Actors::dispatcher($company));
     $this->get(route('trips.show', $trip))->assertOk();
 
-    Perf::assertMaxQueries(16, fn () => $this->get(route('trips.show', $trip))->assertOk()
+    // 16 before P2-4, + the Inspection tab and the pre-trip gate's latest inspection
+    Perf::assertMaxQueries(18, fn () => $this->get(route('trips.show', $trip))->assertOk()
         ->assertSee('Assignment')->assertSee('Confirm equipment')->assertSee('data-group-defaults', false));
 });
 
@@ -146,7 +147,8 @@ it('opens a trip in progress within its query budget', function () {
     $this->actingAs(Actors::dispatcher($company));
     $this->get(route('trips.show', $trip))->assertOk();
 
-    Perf::assertMaxQueries(7, fn () => $this->get(route('trips.show', $trip))->assertOk()->assertSee('Save stop times'));
+    // 7 before P2-4, + the Inspection tab: inspections, their templates, the failed results
+    Perf::assertMaxQueries(10, fn () => $this->get(route('trips.show', $trip))->assertOk()->assertSee('Save stop times'));
 });
 
 it('shows the recent trips on the driver and vehicle pages to staff with trips.view', function () {

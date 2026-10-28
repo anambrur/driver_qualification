@@ -206,7 +206,7 @@ Names keep today's `module.action` form wherever the module already exists, so m
 | `document_folders` | `folders.view` R, `folders.manage` W, `documents.upload` W, `documents.delete` W |
 | `zip_export` | `exports.create` R, `exports.download` R |
 | `trips` | `trips.view` R, `trips.create` W, `trips.edit` W, `trips.delete` W, `trips.assign` W, `trips.confirm-number` W, `shippers.view` R, `shippers.manage` W; own: `trips.view.own` R, `trips.drive.own` W |
-| `pre_trip_inspections` | `inspections.view` R; own: `inspections.perform.own` W |
+| `pre_trip_inspections` | `inspections.view` R, `inspections.manage` W (record for the driver, P2-4); own: `inspections.perform.own` W |
 | `trip_events` | `trip-events.view` R, `trip-events.manage` W; own: `trip-events.create.own` W, `fuel.create.own` W |
 | `gps_tracking` | `tracking.view` R; own: `tracking.report.own` W |
 | `mobile_app` | `mobile.access` R |
@@ -233,7 +233,7 @@ Provisioning creates these roles in the company's team from code templates (`App
 |---|---|---|---|
 | Owner | `owner` | Locked | Every tenant permission, limited in practice by entitlements. Held only by `companies.owner_user_id`. |
 | Administrator | — (`is_system`) | Editable; deletable if unused | Everything except `billing.manage` |
-| Dispatcher | — | Editable | `trips.*`, `shippers.*`, `drivers.view`, `vehicles.view`, `trailers.view`, `asset-groups.view`, `tracking.view`, `trip-events.*`, `inspections.view`, `messages.*`, `time-off.view` |
+| Dispatcher | — | Editable | `trips.*`, `shippers.*`, `drivers.view`, `vehicles.view`, `trailers.view`, `asset-groups.view`, `tracking.view`, `trip-events.*`, `inspections.*` (view and manage), `messages.*`, `time-off.view` |
 | Office / Compliance | — | Editable | `drivers.*`, `drivers.dashboard`, `driver-documents.*`, `vehicles.*`, `trailers.*`, `asset-groups.*`, `fleets.*`, `maintenance.*`, `scheduled.*`, `folders.*`, `documents.*`, `exports.*`, `reminders.send` |
 | Driver | `driver` | Locked | `trips.view.own`, `trips.drive.own`, `inspections.perform.own`, `trip-events.create.own`, `fuel.create.own`, `tracking.report.own`, `timesheets.view.own`, `time-entries.create.own`, `time-off.request.own`, `messages.view`, `messages.send`, `mobile.access` |
 | Support (read) | `support_read` | Locked, not assignable by tenants | Every R permission |

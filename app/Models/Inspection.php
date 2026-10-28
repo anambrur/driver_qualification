@@ -124,13 +124,18 @@ class Inspection extends Model
     }
 
     /**
-     * Answered results ÷ template items, as a whole percentage (req 5.3). Needs results_count and
-     * items_count (InspectionService::withProgress).
+     * Answered results ÷ template items, as a whole percentage (req 5.3). Needs results_count, and
+     * items_count on the inspection (InspectionService::withProgress) or on its loaded template.
      */
     public function progress(): int
     {
-        $items = (int) $this->items_count;
+        $items = $this->itemsCount();
 
         return $items === 0 ? 0 : intdiv((int) $this->results_count * 100, $items);
+    }
+
+    public function itemsCount(): int
+    {
+        return (int) ($this->items_count ?? ($this->relationLoaded('template') ? $this->template->getAttribute('items_count') : 0));
     }
 }

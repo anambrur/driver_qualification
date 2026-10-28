@@ -29,14 +29,15 @@ class DocumentService
     /**
      * @param  list<UploadedFile>  $uploads
      * @param  array{title?: string|null, document_type_id?: int|null, issued_on?: string|null, expires_on?: string|null}  $meta
+     * @param  array<string, int>  $subject  a child of the folder's entity (an inspection of the trip, F18); the folder's binding by default
      * @return Collection<int, Document>
      */
-    public function upload(Folder $folder, array $uploads, array $meta, User $actor): Collection
+    public function upload(Folder $folder, array $uploads, array $meta, User $actor, array $subject = []): Collection
     {
-        return $this->files->transaction(function () use ($folder, $uploads, $meta, $actor) {
+        return $this->files->transaction(function () use ($folder, $uploads, $meta, $actor, $subject) {
             $folder = Folder::query()->lockForUpdate()->findOrFail($folder->id);
 
-            $documents = collect($uploads)->map(function (UploadedFile $upload) use ($folder, $meta, $actor) {
+            $documents = collect($uploads)->map(function (UploadedFile $upload) use ($folder, $meta, $actor, $subject) {
                 $file = $this->files->store($upload, 'documents');
 
                 return Document::query()->create([
@@ -47,7 +48,7 @@ class DocumentService
                     'issued_on' => $meta['issued_on'] ?? null,
                     'expires_on' => $meta['expires_on'] ?? null,
                     'uploaded_by_user_id' => $actor->id,
-                ] + $folder->bindingAttributes())->setRelation('file', $file);
+                ] + ($subject ?: $folder->bindingAttributes()))->setRelation('file', $file);
             });
 
             AuditLog::record($actor, $folder->company_id, 'document.uploaded', $folder, ['documents' => $documents->pluck('id')->all()]);

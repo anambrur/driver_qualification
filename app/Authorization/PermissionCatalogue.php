@@ -92,6 +92,7 @@ final class PermissionCatalogue
         'trips.drive.own' => ['trips', true, true],
 
         'inspections.view' => ['pre_trip_inspections', false, false],
+        'inspections.manage' => ['pre_trip_inspections', true, false],
         'inspections.perform.own' => ['pre_trip_inspections', true, true],
 
         'trip-events.view' => ['trip_events', false, false],

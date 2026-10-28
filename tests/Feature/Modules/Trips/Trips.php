@@ -14,6 +14,7 @@ use App\Services\Operations\TripService;
 use App\Tenancy\TenantContext;
 use Closure;
 use Database\Factories\DriverFactory;
+use Database\Factories\InspectionFactory;
 use Database\Factories\TrailerFactory;
 use Database\Factories\VehicleFactory;
 
@@ -186,8 +187,19 @@ final class Trips
      */
     public static function inProgress(Company $company, ?array $crew = null, bool $pickup = false, bool $alsoPickup = false): Trip
     {
-        $trip = self::assigned($company, $crew, true, $pickup, $alsoPickup);
+        $trip = self::inspected(self::assigned($company, $crew, true, $pickup, $alsoPickup));
 
         return self::operate($company, fn ($assignment, TripLifecycleService $lifecycle) => $lifecycle->start($trip, $company->owner)->withoutRelations());
+    }
+
+    /**
+     * Records a completed pre-trip inspection of the trip's current crew (P2-4), so the pre-trip
+     * gate lets it start.
+     */
+    public static function inspected(Trip $trip, string $result = 'no_defects'): Trip
+    {
+        InspectionFactory::new()->forTrip($trip)->completed($result)->create();
+
+        return $trip;
     }
 }

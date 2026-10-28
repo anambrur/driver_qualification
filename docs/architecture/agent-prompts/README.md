@@ -94,7 +94,7 @@ Never use --no-verify, skip tests, or weaken assertions to get green.
 Filled in by each package's final report and confirmed against the code in P2-7. Known so far:
 - `php artisan migrate` (the Phase 2 tables, then the MySQL-only FK migrations on `folders` and `documents`).
 - `PermissionSeeder`, then `php artisan roles:sync-company` (P2-4 adds `inspections.manage`).
-- The default pre-trip inspection template seeder (P2-4).
+- P2-4 (inspections): `php artisan migrate` (`inspection_templates`, `inspection_template_items`, `inspections`, `inspection_results`, then the MySQL-only `documents.inspection_id` FK); `php artisan db:seed --class=PermissionSeeder` and `php artisan roles:sync-company` (`inspections.manage` for the Dispatcher); `php artisan db:seed --class=InspectionTemplateSeeder` (the "Pre-trip" v1 checklist, idempotent; also in `DatabaseSeeder`). No env key, queue or schedule; photos of failed items use the existing `default` queue (image to PDF). Review the checklist under Platform > Lookups > Inspection templates.
 - `php artisan folders:ensure-system` covers trips (P2-2); idempotent. P2-2 adds no permission, env key, queue or schedule.
 - P2-3 (assignment and lifecycle) adds no migration, permission, env key, queue or schedule; nothing to run beyond the code.
 - `npm run build` output committed (Leaflet, P2-1). [L] OpenStreetMap attribution on every map; a tile or geocoding provider once traffic outgrows the public policies.

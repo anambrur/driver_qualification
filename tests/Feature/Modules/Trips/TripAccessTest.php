@@ -64,7 +64,7 @@ function tripProgressRoutes(): array
         }, 'trips.assign'],
         'unassign' => [fn (Company $company) => ['DELETE', route('trips.assignment.destroy', Trips::assigned($company)), []], 'trips.assign'],
         'confirm equipment' => [fn (Company $company) => ['POST', route('trips.equipment.confirm', Trips::assigned($company, confirmed: false)), []], 'trips.assign'],
-        'start' => [fn (Company $company) => ['POST', route('trips.start', Trips::assigned($company)), []], 'trips.edit'],
+        'start' => [fn (Company $company) => ['POST', route('trips.start', Trips::inspected(Trips::assigned($company))), []], 'trips.edit'],
         'picked up' => [fn (Company $company) => ['POST', route('trips.picked-up', Trips::inProgress($company, alsoPickup: true)), []], 'trips.edit'],
         'stop times' => [function (Company $company) {
             $trip = Trips::inProgress($company);
@@ -152,6 +152,7 @@ it('gives the Dispatcher the whole flow', function () {
     $this->put(route('trips.assignment.update', $trip), ['driver_id' => $crew['driver']->id, 'vehicle_id' => $crew['vehicle']->id])->assertSessionHasNoErrors();
     $this->get(route('trips.show', $trip))->assertOk()->assertSee('Confirm equipment')->assertSee('Unassign');
     $this->post(route('trips.equipment.confirm', $trip))->assertSessionHasNoErrors();
+    Trips::inspected($trip->fresh());
     $this->post(route('trips.start', $trip))->assertSessionHasNoErrors();
     $this->get(route('trips.show', $trip))->assertOk()->assertSee('Save stop times')->assertSee('Complete trip');
     $this->post(route('trips.complete', $trip), ['actual_distance_miles' => '240'])->assertSessionHasNoErrors();

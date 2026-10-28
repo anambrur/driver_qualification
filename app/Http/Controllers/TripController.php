@@ -12,6 +12,7 @@ use App\Models\Trip;
 use App\Models\Vehicle;
 use App\Services\Documents\FolderBrowser;
 use App\Services\Operations\TripAssignmentService;
+use App\Services\Operations\TripLifecycleService;
 use App\Services\Operations\TripService;
 use App\Support\Ui\Toast;
 use Illuminate\Http\JsonResponse;
@@ -65,7 +66,7 @@ class TripController extends Controller
         return redirect()->to(route('trips.show', $trip).'#stops');
     }
 
-    public function show(Request $request, Trip $trip, FolderBrowser $browser, TripAssignmentService $assignment): View
+    public function show(Request $request, Trip $trip, FolderBrowser $browser, TripAssignmentService $assignment, TripLifecycleService $lifecycle): View
     {
         Gate::authorize('view', $trip);
 
@@ -76,6 +77,10 @@ class TripController extends Controller
         $documentsBrowser = $browser->tab($trip, $request->integer('folder') ?: null);
         $canEdit = $trip->isEditable() && $request->user()->can('trips.edit');
         $canAssign = $trip->isAssignable() && $request->user()->can('trips.assign');
+        $inspections = $request->user()->can('inspections.view')
+            ? $trip->inspections()->withCount(['results', 'documents'])->with(['template' => fn ($q) => $q->withCount('items'), 'performedBy:id,name'])->get()
+            : null;
+        $inspections?->first()?->load(['results' => fn ($q) => $q->where('result', 'fail')->orderBy('id')]);
 
         return view('trips.show', [
             'trip' => $trip,
@@ -86,6 +91,8 @@ class TripController extends Controller
             'assignOptions' => $canAssign ? $assignment->options($trip) : null,
             'groupDefaults' => $canAssign ? $assignment->groupDefaults() : [],
             'warnings' => $trip->status === 'assigned' ? $assignment->warnings($trip) : [],
+            'inspections' => $inspections,
+            'preTripBlocker' => $trip->status === 'assigned' ? $lifecycle->preTripBlocker($trip) : null,
             // Times are shown and typed in the company's time zone (Z1)
             'timezone' => $trip->driver_id !== null ? $this->trips->timezone() : null,
         ]);

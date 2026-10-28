@@ -41,7 +41,7 @@ function tripIn(string $state, bool $alsoPickup = false): Trip
         'draft' => Trips::create($company),
         'planned' => Trips::planned($company, alsoPickup: $alsoPickup),
         'assigned (unconfirmed)' => Trips::assigned($company, confirmed: false, alsoPickup: $alsoPickup),
-        'assigned' => Trips::assigned($company, alsoPickup: $alsoPickup),
+        'assigned' => Trips::inspected(Trips::assigned($company, alsoPickup: $alsoPickup)),
         'in_progress' => Trips::inProgress($company, alsoPickup: $alsoPickup),
         'completed' => Trips::operate($company, fn ($a, TripLifecycleService $lifecycle) => $lifecycle->complete(Trips::inProgress($company), null, $company->owner)->withoutRelations()),
         'cancelled' => Trips::service($company, fn (TripService $trips) => $trips->cancel(Trips::planned($company), 'No load', $company->owner)),
@@ -112,7 +112,7 @@ describe('the state-transition table', function () {
 
 it('starts an assigned trip with the unit numbers as they are at the start', function () {
     $crew = Trips::crew($this->company);
-    $trip = Trips::assigned($this->company, $crew);
+    $trip = Trips::inspected(Trips::assigned($this->company, $crew));
     $this->actingAs(Actors::dispatcher($this->company));
 
     $this->post(route('trips.start', $trip))->assertRedirect(route('trips.show', $trip))->assertSessionHasNoErrors();
@@ -143,7 +143,7 @@ describe('one in-progress trip per driver and per vehicle (acceptance)', functio
     it('refuses a second in-progress trip for the same driver', function () {
         $crew = Trips::crew($this->company);
         $first = Trips::inProgress($this->company, $crew);
-        $second = Trips::assigned($this->company, ['vehicle' => Trips::crew($this->company)['vehicle']] + $crew);
+        $second = Trips::inspected(Trips::assigned($this->company, ['vehicle' => Trips::crew($this->company)['vehicle']] + $crew));
 
         expect(fn () => Trips::operate($this->company, fn ($a, TripLifecycleService $l) => $l->start($second, $this->owner)))
             ->toThrow(ValidationException::class, "This driver already has a trip in progress ({$first->label()}).");
@@ -159,7 +159,7 @@ describe('one in-progress trip per driver and per vehicle (acceptance)', functio
     it('refuses a second in-progress trip on the same vehicle', function () {
         $crew = Trips::crew($this->company);
         $first = Trips::inProgress($this->company, $crew);
-        $second = Trips::assigned($this->company, ['driver' => Trips::crew($this->company)['driver']] + $crew);
+        $second = Trips::inspected(Trips::assigned($this->company, ['driver' => Trips::crew($this->company)['driver']] + $crew));
 
         $this->actingAs(Actors::dispatcher($this->company));
         $this->postJson(route('trips.start', $second))->assertUnprocessable()
@@ -171,7 +171,7 @@ describe('one in-progress trip per driver and per vehicle (acceptance)', functio
     it('lets the driver start the next trip once the first is completed', function () {
         $crew = Trips::crew($this->company);
         $first = Trips::inProgress($this->company, $crew);
-        $second = Trips::assigned($this->company, $crew);
+        $second = Trips::inspected(Trips::assigned($this->company, $crew));
         Trips::operate($this->company, fn ($a, TripLifecycleService $l) => $l->complete($first, 100.0, $this->owner));
 
         Trips::operate($this->company, fn ($a, TripLifecycleService $l) => $l->start($second, $this->owner));
@@ -182,7 +182,7 @@ describe('one in-progress trip per driver and per vehicle (acceptance)', functio
     it('frees nothing to free when an assigned trip is cancelled, and the driver starts another', function () {
         $crew = Trips::crew($this->company);
         $cancelled = Trips::assigned($this->company, $crew);
-        $next = Trips::assigned($this->company, $crew);
+        $next = Trips::inspected(Trips::assigned($this->company, $crew));
         Trips::service($this->company, fn (TripService $trips) => $trips->cancel($cancelled, 'Shipper cancelled', $this->owner));
 
         Trips::operate($this->company, fn ($a, TripLifecycleService $l) => $l->start($next, $this->owner));
